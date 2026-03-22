@@ -38,6 +38,8 @@
   };
 
   // ========== Modal System ==========
+  window.openChecklistWizard = openChecklistWizard;
+
   function openChecklistWizard(existingFormData) {
     var currentPage = 1;
     var maxVisitedPage = 1;
