@@ -54,190 +54,12 @@
   border-color: var(--color-accent-light);
 }
 
-.client-btn-add {
-  background: linear-gradient(to top, var(--color-accent-light), var(--color-accent-dark));
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-size: var(--font-size-body);
-  font-weight: 500;
-  cursor: pointer;
-  transition: filter 0.15s;
-  white-space: nowrap;
-}
-
-.client-btn-add:hover {
-  filter: brightness(1.1);
-}
-
-/* ===== Client Table ===== */
-.client-table-wrap {
-  overflow-x: auto;
-}
-
-.client-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.client-table thead th {
-  text-align: left;
-  padding: 10px 14px;
-  font-size: var(--font-size-small);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
-}
-
-.client-table tbody tr {
-  transition: background 0.15s;
-  animation: slideUpFadeIn 0.3s ease backwards;
-}
-
-.client-table tbody tr:hover {
-  background: rgba(128, 128, 128, 0.06);
-}
-
-.client-table tbody td {
-  padding: 12px 14px;
-  font-size: var(--font-size-body);
-  color: var(--text-secondary);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
-}
-
-.client-cell-name {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-/* ===== Status Badges ===== */
-.client-status {
-  display: inline-block;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 6px;
-}
-
-.client-status-active {
-  background: rgba(39, 174, 96, 0.15);
-  color: #27ae60;
-}
-
-.client-status-inactive {
-  background: rgba(128, 128, 128, 0.15);
-  color: var(--text-muted);
-}
-
-.client-status-lead {
-  background: rgba(245, 166, 35, 0.15);
-  color: var(--color-accent-light);
-}
-
 /* ===== Empty State ===== */
 .client-empty {
   color: var(--text-muted);
   text-align: center;
   padding: 60px;
   font-style: italic;
-}
-
-/* ===== Add Client Form ===== */
-.client-form {
-  background: rgba(128, 128, 128, 0.06);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
-  animation: slideUpFadeIn 0.3s ease backwards;
-}
-
-.client-form-title {
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
-.client-form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.client-form-group label {
-  display: block;
-  font-size: var(--font-size-small);
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.client-form-required {
-  color: #e74c3c;
-}
-
-.client-form-input {
-  width: 100%;
-  background: rgba(128, 128, 128, 0.08);
-  border: 1px solid rgba(128, 128, 128, 0.2);
-  color: var(--text-primary);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: var(--font-size-body);
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.client-form-input::placeholder {
-  color: var(--text-muted);
-}
-
-.client-form-input:focus {
-  border-color: var(--color-accent-light);
-}
-
-.client-form-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.client-btn-save {
-  background: linear-gradient(to top, var(--color-accent-light), var(--color-accent-dark));
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
-  font-size: var(--font-size-body);
-  font-weight: 500;
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-
-.client-btn-save:hover {
-  filter: brightness(1.1);
-}
-
-.client-btn-save:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.client-btn-cancel {
-  background: rgba(128, 128, 128, 0.12);
-  color: var(--text-secondary);
-  border: 1px solid rgba(128, 128, 128, 0.2);
-  border-radius: 8px;
-  padding: 8px 20px;
-  font-size: var(--font-size-body);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.client-btn-cancel:hover {
-  background: rgba(128, 128, 128, 0.2);
 }
 
 /* ===== Light Mode ===== */
@@ -251,24 +73,6 @@
 }
 
 [data-theme="light"] .client-search {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .client-table tbody tr:hover {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="light"] .client-cell-name {
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .client-form {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="light"] .client-form-input {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.15);
   color: #1a1a1a;
@@ -292,17 +96,5 @@
   .client-search {
     flex: 1;
     width: auto;
-  }
-
-  .client-form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .client-table thead th,
-  .client-table tbody td {
-    padding: 8px 10px;
-    font-size: var(--font-size-small);
   }
 }
