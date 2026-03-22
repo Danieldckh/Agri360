@@ -20,124 +20,6 @@
   margin-top: 6px;
 }
 
-/* ===== Summary Stats ===== */
-.dept-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-.dept-stat-card {
-  background: rgba(128, 128, 128, 0.08);
-  border-radius: 12px;
-  padding: 18px;
-  text-align: center;
-  transition: transform 0.2s;
-  animation: slideUpFadeIn 0.4s ease backwards;
-}
-
-.dept-stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.dept-stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.dept-stat-label {
-  font-size: var(--font-size-small);
-  color: var(--text-muted);
-  margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.dept-stat-pending .dept-stat-value {
-  color: var(--color-accent-light);
-}
-
-.dept-stat-progress .dept-stat-value {
-  color: #3498db;
-}
-
-.dept-stat-completed .dept-stat-value {
-  color: #27ae60;
-}
-
-/* ===== Deliverables Table ===== */
-.dept-table-wrap {
-  overflow-x: auto;
-}
-
-.dept-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.dept-table thead th {
-  text-align: left;
-  padding: 10px 14px;
-  font-size: var(--font-size-small);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
-}
-
-.dept-table tbody tr {
-  transition: background 0.15s;
-  animation: slideUpFadeIn 0.3s ease backwards;
-}
-
-.dept-table tbody tr:hover {
-  background: rgba(128, 128, 128, 0.06);
-}
-
-.dept-table tbody td {
-  padding: 12px 14px;
-  font-size: var(--font-size-body);
-  color: var(--text-secondary);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
-}
-
-.dept-cell-title {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-/* ===== Status Badges ===== */
-.dept-status {
-  display: inline-block;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 6px;
-}
-
-.dept-status-pending {
-  background: rgba(245, 166, 35, 0.15);
-  color: var(--color-accent-light);
-}
-
-.dept-status-in_progress {
-  background: rgba(52, 152, 219, 0.15);
-  color: #3498db;
-}
-
-.dept-status-completed,
-.dept-status-done {
-  background: rgba(39, 174, 96, 0.15);
-  color: #27ae60;
-}
-
-.dept-status-overdue {
-  background: rgba(231, 76, 60, 0.15);
-  color: #e74c3c;
-}
-
 /* ===== Empty & Loading States ===== */
 .dept-empty,
 .dept-loading {
@@ -147,24 +29,43 @@
   font-style: italic;
 }
 
+/* ===== Department Split Layout ===== */
+.dept-split {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.dept-split-left {
+  flex: 7;
+  background: var(--color-secondary);
+  border-radius: 20px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.dept-split-right {
+  flex: 3;
+  background: var(--color-secondary);
+  border-radius: 20px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.dept-details-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.dept-details-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* ===== Light Mode ===== */
 [data-theme="light"] .dept-header h2 {
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dept-stat-card {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="light"] .dept-stat-value {
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dept-table tbody tr:hover {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="light"] .dept-cell-title {
   color: #1a1a1a;
 }
 
@@ -174,29 +75,12 @@
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 768px) {
-  .dept-stats {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 1024px) {
+  .dept-split {
+    flex-direction: column;
   }
-}
-
-@media (max-width: 480px) {
-  .dept-stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .dept-stat-card {
-    padding: 14px;
-  }
-
-  .dept-stat-value {
-    font-size: 22px;
-  }
-
-  .dept-table thead th,
-  .dept-table tbody td {
-    padding: 8px 10px;
-    font-size: var(--font-size-small);
+  .dept-split-left,
+  .dept-split-right {
+    flex: none;
   }
 }

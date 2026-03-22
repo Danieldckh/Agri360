@@ -78,111 +78,47 @@ function renderDepartmentContent(section, dept, deliverables) {
 
   section.appendChild(header);
 
-  // Summary stats
-  var stats = computeStats(deliverables);
-  var statsContainer = document.createElement('div');
-  statsContainer.className = 'dept-stats';
+  // Split layout
+  var split = document.createElement('div');
+  split.className = 'dept-split';
 
-  var statItems = [
-    { label: 'Total', value: stats.total, cls: '' },
-    { label: 'Pending', value: stats.pending, cls: 'dept-stat-pending' },
-    { label: 'In Progress', value: stats.in_progress, cls: 'dept-stat-progress' },
-    { label: 'Completed', value: stats.completed, cls: 'dept-stat-completed' }
-  ];
+  // Left panel - main sheet
+  var leftPanel = document.createElement('div');
+  leftPanel.className = 'dept-split-left';
 
-  statItems.forEach(function(item) {
-    var card = document.createElement('div');
-    card.className = 'dept-stat-card' + (item.cls ? ' ' + item.cls : '');
-
-    var val = document.createElement('div');
-    val.className = 'dept-stat-value';
-    val.textContent = item.value;
-    card.appendChild(val);
-
-    var label = document.createElement('div');
-    label.className = 'dept-stat-label';
-    label.textContent = item.label;
-    card.appendChild(label);
-
-    statsContainer.appendChild(card);
-  });
-
-  section.appendChild(statsContainer);
-
-  // Deliverables list
-  if (deliverables.length === 0) {
-    var empty = document.createElement('div');
-    empty.className = 'dept-empty';
-    empty.textContent = 'No deliverables yet.';
-    section.appendChild(empty);
-    return;
+  if (window.renderSheet) {
+    window.renderSheet(leftPanel, {
+      columns: [
+        { key: 'title', label: 'Title', sortable: true, isName: true },
+        { key: 'client_name', label: 'Client', sortable: true },
+        { key: 'status', label: 'Status', sortable: true, type: 'status' },
+        { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' }
+      ],
+      data: deliverables,
+      radialActions: [
+        { id: 'dashboard', label: 'View Dashboard', action: function(row) { console.log('View dashboard:', row); } },
+        { id: 'status', label: 'Change Status', action: function(row) { console.log('Change status:', row); } },
+        { id: 'next', label: 'Next Step', action: function(row) { console.log('Next step:', row); }, highlight: true }
+      ]
+    });
   }
 
-  var tableWrap = document.createElement('div');
-  tableWrap.className = 'dept-table-wrap';
+  split.appendChild(leftPanel);
 
-  var table = document.createElement('table');
-  table.className = 'dept-table';
+  // Right panel - details placeholder
+  var rightPanel = document.createElement('div');
+  rightPanel.className = 'dept-split-right';
 
-  var thead = document.createElement('thead');
-  var headerRow = document.createElement('tr');
-  var columns = ['Title', 'Client', 'Status', 'Due Date'];
-  columns.forEach(function(col) {
-    var th = document.createElement('th');
-    th.textContent = col;
-    headerRow.appendChild(th);
-  });
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
+  var detailsTitle = document.createElement('div');
+  detailsTitle.className = 'dept-details-title';
+  detailsTitle.textContent = 'Details';
+  rightPanel.appendChild(detailsTitle);
 
-  var tbody = document.createElement('tbody');
-  deliverables.forEach(function(d, index) {
-    var tr = document.createElement('tr');
-    tr.style.animationDelay = (index * 0.03) + 's';
+  var detailsEmpty = document.createElement('div');
+  detailsEmpty.className = 'dept-details-empty';
+  detailsEmpty.textContent = 'Select an item to view details';
+  rightPanel.appendChild(detailsEmpty);
 
-    var tdTitle = document.createElement('td');
-    tdTitle.className = 'dept-cell-title';
-    tdTitle.textContent = d.title || '';
-    tr.appendChild(tdTitle);
-
-    var tdClient = document.createElement('td');
-    tdClient.textContent = d.client_name || '-';
-    tr.appendChild(tdClient);
-
-    var tdStatus = document.createElement('td');
-    var statusBadge = document.createElement('span');
-    var status = (d.status || 'pending').replace(/\s+/g, '_');
-    statusBadge.className = 'dept-status dept-status-' + status;
-    statusBadge.textContent = formatStatus(d.status);
-    tdStatus.appendChild(statusBadge);
-    tr.appendChild(tdStatus);
-
-    var tdDue = document.createElement('td');
-    tdDue.textContent = d.due_date ? new Date(d.due_date).toLocaleDateString() : '-';
-    tr.appendChild(tdDue);
-
-    tbody.appendChild(tr);
-  });
-
-  table.appendChild(tbody);
-  tableWrap.appendChild(table);
-  section.appendChild(tableWrap);
-}
-
-function computeStats(deliverables) {
-  var stats = { total: deliverables.length, pending: 0, in_progress: 0, completed: 0 };
-  deliverables.forEach(function(d) {
-    var s = (d.status || '').toLowerCase().replace(/\s+/g, '_');
-    if (s === 'pending') stats.pending++;
-    else if (s === 'in_progress' || s === 'in progress') stats.in_progress++;
-    else if (s === 'completed' || s === 'done') stats.completed++;
-  });
-  return stats;
-}
-
-function formatStatus(status) {
-  if (!status) return 'Pending';
-  return status.split(/[_\s]+/).map(function(w) {
-    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-  }).join(' ');
+  split.appendChild(rightPanel);
+  section.appendChild(split);
 }
