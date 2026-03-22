@@ -657,9 +657,197 @@
 
   // ========== Page Stubs ==========
   function renderPage2(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 2: Social Media \u2014 coming soon';
-    container.appendChild(p);
+    // 1. Active Months
+    renderActiveMonthsSelector(container, formData, 'page2ActiveMonths');
+
+    // 2. Social Account Links
+    var linksSection = document.createElement('div');
+    linksSection.className = 'checklist-section';
+    var linksTitle = document.createElement('h3');
+    linksTitle.className = 'checklist-section-title';
+    linksTitle.textContent = 'Social Account Links';
+    linksSection.appendChild(linksTitle);
+
+    var linksGrid = document.createElement('div');
+    linksGrid.className = 'checklist-form-grid';
+
+    var socialFields = [
+      { label: 'Facebook Link', placeholder: 'https://facebook.com/...', key: 'facebook' },
+      { label: 'Instagram Link', placeholder: 'https://instagram.com/...', key: 'instagram' },
+      { label: 'LinkedIn Link', placeholder: 'https://linkedin.com/...', key: 'linkedin' },
+      { label: 'YouTube Link', placeholder: 'https://youtube.com/...', key: 'youtube' },
+      { label: 'TikTok Link', placeholder: 'https://tiktok.com/...', key: 'tiktok' },
+      { label: 'Twitter / X Link', placeholder: 'https://x.com/...', key: 'twitter' }
+    ];
+
+    socialFields.forEach(function(field) {
+      linksGrid.appendChild(createFormGroup(field.label, 'text', formData.socialLinks[field.key], function(val) {
+        formData.socialLinks[field.key] = val;
+      }, { placeholder: field.placeholder }));
+    });
+
+    linksSection.appendChild(linksGrid);
+    container.appendChild(linksSection);
+
+    // 3. Social Media Management
+    function renderSMMBody(body, smm) {
+      var platformGrid = document.createElement('div');
+      platformGrid.className = 'checklist-form-grid';
+
+      var platforms = [
+        { label: 'Facebook', key: 'facebook' },
+        { label: 'Instagram', key: 'instagram' },
+        { label: 'LinkedIn', key: 'linkedin' },
+        { label: 'YouTube', key: 'youtube' },
+        { label: 'TikTok', key: 'tiktok' },
+        { label: 'Twitter/X', key: 'twitter' }
+      ];
+
+      platforms.forEach(function(p) {
+        var row = document.createElement('div');
+        row.className = 'checklist-checkbox-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = smm.platforms[p.key];
+        cb.id = 'smm-' + p.key;
+        cb.addEventListener('change', function() { smm.platforms[p.key] = cb.checked; });
+        var lbl = document.createElement('label');
+        lbl.htmlFor = 'smm-' + p.key;
+        lbl.textContent = p.label;
+        row.appendChild(cb);
+        row.appendChild(lbl);
+        platformGrid.appendChild(row);
+      });
+
+      body.appendChild(platformGrid);
+
+      var fieldsGrid = document.createElement('div');
+      fieldsGrid.className = 'checklist-form-grid';
+
+      fieldsGrid.appendChild(createFormGroup('Monthly Posts', 'number', smm.monthlyPosts, function(val) {
+        smm.monthlyPosts = parseInt(val, 10) || 0;
+      }, { min: 0 }));
+
+      fieldsGrid.appendChild(createFormGroup('Ad Spend', 'number', smm.adSpend, function(val) {
+        smm.adSpend = parseInt(val, 10) || 0;
+      }, { min: 0 }));
+
+      body.appendChild(fieldsGrid);
+
+      // Google Ads checkbox
+      var gaRow = document.createElement('div');
+      gaRow.className = 'checklist-checkbox-row';
+      var gaCb = document.createElement('input');
+      gaCb.type = 'checkbox';
+      gaCb.checked = smm.googleAds;
+      gaCb.id = 'smm-googleAds';
+      gaCb.addEventListener('change', function() { smm.googleAds = gaCb.checked; });
+      var gaLbl = document.createElement('label');
+      gaLbl.htmlFor = 'smm-googleAds';
+      gaLbl.textContent = 'Google Ads';
+      gaRow.appendChild(gaCb);
+      gaRow.appendChild(gaLbl);
+      body.appendChild(gaRow);
+
+      // Content Calendar checkbox
+      var ccRow = document.createElement('div');
+      ccRow.className = 'checklist-checkbox-row';
+      var ccCb = document.createElement('input');
+      ccCb.type = 'checkbox';
+      ccCb.checked = smm.contentCalendar;
+      ccCb.id = 'smm-contentCalendar';
+      ccCb.addEventListener('change', function() { smm.contentCalendar = ccCb.checked; });
+      var ccLbl = document.createElement('label');
+      ccLbl.htmlFor = 'smm-contentCalendar';
+      ccLbl.textContent = 'Content Calendar';
+      ccRow.appendChild(ccCb);
+      ccRow.appendChild(ccLbl);
+      body.appendChild(ccRow);
+    }
+
+    renderToggleableSection(container, 'Social Media Management', formData.socialMediaManagement, renderSMMBody, clipboard, 'socialMediaManagement');
+
+    // 4. Own Page Social Media
+    function renderOPSMBody(body, opsm) {
+      opsm.items.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'checklist-deliverable-row';
+
+        // Checkbox
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = item.enabled;
+        cb.addEventListener('change', function() { item.enabled = cb.checked; });
+        row.appendChild(cb);
+
+        // Label
+        var lbl = document.createElement('span');
+        lbl.className = 'checklist-deliverable-label';
+        lbl.textContent = item.label;
+        row.appendChild(lbl);
+
+        // Amount
+        var amtField = document.createElement('div');
+        amtField.className = 'checklist-deliverable-field';
+        var amtInput = document.createElement('input');
+        amtInput.className = 'checklist-input';
+        amtInput.type = 'number';
+        amtInput.min = '0';
+        amtInput.value = item.amount;
+        amtInput.placeholder = 'Amt';
+        amtInput.addEventListener('input', function() { item.amount = parseInt(amtInput.value, 10) || 0; });
+        amtField.appendChild(amtInput);
+        row.appendChild(amtField);
+
+        // Curated (if applicable)
+        if (item.hasCurated) {
+          var curField = document.createElement('div');
+          curField.className = 'checklist-deliverable-field';
+          var curInput = document.createElement('input');
+          curInput.className = 'checklist-input';
+          curInput.type = 'number';
+          curInput.min = '0';
+          curInput.value = item.curated;
+          curInput.placeholder = 'Curated';
+          curInput.addEventListener('input', function() { item.curated = parseInt(curInput.value, 10) || 0; });
+          curField.appendChild(curInput);
+          row.appendChild(curField);
+        }
+
+        // Timeframe
+        var tfField = document.createElement('div');
+        tfField.className = 'checklist-deliverable-field';
+        tfField.style.width = '120px';
+        var tfInput = document.createElement('input');
+        tfInput.className = 'checklist-input';
+        tfInput.type = 'text';
+        tfInput.value = item.timeframe || '';
+        tfInput.placeholder = 'Timeframe';
+        tfInput.addEventListener('input', function() { item.timeframe = tfInput.value; });
+        tfField.appendChild(tfInput);
+        row.appendChild(tfField);
+
+        // Campaign checkbox (LinkedIn only)
+        if (item.hasCampaign) {
+          var campRow = document.createElement('div');
+          campRow.className = 'checklist-checkbox-row';
+          campRow.style.marginLeft = '8px';
+          var campCb = document.createElement('input');
+          campCb.type = 'checkbox';
+          campCb.checked = item.campaign || false;
+          campCb.addEventListener('change', function() { item.campaign = campCb.checked; });
+          var campLbl = document.createElement('label');
+          campLbl.textContent = 'Campaign';
+          campRow.appendChild(campCb);
+          campRow.appendChild(campLbl);
+          row.appendChild(campRow);
+        }
+
+        body.appendChild(row);
+      });
+    }
+
+    renderToggleableSection(container, 'Own Page Social Media', formData.ownPageSocialMedia, renderOPSMBody, clipboard, 'ownPageSocialMedia');
   }
   function renderPage3(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -742,6 +930,24 @@
       formData.projectSummary = 'Full digital marketing campaign for 2026 season including social media management, online articles, and video production.';
       formData.campaignMonthStart = '2026-02';
       formData.campaignMonthEnd = '2026-06';
+    } else if (page === 2) {
+      formData.page2ActiveMonths = getActiveMonthsList(formData);
+      formData.socialLinks.facebook = 'https://facebook.com/agrisolutions';
+      formData.socialLinks.instagram = 'https://instagram.com/agrisolutions';
+      formData.socialLinks.linkedin = 'https://linkedin.com/company/agrisolutions';
+      formData.socialMediaManagement.enabled = true;
+      formData.socialMediaManagement.platforms.facebook = true;
+      formData.socialMediaManagement.platforms.instagram = true;
+      formData.socialMediaManagement.platforms.linkedin = true;
+      formData.socialMediaManagement.monthlyPosts = 12;
+      formData.socialMediaManagement.adSpend = 5000;
+      formData.ownPageSocialMedia.enabled = true;
+      formData.ownPageSocialMedia.items[0].enabled = true;
+      formData.ownPageSocialMedia.items[0].amount = 8;
+      formData.ownPageSocialMedia.items[0].curated = 2;
+      formData.ownPageSocialMedia.items[3].enabled = true;
+      formData.ownPageSocialMedia.items[3].amount = 6;
+      formData.ownPageSocialMedia.items[3].curated = 2;
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
