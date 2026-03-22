@@ -1057,14 +1057,79 @@
     renderCountryTabs();
   }
   function renderPage4(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 4: Online Articles \u2014 coming soon';
-    container.appendChild(p);
+    // 1. Active Months
+    renderActiveMonthsSelector(container, formData, 'page4ActiveMonths');
+
+    // 2. Online Articles toggleable section
+    function renderOABody(body, oa) {
+      // Checkbox rows
+      var checkboxes = [
+        { label: 'ProAgriMedia.com', key: 'proAgriMedia' },
+        { label: 'ProAgri.co.za', key: 'proAgriCoZa' }
+      ];
+
+      checkboxes.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'checklist-checkbox-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = oa[item.key];
+        cb.id = 'oa-' + item.key;
+        cb.addEventListener('change', function() { oa[item.key] = cb.checked; });
+        var lbl = document.createElement('label');
+        lbl.htmlFor = 'oa-' + item.key;
+        lbl.textContent = item.label;
+        row.appendChild(cb);
+        row.appendChild(lbl);
+        body.appendChild(row);
+      });
+
+      // 2-col grid: Amount and Curated
+      var grid = document.createElement('div');
+      grid.className = 'checklist-form-grid';
+
+      grid.appendChild(createFormGroup('Amount', 'number', oa.amount, function(val) {
+        oa.amount = parseInt(val, 10) || 0;
+      }, { min: 0 }));
+
+      grid.appendChild(createFormGroup('Curated', 'number', oa.curated, function(val) {
+        oa.curated = parseInt(val, 10) || 0;
+      }, { min: 0 }));
+
+      body.appendChild(grid);
+    }
+
+    renderToggleableSection(container, 'Online Articles', formData.onlineArticles, renderOABody, clipboard, 'onlineArticles');
   }
   function renderPage5(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 5: Banners \u2014 coming soon';
-    container.appendChild(p);
+    // 1. Active Months
+    renderActiveMonthsSelector(container, formData, 'page5ActiveMonths');
+
+    // 2. Banners toggleable section
+    function renderBannersBody(body, banners) {
+      var checkboxes = [
+        { label: 'Agri4All', key: 'agri4all' },
+        { label: 'ProAgri', key: 'proAgri' }
+      ];
+
+      checkboxes.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'checklist-checkbox-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = banners[item.key];
+        cb.id = 'banners-' + item.key;
+        cb.addEventListener('change', function() { banners[item.key] = cb.checked; });
+        var lbl = document.createElement('label');
+        lbl.htmlFor = 'banners-' + item.key;
+        lbl.textContent = item.label;
+        row.appendChild(cb);
+        row.appendChild(lbl);
+        body.appendChild(row);
+      });
+    }
+
+    renderToggleableSection(container, 'Banners', formData.banners, renderBannersBody, clipboard, 'banners');
   }
   function renderPage6(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -1162,6 +1227,18 @@
       formData.agri4all.items[3].curated = 1;
       formData.agri4all.items[9].enabled = true;
       formData.agri4all.items[9].amount = 2;
+    } else if (page === 4) {
+      formData.page4ActiveMonths = getActiveMonthsList(formData);
+      formData.onlineArticles.enabled = true;
+      formData.onlineArticles.proAgriMedia = true;
+      formData.onlineArticles.proAgriCoZa = true;
+      formData.onlineArticles.amount = 3;
+      formData.onlineArticles.curated = 1;
+    } else if (page === 5) {
+      formData.page5ActiveMonths = getActiveMonthsList(formData);
+      formData.banners.enabled = true;
+      formData.banners.agri4all = true;
+      formData.banners.proAgri = true;
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
