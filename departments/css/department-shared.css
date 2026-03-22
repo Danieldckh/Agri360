@@ -81,6 +81,20 @@
   color: #999;
 }
 
+/* Override messaging.css shared class rules for dept sidebar */
+[data-theme="light"] .dept-sidebar .msg-sidebar-title {
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .dept-sidebar .msg-back-btn {
+  color: #555;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .dept-sidebar .msg-back-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .dept-split {

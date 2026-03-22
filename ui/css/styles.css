@@ -67,6 +67,8 @@ html, body {
 /* ===== User Menu ===== */
 .user-menu {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .user-avatar-btn {
@@ -730,13 +732,26 @@ html, body {
 /* ===== Department Sidebar ===== */
 .dept-sidebar {
   width: var(--sidebar-width);
-  background: var(--color-secondary);
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   padding: 16px 0 16px 12px;
   overflow-y: auto;
   flex-shrink: 0;
   transition: width var(--sidebar-transition);
+}
+
+.dept-sidebar .msg-sidebar-title {
+  color: #1a1a1a;
+}
+
+.dept-sidebar .msg-back-btn {
+  color: #555;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.dept-sidebar .msg-back-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
 }
 
 .dept-sidebar-items {
@@ -752,7 +767,7 @@ html, body {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 10px;
-  color: var(--text-secondary);
+  color: #444;
   font-size: 13px;
   cursor: pointer;
   text-decoration: none;
@@ -760,14 +775,15 @@ html, body {
 }
 
 .dept-sidebar-item:hover {
-  background: rgba(128, 128, 128, 0.1);
-  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.06);
+  color: #1a1a1a;
 }
 
 .dept-sidebar-item.active {
   background: var(--color-accent-light);
   color: #fff;
 }
+
 
 /* ===== Responsive — 8 tiers ===== */
 
