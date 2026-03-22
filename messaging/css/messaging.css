@@ -1186,6 +1186,10 @@
   color: #ddd;
 }
 
+[data-theme="light"] .msg-sidebar-actions {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
 [data-theme="light"] .msg-conversations {
   border-right-color: rgba(0, 0, 0, 0.08);
 }
@@ -1355,6 +1359,165 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
+[data-theme="light"] .emoji-picker-tabs {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .emoji-picker-tab {
+  color: #666;
+}
+
+[data-theme="light"] .emoji-picker-cat {
+  color: #999;
+}
+
+[data-theme="light"] .emoji-picker-empty {
+  color: #999;
+}
+
+[data-theme="light"] .msg-bubble-avatar {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .msg-bubble-time {
+  color: #999;
+}
+
+[data-theme="light"] .msg-attach-btn {
+  color: #888;
+}
+
+[data-theme="light"] .msg-attach-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+}
+
+[data-theme="light"] .msg-attachment-link {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .msg-attachment-link:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .msg-loading,
+[data-theme="light"] .msg-empty {
+  color: #999;
+}
+
+[data-theme="light"] .msg-welcome {
+  color: #999;
+}
+
+[data-theme="light"] .msg-welcome-desc {
+  color: #999;
+}
+
+[data-theme="light"] .msg-mention-item-username {
+  color: #999;
+}
+
+[data-theme="light"] .msg-modal-label {
+  color: #666;
+}
+
+[data-theme="light"] .msg-modal-btn-cancel {
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+}
+
+[data-theme="light"] .msg-modal-btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .msg-modal-member-list {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .msg-modal-member-row:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .msg-modal-person-row {
+  color: #333;
+}
+
+[data-theme="light"] .msg-modal-person-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .msg-emoji-trigger {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  color: #666;
+}
+
+[data-theme="light"] .msg-sidebar-search input::placeholder {
+  color: #999;
+}
+
+/* Light theme overrides for sidebar folders */
+[data-theme="light"] .msg-sidebar-folders {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .msg-sidebar-folders-title {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="light"] .msg-sidebar-folder-add-btn {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="light"] .msg-sidebar-folder-add-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .msg-sidebar-folders-empty {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="light"] .msg-sidebar-folder-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .msg-sidebar-folder-row.active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="light"] .msg-sidebar-folder-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .msg-sidebar-folder-name {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="light"] .msg-sidebar-folder-count {
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .msg-folder-ctx-menu {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .msg-folder-ctx-header {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .msg-folder-ctx-item {
+  color: #333;
+}
+
+[data-theme="light"] .msg-folder-ctx-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .msg-conversations {
@@ -1389,6 +1552,9 @@
     inset: 0;
     z-index: 50;
     background: var(--color-primary);
+  }
+  [data-theme="light"] .msg-sidebar {
+    background: #2a2a2a;
   }
 
   .msg-conv-search {
