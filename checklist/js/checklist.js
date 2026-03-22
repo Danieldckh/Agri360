@@ -1659,9 +1659,21 @@
     recalcFinancials();
   }
   function renderPage10(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 10: Sign-Off \u2014 coming soon';
-    container.appendChild(p);
+    var section = document.createElement('div');
+    section.className = 'checklist-section';
+
+    var title = document.createElement('h3');
+    title.textContent = 'Sign-Off';
+    section.appendChild(title);
+
+    var grid = document.createElement('div');
+    grid.className = 'checklist-grid-2col';
+
+    grid.appendChild(createFormGroup('Date', 'date', formData.signOffDate, function(v) { formData.signOffDate = v; }));
+    grid.appendChild(createFormGroup('Representative', 'text', formData.representative, function(v) { formData.representative = v; }));
+
+    section.appendChild(grid);
+    container.appendChild(section);
   }
 
   // ========== Validation & Helpers ==========
@@ -1781,8 +1793,144 @@
           subtotal: 0
         };
       });
+    } else if (page === 10) {
+      var today = new Date();
+      formData.signOffDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      formData.representative = 'Pieter de Villiers';
     }
   }
-  function submitWizard(formData, onClose) { onClose(); }
+  function submitWizard(formData, onClose) {
+    // Build client payload
+    var clientPayload = {
+      name: formData.companyName,
+      tradingName: formData.tradingName,
+      companyRegNo: formData.companyRegNo,
+      vatNumber: formData.vatNumber,
+      website: formData.website,
+      industryExpertise: formData.industryExpertise,
+      physicalAddress: formData.physicalAddress,
+      physicalPostalCode: formData.physicalPostalCode,
+      postalAddress: formData.postalAddress,
+      postalCode: formData.postalCode,
+      primaryContact: formData.primaryContact,
+      materialContact: formData.materialContact,
+      accountsContact: formData.accountsContact
+    };
+
+    // Build booking form payload (everything except client fields)
+    var bookingPayload = {
+      campaignMonthStart: formData.campaignMonthStart,
+      campaignMonthEnd: formData.campaignMonthEnd,
+      signOffDate: formData.signOffDate || null,
+      representative: formData.representative || null,
+      formData: {
+        socialLinks: formData.socialLinks,
+        socialMediaManagement: formData.socialMediaManagement,
+        ownPageSocialMedia: formData.ownPageSocialMedia,
+        selectedCountries: formData.selectedCountries,
+        agri4all: formData.agri4all,
+        onlineArticles: formData.onlineArticles,
+        banners: formData.banners,
+        magazine: formData.magazine,
+        video: formData.video,
+        websiteDesign: formData.websiteDesign,
+        monthlyFinancials: formData.monthlyFinancials,
+        currency: formData.currency,
+        projectSummary: formData.projectSummary,
+        page2ActiveMonths: formData.page2ActiveMonths,
+        page3ActiveMonths: formData.page3ActiveMonths,
+        page4ActiveMonths: formData.page4ActiveMonths,
+        page5ActiveMonths: formData.page5ActiveMonths,
+        page6ActiveMonths: formData.page6ActiveMonths,
+        page7ActiveMonths: formData.page7ActiveMonths,
+        page8ActiveMonths: formData.page8ActiveMonths,
+        page9ActiveMonths: formData.page9ActiveMonths
+      }
+    };
+
+    function showMessage(container, msg, isError) {
+      var banner = document.createElement('div');
+      banner.className = isError ? 'checklist-error-banner' : 'checklist-success-banner';
+      banner.textContent = msg;
+      container.insertBefore(banner, container.firstChild);
+    }
+
+    // Get the modal content area for showing messages
+    var modalContent = document.querySelector('.checklist-modal-content');
+
+    if (formData.existingClientId) {
+      // Existing client — check for date range match
+      fetch(API_URL + '/booking-forms/by-client/' + formData.existingClientId, {
+        headers: authHeaders(true)
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(forms) {
+        var match = null;
+        forms.forEach(function(f) {
+          if (f.campaignMonthStart === formData.campaignMonthStart && f.campaignMonthEnd === formData.campaignMonthEnd) {
+            match = f;
+          }
+        });
+
+        if (match) {
+          // Update existing booking form
+          return fetch(API_URL + '/booking-forms/' + match.id, {
+            method: 'PATCH',
+            headers: authHeaders(true),
+            body: JSON.stringify(bookingPayload)
+          });
+        } else {
+          // Create new booking form for existing client
+          bookingPayload.clientId = formData.existingClientId;
+          return fetch(API_URL + '/booking-forms', {
+            method: 'POST',
+            headers: authHeaders(true),
+            body: JSON.stringify(bookingPayload)
+          });
+        }
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Failed to save booking form');
+        return res.json();
+      })
+      .then(function() {
+        if (modalContent) showMessage(modalContent, 'Booking form saved successfully!', false);
+        setTimeout(onClose, 2000);
+      })
+      .catch(function(err) {
+        if (modalContent) showMessage(modalContent, 'Error: ' + err.message, true);
+      });
+    } else {
+      // New client — create client first, then booking form
+      fetch(API_URL + '/clients', {
+        method: 'POST',
+        headers: authHeaders(true),
+        body: JSON.stringify(clientPayload)
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Failed to create client');
+        return res.json();
+      })
+      .then(function(client) {
+        bookingPayload.clientId = client.id;
+        return fetch(API_URL + '/booking-forms', {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify(bookingPayload)
+        });
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Failed to create booking form');
+        return res.json();
+      })
+      .then(function() {
+        if (modalContent) showMessage(modalContent, 'Client and booking form created successfully!', false);
+        setTimeout(onClose, 2000);
+      })
+      .catch(function(err) {
+        if (modalContent) showMessage(modalContent, 'Error: ' + err.message, true);
+      });
+    }
+  }
 
 })();
