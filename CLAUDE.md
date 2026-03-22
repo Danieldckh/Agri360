@@ -43,3 +43,9 @@ This project supports multiple concurrent Claude Code sessions. To prevent sessi
 - **Database**: PostgreSQL (via `pg` driver)
 - **Auth**: JWT + bcrypt
 - **File uploads**: Multer
+
+---
+
+## Ralph Loop
+
+When running `/ralph-loop`, always set `max_iterations: 10`. Do not use unlimited (0) iterations.

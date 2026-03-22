@@ -14,9 +14,16 @@
     'message_stars': 'Messaging',
     'notifications': 'Messaging',
     'message_folders': 'Messaging',
-    'message_folder_items': 'Messaging'
+    'message_folder_items': 'Messaging',
+    'clients': 'Clients',
+    'booking_forms': 'Clients',
+    'deliverables': 'Clients',
+    'dashboards': 'Clients',
+    'financials': 'Clients',
+    'departments': 'Departments',
+    'department_views': 'Departments'
   };
-  var MODULE_ORDER = ['Employees', 'Messaging', 'Other'];
+  var MODULE_ORDER = ['Employees', 'Messaging', 'Clients', 'Departments', 'Other'];
 
   function groupTablesByModule(tables) {
     var groups = {};

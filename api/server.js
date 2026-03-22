@@ -27,6 +27,20 @@ app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/messaging', messagingRoutes);
 
+const clientRoutes = require('./routes/clients');
+const bookingFormRoutes = require('./routes/booking-forms');
+const deliverableRoutes = require('./routes/deliverables');
+const dashboardRoutes = require('./routes/dashboards');
+const financialRoutes = require('./routes/financials');
+const departmentRoutes = require('./routes/departments');
+
+app.use('/api/clients', clientRoutes);
+app.use('/api/booking-forms', bookingFormRoutes);
+app.use('/api/deliverables', deliverableRoutes);
+app.use('/api/dashboards', dashboardRoutes);
+app.use('/api/financials', financialRoutes);
+app.use('/api/departments', departmentRoutes);
+
 const devRoutes = require('./routes/dev');
 app.use('/api/dev', devRoutes);
 
