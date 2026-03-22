@@ -1219,9 +1219,154 @@
     renderToggleableSection(container, 'Magazine', formData.magazine, renderMagazineBody, clipboard, 'magazine');
   }
   function renderPage7(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 7: Video \u2014 coming soon';
-    container.appendChild(p);
+    // 1. Active Months
+    renderActiveMonthsSelector(container, formData, 'page7ActiveMonths');
+
+    // 2. Video toggleable section
+    function renderVideoBody(body, vid) {
+      var activeTab = 0;
+
+      function buildTabs() {
+        while (body.firstChild) body.removeChild(body.firstChild);
+
+        var tabBar = document.createElement('div');
+        tabBar.className = 'checklist-tabs';
+
+        vid.entries.forEach(function(entry, idx) {
+          var tab = document.createElement('button');
+          tab.className = 'checklist-tab';
+          if (idx === activeTab) tab.classList.add('active');
+
+          var tabText = document.createTextNode('Video ' + (idx + 1));
+          tab.appendChild(tabText);
+
+          if (idx > 0) {
+            var closeSpan = document.createElement('span');
+            closeSpan.className = 'checklist-tab-close';
+            closeSpan.textContent = '\u00D7';
+            closeSpan.addEventListener('click', function(e) {
+              e.stopPropagation();
+              if (confirm('Remove Video ' + (idx + 1) + '?')) {
+                vid.entries.splice(idx, 1);
+                if (activeTab >= vid.entries.length) activeTab = vid.entries.length - 1;
+                buildTabs();
+              }
+            });
+            tab.appendChild(closeSpan);
+          }
+
+          tab.addEventListener('click', function() { activeTab = idx; buildTabs(); });
+          tabBar.appendChild(tab);
+        });
+
+        var addBtn = document.createElement('button');
+        addBtn.className = 'checklist-tab-add';
+        addBtn.textContent = '+ Add Video';
+        addBtn.addEventListener('click', function() {
+          vid.entries.push(createVideoEntry());
+          activeTab = vid.entries.length - 1;
+          buildTabs();
+        });
+        tabBar.appendChild(addBtn);
+        body.appendChild(tabBar);
+
+        // Render active tab content
+        var content = document.createElement('div');
+        var entry = vid.entries[activeTab];
+
+        // Video Type radio group
+        var typeLabel = document.createElement('label');
+        typeLabel.className = 'checklist-label';
+        typeLabel.textContent = 'Video Type';
+        content.appendChild(typeLabel);
+
+        var typeGroup = document.createElement('div');
+        typeGroup.className = 'checklist-radio-group';
+        var videoTypes = [
+          'Promotional / Advertising', 'Informative / Educational', 'Testimonial / Case Study',
+          'Entertainment / Creative', 'Interactive / Event Coverage', 'Hype / Invitation',
+          'Highlights / Recap', 'Practical demonstrations', 'Proven results',
+          'Problem solving', 'New technologies and innovation', 'Tips and best practices',
+          'Humoristic short from ads', 'Photographer', 'Other'
+        ];
+        videoTypes.forEach(function(optionValue) {
+          var radioLabel = document.createElement('label');
+          radioLabel.className = 'checklist-radio-label';
+          var radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'videoType-' + activeTab;
+          radio.value = optionValue;
+          radio.checked = entry.videoType === optionValue;
+          radio.addEventListener('change', function() { entry.videoType = radio.value; });
+          radioLabel.appendChild(radio);
+          var span = document.createElement('span');
+          span.textContent = optionValue;
+          radioLabel.appendChild(span);
+          typeGroup.appendChild(radioLabel);
+        });
+        content.appendChild(typeGroup);
+
+        // Video Duration radio group
+        var durationLabel = document.createElement('label');
+        durationLabel.className = 'checklist-label';
+        durationLabel.textContent = 'Video Duration';
+        content.appendChild(durationLabel);
+
+        var durationGroup = document.createElement('div');
+        durationGroup.className = 'checklist-radio-group';
+        var durations = ['1-2 min', '3-5 min', '5-10 min', '10-15 min', '15+ min'];
+        durations.forEach(function(optionValue) {
+          var radioLabel = document.createElement('label');
+          radioLabel.className = 'checklist-radio-label';
+          var radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'videoDuration-' + activeTab;
+          radio.value = optionValue;
+          radio.checked = entry.videoDuration === optionValue;
+          radio.addEventListener('change', function() { entry.videoDuration = radio.value; });
+          radioLabel.appendChild(radio);
+          var span = document.createElement('span');
+          span.textContent = optionValue;
+          radioLabel.appendChild(span);
+          durationGroup.appendChild(radioLabel);
+        });
+        content.appendChild(durationGroup);
+
+        // Other fields in 2-col grid
+        var grid = document.createElement('div');
+        grid.className = 'checklist-grid-2col';
+
+        // Photographer Included checkbox
+        var cbGroup = document.createElement('div');
+        cbGroup.className = 'checklist-form-group';
+        var cbRow = document.createElement('div');
+        cbRow.className = 'checklist-checkbox-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = entry.photographerIncluded;
+        cb.id = 'video-' + activeTab + '-photographerIncluded';
+        cb.addEventListener('change', function() { entry.photographerIncluded = cb.checked; });
+        var cbLbl = document.createElement('label');
+        cbLbl.htmlFor = 'video-' + activeTab + '-photographerIncluded';
+        cbLbl.textContent = 'Photographer Included';
+        cbRow.appendChild(cb);
+        cbRow.appendChild(cbLbl);
+        cbGroup.appendChild(cbRow);
+        grid.appendChild(cbGroup);
+
+        grid.appendChild(createFormGroup('Video Shoot Duration \u2014 Days', 'number', entry.shootDays, function(v) { entry.shootDays = v; }));
+        grid.appendChild(createFormGroup('Video Shoot Duration \u2014 Hours', 'number', entry.shootHours, function(v) { entry.shootHours = v; }));
+        grid.appendChild(createFormGroup('Video Shoot Location', 'text', entry.location, function(v) { entry.location = v; }));
+        grid.appendChild(createFormGroup('Video Description', 'textarea', entry.description, function(v) { entry.description = v; }, { fullWidth: true, placeholder: 'Add any additional details...' }));
+
+        content.appendChild(grid);
+        body.appendChild(content);
+      }
+
+      buildTabs();
+    }
+
+    renderToggleableSection(container, 'Video', formData.video, renderVideoBody, clipboard, 'video');
   }
   function renderPage8(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -1328,6 +1473,16 @@
         { saDigital: true, africaPrint: false, africaDigital: true, coffeeTableBook: false },
         { saDigital: false, africaPrint: true, africaDigital: false, coffeeTableBook: false }
       ];
+    } else if (page === 7) {
+      formData.page7ActiveMonths = getActiveMonthsList(formData);
+      formData.video.enabled = true;
+      formData.video.entries[0].videoType = 'Promotional / Advertising';
+      formData.video.entries[0].videoDuration = '3-5 min';
+      formData.video.entries[0].photographerIncluded = true;
+      formData.video.entries[0].shootDays = 2;
+      formData.video.entries[0].shootHours = 0;
+      formData.video.entries[0].location = 'Stellenbosch Wine Estate';
+      formData.video.entries[0].description = 'Promotional video showcasing product range for the 2026 season.';
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
