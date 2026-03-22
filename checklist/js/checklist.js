@@ -850,9 +850,211 @@
     renderToggleableSection(container, 'Own Page Social Media', formData.ownPageSocialMedia, renderOPSMBody, clipboard, 'ownPageSocialMedia');
   }
   function renderPage3(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 3: Countries & Agri4All \u2014 coming soon';
-    container.appendChild(p);
+    // 1. Active Months
+    renderActiveMonthsSelector(container, formData, 'page3ActiveMonths');
+
+    // 2. Select Countries
+    var countriesSection = document.createElement('div');
+    countriesSection.className = 'checklist-section';
+    var countriesTitle = document.createElement('h3');
+    countriesTitle.className = 'checklist-section-title';
+    countriesTitle.textContent = 'Select Countries';
+    countriesSection.appendChild(countriesTitle);
+
+    var hardcodedCountries = [
+      'Algeria', 'Angola', 'Bahrain', 'Benin', 'Botswana', 'Brazil', 'Burkina Faso',
+      'Cameroon', 'Canada', 'CAR', 'Cyprus', 'Cote d\'Ivoire', 'Egypt', 'Eswatini',
+      'Ethiopia', 'Europe', 'France', 'Ghana', 'Guinea', 'Jordan', 'Kenya', 'Kuwait',
+      'Lesotho', 'Liberia', 'Libya', 'Madagascar', 'Malawi', 'Mali', 'Mauritius',
+      'Mexico', 'Morocco', 'Mozambique', 'Namibia', 'Nigeria', 'Qatar',
+      'Republic of the Congo', 'Rwanda', 'Saudi Arabia', 'Senegal', 'South Africa',
+      'Spain', 'Sudan', 'Tanzania', 'Togo', 'Tunisia', 'USA', 'Uganda',
+      'United Arab Emirates', 'Zambia', 'Zimbabwe'
+    ];
+
+    function renderCountryGrid() {
+      var existingGrid = countriesSection.querySelector('.checklist-country-grid');
+      if (existingGrid) existingGrid.remove();
+      var existingAddForm = countriesSection.querySelector('.checklist-add-country-form');
+      if (existingAddForm) existingAddForm.remove();
+      var existingAddBtn = countriesSection.querySelector('.checklist-add-country-btn');
+      if (existingAddBtn) existingAddBtn.remove();
+
+      var allCountries = hardcodedCountries.slice();
+      if (formData.customCountries && formData.customCountries.length > 0) {
+        formData.customCountries.forEach(function(c) {
+          if (allCountries.indexOf(c) === -1) allCountries.push(c);
+        });
+      }
+
+      var grid = document.createElement('div');
+      grid.className = 'checklist-country-grid';
+
+      allCountries.forEach(function(country) {
+        var item = document.createElement('div');
+        item.className = 'checklist-country-item';
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = formData.selectedCountries.indexOf(country) !== -1;
+        cb.addEventListener('change', function() {
+          var idx = formData.selectedCountries.indexOf(country);
+          if (cb.checked && idx === -1) {
+            formData.selectedCountries.push(country);
+          } else if (!cb.checked && idx !== -1) {
+            formData.selectedCountries.splice(idx, 1);
+          }
+          renderCountryTabs();
+        });
+
+        var lbl = document.createElement('label');
+        lbl.textContent = country;
+
+        item.appendChild(cb);
+        item.appendChild(lbl);
+        grid.appendChild(item);
+      });
+
+      countriesSection.appendChild(grid);
+
+      // "+ Add Country" button
+      var addBtn = document.createElement('button');
+      addBtn.className = 'checklist-btn checklist-add-country-btn';
+      addBtn.textContent = '+ Add Country';
+      addBtn.addEventListener('click', function() {
+        addBtn.style.display = 'none';
+        var addForm = document.createElement('div');
+        addForm.className = 'checklist-add-country-form';
+        addForm.style.display = 'flex';
+        addForm.style.gap = '8px';
+        addForm.style.marginTop = '8px';
+
+        var addInput = document.createElement('input');
+        addInput.className = 'checklist-input';
+        addInput.type = 'text';
+        addInput.placeholder = 'Country name';
+
+        var addConfirmBtn = document.createElement('button');
+        addConfirmBtn.className = 'checklist-btn';
+        addConfirmBtn.textContent = 'Add';
+        addConfirmBtn.addEventListener('click', function() {
+          var val = addInput.value.trim();
+          if (val) {
+            if (!formData.customCountries) formData.customCountries = [];
+            if (formData.customCountries.indexOf(val) === -1) {
+              formData.customCountries.push(val);
+            }
+            renderCountryGrid();
+          }
+        });
+
+        addForm.appendChild(addInput);
+        addForm.appendChild(addConfirmBtn);
+        countriesSection.appendChild(addForm);
+      });
+      countriesSection.appendChild(addBtn);
+    }
+
+    renderCountryGrid();
+    container.appendChild(countriesSection);
+
+    // 3. Agri4All
+    function renderAgri4AllBody(body, agri) {
+      agri.items.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'checklist-deliverable-row';
+
+        // Checkbox
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = item.enabled;
+        cb.addEventListener('change', function() { item.enabled = cb.checked; });
+        row.appendChild(cb);
+
+        // Label
+        var lbl = document.createElement('span');
+        lbl.className = 'checklist-deliverable-label';
+        lbl.textContent = item.label;
+        row.appendChild(lbl);
+
+        // Standalone items (like unlimitedProductUploads): just checkbox + label
+        if (item.standalone) {
+          body.appendChild(row);
+          return;
+        }
+
+        // Amount
+        var amtField = document.createElement('div');
+        amtField.className = 'checklist-deliverable-field';
+        var amtInput = document.createElement('input');
+        amtInput.className = 'checklist-input';
+        amtInput.type = 'number';
+        amtInput.min = '0';
+        amtInput.value = item.amount;
+        amtInput.placeholder = 'Amt';
+        amtInput.addEventListener('input', function() { item.amount = parseInt(amtInput.value, 10) || 0; });
+        amtField.appendChild(amtInput);
+        row.appendChild(amtField);
+
+        // Curated (if applicable)
+        if (item.hasCurated) {
+          var curField = document.createElement('div');
+          curField.className = 'checklist-deliverable-field';
+          var curInput = document.createElement('input');
+          curInput.className = 'checklist-input';
+          curInput.type = 'number';
+          curInput.min = '0';
+          curInput.value = item.curated;
+          curInput.placeholder = 'Curated';
+          curInput.addEventListener('input', function() { item.curated = parseInt(curInput.value, 10) || 0; });
+          curField.appendChild(curInput);
+          row.appendChild(curField);
+        }
+
+        // Company Campaign checkbox (LinkedIn Article only)
+        if (item.hasCampaign) {
+          var campRow = document.createElement('div');
+          campRow.className = 'checklist-checkbox-row';
+          campRow.style.marginLeft = '8px';
+          var campCb = document.createElement('input');
+          campCb.type = 'checkbox';
+          campCb.checked = item.campaign || false;
+          campCb.addEventListener('change', function() { item.campaign = campCb.checked; });
+          var campLbl = document.createElement('label');
+          campLbl.textContent = 'Company Campaign';
+          campRow.appendChild(campCb);
+          campRow.appendChild(campLbl);
+          row.appendChild(campRow);
+        }
+
+        body.appendChild(row);
+      });
+    }
+
+    renderToggleableSection(container, 'Agri4All', formData.agri4all, renderAgri4AllBody, clipboard, 'agri4all');
+
+    // 4. Country Filter Tabs
+    var tabsContainer = document.createElement('div');
+    tabsContainer.className = 'checklist-tabs';
+    container.appendChild(tabsContainer);
+
+    function renderCountryTabs() {
+      while (tabsContainer.firstChild) tabsContainer.removeChild(tabsContainer.firstChild);
+
+      var allTab = document.createElement('div');
+      allTab.className = 'checklist-tab checklist-tab-active';
+      allTab.textContent = 'All';
+      tabsContainer.appendChild(allTab);
+
+      formData.selectedCountries.forEach(function(country) {
+        var tab = document.createElement('div');
+        tab.className = 'checklist-tab';
+        tab.textContent = country;
+        tabsContainer.appendChild(tab);
+      });
+    }
+
+    renderCountryTabs();
   }
   function renderPage4(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -948,6 +1150,18 @@
       formData.ownPageSocialMedia.items[3].enabled = true;
       formData.ownPageSocialMedia.items[3].amount = 6;
       formData.ownPageSocialMedia.items[3].curated = 2;
+    } else if (page === 3) {
+      formData.page3ActiveMonths = getActiveMonthsList(formData);
+      formData.selectedCountries = ['South Africa', 'Namibia', 'Botswana', 'Kenya'];
+      formData.agri4all.enabled = true;
+      formData.agri4all.items[0].enabled = true;
+      formData.agri4all.items[0].amount = 4;
+      formData.agri4all.items[0].curated = 1;
+      formData.agri4all.items[3].enabled = true;
+      formData.agri4all.items[3].amount = 4;
+      formData.agri4all.items[3].curated = 1;
+      formData.agri4all.items[9].enabled = true;
+      formData.agri4all.items[9].amount = 2;
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
