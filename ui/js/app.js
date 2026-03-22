@@ -275,6 +275,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('proagri-theme', next);
     updateThemeLabel(next);
+
+    // Re-apply theme text colors for the new mode
+    try {
+      var themeSettings = JSON.parse(localStorage.getItem('proagri-theme-settings') || '{}');
+      if (next === 'dark') {
+        if (themeSettings['--text-primary-dark']) document.documentElement.style.setProperty('--text-primary', themeSettings['--text-primary-dark']);
+        if (themeSettings['--text-secondary-dark']) document.documentElement.style.setProperty('--text-secondary', themeSettings['--text-secondary-dark']);
+        if (themeSettings['--text-muted-dark']) document.documentElement.style.setProperty('--text-muted', themeSettings['--text-muted-dark']);
+      }
+    } catch (e) {}
   });
 
   function updateThemeLabel(theme) {
@@ -380,6 +390,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (page === 'messaging') {
         if (window.activateMessagingSidebar) window.activateMessagingSidebar();
         if (window.renderMessagingSection) window.renderMessagingSection(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'settings') {
+        if (window.renderSettingsPage) window.renderSettingsPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);

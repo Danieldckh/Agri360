@@ -32,7 +32,7 @@
     svg.setAttribute('width', String(size));
     svg.setAttribute('height', String(size));
     svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+    svg.setAttribute('fill', 'rgba(128,128,128,0.4)');
     var path = document.createElementNS(svgNS, 'path');
     path.setAttribute('d', 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z');
     svg.appendChild(path);
@@ -94,10 +94,10 @@
     textInput.type = 'text';
     textInput.placeholder = 'Text input';
     textInput.style.width = '200px';
-    textInput.style.background = 'rgba(255, 255, 255, 0.08)';
-    textInput.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+    textInput.style.background = 'rgba(128, 128, 128, 0.08)';
+    textInput.style.border = '1px solid rgba(128, 128, 128, 0.2)';
     textInput.style.borderRadius = '10px';
-    textInput.style.color = '#fff';
+    textInput.style.color = 'var(--text-primary)';
     textInput.style.padding = '12px 16px';
     textInput.style.fontSize = '14px';
     textInput.style.outline = 'none';
@@ -107,10 +107,10 @@
     textarea.placeholder = 'Textarea';
     textarea.rows = 3;
     textarea.style.width = '200px';
-    textarea.style.background = 'rgba(255, 255, 255, 0.08)';
-    textarea.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+    textarea.style.background = 'rgba(128, 128, 128, 0.08)';
+    textarea.style.border = '1px solid rgba(128, 128, 128, 0.2)';
     textarea.style.borderRadius = '10px';
-    textarea.style.color = '#fff';
+    textarea.style.color = 'var(--text-primary)';
     textarea.style.padding = '12px 16px';
     textarea.style.fontSize = '14px';
     textarea.style.outline = 'none';
@@ -120,10 +120,10 @@
 
     var select = document.createElement('select');
     select.style.width = '200px';
-    select.style.background = 'rgba(255, 255, 255, 0.08)';
-    select.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+    select.style.background = 'rgba(128, 128, 128, 0.08)';
+    select.style.border = '1px solid rgba(128, 128, 128, 0.2)';
     select.style.borderRadius = '10px';
-    select.style.color = '#fff';
+    select.style.color = 'var(--text-primary)';
     select.style.padding = '12px 16px';
     select.style.fontSize = '14px';
     select.style.outline = 'none';
@@ -204,8 +204,8 @@
       wrapper.style.width = size + 'px';
       wrapper.style.height = size + 'px';
       wrapper.style.borderRadius = '50%';
-      wrapper.style.background = 'rgba(255, 255, 255, 0.08)';
-      wrapper.style.border = '2px solid rgba(255, 255, 255, 0.1)';
+      wrapper.style.background = 'rgba(128, 128, 128, 0.1)';
+      wrapper.style.border = '2px solid rgba(128, 128, 128, 0.15)';
       wrapper.style.display = 'flex';
       wrapper.style.alignItems = 'center';
       wrapper.style.justifyContent = 'center';
@@ -234,7 +234,7 @@
     var cardPreview = createPreview();
 
     var sampleCard = document.createElement('div');
-    sampleCard.style.background = 'rgba(255, 255, 255, 0.06)';
+    sampleCard.style.background = 'rgba(128, 128, 128, 0.08)';
     sampleCard.style.borderRadius = '16px';
     sampleCard.style.padding = '24px';
     sampleCard.style.textAlign = 'center';
@@ -245,8 +245,8 @@
     cardAvatar.style.width = '72px';
     cardAvatar.style.height = '72px';
     cardAvatar.style.borderRadius = '50%';
-    cardAvatar.style.background = 'rgba(255, 255, 255, 0.08)';
-    cardAvatar.style.border = '2px solid rgba(255, 255, 255, 0.1)';
+    cardAvatar.style.background = 'rgba(128, 128, 128, 0.1)';
+    cardAvatar.style.border = '2px solid rgba(128, 128, 128, 0.15)';
     cardAvatar.style.margin = '0 auto';
     cardAvatar.style.display = 'flex';
     cardAvatar.style.alignItems = 'center';
@@ -255,7 +255,7 @@
     sampleCard.appendChild(cardAvatar);
 
     var cardName = document.createElement('div');
-    cardName.style.color = '#fff';
+    cardName.style.color = 'var(--text-primary)';
     cardName.style.fontSize = '16px';
     cardName.style.fontWeight = '600';
     cardName.style.marginTop = '14px';

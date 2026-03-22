@@ -163,6 +163,40 @@ body[data-page="forgot-password"] {
   display: block;
 }
 
+/* ===== Light Mode ===== */
+[data-theme="light"] .auth-logo {
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .auth-title {
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .form-label {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .form-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .form-select {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .form-select option {
+  background: #fff;
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .auth-link {
+  color: rgba(0, 0, 0, 0.5);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
   .auth-container {
