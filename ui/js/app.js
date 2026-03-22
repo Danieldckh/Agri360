@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore saved style overrides
+  // Restore saved style overrides (skip text color vars — those are managed by applySettings in styles-page.js)
   const savedOverrides = JSON.parse(localStorage.getItem('proagri-style-overrides') || '{}');
+  const themeManaged = ['--text-primary', '--text-secondary', '--text-muted'];
   Object.keys(savedOverrides).forEach(key => {
-    document.documentElement.style.setProperty(key, savedOverrides[key]);
+    if (themeManaged.indexOf(key) === -1) {
+      document.documentElement.style.setProperty(key, savedOverrides[key]);
+    }
   });
 
   const sidebar = document.getElementById('sidebar');
@@ -279,10 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Re-apply theme text colors for the new mode
     try {
       var themeSettings = JSON.parse(localStorage.getItem('proagri-theme-settings') || '{}');
+      var root = document.documentElement;
       if (next === 'dark') {
-        if (themeSettings['--text-primary-dark']) document.documentElement.style.setProperty('--text-primary', themeSettings['--text-primary-dark']);
-        if (themeSettings['--text-secondary-dark']) document.documentElement.style.setProperty('--text-secondary', themeSettings['--text-secondary-dark']);
-        if (themeSettings['--text-muted-dark']) document.documentElement.style.setProperty('--text-muted', themeSettings['--text-muted-dark']);
+        root.style.setProperty('--text-primary', themeSettings['--text-primary-dark'] || '#ffffff');
+        root.style.setProperty('--text-secondary', themeSettings['--text-secondary-dark'] || '#bbbbbb');
+        root.style.setProperty('--text-muted', themeSettings['--text-muted-dark'] || '#888888');
+      } else {
+        // In light mode, apply light text colors inline so they override dark mode inline values
+        root.style.setProperty('--text-primary', themeSettings['--text-primary-light'] || '#1a1a1a');
+        root.style.setProperty('--text-secondary', themeSettings['--text-secondary-light'] || '#444444');
+        root.style.setProperty('--text-muted', themeSettings['--text-muted-light'] || '#666666');
       }
     } catch (e) {}
   });
@@ -399,17 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (page === 'settings') {
-        if (window.renderSettingsPage) window.renderSettingsPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
       if (page === 'styles') {
         if (window.renderStylesPage) window.renderStylesPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
@@ -434,6 +432,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (page === 'database') {
         if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'client-list') {
+        if (window.renderClientListPage) window.renderClientListPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'production') {
+        if (window.renderProductionPage) window.renderProductionPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'design') {
+        if (window.renderDesignPage) window.renderDesignPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'editorial') {
+        if (window.renderEditorialPage) window.renderEditorialPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'video') {
+        if (window.renderVideoPage) window.renderVideoPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'agri4all') {
+        if (window.renderAgri4AllPage) window.renderAgri4AllPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'social-media') {
+        if (window.renderSocialMediaPage) window.renderSocialMediaPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);

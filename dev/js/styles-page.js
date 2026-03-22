@@ -62,6 +62,7 @@
   function applySettings() {
     var settings = loadSettings();
     var root = document.documentElement;
+    var currentTheme = root.getAttribute('data-theme') || localStorage.getItem('proagri-theme') || 'dark';
 
     // Font family
     var fontVal = settings['--font-family'] || DEFAULTS['--font-family'];
@@ -79,29 +80,17 @@
     if (settings['--color-accent-light']) root.style.setProperty('--color-accent-light', settings['--color-accent-light']);
     if (settings['--color-accent-dark']) root.style.setProperty('--color-accent-dark', settings['--color-accent-dark']);
 
-    // Text colors — dark mode (applied to :root)
-    if (settings['--text-primary-dark']) root.style.setProperty('--text-primary', settings['--text-primary-dark']);
-    if (settings['--text-secondary-dark']) root.style.setProperty('--text-secondary', settings['--text-secondary-dark']);
-    if (settings['--text-muted-dark']) root.style.setProperty('--text-muted', settings['--text-muted-dark']);
+    // Text colors — apply based on current theme to avoid inline style specificity issues
+    if (currentTheme === 'dark') {
+      root.style.setProperty('--text-primary', settings['--text-primary-dark'] || DEFAULTS['--text-primary-dark']);
+      root.style.setProperty('--text-secondary', settings['--text-secondary-dark'] || DEFAULTS['--text-secondary-dark']);
+      root.style.setProperty('--text-muted', settings['--text-muted-dark'] || DEFAULTS['--text-muted-dark']);
+    } else {
+      root.style.setProperty('--text-primary', settings['--text-primary-light'] || DEFAULTS['--text-primary-light']);
+      root.style.setProperty('--text-secondary', settings['--text-secondary-light'] || DEFAULTS['--text-secondary-light']);
+      root.style.setProperty('--text-muted', settings['--text-muted-light'] || DEFAULTS['--text-muted-light']);
+    }
 
-    // Text colors — light mode: inject/update a style tag
-    applyLightModeTextColors(settings);
-  }
-
-  function applyLightModeTextColors(settings) {
-    var styleId = 'proagri-theme-light-overrides';
-    var existing = document.getElementById(styleId);
-    if (existing) existing.remove();
-
-    var primary = settings['--text-primary-light'] || DEFAULTS['--text-primary-light'];
-    var secondary = settings['--text-secondary-light'] || DEFAULTS['--text-secondary-light'];
-    var muted = settings['--text-muted-light'] || DEFAULTS['--text-muted-light'];
-
-    var style = document.createElement('style');
-    style.id = styleId;
-    style.textContent =
-      '[data-theme="light"] { --text-primary: ' + primary + '; --text-secondary: ' + secondary + '; --text-muted: ' + muted + '; }';
-    document.head.appendChild(style);
   }
 
   // Apply on page load — run immediately for fast paint, then again after DOMContentLoaded
@@ -267,8 +256,6 @@
       root.style.removeProperty('--text-muted');
       root.style.removeProperty('--color-accent-light');
       root.style.removeProperty('--color-accent-dark');
-      var lightOverride = document.getElementById('proagri-theme-light-overrides');
-      if (lightOverride) lightOverride.remove();
 
       // Reset style overrides
       resetStyleOverrides();

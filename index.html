@@ -11,6 +11,14 @@
   <link rel="stylesheet" href="employees/css/employees.css">
   <link rel="stylesheet" href="messaging/css/messaging.css">
   <link rel="stylesheet" href="dev/css/dev.css">
+  <link rel="stylesheet" href="clients/css/client-list.css">
+  <link rel="stylesheet" href="departments/css/department-shared.css">
+  <link rel="stylesheet" href="departments/production/css/production.css">
+  <link rel="stylesheet" href="departments/design/css/design.css">
+  <link rel="stylesheet" href="departments/editorial/css/editorial.css">
+  <link rel="stylesheet" href="departments/video/css/video.css">
+  <link rel="stylesheet" href="departments/agri4all/css/agri4all.css">
+  <link rel="stylesheet" href="departments/social-media/css/social-media.css">
 
 </head>
 <body>
@@ -51,9 +59,49 @@
               <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
               <span class="nav-label">Employees</span>
             </a>
-            <a class="nav-item" data-page="settings" tabindex="0">
-              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/></svg></span>
-              <span class="nav-label">Settings</span>
+          </div>
+        </div>
+        <div class="nav-group" data-group="clients">
+          <button class="nav-group-header" aria-expanded="true">
+            <span class="nav-group-label">Clients</span>
+            <svg class="nav-group-chevron" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+          </button>
+          <div class="nav-group-items">
+            <a class="nav-item" data-page="client-list" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg></span>
+              <span class="nav-label">Client List</span>
+            </a>
+          </div>
+        </div>
+        <div class="nav-group" data-group="departments">
+          <button class="nav-group-header" aria-expanded="true">
+            <span class="nav-group-label">Departments</span>
+            <svg class="nav-group-chevron" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+          </button>
+          <div class="nav-group-items">
+            <a class="nav-item" data-page="production" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/></svg></span>
+              <span class="nav-label">Production</span>
+            </a>
+            <a class="nav-item" data-page="design" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.02-.23-.27-.38-.62-.38-1.02 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></span>
+              <span class="nav-label">Design</span>
+            </a>
+            <a class="nav-item" data-page="editorial" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 000-1.42l-2.34-2.34a1.003 1.003 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg></span>
+              <span class="nav-label">Editorial</span>
+            </a>
+            <a class="nav-item" data-page="video" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></span>
+              <span class="nav-label">Video</span>
+            </a>
+            <a class="nav-item" data-page="agri4all" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.05 8.05a7.001 7.001 0 000 9.9C7.42 19.32 9.21 20 11 20s3.58-.68 4.95-2.05C19.43 14.47 20 4 20 4S9.53 4.57 6.05 8.05zm8.49 8.49c-.95.94-2.2 1.46-3.54 1.46-.89 0-1.73-.25-2.48-.68.92-2.88 3.15-5.74 5.17-7.63.19-.18.2-.48.01-.68-.19-.19-.49-.2-.68-.01-2.19 2.05-4.54 5.13-5.49 8.18a4.908 4.908 0 01-.48-5.58c2.02-2.02 7.95-3.5 11.12-4 .02 2.86-1.1 8.5-3.63 10.94z"/></svg></span>
+              <span class="nav-label">Agri4All</span>
+            </a>
+            <a class="nav-item" data-page="social-media" tabindex="0">
+              <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></span>
+              <span class="nav-label">Social Media</span>
             </a>
           </div>
         </div>
@@ -117,7 +165,14 @@
   <script src="dev/js/styles-page.js"></script>
   <script src="dev/js/components-page.js"></script>
   <script src="dev/js/database-page.js"></script>
+  <script src="clients/js/client-list.js"></script>
+  <script src="departments/js/department-shared.js"></script>
+  <script src="departments/production/js/production.js"></script>
+  <script src="departments/design/js/design.js"></script>
+  <script src="departments/editorial/js/editorial.js"></script>
+  <script src="departments/video/js/video.js"></script>
+  <script src="departments/agri4all/js/agri4all.js"></script>
+  <script src="departments/social-media/js/social-media.js"></script>
   <script src="ui/js/app.js"></script>
-  <script src="dev/js/settings-page.js"></script>
 </body>
 </html>
