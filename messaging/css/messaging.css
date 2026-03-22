@@ -1375,6 +1375,18 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
+[data-theme="light"] .emoji-picker-tabs {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .emoji-picker-tab {
+  color: #666;
+}
+
+[data-theme="light"] .emoji-picker-cat {
+  color: #999;
+}
+
 [data-theme="light"] .emoji-picker-empty {
   color: #999;
 }
@@ -1456,6 +1468,11 @@
   color: #666;
 }
 
+[data-theme="light"] .msg-sidebar-search input::placeholder {
+  color: #999;
+}
+
+/* Light theme overrides for sidebar folders */
 [data-theme="light"] .msg-sidebar-folders {
   border-top-color: rgba(255, 255, 255, 0.1);
   border-bottom-color: rgba(255, 255, 255, 0.1);
@@ -1515,10 +1532,6 @@
 
 [data-theme="light"] .msg-folder-ctx-item:hover {
   background: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .msg-sidebar-search input::placeholder {
-  color: #999;
 }
 
 /* ===== Responsive ===== */
