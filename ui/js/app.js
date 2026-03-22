@@ -360,14 +360,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Department sidebar activation
-  var deptPages = ['production', 'design', 'editorial', 'video', 'agri4all', 'social-media'];
+  var deptPages = ['production', 'design', 'editorial', 'video', 'agri4all', 'social-media', 'admin'];
   var deptNames = {
     'production': 'Production',
     'design': 'Design',
     'editorial': 'Editorial',
     'video': 'Video',
     'agri4all': 'Agri4All',
-    'social-media': 'Social Media'
+    'social-media': 'Social Media',
+    'admin': 'Admin'
   };
   var currentDeptPage = null;
 
@@ -563,6 +564,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (page === 'social-media') {
         activateDeptSidebar('social-media');
         if (window.renderSocialMediaPage) window.renderSocialMediaPage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'admin') {
+        activateDeptSidebar('admin');
+        if (window.renderAdminPage) window.renderAdminPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);

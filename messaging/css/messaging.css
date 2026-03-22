@@ -708,14 +708,14 @@
 }
 
 .msg-bubble-body {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 8px 12px;
   min-width: 60px;
 }
 
 .msg-bubble-own .msg-bubble-body {
-  background: rgba(245, 166, 35, 0.15);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .msg-bubble-meta {
@@ -1315,11 +1315,11 @@
 }
 
 [data-theme="light"] .msg-bubble-body {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="light"] .msg-bubble-own .msg-bubble-body {
-  background: rgba(245, 166, 35, 0.1);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 [data-theme="light"] .msg-bubble-sender {

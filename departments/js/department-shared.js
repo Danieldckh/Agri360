@@ -65,9 +65,22 @@ function renderDepartmentContent(section, dept, deliverables) {
   var header = document.createElement('div');
   header.className = 'dept-header';
 
+  var headerRow = document.createElement('div');
+  headerRow.className = 'dept-header-row';
+
   var title = document.createElement('h2');
   title.textContent = dept.name || 'Department';
-  header.appendChild(title);
+  headerRow.appendChild(title);
+
+  var newBookingBtn = document.createElement('button');
+  newBookingBtn.className = 'checklist-new-btn';
+  newBookingBtn.textContent = '+ New Booking';
+  newBookingBtn.addEventListener('click', function() {
+    if (window.openChecklistWizard) window.openChecklistWizard();
+  });
+  headerRow.appendChild(newBookingBtn);
+
+  header.appendChild(headerRow);
 
   if (dept.description) {
     var desc = document.createElement('p');
