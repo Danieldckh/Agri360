@@ -291,13 +291,201 @@
     return { videoType: '', videoDuration: '', photographerIncluded: false, shootDays: 0, shootHours: 0, location: '', description: '' };
   }
 
-  // ========== Shared Helpers (stubs for Task 6) ==========
-  function getActiveMonthsList(formData) { return []; }
-  function renderActiveMonthsSelector(container, formData, pageKey) {}
-  function renderToggleableSection(container, title, dataObj, renderBody, clipboard, sectionType) {}
+  // ========== Shared Helpers ==========
+  function getActiveMonthsList(formData) {
+    if (!formData.campaignMonthStart || !formData.campaignMonthEnd) return [];
+    var start = formData.campaignMonthStart.split('-');
+    var end = formData.campaignMonthEnd.split('-');
+    var startYear = parseInt(start[0], 10);
+    var startMonth = parseInt(start[1], 10);
+    var endYear = parseInt(end[0], 10);
+    var endMonth = parseInt(end[1], 10);
+    var months = [];
+    var y = startYear, m = startMonth;
+    while (y < endYear || (y === endYear && m <= endMonth)) {
+      months.push(y + '-' + (m < 10 ? '0' + m : '' + m));
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return months;
+  }
+
+  function renderActiveMonthsSelector(container, formData, pageKey) {
+    var allMonths = getActiveMonthsList(formData);
+    if (allMonths.length === 0) return;
+
+    var section = document.createElement('div');
+    section.className = 'checklist-section';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'checklist-section-title';
+    titleEl.textContent = 'Select Active Months';
+    section.appendChild(titleEl);
+
+    var pills = document.createElement('div');
+    pills.className = 'checklist-month-pills';
+    section.appendChild(pills);
+    container.appendChild(section);
+
+    var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function buildPills() {
+      while (pills.firstChild) pills.removeChild(pills.firstChild);
+
+      var selectAll = document.createElement('button');
+      selectAll.className = 'checklist-month-pill checklist-month-pill-select-all';
+      if (formData[pageKey].length === allMonths.length && allMonths.length > 0) selectAll.classList.add('active');
+      selectAll.textContent = 'Select All';
+      selectAll.addEventListener('click', function() {
+        if (formData[pageKey].length === allMonths.length) {
+          formData[pageKey] = [];
+        } else {
+          formData[pageKey] = allMonths.slice();
+        }
+        buildPills();
+      });
+      pills.appendChild(selectAll);
+
+      allMonths.forEach(function(monthStr) {
+        var parts = monthStr.split('-');
+        var label = monthNames[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+        var pill = document.createElement('button');
+        pill.className = 'checklist-month-pill';
+        if (formData[pageKey].indexOf(monthStr) !== -1) pill.classList.add('active');
+        pill.textContent = label;
+        pill.addEventListener('click', function() {
+          var idx = formData[pageKey].indexOf(monthStr);
+          if (idx === -1) { formData[pageKey].push(monthStr); } else { formData[pageKey].splice(idx, 1); }
+          buildPills();
+        });
+        pills.appendChild(pill);
+      });
+    }
+
+    buildPills();
+  }
+
+  function renderToggleableSection(container, title, dataObj, renderBody, clipboard, sectionType) {
+    var section = document.createElement('div');
+    section.className = 'checklist-section';
+
+    var header = document.createElement('div');
+    header.className = 'checklist-section-header';
+
+    var toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.className = 'checklist-section-toggle';
+    toggle.checked = dataObj.enabled;
+    header.appendChild(toggle);
+
+    var titleEl = document.createElement('span');
+    titleEl.className = 'checklist-section-header-title';
+    titleEl.textContent = title;
+    header.appendChild(titleEl);
+
+    var actions = document.createElement('div');
+    actions.className = 'checklist-section-actions';
+
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'checklist-copy-btn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.addEventListener('click', function() {
+      clipboard.type = sectionType;
+      clipboard.data = JSON.parse(JSON.stringify(dataObj));
+      pasteBtn.disabled = false;
+    });
+    actions.appendChild(copyBtn);
+
+    var pasteBtn = document.createElement('button');
+    pasteBtn.className = 'checklist-paste-btn';
+    pasteBtn.textContent = 'Paste';
+    pasteBtn.disabled = !(clipboard.type === sectionType && clipboard.data);
+    pasteBtn.addEventListener('click', function() {
+      if (clipboard.type === sectionType && clipboard.data) {
+        Object.keys(clipboard.data).forEach(function(key) {
+          dataObj[key] = JSON.parse(JSON.stringify(clipboard.data[key]));
+        });
+        rebuildBody();
+        toggle.checked = dataObj.enabled;
+        updateBodyState();
+      }
+    });
+    actions.appendChild(pasteBtn);
+
+    header.appendChild(actions);
+    section.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'checklist-section-body';
+    if (!dataObj.enabled) body.classList.add('disabled');
+    section.appendChild(body);
+
+    function updateBodyState() {
+      if (dataObj.enabled) { body.classList.remove('disabled'); } else { body.classList.add('disabled'); }
+    }
+
+    function rebuildBody() {
+      while (body.firstChild) body.removeChild(body.firstChild);
+      renderBody(body, dataObj);
+    }
+
+    toggle.addEventListener('change', function() {
+      dataObj.enabled = toggle.checked;
+      updateBodyState();
+    });
+
+    rebuildBody();
+    container.appendChild(section);
+  }
+
   function createFormGroup(labelText, inputType, value, onChange, opts) {
+    opts = opts || {};
     var group = document.createElement('div');
     group.className = 'checklist-form-group';
+    if (opts.fullWidth) group.classList.add('full-width');
+
+    var label = document.createElement('label');
+    label.className = 'checklist-label';
+    label.textContent = labelText;
+    group.appendChild(label);
+
+    var input;
+    if (inputType === 'textarea') {
+      input = document.createElement('textarea');
+      input.className = 'checklist-textarea';
+      input.value = value || '';
+      if (opts.placeholder) input.placeholder = opts.placeholder;
+      if (opts.disabled) input.disabled = true;
+      input.addEventListener('input', function() { onChange(input.value); });
+    } else if (inputType === 'select') {
+      input = document.createElement('select');
+      input.className = 'checklist-select';
+      if (opts.options) {
+        opts.options.forEach(function(opt) {
+          var option = document.createElement('option');
+          option.value = opt.value !== undefined ? opt.value : opt;
+          option.textContent = opt.label !== undefined ? opt.label : opt;
+          if (option.value === value) option.selected = true;
+          input.appendChild(option);
+        });
+      }
+      if (opts.disabled) input.disabled = true;
+      input.addEventListener('change', function() { onChange(input.value); });
+    } else {
+      input = document.createElement('input');
+      input.className = 'checklist-input';
+      input.type = inputType || 'text';
+      input.value = value || '';
+      if (opts.placeholder) input.placeholder = opts.placeholder;
+      if (opts.min !== undefined) input.min = opts.min;
+      if (opts.max !== undefined) input.max = opts.max;
+      if (opts.disabled) input.disabled = true;
+      input.addEventListener('input', function() {
+        onChange(inputType === 'number' ? parseFloat(input.value) || 0 : input.value);
+      });
+    }
+
+    group.appendChild(input);
     return group;
   }
 
