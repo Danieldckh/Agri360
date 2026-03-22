@@ -1,6 +1,6 @@
-/* ===== Radial Menu ===== */
+/* ===== Radial Menu (v2 — Stacked Button List) ===== */
 
-/* Fade overlay — applied to the sheet container when radial is active */
+/* Fade overlay — applied to the sheet container when menu is active */
 .radial-active .proagri-sheet-row {
   opacity: 0.15;
   transition: opacity 0.2s ease;
@@ -18,7 +18,7 @@
   pointer-events: auto;
 }
 
-/* Trigger icon */
+/* Trigger icon — the ⋯ button on the right side of each row */
 .radial-trigger {
   width: 26px;
   height: 26px;
@@ -42,77 +42,103 @@
   color: var(--color-accent-light);
 }
 
-/* Trigger shifts left when active */
+/* Trigger active state — stays highlighted while menu is open */
 .radial-trigger.radial-trigger-active {
   background: rgba(245, 166, 35, 0.25);
   border-color: rgba(245, 166, 35, 0.5);
   color: var(--color-accent-light);
-  transform: translateX(-180px);
-  transition: transform 0.25s ease, background 0.2s, border-color 0.2s, color 0.2s;
 }
 
-/* Radial container */
-.radial-container {
+/* Stacked menu container — positioned to the left of the trigger */
+.radial-stack-menu {
   position: absolute;
-  right: 8px;
+  right: 40px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  /* Generous padding so mouse doesn't fall into gaps */
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--card-bg, rgba(30, 30, 30, 0.85));
+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.radial-container.radial-visible {
+.radial-stack-menu.radial-stack-visible {
   pointer-events: auto;
+  opacity: 1;
 }
 
-/* SVG bezier lines */
-.radial-lines {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-/* Radial action items */
-.radial-item {
-  position: absolute;
-  width: 110px;
-  height: 30px;
-  background: rgba(128, 128, 128, 0.12);
-  border: 1px solid rgba(128, 128, 128, 0.2);
-  border-radius: 8px;
+/* Individual action buttons */
+.radial-stack-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: var(--text-secondary);
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 160px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary, #aaa);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-  backdrop-filter: blur(4px);
   white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-align: left;
+
+  /* Stagger-in animation */
+  opacity: 0;
+  transform: translateX(8px);
+  animation: radialStackIn 0.2s ease forwards;
 }
 
-.radial-item.radial-item-visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.radial-item:hover {
+.radial-stack-btn:hover {
   background: rgba(245, 166, 35, 0.15);
-  border-color: rgba(245, 166, 35, 0.4);
-  color: var(--color-accent-light);
+  color: var(--color-accent-light, #f5a623);
 }
 
-.radial-item.radial-item-highlight {
-  background: rgba(52, 152, 219, 0.15);
-  border-color: rgba(52, 152, 219, 0.3);
+.radial-stack-btn:active {
+  background: rgba(245, 166, 35, 0.25);
+}
+
+/* Highlighted action (e.g., "Next Step") */
+.radial-stack-btn.radial-stack-btn-highlight {
   color: #3498db;
 }
 
-.radial-item.radial-item-highlight:hover {
+.radial-stack-btn.radial-stack-btn-highlight:hover {
+  background: rgba(52, 152, 219, 0.15);
+  color: #5dade2;
+}
+
+.radial-stack-btn.radial-stack-btn-highlight:active {
   background: rgba(52, 152, 219, 0.25);
-  border-color: rgba(52, 152, 219, 0.5);
+}
+
+/* Divider between buttons (subtle) */
+.radial-stack-btn + .radial-stack-btn {
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+/* Stagger-in keyframe */
+@keyframes radialStackIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
