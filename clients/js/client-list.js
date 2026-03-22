@@ -63,24 +63,8 @@ window.renderClientListPage = function(container) {
     });
     headerActions.appendChild(searchInput);
 
-    // Add Client button
-    var addBtn = document.createElement('button');
-    addBtn.className = 'client-btn-add';
-    addBtn.textContent = showForm ? 'Cancel' : 'Add Client';
-    addBtn.addEventListener('click', function() {
-      showForm = !showForm;
-      renderContent();
-    });
-    headerActions.appendChild(addBtn);
-
     header.appendChild(headerActions);
     section.appendChild(header);
-
-    // Inline form
-    if (showForm) {
-      var form = createAddForm();
-      section.appendChild(form);
-    }
 
     // Table
     var filtered = getFilteredClients();

@@ -1,0 +1,68 @@
+<h2>Department Sub-Menu Behavior</h2>
+<p class="subtitle">When you click a department (e.g., "Design"), a sub-menu opens on the left — similar to how Messaging works today. What should the sub-menu contain for each department?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Dashboard + Clients</h3>
+      <p>Two items: "Dashboard" (the main department view with sheets) and "Clients" (the client list filtered to that department)</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Dashboard + Clients + Deliverables</h3>
+      <p>Three items: "Dashboard", "Clients", and "Deliverables" as separate views within the department</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Just placeholder items for now</h3>
+      <p>Start with generic items like "Dashboard" and "Overview" — we'll add specific items later as features develop</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <div class="mockup">
+    <div class="mockup-header">Current Messaging Sub-Menu Pattern (for reference)</div>
+    <div class="mockup-body" style="display: flex; gap: 0; height: 300px;">
+      <!-- Main sidebar -->
+      <div style="width: 200px; background: #1a1a1a; padding: 16px; border-right: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Main</div>
+        <div style="padding: 8px 12px; color: #aaa; font-size: 13px; margin-bottom: 2px; border-radius: 8px;">My View</div>
+        <div style="padding: 8px 12px; color: white; font-size: 13px; margin-bottom: 2px; border-radius: 8px; background: rgba(245,166,35,0.3);">Messaging</div>
+        <div style="padding: 8px 12px; color: #aaa; font-size: 13px; margin-bottom: 2px; border-radius: 8px;">Employees</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px;">Departments</div>
+        <div style="padding: 8px 12px; color: #aaa; font-size: 13px; margin-bottom: 2px; border-radius: 8px;">Production</div>
+        <div style="padding: 8px 12px; color: #aaa; font-size: 13px; margin-bottom: 2px; border-radius: 8px;">Design</div>
+        <div style="padding: 8px 12px; color: #aaa; font-size: 13px; border-radius: 8px;">Editorial</div>
+      </div>
+      <!-- Messaging sub-menu (260px) -->
+      <div style="width: 260px; background: #222; padding: 16px; border-right: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <span style="color: #888; font-size: 18px;">←</span>
+          <span style="color: white; font-size: 15px; font-weight: 600;">Messaging</span>
+        </div>
+        <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px;">
+          <span style="color: #666; font-size: 13px;">Search...</span>
+        </div>
+        <div style="display: flex; gap: 6px; margin-bottom: 16px;">
+          <span style="padding: 4px 10px; background: rgba(245,166,35,0.2); border-radius: 12px; font-size: 11px; color: #f5a623;">All</span>
+          <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; color: #888;">Channels</span>
+          <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; color: #888;">DMs</span>
+        </div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Conversations</div>
+        <div style="padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; color: white; font-size: 13px;"># general</div>
+        <div style="padding: 8px; border-radius: 8px; margin-bottom: 4px; color: #aaa; font-size: 13px;"># design-team</div>
+        <div style="padding: 8px; border-radius: 8px; color: #aaa; font-size: 13px;"># production</div>
+      </div>
+      <!-- Content area -->
+      <div style="flex: 1; background: #2a2a2a; display: flex; align-items: center; justify-content: center; color: #666; font-size: 14px;">
+        Content Area
+      </div>
+    </div>
+  </div>
+</div>

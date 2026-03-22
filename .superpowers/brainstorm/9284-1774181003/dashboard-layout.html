@@ -1,0 +1,79 @@
+<h2>Department Dashboard Layout</h2>
+<p class="subtitle">Each department dashboard has a left-aligned sheet (most of the screen) and a right-aligned sheet (smaller width), both inside cards. Which proportions feel right?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>70 / 30 Split</h3>
+      <p>Left sheet takes ~70% width, right sheet takes ~30%</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>65 / 35 Split</h3>
+      <p>More balanced — left sheet takes ~65%, right sheet takes ~35%</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>75 / 25 Split</h3>
+      <p>Main sheet dominates — right panel is narrower, more like a sidebar info panel</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Option A: 70 / 30</div>
+      <div class="mockup-body" style="display: flex; gap: 12px; height: 280px; padding: 12px;">
+        <div style="flex: 7; background: #1e1e1e; border-radius: 12px; padding: 16px; display: flex; flex-direction: column;">
+          <div style="font-size: 13px; font-weight: 600; color: white; margin-bottom: 12px;">Main Sheet</div>
+          <div style="display: flex; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #888;">
+            <span style="flex:2">Client</span><span style="flex:1">Status</span><span style="flex:1">Due</span><span style="width:30px"></span>
+          </div>
+          <div style="display: flex; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc;">
+            <span style="flex:2">Acme Corp</span><span style="flex:1"><span style="padding: 2px 8px; background: rgba(52,152,219,0.2); color: #3498db; border-radius: 10px; font-size: 10px;">In Progress</span></span><span style="flex:1; color: #888;">Mar 25</span><span style="width:30px; color: #666;">⋯</span>
+          </div>
+          <div style="display: flex; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc;">
+            <span style="flex:2">Farm Solutions</span><span style="flex:1"><span style="padding: 2px 8px; background: rgba(245,166,35,0.2); color: #f5a623; border-radius: 10px; font-size: 10px;">Pending</span></span><span style="flex:1; color: #888;">Mar 28</span><span style="width:30px; color: #666;">⋯</span>
+          </div>
+          <div style="display: flex; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc;">
+            <span style="flex:2">GreenLeaf Ltd</span><span style="flex:1"><span style="padding: 2px 8px; background: rgba(39,174,96,0.2); color: #27ae60; border-radius: 10px; font-size: 10px;">Completed</span></span><span style="flex:1; color: #888;">Mar 20</span><span style="width:30px; color: #666;">⋯</span>
+          </div>
+        </div>
+        <div style="flex: 3; background: #1e1e1e; border-radius: 12px; padding: 16px;">
+          <div style="font-size: 13px; font-weight: 600; color: white; margin-bottom: 12px;">Side Panel</div>
+          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">Quick Stats</div>
+          <div style="font-size: 11px; color: #ccc; margin-bottom: 12px;">Details or summary info</div>
+          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">Recent Activity</div>
+          <div style="font-size: 11px; color: #ccc;">Latest updates...</div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Option C: 75 / 25</div>
+      <div class="mockup-body" style="display: flex; gap: 12px; height: 280px; padding: 12px;">
+        <div style="flex: 75; background: #1e1e1e; border-radius: 12px; padding: 16px; display: flex; flex-direction: column;">
+          <div style="font-size: 13px; font-weight: 600; color: white; margin-bottom: 12px;">Main Sheet</div>
+          <div style="display: flex; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #888;">
+            <span style="flex:2">Client</span><span style="flex:1">Status</span><span style="flex:1">Due</span><span style="flex:1">Assignee</span><span style="width:30px"></span>
+          </div>
+          <div style="display: flex; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc;">
+            <span style="flex:2">Acme Corp</span><span style="flex:1"><span style="padding: 2px 8px; background: rgba(52,152,219,0.2); color: #3498db; border-radius: 10px; font-size: 10px;">In Progress</span></span><span style="flex:1; color: #888;">Mar 25</span><span style="flex:1; color: #888;">John</span><span style="width:30px; color: #666;">⋯</span>
+          </div>
+          <div style="display: flex; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc;">
+            <span style="flex:2">Farm Solutions</span><span style="flex:1"><span style="padding: 2px 8px; background: rgba(245,166,35,0.2); color: #f5a623; border-radius: 10px; font-size: 10px;">Pending</span></span><span style="flex:1; color: #888;">Mar 28</span><span style="flex:1; color: #888;">Sarah</span><span style="width:30px; color: #666;">⋯</span>
+          </div>
+        </div>
+        <div style="flex: 25; background: #1e1e1e; border-radius: 12px; padding: 16px;">
+          <div style="font-size: 13px; font-weight: 600; color: white; margin-bottom: 12px;">Side</div>
+          <div style="font-size: 11px; color: #888;">Narrow info panel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

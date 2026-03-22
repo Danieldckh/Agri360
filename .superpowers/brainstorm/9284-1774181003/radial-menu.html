@@ -1,0 +1,103 @@
+<h2>Half-Moon Radial Menu</h2>
+<p class="subtitle">Each row has a hoverable icon on the right that opens a half-moon radial with action options. Which style feels right?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Right-side half-moon (opens left)</h3>
+      <p>The radial fans out to the left from the icon — stays within the row's card boundary</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Right-side half-moon (opens right, overlaying edge)</h3>
+      <p>The radial fans out to the right, overlaying the card edge — more prominent and visible</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Option A: Opens Left (within card)</div>
+      <div class="mockup-body" style="height: 300px; padding: 20px; position: relative;">
+        <!-- Table rows -->
+        <div style="display: flex; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #888;">
+          <span style="flex:2">Client</span><span style="flex:1">Status</span><span style="flex:1">Due</span><span style="width:40px"></span>
+        </div>
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">Acme Corp</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(52,152,219,0.2); color: #3498db; border-radius: 10px; font-size: 10px;">In Progress</span></span>
+          <span style="flex:1; color: #888;">Mar 25</span>
+          <span style="width:40px; text-align: center; color: #666;">⋯</span>
+        </div>
+        <!-- Active row with radial -->
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc; align-items: center; background: rgba(255,255,255,0.03); position: relative;">
+          <span style="flex:2">Farm Solutions</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(245,166,35,0.2); color: #f5a623; border-radius: 10px; font-size: 10px;">Pending</span></span>
+          <span style="flex:1; color: #888;">Mar 28</span>
+          <span style="width:40px; text-align: center; position: relative;">
+            <span style="color: #f5a623; font-size: 16px; cursor: pointer;">⋯</span>
+            <!-- Half moon radial opening LEFT -->
+            <div style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; align-items: center;">
+              <div style="width: 70px; height: 32px; background: rgba(39,174,96,0.15); border: 1px solid rgba(39,174,96,0.3); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #27ae60; transform: translateY(-20px);">Next Step</div>
+              <div style="width: 70px; height: 32px; background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #3498db; transform: translateY(0px);">Status</div>
+              <div style="width: 70px; height: 32px; background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.3); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #f5a623; transform: translateY(20px);">Dashboard</div>
+            </div>
+          </span>
+        </div>
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">GreenLeaf Ltd</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(39,174,96,0.2); color: #27ae60; border-radius: 10px; font-size: 10px;">Completed</span></span>
+          <span style="flex:1; color: #888;">Mar 20</span>
+          <span style="width:40px; text-align: center; color: #666;">⋯</span>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Option B: Opens Right (overlays edge)</div>
+      <div class="mockup-body" style="height: 300px; padding: 20px; position: relative; overflow: visible;">
+        <!-- Table rows -->
+        <div style="display: flex; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #888;">
+          <span style="flex:2">Client</span><span style="flex:1">Status</span><span style="flex:1">Due</span><span style="width:40px"></span>
+        </div>
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">Acme Corp</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(52,152,219,0.2); color: #3498db; border-radius: 10px; font-size: 10px;">In Progress</span></span>
+          <span style="flex:1; color: #888;">Mar 25</span>
+          <span style="width:40px; text-align: center; color: #666;">⋯</span>
+        </div>
+        <!-- Active row with radial -->
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc; align-items: center; background: rgba(255,255,255,0.03); position: relative;">
+          <span style="flex:2">Farm Solutions</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(245,166,35,0.2); color: #f5a623; border-radius: 10px; font-size: 10px;">Pending</span></span>
+          <span style="flex:1; color: #888;">Mar 28</span>
+          <span style="width:40px; text-align: center; position: relative;">
+            <span style="color: #f5a623; font-size: 16px; cursor: pointer;">⋯</span>
+            <!-- Half moon radial opening RIGHT -->
+            <div style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%);">
+              <div style="position: relative; width: 90px; height: 120px;">
+                <div style="position: absolute; width: 70px; height: 32px; background: rgba(39,174,96,0.15); border: 1px solid rgba(39,174,96,0.3); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #27ae60; top: 0; left: 10px;">Next Step</div>
+                <div style="position: absolute; width: 70px; height: 32px; background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #3498db; top: 44px; left: 20px;">Status</div>
+                <div style="position: absolute; width: 70px; height: 32px; background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.3); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #f5a623; top: 88px; left: 10px;">Dashboard</div>
+              </div>
+            </div>
+          </span>
+        </div>
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">GreenLeaf Ltd</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(39,174,96,0.2); color: #27ae60; border-radius: 10px; font-size: 10px;">Completed</span></span>
+          <span style="flex:1; color: #888;">Mar 20</span>
+          <span style="width:40px; text-align: center; color: #666;">⋯</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 1.5rem;">
+  <h3>How it works</h3>
+  <p class="subtitle">The icon (⋯) appears on the right side of each row. On hover, a half-moon radial fans out with contextual actions. The actions will vary by page and row status — we'll add them incrementally.</p>
+</div>

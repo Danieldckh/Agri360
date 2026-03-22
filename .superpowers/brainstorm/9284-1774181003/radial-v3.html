@@ -1,0 +1,120 @@
+<h2>Half-Moon Radial — Refined</h2>
+<p class="subtitle">Active row stays full opacity, everything else fades. Icon shifts left, radial stays within card bounds. Curved bezier lines connect items.</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Active State — Hovering "Farm Solutions" row icon</div>
+    <div class="mockup-body" style="height: 380px; padding: 20px; background: #1e1e1e; position: relative; overflow: hidden;">
+
+      <!-- Header row — faded -->
+      <div style="opacity: 0.15;">
+        <div style="display: flex; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: #888;">
+          <span style="flex:2">Client</span><span style="flex:1">Status</span><span style="flex:1">Due</span><span style="width: 40px"></span>
+        </div>
+      </div>
+
+      <!-- Row 1 — faded -->
+      <div style="opacity: 0.15;">
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">Acme Corp</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(52,152,219,0.2); color: #3498db; border-radius: 10px; font-size: 10px;">In Progress</span></span>
+          <span style="flex:1; color: #888;">Mar 25</span>
+          <span style="width: 40px; text-align: right;"><span style="display: inline-block; width: 26px; height: 26px; background: rgba(255,255,255,0.08); border-radius: 6px; line-height: 26px; text-align: center; color: #888; font-size: 13px;">⋯</span></span>
+        </div>
+      </div>
+
+      <!-- Row 2 — ACTIVE ROW — full opacity, icon shifted left -->
+      <div style="position: relative; z-index: 2;">
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #ccc; align-items: center; background: rgba(255,255,255,0.02); border-radius: 6px; padding-left: 4px; padding-right: 4px;">
+          <span style="flex:2; font-weight: 500; color: #fff;">Farm Solutions</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(245,166,35,0.2); color: #f5a623; border-radius: 10px; font-size: 10px;">Pending</span></span>
+          <span style="flex:1; color: #888;">Mar 28</span>
+          <!-- Icon shifted LEFT from its original position -->
+          <span style="width: 40px; text-align: right; position: relative;">
+            <span style="display: inline-block; width: 26px; height: 26px; background: rgba(245,166,35,0.25); border: 1px solid rgba(245,166,35,0.5); border-radius: 6px; line-height: 26px; text-align: center; color: #f5a623; font-size: 13px; position: relative; right: 160px;">⋯</span>
+          </span>
+        </div>
+
+        <!-- Curved bezier lines + radial items -->
+        <svg style="position: absolute; right: 0; top: -60px; width: 220px; height: 250px; pointer-events: none; z-index: 3;" viewBox="0 0 220 250">
+          <!-- Bezier curves from icon origin to each radial item -->
+          <!-- Origin point approx (40, 125) — where shifted icon sits -->
+          <!-- Item 1 top -->
+          <path d="M 40,125 C 80,125 80,30 145,30" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+          <!-- Item 2 -->
+          <path d="M 40,125 C 85,125 90,65 145,70" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+          <!-- Item 3 center -->
+          <path d="M 40,125 C 90,125 100,110 145,115" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+          <!-- Item 4 -->
+          <path d="M 40,125 C 85,125 90,155 145,160" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+          <!-- Item 5 bottom -->
+          <path d="M 40,125 C 80,125 80,195 145,205" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+          <!-- Small dot at origin -->
+          <circle cx="40" cy="125" r="3" fill="rgba(245,166,35,0.4)"/>
+        </svg>
+
+        <!-- Radial items — positioned within card bounds -->
+        <div style="position: absolute; right: 12px; top: -48px; z-index: 4;">
+          <div style="width: 110px; height: 30px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; margin-bottom: 8px; transition: all 0.15s; backdrop-filter: blur(4px);">
+            View Dashboard
+          </div>
+          <div style="width: 110px; height: 30px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; margin-bottom: 8px; transition: all 0.15s; margin-left: 8px; backdrop-filter: blur(4px);">
+            Change Status
+          </div>
+          <div style="width: 110px; height: 30px; background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #3498db; cursor: pointer; margin-bottom: 8px; transition: all 0.15s; margin-left: 12px; backdrop-filter: blur(4px);">
+            Next Step →
+          </div>
+          <div style="width: 110px; height: 30px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; margin-bottom: 8px; transition: all 0.15s; margin-left: 8px; backdrop-filter: blur(4px);">
+            Edit Details
+          </div>
+          <div style="width: 110px; height: 30px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; transition: all 0.15s; backdrop-filter: blur(4px);">
+            Archive
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3 — faded -->
+      <div style="opacity: 0.15;">
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">GreenLeaf Ltd</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(39,174,96,0.2); color: #27ae60; border-radius: 10px; font-size: 10px;">Completed</span></span>
+          <span style="flex:1; color: #888;">Mar 20</span>
+          <span style="width: 40px; text-align: right;"><span style="display: inline-block; width: 26px; height: 26px; background: rgba(255,255,255,0.08); border-radius: 6px; line-height: 26px; text-align: center; color: #888; font-size: 13px;">⋯</span></span>
+        </div>
+      </div>
+
+      <!-- Row 4 — faded -->
+      <div style="opacity: 0.15;">
+        <div style="display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">AgriTech SA</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(52,152,219,0.2); color: #3498db; border-radius: 10px; font-size: 10px;">In Progress</span></span>
+          <span style="flex:1; color: #888;">Apr 1</span>
+          <span style="width: 40px; text-align: right;"><span style="display: inline-block; width: 26px; height: 26px; background: rgba(255,255,255,0.08); border-radius: 6px; line-height: 26px; text-align: center; color: #888; font-size: 13px;">⋯</span></span>
+        </div>
+      </div>
+
+      <!-- Row 5 — faded -->
+      <div style="opacity: 0.15;">
+        <div style="display: flex; padding: 12px 0; font-size: 12px; color: #ccc; align-items: center;">
+          <span style="flex:2">Harvest Inc</span>
+          <span style="flex:1"><span style="padding: 2px 8px; background: rgba(245,166,35,0.2); color: #f5a623; border-radius: 10px; font-size: 10px;">Pending</span></span>
+          <span style="flex:1; color: #888;">Apr 5</span>
+          <span style="width: 40px; text-align: right;"><span style="display: inline-block; width: 26px; height: 26px; background: rgba(255,255,255,0.08); border-radius: 6px; line-height: 26px; text-align: center; color: #888; font-size: 13px;">⋯</span></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 1.5rem;">
+  <h3>Interaction Summary</h3>
+  <p class="subtitle" style="line-height: 1.8;">
+    1. <strong>Hover</strong> the ⋯ icon → icon shifts left, all other rows fade to ~15% opacity<br>
+    2. Active row stays <strong>full opacity</strong><br>
+    3. Radial items <strong>stagger in</strong> within card bounds (no overflow)<br>
+    4. <strong>Curved bezier lines</strong> (node-style) connect icon to each item<br>
+    5. Hover a radial item to highlight → click to execute<br>
+    6. Mouse leaves area → radial closes, everything un-fades
+  </p>
+</div>
