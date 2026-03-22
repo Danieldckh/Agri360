@@ -62,18 +62,37 @@ router.get('/:id', async (req, res) => {
 // POST / - create booking form
 router.post('/', async (req, res) => {
   const b = toSnakeBody(req.body);
-  const { client_id, title, description, status, booked_date, due_date } = b;
+  const { client_id, campaign_month_start, campaign_month_end, form_data, sign_off_date, representative, description, status, booked_date, due_date } = b;
+  let { title } = b;
 
-  if (!client_id || !title) {
-    return res.status(400).json({ error: 'client_id and title are required' });
+  if (!client_id) {
+    return res.status(400).json({ error: 'client_id is required' });
   }
+
+  // Auto-generate title from date range if not provided
+  if (!title && campaign_month_start && campaign_month_end) {
+    const start = campaign_month_start.substring(0, 7); // YYYY-MM
+    const end = campaign_month_end.substring(0, 7);
+    title = `Booking ${start} - ${end}`;
+  }
+
+  // JSON.stringify form_data if it's an object
+  const formDataVal = (form_data !== undefined && typeof form_data === 'object' && form_data !== null)
+    ? JSON.stringify(form_data)
+    : (form_data || null);
 
   try {
     const result = await pool.query(
-      `INSERT INTO booking_forms (client_id, title, description, status, booked_date, due_date, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO booking_forms (client_id, title, description, status, booked_date, due_date, campaign_month_start, campaign_month_end, form_data, sign_off_date, representative, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
-      [client_id, title, description || null, status || 'draft', booked_date || null, due_date || null, req.user.id]
+      [
+        client_id, title || null, description || null, status || 'draft',
+        booked_date || null, due_date || null,
+        campaign_month_start || null, campaign_month_end || null,
+        formDataVal, sign_off_date || null, representative || null,
+        req.user.id
+      ]
     );
     res.status(201).json(toCamelCase(result.rows[0]));
   } catch (err) {
@@ -85,15 +104,19 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update booking form
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'status', 'booked_date', 'due_date'];
+  const fields = ['title', 'description', 'status', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative'];
   const updates = [];
   const values = [];
   let idx = 1;
 
   for (const field of fields) {
     if (body[field] !== undefined) {
+      let val = body[field];
+      if (field === 'form_data' && typeof val === 'object' && val !== null) {
+        val = JSON.stringify(val);
+      }
       updates.push(`${field} = $${idx}`);
-      values.push(body[field]);
+      values.push(val);
       idx++;
     }
   }

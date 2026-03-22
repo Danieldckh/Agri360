@@ -53,19 +53,55 @@ router.get('/:id', async (req, res) => {
 
 // POST / - create client
 router.post('/', async (req, res) => {
-  const { name, contact_person, contactPerson, email, phone, address, notes } = req.body;
-  const contactPersonVal = contact_person || contactPerson;
+  // Convert all incoming keys to snake_case
+  const body = {};
+  for (const [key, value] of Object.entries(req.body)) {
+    const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+    body[snakeKey] = value;
+  }
+
+  const { name } = body;
 
   if (!name) {
     return res.status(400).json({ error: 'Name is required' });
   }
 
+  // JSONB contact fields - stringify if they are objects
+  const jsonbFields = ['primary_contact', 'material_contact', 'accounts_contact'];
+  for (const field of jsonbFields) {
+    if (body[field] !== undefined && typeof body[field] === 'object' && body[field] !== null) {
+      body[field] = JSON.stringify(body[field]);
+    }
+  }
+
+  const columns = [
+    'name', 'contact_person', 'email', 'phone', 'address', 'notes',
+    'trading_name', 'company_reg_no', 'vat_number', 'website',
+    'industry_expertise', 'physical_address', 'physical_postal_code',
+    'postal_address', 'postal_code',
+    'primary_contact', 'material_contact', 'accounts_contact'
+  ];
+
+  const insertCols = ['created_by'];
+  const insertVals = [req.user.id];
+  let idx = 2;
+
+  for (const col of columns) {
+    if (body[col] !== undefined) {
+      insertCols.push(col);
+      insertVals.push(body[col]);
+      idx++;
+    }
+  }
+
+  const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(', ');
+
   try {
     const result = await pool.query(
-      `INSERT INTO clients (name, contact_person, email, phone, address, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO clients (${insertCols.join(', ')})
+       VALUES (${placeholders})
        RETURNING *`,
-      [name, contactPersonVal || null, email || null, phone || null, address || null, notes || null, req.user.id]
+      insertVals
     );
     res.status(201).json(toCamelCase(result.rows[0]));
   } catch (err) {
@@ -82,15 +118,26 @@ router.patch('/:id', async (req, res) => {
     const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
     body[snakeKey] = value;
   }
-  const fields = ['name', 'contact_person', 'email', 'phone', 'address', 'notes'];
+  const fields = [
+    'name', 'contact_person', 'email', 'phone', 'address', 'notes',
+    'trading_name', 'company_reg_no', 'vat_number', 'website',
+    'industry_expertise', 'physical_address', 'physical_postal_code',
+    'postal_address', 'postal_code',
+    'primary_contact', 'material_contact', 'accounts_contact'
+  ];
+  const jsonbFields = ['primary_contact', 'material_contact', 'accounts_contact'];
   const updates = [];
   const values = [];
   let idx = 1;
 
   for (const field of fields) {
     if (body[field] !== undefined) {
+      let val = body[field];
+      if (jsonbFields.includes(field) && typeof val === 'object' && val !== null) {
+        val = JSON.stringify(val);
+      }
       updates.push(`${field} = $${idx}`);
-      values.push(body[field]);
+      values.push(val);
       idx++;
     }
   }
