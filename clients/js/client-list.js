@@ -23,6 +23,9 @@ window.renderClientListPage = function(container) {
     return h;
   }
 
+  var sheetContainer = null;
+  var countBadge = null;
+
   function renderContent() {
     while (section.firstChild) {
       section.removeChild(section.firstChild);
@@ -40,10 +43,10 @@ window.renderClientListPage = function(container) {
     title.textContent = 'Clients';
     titleWrap.appendChild(title);
 
-    var count = document.createElement('span');
-    count.className = 'client-count';
-    count.textContent = allClients.length;
-    titleWrap.appendChild(count);
+    countBadge = document.createElement('span');
+    countBadge.className = 'client-count';
+    countBadge.textContent = allClients.length;
+    titleWrap.appendChild(countBadge);
 
     header.appendChild(titleWrap);
 
@@ -57,19 +60,25 @@ window.renderClientListPage = function(container) {
     searchInput.value = searchTerm;
     searchInput.addEventListener('input', function() {
       searchTerm = searchInput.value;
-      renderContent();
+      renderSheetOnly();
     });
     headerActions.appendChild(searchInput);
 
     header.appendChild(headerActions);
     section.appendChild(header);
 
-    // Sheet
-    var filtered = getFilteredClients();
-    var sheetContainer = document.createElement('div');
+    // Sheet container (persists across search updates)
+    sheetContainer = document.createElement('div');
     sheetContainer.className = 'client-sheet-container';
+    section.appendChild(sheetContainer);
 
-    if (window.renderSheet) {
+    renderSheetOnly();
+  }
+
+  function renderSheetOnly() {
+    var filtered = getFilteredClients();
+
+    if (window.renderSheet && sheetContainer) {
       window.renderSheet(sheetContainer, {
         columns: [
           { key: 'name', label: 'Name', sortable: true, isName: true },
@@ -85,8 +94,6 @@ window.renderClientListPage = function(container) {
         ]
       });
     }
-
-    section.appendChild(sheetContainer);
   }
 
   function getFilteredClients() {

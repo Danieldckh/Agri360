@@ -38,7 +38,7 @@
 
 .dept-split-left {
   flex: 7;
-  background: var(--color-secondary);
+  background: rgba(128, 128, 128, 0.05);
   border-radius: 20px;
   padding: 20px;
   overflow-y: auto;
@@ -46,7 +46,7 @@
 
 .dept-split-right {
   flex: 3;
-  background: var(--color-secondary);
+  background: rgba(128, 128, 128, 0.05);
   border-radius: 20px;
   padding: 20px;
   overflow-y: auto;
