@@ -1042,7 +1042,7 @@
       while (tabsContainer.firstChild) tabsContainer.removeChild(tabsContainer.firstChild);
 
       var allTab = document.createElement('div');
-      allTab.className = 'checklist-tab checklist-tab-active';
+      allTab.className = 'checklist-tab active';
       allTab.textContent = 'All';
       tabsContainer.appendChild(allTab);
 
