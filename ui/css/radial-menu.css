@@ -1,0 +1,118 @@
+/* ===== Radial Menu ===== */
+
+/* Fade overlay — applied to the sheet container when radial is active */
+.radial-active .proagri-sheet-row {
+  opacity: 0.15;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.radial-active .proagri-sheet-header {
+  opacity: 0.15;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.radial-active .proagri-sheet-row.radial-row-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Trigger icon */
+.radial-trigger {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(128, 128, 128, 0.1);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.radial-trigger:hover {
+  background: rgba(245, 166, 35, 0.2);
+  border-color: rgba(245, 166, 35, 0.4);
+  color: var(--color-accent-light);
+}
+
+/* Trigger shifts left when active */
+.radial-trigger.radial-trigger-active {
+  background: rgba(245, 166, 35, 0.25);
+  border-color: rgba(245, 166, 35, 0.5);
+  color: var(--color-accent-light);
+  transform: translateX(-180px);
+  transition: transform 0.25s ease, background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+/* Radial container */
+.radial-container {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.radial-container.radial-visible {
+  pointer-events: auto;
+}
+
+/* SVG bezier lines */
+.radial-lines {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Radial action items */
+.radial-item {
+  position: absolute;
+  width: 110px;
+  height: 30px;
+  background: rgba(128, 128, 128, 0.12);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+.radial-item.radial-item-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.radial-item:hover {
+  background: rgba(245, 166, 35, 0.15);
+  border-color: rgba(245, 166, 35, 0.4);
+  color: var(--color-accent-light);
+}
+
+.radial-item.radial-item-highlight {
+  background: rgba(52, 152, 219, 0.15);
+  border-color: rgba(52, 152, 219, 0.3);
+  color: #3498db;
+}
+
+.radial-item.radial-item-highlight:hover {
+  background: rgba(52, 152, 219, 0.25);
+  border-color: rgba(52, 152, 219, 0.5);
+}
