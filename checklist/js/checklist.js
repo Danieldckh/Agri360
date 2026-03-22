@@ -1369,9 +1369,67 @@
     renderToggleableSection(container, 'Video', formData.video, renderVideoBody, clipboard, 'video');
   }
   function renderPage8(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 8: Website Design \u2014 coming soon';
-    container.appendChild(p);
+    renderActiveMonthsSelector(container, formData, 'page8ActiveMonths');
+
+    function renderBody(content, ws) {
+      // Select Type
+      var typeTitle = document.createElement('h4');
+      typeTitle.className = 'checklist-section-title';
+      typeTitle.textContent = 'Select Type';
+      content.appendChild(typeTitle);
+
+      var typeGroup = document.createElement('div');
+      typeGroup.className = 'checklist-radio-group';
+      var types = [
+        { label: 'Website Design & Development', value: 'design' },
+        { label: 'Website Redesign', value: 'redesign' },
+        { label: 'Monthly Website Management', value: 'management' }
+      ];
+      types.forEach(function(opt) {
+        var radioLabel = document.createElement('label');
+        radioLabel.className = 'checklist-radio-label';
+        var radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'websiteType';
+        radio.value = opt.value;
+        radio.checked = ws.type === opt.value;
+        radio.addEventListener('change', function() { ws.type = radio.value; });
+        radioLabel.appendChild(radio);
+        var span = document.createElement('span');
+        span.textContent = opt.label;
+        radioLabel.appendChild(span);
+        typeGroup.appendChild(radioLabel);
+      });
+      content.appendChild(typeGroup);
+
+      // Number of Pages
+      var pagesTitle = document.createElement('h4');
+      pagesTitle.className = 'checklist-section-title';
+      pagesTitle.textContent = 'Number of Pages';
+      content.appendChild(pagesTitle);
+
+      var pagesGroup = document.createElement('div');
+      pagesGroup.className = 'checklist-radio-group';
+      var pages = ['1-5', '5-10', '10+'];
+      pages.forEach(function(optionValue) {
+        var radioLabel = document.createElement('label');
+        radioLabel.className = 'checklist-radio-label';
+        var radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'websitePages';
+        radio.value = optionValue;
+        radio.checked = ws.numberOfPages === optionValue;
+        radio.addEventListener('change', function() { ws.numberOfPages = radio.value; });
+        radioLabel.appendChild(radio);
+        var span = document.createElement('span');
+        span.textContent = optionValue;
+        radioLabel.appendChild(span);
+        pagesGroup.appendChild(radioLabel);
+      });
+      content.appendChild(pagesGroup);
+    }
+
+    renderToggleableSection(container, 'Website Design', formData.websiteDesign, renderBody, clipboard, 'websiteDesign');
   }
   function renderPage9(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -1483,6 +1541,11 @@
       formData.video.entries[0].shootHours = 0;
       formData.video.entries[0].location = 'Stellenbosch Wine Estate';
       formData.video.entries[0].description = 'Promotional video showcasing product range for the 2026 season.';
+    } else if (page === 8) {
+      formData.page8ActiveMonths = getActiveMonthsList(formData);
+      formData.websiteDesign.enabled = true;
+      formData.websiteDesign.type = 'redesign';
+      formData.websiteDesign.numberOfPages = '5-10';
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
