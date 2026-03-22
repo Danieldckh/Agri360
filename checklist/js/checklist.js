@@ -489,12 +489,173 @@
     return group;
   }
 
-  // ========== Page Stubs ==========
-  function renderPage1(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 1: Client Information \u2014 coming soon';
-    container.appendChild(p);
+  // ========== Contact Section Helper ==========
+  function renderContactSection(container, title, contactObj) {
+    var section = document.createElement('div');
+    section.className = 'checklist-section';
+    var titleEl = document.createElement('div');
+    titleEl.className = 'checklist-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    var grid = document.createElement('div');
+    grid.className = 'checklist-form-grid';
+    grid.appendChild(createFormGroup('Name', 'text', contactObj.name, function(v) { contactObj.name = v; }));
+    grid.appendChild(createFormGroup('Email Address', 'email', contactObj.email, function(v) { contactObj.email = v; }));
+    grid.appendChild(createFormGroup('Cell Number', 'tel', contactObj.cell, function(v) { contactObj.cell = v; }));
+    grid.appendChild(createFormGroup('Tel Number', 'tel', contactObj.tel, function(v) { contactObj.tel = v; }));
+    section.appendChild(grid);
+    container.appendChild(section);
   }
+
+  // ========== Page 1: Client Information ==========
+  function renderPage1(container, formData, clipboard) {
+    // Company Details
+    var companySection = document.createElement('div');
+    companySection.className = 'checklist-section';
+    var companyTitle = document.createElement('div');
+    companyTitle.className = 'checklist-section-title';
+    companyTitle.textContent = 'Company Details';
+    companySection.appendChild(companyTitle);
+
+    var companyGrid = document.createElement('div');
+    companyGrid.className = 'checklist-form-grid';
+
+    // Company Name with typeahead
+    var companyNameGroup = createFormGroup('Company Name *', 'text', formData.companyName, function(v) { formData.companyName = v; });
+    var companyNameInput = companyNameGroup.querySelector('input');
+
+    var typeaheadWrap = document.createElement('div');
+    typeaheadWrap.className = 'checklist-typeahead-wrap';
+    companyNameGroup.removeChild(companyNameInput);
+    typeaheadWrap.appendChild(companyNameInput);
+    companyNameGroup.appendChild(typeaheadWrap);
+
+    var debounceTimer = null;
+    companyNameInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      var val = companyNameInput.value;
+      formData.companyName = val;
+      debounceTimer = setTimeout(function() {
+        if (!val.trim()) {
+          var existingDd = typeaheadWrap.querySelector('.checklist-typeahead-dropdown');
+          if (existingDd) existingDd.remove();
+          return;
+        }
+        fetch(API_URL + '/clients?search=' + encodeURIComponent(val), { headers: authHeaders(true) })
+          .then(function(res) { return res.json(); })
+          .then(function(clients) {
+            var existingDd = typeaheadWrap.querySelector('.checklist-typeahead-dropdown');
+            if (existingDd) existingDd.remove();
+            if (!clients || clients.length === 0) return;
+
+            var dropdown = document.createElement('div');
+            dropdown.className = 'checklist-typeahead-dropdown';
+
+            clients.forEach(function(client) {
+              var item = document.createElement('div');
+              item.className = 'checklist-typeahead-item';
+              item.textContent = client.companyName || client.name || '';
+              item.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                formData.existingClientId = client._id || client.id;
+                if (client.companyName) formData.companyName = client.companyName;
+                if (client.tradingName) formData.tradingName = client.tradingName;
+                if (client.companyRegNo) formData.companyRegNo = client.companyRegNo;
+                if (client.vatNumber) formData.vatNumber = client.vatNumber;
+                if (client.website) formData.website = client.website;
+                if (client.industryExpertise) formData.industryExpertise = client.industryExpertise;
+                if (client.physicalAddress) formData.physicalAddress = client.physicalAddress;
+                if (client.physicalPostalCode) formData.physicalPostalCode = client.physicalPostalCode;
+                if (client.postalAddress) formData.postalAddress = client.postalAddress;
+                if (client.postalCode) formData.postalCode = client.postalCode;
+                if (client.primaryContact) formData.primaryContact = client.primaryContact;
+                if (client.materialContact) formData.materialContact = client.materialContact;
+                if (client.accountsContact) formData.accountsContact = client.accountsContact;
+                while (container.firstChild) container.removeChild(container.firstChild);
+                renderPage1(container, formData, clipboard);
+              });
+              dropdown.appendChild(item);
+            });
+
+            typeaheadWrap.appendChild(dropdown);
+          })
+          .catch(function() {});
+      }, 300);
+    });
+
+    companyNameInput.addEventListener('blur', function() {
+      setTimeout(function() {
+        var dd = typeaheadWrap.querySelector('.checklist-typeahead-dropdown');
+        if (dd) dd.remove();
+      }, 200);
+    });
+
+    companyNameInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dd = typeaheadWrap.querySelector('.checklist-typeahead-dropdown');
+        if (dd) dd.remove();
+      }
+    });
+
+    companyGrid.appendChild(companyNameGroup);
+    companyGrid.appendChild(createFormGroup('Trading Name', 'text', formData.tradingName, function(v) { formData.tradingName = v; }));
+    companyGrid.appendChild(createFormGroup('Company Reg No', 'text', formData.companyRegNo, function(v) { formData.companyRegNo = v; }, { placeholder: '2025/000001/07' }));
+    companyGrid.appendChild(createFormGroup('VAT Number', 'text', formData.vatNumber, function(v) { formData.vatNumber = v; }, { placeholder: '4123456789' }));
+    companyGrid.appendChild(createFormGroup('Website', 'url', formData.website, function(v) { formData.website = v; }, { placeholder: 'https://' }));
+    companyGrid.appendChild(createFormGroup('Industry / Expertise', 'text', formData.industryExpertise, function(v) { formData.industryExpertise = v; }));
+    companySection.appendChild(companyGrid);
+    container.appendChild(companySection);
+
+    // Addresses
+    var addrSection = document.createElement('div');
+    addrSection.className = 'checklist-section';
+    var addrTitle = document.createElement('div');
+    addrTitle.className = 'checklist-section-title';
+    addrTitle.textContent = 'Addresses';
+    addrSection.appendChild(addrTitle);
+
+    var addrGrid = document.createElement('div');
+    addrGrid.className = 'checklist-form-grid';
+    addrGrid.appendChild(createFormGroup('Physical Address', 'text', formData.physicalAddress, function(v) { formData.physicalAddress = v; }));
+    addrGrid.appendChild(createFormGroup('Physical Postal Code', 'text', formData.physicalPostalCode, function(v) { formData.physicalPostalCode = v; }));
+    addrGrid.appendChild(createFormGroup('Postal Address', 'text', formData.postalAddress, function(v) { formData.postalAddress = v; }));
+    addrGrid.appendChild(createFormGroup('Postal Code', 'text', formData.postalCode, function(v) { formData.postalCode = v; }));
+    addrSection.appendChild(addrGrid);
+    container.appendChild(addrSection);
+
+    // Contact sections
+    renderContactSection(container, 'Primary Contact Person', formData.primaryContact);
+    renderContactSection(container, 'Material Contact Person', formData.materialContact);
+    renderContactSection(container, 'Accounts Contact Person', formData.accountsContact);
+
+    // Project Summary
+    var summarySection = document.createElement('div');
+    summarySection.className = 'checklist-section';
+    var summaryTitle = document.createElement('div');
+    summaryTitle.className = 'checklist-section-title';
+    summaryTitle.textContent = 'Project Summary';
+    summarySection.appendChild(summaryTitle);
+    summarySection.appendChild(createFormGroup('Project Summary', 'textarea', formData.projectSummary, function(v) { formData.projectSummary = v; }, { fullWidth: true }));
+    container.appendChild(summarySection);
+
+    // Campaign Dates
+    var datesSection = document.createElement('div');
+    datesSection.className = 'checklist-section';
+    var datesTitle = document.createElement('div');
+    datesTitle.className = 'checklist-section-title';
+    datesTitle.textContent = 'Campaign Dates';
+    datesSection.appendChild(datesTitle);
+
+    var datesGrid = document.createElement('div');
+    datesGrid.className = 'checklist-form-grid';
+    datesGrid.appendChild(createFormGroup('Campaign Month Start *', 'month', formData.campaignMonthStart, function(v) { formData.campaignMonthStart = v; }));
+    datesGrid.appendChild(createFormGroup('Campaign Month End *', 'month', formData.campaignMonthEnd, function(v) { formData.campaignMonthEnd = v; }));
+    datesSection.appendChild(datesGrid);
+    container.appendChild(datesSection);
+  }
+
+  // ========== Page Stubs ==========
   function renderPage2(container, formData, clipboard) {
     var p = document.createElement('p');
     p.textContent = 'Page 2: Social Media \u2014 coming soon';
@@ -541,9 +702,48 @@
     container.appendChild(p);
   }
 
-  // ========== Stub Functions ==========
-  function validatePage1(formData, container) { return true; }
-  function fillTestData(page, formData) {}
+  // ========== Validation & Helpers ==========
+  function validatePage1(formData, container) {
+    var missing = [];
+    if (!formData.companyName.trim()) missing.push('Company Name');
+    if (!formData.campaignMonthStart) missing.push('Campaign Month Start');
+    if (!formData.campaignMonthEnd) missing.push('Campaign Month End');
+
+    // Remove existing error
+    var existing = container.querySelector('.checklist-error-banner');
+    if (existing) existing.remove();
+
+    if (missing.length > 0) {
+      var banner = document.createElement('div');
+      banner.className = 'checklist-error-banner';
+      banner.textContent = 'Please fill in required fields: ' + missing.join(', ');
+      container.insertBefore(banner, container.firstChild);
+      container.scrollTop = 0;
+      return false;
+    }
+    return true;
+  }
+
+  function fillTestData(page, formData) {
+    if (page === 1) {
+      formData.companyName = 'Agri Solutions (Pty) Ltd';
+      formData.tradingName = 'AgriSol';
+      formData.companyRegNo = '2025/123456/07';
+      formData.vatNumber = '4987654321';
+      formData.website = 'https://agrisolutions.co.za';
+      formData.industryExpertise = 'Crop Protection & Seeds';
+      formData.physicalAddress = '123 Farm Road, Centurion, Gauteng';
+      formData.physicalPostalCode = '0157';
+      formData.postalAddress = 'PO Box 456, Centurion';
+      formData.postalCode = '0046';
+      formData.primaryContact = { name: 'Jan van der Merwe', email: 'jan@agrisol.co.za', cell: '082 555 1234', tel: '012 345 6789' };
+      formData.materialContact = { name: 'Elna Botha', email: 'elna@agrisol.co.za', cell: '083 444 5678', tel: '012 345 6780' };
+      formData.accountsContact = { name: 'Pieter Joubert', email: 'pieter@agrisol.co.za', cell: '084 333 9012', tel: '012 345 6781' };
+      formData.projectSummary = 'Full digital marketing campaign for 2026 season including social media management, online articles, and video production.';
+      formData.campaignMonthStart = '2026-02';
+      formData.campaignMonthEnd = '2026-06';
+    }
+  }
   function submitWizard(formData, onClose) { onClose(); }
 
 })();
