@@ -11,6 +11,34 @@ router.use(requireAuth);
 const EMPLOYEE_SAFE_COLS = 'e.id, e.first_name, e.last_name, e.username, e.role, e.status, e.photo_url';
 const SENDER_COLS = 'e.id AS sender_employee_id, e.first_name AS sender_first_name, e.last_name AS sender_last_name, e.username AS sender_username, e.role AS sender_role, e.status AS sender_status, e.photo_url AS sender_photo_url';
 
+// Membership check middleware
+async function requireChannelMember(req, res, next) {
+  const channelId = req.params.id;
+  const userId = req.user.id;
+  try {
+    const result = await pool.query(
+      'SELECT role FROM channel_members WHERE channel_id = $1 AND employee_id = $2',
+      [channelId, userId]
+    );
+    if (result.rows.length > 0) {
+      req.channelRole = result.rows[0].role;
+      return next();
+    }
+    if (req.user.role === 'admin') {
+      req.channelRole = 'admin';
+      return next();
+    }
+    return res.status(403).json({ error: 'Not a member of this channel' });
+  } catch (err) {
+    console.error('Membership check error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+function isChannelOwnerOrAdmin(req) {
+  return req.channelRole === 'owner' || req.user.role === 'admin';
+}
+
 // Multer for attachments
 const attachmentStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, ATTACHMENT_DIR),
@@ -151,7 +179,7 @@ router.get('/channels', async (req, res) => {
 });
 
 // GET /channels/:id - single channel
-router.get('/channels/:id', async (req, res) => {
+router.get('/channels/:id', requireChannelMember, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT c.*,
@@ -174,7 +202,7 @@ router.get('/channels/:id', async (req, res) => {
 });
 
 // PATCH /channels/:id - update channel (owner/admin)
-router.patch('/channels/:id', async (req, res) => {
+router.patch('/channels/:id', requireChannelMember, async (req, res) => {
   const userId = req.user.id;
   const { name, emoji, icon, description } = req.body;
 
@@ -210,8 +238,11 @@ router.patch('/channels/:id', async (req, res) => {
 });
 
 // POST /channels/:id/archive
-router.post('/channels/:id/archive', async (req, res) => {
+router.post('/channels/:id/archive', requireChannelMember, async (req, res) => {
   try {
+    if (!isChannelOwnerOrAdmin(req)) {
+      return res.status(403).json({ error: 'Only channel owner or admin can archive' });
+    }
     const result = await pool.query(
       `UPDATE channels SET is_archived = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
       [req.params.id]
@@ -227,10 +258,13 @@ router.post('/channels/:id/archive', async (req, res) => {
 });
 
 // POST /channels/:id/members - add members
-router.post('/channels/:id/members', async (req, res) => {
+router.post('/channels/:id/members', requireChannelMember, async (req, res) => {
   const { employeeIds = [] } = req.body;
 
   try {
+    if (!isChannelOwnerOrAdmin(req)) {
+      return res.status(403).json({ error: 'Only channel owner or admin can add members' });
+    }
     const added = [];
     for (const empId of employeeIds) {
       const result = await pool.query(
@@ -249,9 +283,95 @@ router.post('/channels/:id/members', async (req, res) => {
   }
 });
 
-// DELETE /channels/:id/members/:employeeId
-router.delete('/channels/:id/members/:employeeId', async (req, res) => {
+// POST /channels/:id/invite - invite people (with DM-to-group conversion)
+router.post('/channels/:id/invite', requireChannelMember, async (req, res) => {
+  const { employeeIds = [] } = req.body;
+  const channelId = req.params.id;
+
+  if (!employeeIds.length) {
+    return res.status(400).json({ error: 'No employees specified' });
+  }
+
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+
+    const chResult = await client.query('SELECT * FROM channels WHERE id = $1', [channelId]);
+    if (chResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Channel not found' });
+    }
+    let channel = chResult.rows[0];
+    const uniqueIds = [...new Set(employeeIds.filter(id => Number.isInteger(Number(id)) && Number(id) > 0).map(Number))];
+
+    if (uniqueIds.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No valid employee IDs provided' });
+    }
+
+    // If DM, convert to group
+    if (channel.type === 'dm') {
+      // Get current member names
+      const memberNames = await client.query(
+        `SELECT e.first_name FROM channel_members cm
+         JOIN employees e ON e.id = cm.employee_id
+         WHERE cm.channel_id = $1`,
+        [channelId]
+      );
+      const newNames = await client.query(
+        `SELECT first_name FROM employees WHERE id = ANY($1)`,
+        [uniqueIds]
+      );
+      const allNames = [...memberNames.rows, ...newNames.rows].map(r => r.first_name);
+      const groupName = allNames.length > 4
+        ? allNames.slice(0, 3).join(', ') + ' and ' + (allNames.length - 3) + ' others'
+        : allNames.join(', ');
+
+      const updated = await client.query(
+        `UPDATE channels SET type = 'group', name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+        [groupName, channelId]
+      );
+      channel = updated.rows[0];
+    }
+
+    // Add new members
+    const added = [];
+    for (const empId of uniqueIds) {
+      const result = await client.query(
+        `INSERT INTO channel_members (channel_id, employee_id, role)
+         VALUES ($1, $2, 'member')
+         ON CONFLICT (channel_id, employee_id) DO NOTHING
+         RETURNING *`,
+        [channelId, empId]
+      );
+      if (result.rows.length > 0) added.push(result.rows[0]);
+    }
+
+    await client.query('COMMIT');
+    res.json({ channel, added });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Invite members error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// DELETE /channels/:id/members/:employeeId
+router.delete('/channels/:id/members/:employeeId', requireChannelMember, async (req, res) => {
+  try {
+    if (!isChannelOwnerOrAdmin(req)) {
+      return res.status(403).json({ error: 'Only channel owner or admin can remove members' });
+    }
+    // Prevent removing the channel owner
+    const targetMember = await pool.query(
+      'SELECT role FROM channel_members WHERE channel_id = $1 AND employee_id = $2',
+      [req.params.id, req.params.employeeId]
+    );
+    if (targetMember.rows.length > 0 && targetMember.rows[0].role === 'owner') {
+      return res.status(400).json({ error: 'Cannot remove the channel owner' });
+    }
     await pool.query(
       `DELETE FROM channel_members WHERE channel_id = $1 AND employee_id = $2`,
       [req.params.id, req.params.employeeId]
@@ -264,10 +384,10 @@ router.delete('/channels/:id/members/:employeeId', async (req, res) => {
 });
 
 // GET /channels/:id/members
-router.get('/channels/:id/members', async (req, res) => {
+router.get('/channels/:id/members', requireChannelMember, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT cm.id AS membership_id, cm.role AS channel_role, cm.joined_at, cm.last_read_at,
+      `SELECT cm.id AS membership_id, cm.employee_id, cm.role AS channel_role, cm.joined_at, cm.last_read_at,
               ${EMPLOYEE_SAFE_COLS}
        FROM channel_members cm
        JOIN employees e ON e.id = cm.employee_id
@@ -285,7 +405,7 @@ router.get('/channels/:id/members', async (req, res) => {
 // ========== MESSAGE ENDPOINTS ==========
 
 // GET /channels/:id/messages
-router.get('/channels/:id/messages', async (req, res) => {
+router.get('/channels/:id/messages', requireChannelMember, async (req, res) => {
   const userId = req.user.id;
   const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
   const before = req.query.before ? parseInt(req.query.before, 10) : null;
@@ -364,7 +484,7 @@ router.get('/channels/:id/messages', async (req, res) => {
 });
 
 // POST /channels/:id/messages
-router.post('/channels/:id/messages', async (req, res) => {
+router.post('/channels/:id/messages', requireChannelMember, async (req, res) => {
   const userId = req.user.id;
   const { content, mentions = [], parentMessageId } = req.body;
 
@@ -435,9 +555,17 @@ router.patch('/messages/:id', async (req, res) => {
   }
 
   try {
-    const check = await pool.query(`SELECT sender_id FROM messages WHERE id = $1`, [req.params.id]);
+    const check = await pool.query(`SELECT sender_id, channel_id FROM messages WHERE id = $1`, [req.params.id]);
     if (check.rows.length === 0) {
       return res.status(404).json({ error: 'Message not found' });
+    }
+    // Verify channel membership
+    const memberCheck = await pool.query(
+      'SELECT 1 FROM channel_members WHERE channel_id = $1 AND employee_id = $2',
+      [check.rows[0].channel_id, userId]
+    );
+    if (memberCheck.rows.length === 0 && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not a member of this channel' });
     }
     if (check.rows[0].sender_id !== userId) {
       return res.status(403).json({ error: 'Only the sender can edit this message' });
@@ -494,6 +622,19 @@ router.post('/messages/:id/star', async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // Verify channel membership
+    const msgCheck = await pool.query(`SELECT channel_id FROM messages WHERE id = $1`, [req.params.id]);
+    if (msgCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    const starMemberCheck = await pool.query(
+      'SELECT 1 FROM channel_members WHERE channel_id = $1 AND employee_id = $2',
+      [msgCheck.rows[0].channel_id, userId]
+    );
+    if (starMemberCheck.rows.length === 0 && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not a member of this channel' });
+    }
+
     const existing = await pool.query(
       `SELECT id FROM message_stars WHERE message_id = $1 AND employee_id = $2`,
       [req.params.id, userId]
@@ -526,11 +667,17 @@ router.post('/messages/:id/pin', async (req, res) => {
     }
     const msg = msgResult.rows[0];
 
-    const ownerCheck = await pool.query(
-      `SELECT 1 FROM channel_members WHERE channel_id = $1 AND employee_id = $2 AND role = 'owner'`,
+    // Verify channel membership
+    const pinMemberCheck = await pool.query(
+      'SELECT role FROM channel_members WHERE channel_id = $1 AND employee_id = $2',
       [msg.channel_id, userId]
     );
-    if (ownerCheck.rows.length === 0 && req.user.role !== 'admin') {
+    if (pinMemberCheck.rows.length === 0 && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not a member of this channel' });
+    }
+
+    const memberRole = pinMemberCheck.rows.length > 0 ? pinMemberCheck.rows[0].role : null;
+    if (memberRole !== 'owner' && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Only channel owner or admin can pin messages' });
     }
 
@@ -553,6 +700,19 @@ router.post('/messages/:id/attachments', attachmentUpload.single('file'), async 
   }
 
   try {
+    // Verify channel membership
+    const attMsgCheck = await pool.query(`SELECT channel_id FROM messages WHERE id = $1`, [req.params.id]);
+    if (attMsgCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    const attMemberCheck = await pool.query(
+      'SELECT 1 FROM channel_members WHERE channel_id = $1 AND employee_id = $2',
+      [attMsgCheck.rows[0].channel_id, req.user.id]
+    );
+    if (attMemberCheck.rows.length === 0 && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not a member of this channel' });
+    }
+
     const result = await pool.query(
       `INSERT INTO message_attachments (message_id, filename, original_name, file_size, mime_type)
        VALUES ($1, $2, $3, $4, $5)

@@ -18,6 +18,7 @@
   var customFolders = [];
   var activeFolderId = null;
   var activeFolderChannelIds = [];
+  var currentChannelMembers = [];
 
   // ========== HELPERS ==========
 
@@ -47,7 +48,10 @@
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify(body)
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) {
+      if (!r.ok) return r.json().then(function (err) { return Promise.reject(err); });
+      return r.json();
+    });
   }
 
   function apiPatch(path, body) {
@@ -55,14 +59,20 @@
       method: 'PATCH',
       headers: jsonHeaders(),
       body: JSON.stringify(body)
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) {
+      if (!r.ok) return r.json().then(function (err) { return Promise.reject(err); });
+      return r.json();
+    });
   }
 
   function apiDelete(path) {
     return fetch(MSG_API + path, {
       method: 'DELETE',
       headers: authHeaders()
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) {
+      if (!r.ok) return r.json().then(function (err) { return Promise.reject(err); });
+      return r.json();
+    });
   }
 
   function formatTime(dateStr) {
@@ -652,6 +662,17 @@
     peopleTitle.className = 'msg-people-title';
     peopleTitle.textContent = 'People';
     peopleTitleRow.appendChild(peopleTitle);
+
+    var inviteBtn = document.createElement('button');
+    inviteBtn.className = 'msg-people-invite-btn';
+    inviteBtn.title = 'Add people';
+    inviteBtn.textContent = '+';
+    inviteBtn.addEventListener('click', function () {
+      var memberIds = currentChannelMembers.map(function (m) { return m.employee_id; });
+      renderInviteModal(channelId, memberIds);
+    });
+    peopleTitleRow.appendChild(inviteBtn);
+
     peoplePanel.appendChild(peopleTitleRow);
 
     var peopleList = document.createElement('div');
@@ -668,21 +689,31 @@
     chatPane.appendChild(chatWrapper);
 
     // Load messages
-    apiGet('/channels/' + channelId + '/messages?limit=50').then(function (messages) {
-      clearEl(messagesDiv);
-      if (!Array.isArray(messages)) messages = [];
-
-      messages.forEach(function (msg) {
-        messagesDiv.appendChild(createMessageBubble(msg));
-      });
-
-      if (messages.length > 0) {
-        lastMessageId = messages[messages.length - 1].id;
+    fetch(MSG_API + '/channels/' + channelId + '/messages?limit=50', { headers: authHeaders() }).then(function (r) {
+      if (r.status === 403) {
+        clearEl(messagesDiv);
+        var forbidden = document.createElement('div');
+        forbidden.className = 'msg-empty';
+        forbidden.textContent = 'You do not have access to this channel.';
+        messagesDiv.appendChild(forbidden);
+        return;
       }
+      return r.json().then(function (messages) {
+        clearEl(messagesDiv);
+        if (!Array.isArray(messages)) messages = [];
 
-      setTimeout(function () {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }, 50);
+        messages.forEach(function (msg) {
+          messagesDiv.appendChild(createMessageBubble(msg));
+        });
+
+        if (messages.length > 0) {
+          lastMessageId = messages[messages.length - 1].id;
+        }
+
+        setTimeout(function () {
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }, 50);
+      });
     }).catch(function () {
       clearEl(messagesDiv);
       var err = document.createElement('div');
@@ -694,6 +725,7 @@
     // Load members for header count and people panel
     apiGet('/channels/' + channelId + '/members').then(function (members) {
       if (!Array.isArray(members)) return;
+      currentChannelMembers = members;
 
       // Update header sub text
       if (chInfo && chInfo.type !== 'dm') {
@@ -1463,6 +1495,118 @@
       document.body.removeChild(overlay);
     });
     modal.appendChild(cancelBtn);
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) document.body.removeChild(overlay);
+    });
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    searchInput.focus();
+  }
+
+  // ========== INVITE PEOPLE MODAL ==========
+
+  function renderInviteModal(channelId, currentMemberIds) {
+    var overlay = document.createElement('div');
+    overlay.className = 'msg-modal-overlay';
+
+    var modal = document.createElement('div');
+    modal.className = 'msg-modal';
+
+    var title = document.createElement('h3');
+    title.className = 'msg-modal-title';
+    title.textContent = 'Add People';
+    modal.appendChild(title);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'msg-modal-input';
+    searchInput.placeholder = 'Search people...';
+    modal.appendChild(searchInput);
+
+    var memberList = document.createElement('div');
+    memberList.className = 'msg-modal-member-list';
+    modal.appendChild(memberList);
+
+    var selectedIds = {};
+
+    function renderEmployeeList(filter) {
+      clearEl(memberList);
+      fetchEmployees().then(function (employees) {
+        var lf = (filter || '').toLowerCase();
+        var shown = 0;
+        employees.forEach(function (emp) {
+          if (currentMemberIds.indexOf(emp.id) !== -1) return;
+          var full = emp.first_name + ' ' + emp.last_name;
+          if (lf && full.toLowerCase().indexOf(lf) === -1 && emp.username.toLowerCase().indexOf(lf) === -1) return;
+
+          var row = document.createElement('label');
+          row.className = 'msg-modal-member-row';
+
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = !!selectedIds[emp.id];
+          cb.addEventListener('change', function () {
+            if (cb.checked) {
+              selectedIds[emp.id] = true;
+            } else {
+              delete selectedIds[emp.id];
+            }
+          });
+          row.appendChild(cb);
+
+          var empName = document.createElement('span');
+          empName.textContent = full;
+          row.appendChild(empName);
+
+          memberList.appendChild(row);
+          shown++;
+        });
+        if (shown === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'msg-loading';
+          empty.textContent = filter ? 'No matching people found.' : 'No more people to add.';
+          memberList.appendChild(empty);
+        }
+      });
+    }
+
+    renderEmployeeList('');
+    searchInput.addEventListener('input', function () {
+      renderEmployeeList(searchInput.value);
+    });
+
+    var btnRow = document.createElement('div');
+    btnRow.className = 'msg-modal-btns';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'msg-modal-btn msg-modal-btn-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () {
+      document.body.removeChild(overlay);
+    });
+    btnRow.appendChild(cancelBtn);
+
+    var addBtn = document.createElement('button');
+    addBtn.className = 'msg-modal-btn msg-modal-btn-create';
+    addBtn.textContent = 'Add';
+    addBtn.addEventListener('click', function () {
+      var ids = Object.keys(selectedIds).map(Number);
+      if (ids.length === 0) return;
+      apiPost('/channels/' + channelId + '/invite', { employeeIds: ids }).then(function () {
+        document.body.removeChild(overlay);
+        loadConversationList();
+        if (activeChannelId === channelId) {
+          renderChatView(channelId);
+        }
+      }).catch(function () {
+        document.body.removeChild(overlay);
+      });
+    });
+    btnRow.appendChild(addBtn);
+
+    modal.appendChild(btnRow);
 
     overlay.addEventListener('click', function (e) {
       if (e.target === overlay) document.body.removeChild(overlay);
