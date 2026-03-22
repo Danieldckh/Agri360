@@ -4,6 +4,48 @@
   var API_BASE = 'http://localhost:3001/api/dev';
   var PAGE_SIZE = 50;
 
+  var TABLE_MODULES = {
+    'employees': 'Employees',
+    'channels': 'Messaging',
+    'channel_members': 'Messaging',
+    'messages': 'Messaging',
+    'message_mentions': 'Messaging',
+    'message_attachments': 'Messaging',
+    'message_stars': 'Messaging',
+    'notifications': 'Messaging',
+    'message_folders': 'Messaging',
+    'message_folder_items': 'Messaging'
+  };
+  var MODULE_ORDER = ['Employees', 'Messaging', 'Other'];
+
+  function groupTablesByModule(tables) {
+    var groups = {};
+    var i, tableName, mod;
+    for (i = 0; i < tables.length; i++) {
+      tableName = tables[i];
+      mod = TABLE_MODULES[tableName] || 'Other';
+      if (!groups[mod]) groups[mod] = [];
+      groups[mod].push(tableName);
+    }
+    for (mod in groups) {
+      if (groups.hasOwnProperty(mod)) {
+        groups[mod].sort();
+      }
+    }
+    var result = [];
+    for (i = 0; i < MODULE_ORDER.length; i++) {
+      if (groups[MODULE_ORDER[i]]) {
+        result.push({ module: MODULE_ORDER[i], tables: groups[MODULE_ORDER[i]] });
+      }
+    }
+    for (mod in groups) {
+      if (groups.hasOwnProperty(mod) && MODULE_ORDER.indexOf(mod) === -1) {
+        result.push({ module: mod, tables: groups[mod] });
+      }
+    }
+    return result;
+  }
+
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
     if (window.getAuthHeaders) {
@@ -72,35 +114,89 @@
           return;
         }
 
-        tables.forEach(function (tableName) {
-          var btn = document.createElement('button');
-          btn.className = 'dev-db-table-item';
+        var groups = groupTablesByModule(tables);
+        var firstBtn = null;
 
-          var icon = document.createElement('span');
-          icon.textContent = '\u2637';
-          icon.style.opacity = '0.4';
-          btn.appendChild(icon);
+        groups.forEach(function (group) {
+          var groupEl = document.createElement('div');
+          groupEl.className = 'dev-db-group';
 
-          var nameSpan = document.createElement('span');
-          nameSpan.textContent = tableName;
-          btn.appendChild(nameSpan);
+          var storageKey = 'devDbGroup_' + group.module;
+          var isCollapsed = localStorage.getItem(storageKey) === 'true';
 
-          btn.addEventListener('click', function () {
-            var items = sidebar.querySelectorAll('.dev-db-table-item');
-            for (var i = 0; i < items.length; i++) {
-              items[i].classList.remove('active');
-            }
-            btn.classList.add('active');
-            activeTable = tableName;
-            currentOffset = 0;
-            loadTableDetail(tableName);
+          if (isCollapsed) {
+            groupEl.classList.add('collapsed');
+          }
+
+          var headerBtn = document.createElement('button');
+          headerBtn.className = 'dev-db-group-header';
+          var itemsId = 'dev-db-items-' + group.module.toLowerCase().replace(/\s+/g, '-');
+          headerBtn.setAttribute('aria-expanded', String(!isCollapsed));
+          headerBtn.setAttribute('aria-controls', itemsId);
+
+          var label = document.createElement('span');
+          label.className = 'dev-db-group-label';
+          label.textContent = group.module;
+          headerBtn.appendChild(label);
+
+          var count = document.createElement('span');
+          count.className = 'dev-db-group-count';
+          count.textContent = group.tables.length;
+          headerBtn.appendChild(count);
+
+          var chevron = document.createElement('span');
+          chevron.className = 'dev-db-group-chevron';
+          chevron.textContent = '\u25BE';
+          headerBtn.appendChild(chevron);
+
+          headerBtn.addEventListener('click', function () {
+            var collapsed = groupEl.classList.toggle('collapsed');
+            headerBtn.setAttribute('aria-expanded', String(!collapsed));
+            localStorage.setItem(storageKey, collapsed ? 'true' : 'false');
           });
 
-          sidebar.appendChild(btn);
+          groupEl.appendChild(headerBtn);
+
+          var itemsContainer = document.createElement('div');
+          itemsContainer.className = 'dev-db-group-items';
+          itemsContainer.id = itemsId;
+
+          group.tables.forEach(function (tableName) {
+            var btn = document.createElement('button');
+            btn.className = 'dev-db-table-item';
+
+            var icon = document.createElement('span');
+            icon.textContent = '\u2637';
+            icon.style.opacity = '0.4';
+            btn.appendChild(icon);
+
+            var nameSpan = document.createElement('span');
+            nameSpan.textContent = tableName;
+            btn.appendChild(nameSpan);
+
+            btn.addEventListener('click', function () {
+              var items = sidebar.querySelectorAll('.dev-db-table-item');
+              for (var i = 0; i < items.length; i++) {
+                items[i].classList.remove('active');
+              }
+              btn.classList.add('active');
+              activeTable = tableName;
+              currentOffset = 0;
+              loadTableDetail(tableName);
+            });
+
+            itemsContainer.appendChild(btn);
+
+            if (!firstBtn) {
+              firstBtn = btn;
+            }
+          });
+
+          groupEl.appendChild(itemsContainer);
+          sidebar.appendChild(groupEl);
         });
 
         // Select first table by default
-        var firstBtn = sidebar.querySelector('.dev-db-table-item');
         if (firstBtn) firstBtn.click();
       })
       .catch(function (err) {
@@ -119,7 +215,7 @@
       detail.appendChild(nameEl);
 
       // Fetch columns
-      fetch(API_BASE + '/tables/' + tableName + '/columns', { headers: getHeaders() })
+      fetch(API_BASE + '/tables/' + encodeURIComponent(tableName) + '/columns', { headers: getHeaders() })
         .then(function (res) { return res.json(); })
         .then(function (columns) {
           if (Array.isArray(columns) && columns.length > 0) {
@@ -207,7 +303,7 @@
       rowsContainer.appendChild(rowsLabel);
       detail.appendChild(rowsContainer);
 
-      fetch(API_BASE + '/tables/' + tableName + '/rows?limit=' + PAGE_SIZE + '&offset=' + offset, {
+      fetch(API_BASE + '/tables/' + encodeURIComponent(tableName) + '/rows?limit=' + PAGE_SIZE + '&offset=' + offset, {
         headers: getHeaders()
       })
         .then(function (res) { return res.json(); })
