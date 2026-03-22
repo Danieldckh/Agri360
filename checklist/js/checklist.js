@@ -1132,9 +1132,91 @@
     renderToggleableSection(container, 'Banners', formData.banners, renderBannersBody, clipboard, 'banners');
   }
   function renderPage6(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 6: Magazine \u2014 coming soon';
-    container.appendChild(p);
+    // 1. Active Months
+    renderActiveMonthsSelector(container, formData, 'page6ActiveMonths');
+
+    // 2. Magazine toggleable section
+    function renderMagazineBody(body, mag) {
+      var activeTab = 0;
+
+      function buildTabs() {
+        while (body.firstChild) body.removeChild(body.firstChild);
+
+        var tabBar = document.createElement('div');
+        tabBar.className = 'checklist-tabs';
+
+        mag.entries.forEach(function(entry, idx) {
+          var tab = document.createElement('button');
+          tab.className = 'checklist-tab';
+          if (idx === activeTab) tab.classList.add('active');
+
+          var tabText = document.createTextNode('Magazine ' + (idx + 1));
+          tab.appendChild(tabText);
+
+          if (idx > 0) {
+            var closeSpan = document.createElement('span');
+            closeSpan.className = 'checklist-tab-close';
+            closeSpan.textContent = '\u00D7';
+            closeSpan.addEventListener('click', function(e) {
+              e.stopPropagation();
+              if (confirm('Remove Magazine ' + (idx + 1) + '?')) {
+                mag.entries.splice(idx, 1);
+                if (activeTab >= mag.entries.length) activeTab = mag.entries.length - 1;
+                buildTabs();
+              }
+            });
+            tab.appendChild(closeSpan);
+          }
+
+          tab.addEventListener('click', function() { activeTab = idx; buildTabs(); });
+          tabBar.appendChild(tab);
+        });
+
+        var addBtn = document.createElement('button');
+        addBtn.className = 'checklist-tab-add';
+        addBtn.textContent = '+ Add Magazine';
+        addBtn.addEventListener('click', function() {
+          mag.entries.push(createMagazineEntry());
+          activeTab = mag.entries.length - 1;
+          buildTabs();
+        });
+        tabBar.appendChild(addBtn);
+        body.appendChild(tabBar);
+
+        // Render active tab content
+        var content = document.createElement('div');
+        var entry = mag.entries[activeTab];
+
+        var checkboxes = [
+          { label: 'SA Digital', key: 'saDigital' },
+          { label: 'Africa Print', key: 'africaPrint' },
+          { label: 'Africa Digital', key: 'africaDigital' },
+          { label: 'Coffee Table Book', key: 'coffeeTableBook' }
+        ];
+
+        checkboxes.forEach(function(item) {
+          var row = document.createElement('div');
+          row.className = 'checklist-checkbox-row';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = entry[item.key];
+          cb.id = 'magazine-' + activeTab + '-' + item.key;
+          cb.addEventListener('change', function() { entry[item.key] = cb.checked; });
+          var lbl = document.createElement('label');
+          lbl.htmlFor = 'magazine-' + activeTab + '-' + item.key;
+          lbl.textContent = item.label;
+          row.appendChild(cb);
+          row.appendChild(lbl);
+          content.appendChild(row);
+        });
+
+        body.appendChild(content);
+      }
+
+      buildTabs();
+    }
+
+    renderToggleableSection(container, 'Magazine', formData.magazine, renderMagazineBody, clipboard, 'magazine');
   }
   function renderPage7(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -1239,6 +1321,13 @@
       formData.banners.enabled = true;
       formData.banners.agri4all = true;
       formData.banners.proAgri = true;
+    } else if (page === 6) {
+      formData.page6ActiveMonths = getActiveMonthsList(formData);
+      formData.magazine.enabled = true;
+      formData.magazine.entries = [
+        { saDigital: true, africaPrint: false, africaDigital: true, coffeeTableBook: false },
+        { saDigital: false, africaPrint: true, africaDigital: false, coffeeTableBook: false }
+      ];
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
