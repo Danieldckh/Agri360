@@ -1432,9 +1432,231 @@
     renderToggleableSection(container, 'Website Design', formData.websiteDesign, renderBody, clipboard, 'websiteDesign');
   }
   function renderPage9(container, formData, clipboard) {
-    var p = document.createElement('p');
-    p.textContent = 'Page 9: Financials \u2014 coming soon';
-    container.appendChild(p);
+    renderActiveMonthsSelector(container, formData, 'page9ActiveMonths');
+
+    var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var allMonths = getActiveMonthsList(formData);
+
+    // Ensure monthlyFinancials entries exist
+    allMonths.forEach(function(mk) {
+      if (!formData.monthlyFinancials[mk]) {
+        formData.monthlyFinancials[mk] = { enabled: false, basePrice: 0, discount: 0, subtotal: 0 };
+      }
+    });
+
+    // Section title
+    var section = document.createElement('div');
+    section.className = 'checklist-section';
+    var sectionTitle = document.createElement('div');
+    sectionTitle.className = 'checklist-section-title';
+    sectionTitle.textContent = 'Financials';
+    section.appendChild(sectionTitle);
+
+    // Refs for updating
+    var subtotalDisplays = {};
+    var totalSubtotalEl, totalTaxEl, totalTotalEl;
+    var finClipboard = { data: null };
+
+    function recalcFinancials() {
+      var overallSubtotal = 0;
+      allMonths.forEach(function(mk) {
+        var mf = formData.monthlyFinancials[mk];
+        mf.subtotal = Math.max(0, (mf.basePrice || 0) - (mf.discount || 0));
+        if (subtotalDisplays[mk]) subtotalDisplays[mk].textContent = formData.currency + ' ' + mf.subtotal.toFixed(2);
+        if (mf.enabled) overallSubtotal += mf.subtotal;
+      });
+      var tax = overallSubtotal * 0.15;
+      var total = overallSubtotal + tax;
+      if (totalSubtotalEl) totalSubtotalEl.textContent = formData.currency + ' ' + overallSubtotal.toFixed(2);
+      if (totalTaxEl) totalTaxEl.textContent = formData.currency + ' ' + tax.toFixed(2);
+      if (totalTotalEl) totalTotalEl.textContent = formData.currency + ' ' + total.toFixed(2);
+    }
+
+    // Build per-month cards
+    allMonths.forEach(function(mk) {
+      var mf = formData.monthlyFinancials[mk];
+      var parts = mk.split('-');
+      var year = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10);
+      var monthLabel = monthNames[month - 1] + ' ' + year;
+
+      var card = document.createElement('div');
+      card.className = 'checklist-financial-card';
+
+      // Card header
+      var header = document.createElement('div');
+      header.className = 'checklist-financial-card-header';
+
+      var enableCb = document.createElement('input');
+      enableCb.type = 'checkbox';
+      enableCb.checked = mf.enabled;
+      header.appendChild(enableCb);
+
+      var headerLabel = document.createElement('span');
+      headerLabel.textContent = monthLabel;
+      headerLabel.style.flex = '1';
+      header.appendChild(headerLabel);
+
+      // Copy button
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'checklist-copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', function() {
+        finClipboard.data = JSON.parse(JSON.stringify(mf));
+      });
+      header.appendChild(copyBtn);
+
+      // Paste button
+      var pasteBtn = document.createElement('button');
+      pasteBtn.className = 'checklist-paste-btn';
+      pasteBtn.textContent = 'Paste';
+      pasteBtn.addEventListener('click', function() {
+        if (finClipboard.data) {
+          mf.enabled = finClipboard.data.enabled;
+          mf.basePrice = finClipboard.data.basePrice;
+          mf.discount = finClipboard.data.discount;
+          enableCb.checked = mf.enabled;
+          basePriceInput.value = mf.basePrice;
+          discountInput.value = mf.discount;
+          if (mf.enabled) {
+            cardBody.classList.remove('disabled');
+          } else {
+            cardBody.classList.add('disabled');
+          }
+          recalcFinancials();
+        }
+      });
+      header.appendChild(pasteBtn);
+
+      card.appendChild(header);
+
+      // Card body (2-col grid)
+      var cardBody = document.createElement('div');
+      cardBody.className = 'checklist-form-grid';
+      if (!mf.enabled) cardBody.classList.add('disabled');
+
+      // Base Price
+      var bpGroup = document.createElement('div');
+      bpGroup.className = 'checklist-form-group';
+      var bpLabel = document.createElement('label');
+      bpLabel.className = 'checklist-label';
+      bpLabel.textContent = 'Base Price';
+      bpGroup.appendChild(bpLabel);
+      var basePriceInput = document.createElement('input');
+      basePriceInput.type = 'number';
+      basePriceInput.className = 'checklist-input';
+      basePriceInput.value = mf.basePrice;
+      basePriceInput.addEventListener('input', function() {
+        mf.basePrice = parseFloat(basePriceInput.value) || 0;
+        recalcFinancials();
+      });
+      bpGroup.appendChild(basePriceInput);
+      cardBody.appendChild(bpGroup);
+
+      // Discount
+      var discGroup = document.createElement('div');
+      discGroup.className = 'checklist-form-group';
+      var discLabel = document.createElement('label');
+      discLabel.className = 'checklist-label';
+      discLabel.textContent = 'Discount';
+      discGroup.appendChild(discLabel);
+      var discountInput = document.createElement('input');
+      discountInput.type = 'number';
+      discountInput.className = 'checklist-input';
+      discountInput.value = mf.discount;
+      discountInput.addEventListener('input', function() {
+        mf.discount = parseFloat(discountInput.value) || 0;
+        recalcFinancials();
+      });
+      discGroup.appendChild(discountInput);
+      cardBody.appendChild(discGroup);
+
+      // Subtotal display (read-only)
+      var stGroup = document.createElement('div');
+      stGroup.className = 'checklist-form-group';
+      var stLabel = document.createElement('label');
+      stLabel.className = 'checklist-label';
+      stLabel.textContent = 'Subtotal';
+      stGroup.appendChild(stLabel);
+      var stDisplay = document.createElement('div');
+      stDisplay.style.padding = '8px 12px';
+      stDisplay.style.fontWeight = '600';
+      subtotalDisplays[mk] = stDisplay;
+      stGroup.appendChild(stDisplay);
+      cardBody.appendChild(stGroup);
+
+      card.appendChild(cardBody);
+
+      // Enable/disable toggle
+      enableCb.addEventListener('change', function() {
+        mf.enabled = enableCb.checked;
+        if (mf.enabled) {
+          cardBody.classList.remove('disabled');
+        } else {
+          cardBody.classList.add('disabled');
+        }
+        recalcFinancials();
+      });
+
+      section.appendChild(card);
+    });
+
+    // Financial Totals
+    var totals = document.createElement('div');
+    totals.className = 'checklist-financial-totals';
+
+    // Currency row
+    var currRow = document.createElement('div');
+    currRow.className = 'checklist-financial-totals-row';
+    var currLabel = document.createElement('span');
+    currLabel.textContent = 'Currency';
+    currRow.appendChild(currLabel);
+    var currInput = document.createElement('input');
+    currInput.type = 'text';
+    currInput.className = 'checklist-input';
+    currInput.style.width = '80px';
+    currInput.value = formData.currency;
+    currInput.addEventListener('input', function() {
+      formData.currency = currInput.value;
+      recalcFinancials();
+    });
+    currRow.appendChild(currInput);
+    totals.appendChild(currRow);
+
+    // Subtotal row
+    var subRow = document.createElement('div');
+    subRow.className = 'checklist-financial-totals-row';
+    var subLabel = document.createElement('span');
+    subLabel.textContent = 'Subtotal';
+    subRow.appendChild(subLabel);
+    totalSubtotalEl = document.createElement('span');
+    subRow.appendChild(totalSubtotalEl);
+    totals.appendChild(subRow);
+
+    // Tax row
+    var taxRow = document.createElement('div');
+    taxRow.className = 'checklist-financial-totals-row';
+    var taxLabel = document.createElement('span');
+    taxLabel.textContent = 'Tax (15%)';
+    taxRow.appendChild(taxLabel);
+    totalTaxEl = document.createElement('span');
+    taxRow.appendChild(totalTaxEl);
+    totals.appendChild(taxRow);
+
+    // Total row
+    var totalRow = document.createElement('div');
+    totalRow.className = 'checklist-financial-totals-row total';
+    var totalLabel = document.createElement('span');
+    totalLabel.textContent = 'Total';
+    totalRow.appendChild(totalLabel);
+    totalTotalEl = document.createElement('span');
+    totalRow.appendChild(totalTotalEl);
+    totals.appendChild(totalRow);
+
+    section.appendChild(totals);
+    container.appendChild(section);
+
+    recalcFinancials();
   }
   function renderPage10(container, formData, clipboard) {
     var p = document.createElement('p');
@@ -1546,6 +1768,19 @@
       formData.websiteDesign.enabled = true;
       formData.websiteDesign.type = 'redesign';
       formData.websiteDesign.numberOfPages = '5-10';
+    } else if (page === 9) {
+      formData.page9ActiveMonths = getActiveMonthsList(formData);
+      var months = getActiveMonthsList(formData);
+      var prices = [15000, 18000, 20000, 22000, 25000];
+      var discounts = [0, 1000, 500, 2000, 0];
+      months.forEach(function(mk, i) {
+        formData.monthlyFinancials[mk] = {
+          enabled: true,
+          basePrice: prices[i % prices.length],
+          discount: discounts[i % discounts.length],
+          subtotal: 0
+        };
+      });
     }
   }
   function submitWizard(formData, onClose) { onClose(); }
