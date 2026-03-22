@@ -1,0 +1,15 @@
+{
+  "name": "proagri-local",
+  "description": "Local plugins for ProAgri CRM",
+  "owner": {
+    "name": "ProAgri CRM"
+  },
+  "plugins": [
+    {
+      "name": "runteam",
+      "description": "Agent team for coding and UI/UX design: researches, architects, builds, tests, and iterates to improve quality",
+      "source": "./runteam",
+      "category": "development"
+    }
+  ]
+}

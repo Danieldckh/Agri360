@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.*
+*.log
+.claude/worktrees/
+api/uploads/photos/*
+api/uploads/attachments/*
+!api/uploads/photos/.gitkeep
+!api/uploads/attachments/.gitkeep
+.DS_Store
+Thumbs.db

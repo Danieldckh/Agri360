@@ -1,0 +1,277 @@
+/* ===== Employee Section ===== */
+.employee-section {
+  width: 100%;
+  padding: 0;
+}
+
+.employee-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.employee-header h2 {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.employee-count {
+  background: rgba(255, 255, 255, 0.1);
+  color: #aaa;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  margin-left: 10px;
+}
+
+.employee-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #aaa;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filter-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.filter-btn.active {
+  background: var(--color-accent-light);
+  color: #fff;
+  border-color: transparent;
+}
+
+.employee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.employee-card {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: slideUpFadeIn 0.4s ease backwards;
+}
+
+.employee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.employee-photo {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  margin: 0 auto;
+  display: block;
+}
+
+.photo-wrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  cursor: pointer;
+}
+
+.photo-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.photo-wrapper:hover .photo-overlay {
+  opacity: 1;
+}
+
+.employee-name {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
+.employee-role {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.role-admin {
+  background: linear-gradient(to top, var(--color-accent-light), var(--color-accent-dark));
+  color: #fff;
+}
+
+.role-employee {
+  background: rgba(255, 255, 255, 0.1);
+  color: #aaa;
+}
+
+.employee-status {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+.status-approved {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.status-pending {
+  background: rgba(245, 166, 35, 0.15);
+  color: var(--color-accent-light);
+}
+
+.status-declined {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-approve {
+  background: rgba(39, 174, 96, 0.2);
+  color: #27ae60;
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.btn-approve:hover {
+  filter: brightness(1.2);
+}
+
+.btn-decline {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.btn-decline:hover {
+  filter: brightness(1.2);
+}
+
+.btn-role {
+  background: rgba(245, 166, 35, 0.2);
+  color: var(--color-accent-light);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.btn-role:hover {
+  filter: brightness(1.2);
+}
+
+.employee-loading {
+  color: #888;
+  text-align: center;
+  padding: 60px;
+  font-style: italic;
+}
+
+/* ===== Light Mode ===== */
+[data-theme="light"] .employee-header h2 {
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .employee-count {
+  background: rgba(0, 0, 0, 0.08);
+  color: #666;
+}
+
+[data-theme="light"] .filter-btn {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #666;
+}
+
+[data-theme="light"] .filter-btn:hover {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .employee-card {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .employee-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .employee-photo {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .employee-name {
+  color: #1a1a1a;
+}
+
+[data-theme="light"] .role-employee {
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+}
+
+[data-theme="light"] .employee-loading {
+  color: #999;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .employee-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .employee-grid {
+    grid-template-columns: 1fr;
+  }
+  .employee-card {
+    padding: 16px;
+  }
+}

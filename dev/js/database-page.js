@@ -1,0 +1,309 @@
+(function () {
+  'use strict';
+
+  var API_BASE = 'http://localhost:3001/api/dev';
+  var PAGE_SIZE = 50;
+
+  function getHeaders() {
+    var headers = { 'Content-Type': 'application/json' };
+    if (window.getAuthHeaders) {
+      var auth = window.getAuthHeaders();
+      for (var key in auth) {
+        if (auth.hasOwnProperty(key)) headers[key] = auth[key];
+      }
+    }
+    return headers;
+  }
+
+  function truncateValue(val, max) {
+    if (val === null || val === undefined) return null;
+    var str = String(val);
+    if (str.length > (max || 80)) return str.substring(0, max || 80) + '...';
+    return str;
+  }
+
+  function isSensitiveColumn(name) {
+    var lower = name.toLowerCase();
+    return lower.indexOf('password') !== -1 || lower.indexOf('hash') !== -1;
+  }
+
+  window.renderDatabasePage = function (container) {
+    var page = document.createElement('div');
+    page.className = 'dev-page';
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'dev-page-header';
+
+    var title = document.createElement('h1');
+    title.className = 'dev-page-title';
+    title.textContent = 'Database';
+    header.appendChild(title);
+    page.appendChild(header);
+
+    // Layout
+    var layout = document.createElement('div');
+    layout.className = 'dev-db-layout';
+
+    var sidebar = document.createElement('div');
+    sidebar.className = 'dev-db-sidebar';
+
+    var detail = document.createElement('div');
+    detail.className = 'dev-db-detail';
+
+    layout.appendChild(sidebar);
+    layout.appendChild(detail);
+    page.appendChild(layout);
+    container.appendChild(page);
+
+    var activeTable = null;
+    var currentOffset = 0;
+    var totalRows = 0;
+
+    // Fetch table list
+    fetch(API_BASE + '/tables', { headers: getHeaders() })
+      .then(function (res) { return res.json(); })
+      .then(function (tables) {
+        if (!Array.isArray(tables) || tables.length === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'dev-db-empty';
+          empty.textContent = 'No tables found';
+          sidebar.appendChild(empty);
+          return;
+        }
+
+        tables.forEach(function (tableName) {
+          var btn = document.createElement('button');
+          btn.className = 'dev-db-table-item';
+
+          var icon = document.createElement('span');
+          icon.textContent = '\u2637';
+          icon.style.opacity = '0.4';
+          btn.appendChild(icon);
+
+          var nameSpan = document.createElement('span');
+          nameSpan.textContent = tableName;
+          btn.appendChild(nameSpan);
+
+          btn.addEventListener('click', function () {
+            var items = sidebar.querySelectorAll('.dev-db-table-item');
+            for (var i = 0; i < items.length; i++) {
+              items[i].classList.remove('active');
+            }
+            btn.classList.add('active');
+            activeTable = tableName;
+            currentOffset = 0;
+            loadTableDetail(tableName);
+          });
+
+          sidebar.appendChild(btn);
+        });
+
+        // Select first table by default
+        var firstBtn = sidebar.querySelector('.dev-db-table-item');
+        if (firstBtn) firstBtn.click();
+      })
+      .catch(function (err) {
+        var errMsg = document.createElement('div');
+        errMsg.className = 'dev-db-empty';
+        errMsg.textContent = 'Failed to load tables';
+        sidebar.appendChild(errMsg);
+      });
+
+    function loadTableDetail(tableName) {
+      detail.textContent = '';
+
+      var nameEl = document.createElement('h2');
+      nameEl.className = 'dev-db-table-name';
+      nameEl.textContent = tableName;
+      detail.appendChild(nameEl);
+
+      // Fetch columns
+      fetch(API_BASE + '/tables/' + tableName + '/columns', { headers: getHeaders() })
+        .then(function (res) { return res.json(); })
+        .then(function (columns) {
+          if (Array.isArray(columns) && columns.length > 0) {
+            renderColumns(columns);
+          }
+        })
+        .catch(function () {});
+
+      // Fetch rows
+      loadRows(tableName, 0);
+    }
+
+    function renderColumns(columns) {
+      var section = document.createElement('div');
+      section.className = 'dev-db-columns';
+
+      var label = document.createElement('div');
+      label.className = 'dev-db-section-label';
+      label.textContent = 'Columns';
+      section.appendChild(label);
+
+      var wrap = document.createElement('div');
+      wrap.className = 'dev-db-grid-wrap';
+
+      var table = document.createElement('table');
+      table.className = 'dev-db-grid';
+
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      ['Name', 'Type', 'Nullable', 'Default'].forEach(function (text) {
+        var th = document.createElement('th');
+        th.textContent = text;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      columns.forEach(function (col) {
+        var tr = document.createElement('tr');
+
+        var tdName = document.createElement('td');
+        tdName.textContent = col.column_name || col.name || '';
+        tr.appendChild(tdName);
+
+        var tdType = document.createElement('td');
+        tdType.className = 'dev-db-col-type';
+        tdType.textContent = col.data_type || col.type || '';
+        tr.appendChild(tdType);
+
+        var tdNull = document.createElement('td');
+        tdNull.className = 'dev-db-col-nullable';
+        var nullable = col.is_nullable || col.nullable;
+        tdNull.textContent = nullable === 'YES' || nullable === true ? 'yes' : 'no';
+        tr.appendChild(tdNull);
+
+        var tdDefault = document.createElement('td');
+        tdDefault.className = 'dev-db-col-default';
+        var def = col.column_default || col.default_value;
+        tdDefault.textContent = def !== null && def !== undefined ? String(def) : '-';
+        tr.appendChild(tdDefault);
+
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      wrap.appendChild(table);
+      section.appendChild(wrap);
+      detail.appendChild(section);
+    }
+
+    function loadRows(tableName, offset) {
+      var rowsLabel = document.createElement('div');
+      rowsLabel.className = 'dev-db-section-label';
+      rowsLabel.textContent = 'Data';
+
+      var existingLabel = detail.querySelector('.dev-db-section-label + .dev-db-grid-wrap');
+      var rowsContainer = document.createElement('div');
+
+      // Remove previous rows section if it exists
+      var prevRowsSection = detail.querySelector('[data-rows-section]');
+      if (prevRowsSection) prevRowsSection.remove();
+
+      rowsContainer.setAttribute('data-rows-section', 'true');
+      rowsContainer.appendChild(rowsLabel);
+      detail.appendChild(rowsContainer);
+
+      fetch(API_BASE + '/tables/' + tableName + '/rows?limit=' + PAGE_SIZE + '&offset=' + offset, {
+        headers: getHeaders()
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          var rows = data.rows || data;
+          totalRows = data.total || (Array.isArray(rows) ? rows.length : 0);
+          var rowsArr = Array.isArray(rows) ? rows : [];
+
+          if (rowsArr.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'dev-db-empty';
+            empty.textContent = 'No rows';
+            rowsContainer.appendChild(empty);
+            return;
+          }
+
+          var colNames = Object.keys(rowsArr[0]);
+
+          var wrap = document.createElement('div');
+          wrap.className = 'dev-db-grid-wrap';
+
+          var table = document.createElement('table');
+          table.className = 'dev-db-grid';
+
+          var thead = document.createElement('thead');
+          var headRow = document.createElement('tr');
+          colNames.forEach(function (name) {
+            var th = document.createElement('th');
+            th.textContent = name;
+            headRow.appendChild(th);
+          });
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          var tbody = document.createElement('tbody');
+          rowsArr.forEach(function (row) {
+            var tr = document.createElement('tr');
+            colNames.forEach(function (colName) {
+              var td = document.createElement('td');
+              var val = row[colName];
+
+              if (val === null || val === undefined) {
+                td.textContent = 'null';
+                td.style.color = '#555';
+                td.style.fontStyle = 'italic';
+              } else if (isSensitiveColumn(colName)) {
+                td.textContent = truncateValue(val, 16);
+                td.style.color = '#555';
+              } else {
+                td.textContent = truncateValue(val, 80);
+              }
+
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          wrap.appendChild(table);
+          rowsContainer.appendChild(wrap);
+
+          // Pagination
+          var pagination = document.createElement('div');
+          pagination.className = 'dev-db-pagination';
+
+          var prevBtn = document.createElement('button');
+          prevBtn.textContent = 'Previous';
+          prevBtn.disabled = offset === 0;
+          prevBtn.addEventListener('click', function () {
+            currentOffset = Math.max(0, offset - PAGE_SIZE);
+            loadRows(tableName, currentOffset);
+          });
+          pagination.appendChild(prevBtn);
+
+          var info = document.createElement('span');
+          var start = offset + 1;
+          var end = offset + rowsArr.length;
+          info.textContent = 'Showing ' + start + '-' + end + ' of ' + totalRows;
+          pagination.appendChild(info);
+
+          var nextBtn = document.createElement('button');
+          nextBtn.textContent = 'Next';
+          nextBtn.disabled = (offset + PAGE_SIZE) >= totalRows;
+          nextBtn.addEventListener('click', function () {
+            currentOffset = offset + PAGE_SIZE;
+            loadRows(tableName, currentOffset);
+          });
+          pagination.appendChild(nextBtn);
+
+          rowsContainer.appendChild(pagination);
+        })
+        .catch(function () {
+          var errMsg = document.createElement('div');
+          errMsg.className = 'dev-db-empty';
+          errMsg.textContent = 'Failed to load rows';
+          rowsContainer.appendChild(errMsg);
+        });
+    }
+  };
+})();

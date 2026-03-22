@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - ProAgri CRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap&text=Agri360" rel="stylesheet">
+  <link rel="stylesheet" href="ui/css/styles.css">
+  <link rel="stylesheet" href="auth/css/auth.css">
+</head>
+<body data-page="login">
+  <div class="auth-container">
+    <div class="auth-logo">Agri<span class="logo-360">360</span></div>
+    <div class="auth-card">
+      <h1 class="auth-title">Sign In</h1>
+      <div id="authMessage" class="auth-message" style="display:none"></div>
+      <form id="authForm">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-input" type="text" name="username" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" name="password" required>
+        </div>
+        <button class="btn-primary" type="submit">Sign In</button>
+      </form>
+      <div class="auth-link">
+        <a href="forgot-password.html">Forgot password?</a>
+      </div>
+      <div class="auth-link">
+        Don't have an account? <a href="signup.html">Sign up</a>
+      </div>
+    </div>
+  </div>
+  <script src="auth/js/auth.js"></script>
+</body>
+</html>

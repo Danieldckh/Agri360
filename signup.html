@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - ProAgri CRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap&text=Agri360" rel="stylesheet">
+  <link rel="stylesheet" href="ui/css/styles.css">
+  <link rel="stylesheet" href="auth/css/auth.css">
+</head>
+<body data-page="signup">
+  <div class="auth-container">
+    <div class="auth-logo">Agri<span class="logo-360">360</span></div>
+    <div class="auth-card">
+      <h1 class="auth-title">Create Account</h1>
+      <div id="authMessage" class="auth-message" style="display:none"></div>
+      <form id="authForm">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input class="form-input" type="text" name="firstName" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input class="form-input" type="text" name="lastName" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-input" type="text" name="username" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <input class="form-input" type="password" name="confirmPassword" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Security Question</label>
+          <select class="form-select" name="securityQuestion" required>
+            <option value="">Select a question...</option>
+            <option value="What city were you born in?">What city were you born in?</option>
+            <option value="What is your pet's name?">What is your pet's name?</option>
+            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+            <option value="What was your first school?">What was your first school?</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Security Answer</label>
+          <input class="form-input" type="text" name="securityAnswer" required>
+        </div>
+        <button class="btn-primary" type="submit">Sign Up</button>
+      </form>
+      <div class="auth-link">
+        Already have an account? <a href="login.html">Sign in</a>
+      </div>
+    </div>
+  </div>
+  <script src="auth/js/auth.js"></script>
+</body>
+</html>
