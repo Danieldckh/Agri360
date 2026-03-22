@@ -85,7 +85,14 @@ router.get('/channels', async (req, res) => {
           JOIN employees e ON e.id = m.sender_id
           WHERE m.channel_id = c.id AND m.is_deleted = false
           ORDER BY m.created_at DESC LIMIT 1
-        ) lm) AS latest_message
+        ) lm) AS latest_message,
+        (SELECT row_to_json(dp) FROM (
+          SELECT e.id, e.first_name, e.last_name, e.photo_url
+          FROM channel_members om
+          JOIN employees e ON e.id = om.employee_id
+          WHERE om.channel_id = c.id AND om.employee_id != $1
+          LIMIT 1
+        ) dp) AS dm_partner
        FROM channels c
        JOIN channel_members cm ON cm.channel_id = c.id AND cm.employee_id = $1
        WHERE c.parent_id IS NULL
@@ -110,7 +117,14 @@ router.get('/channels', async (req, res) => {
             JOIN employees e ON e.id = m.sender_id
             WHERE m.channel_id = c.id AND m.is_deleted = false
             ORDER BY m.created_at DESC LIMIT 1
-          ) lm) AS latest_message
+          ) lm) AS latest_message,
+          (SELECT row_to_json(dp) FROM (
+            SELECT e.id, e.first_name, e.last_name, e.photo_url
+            FROM channel_members om
+            JOIN employees e ON e.id = om.employee_id
+            WHERE om.channel_id = c.id AND om.employee_id != $1
+            LIMIT 1
+          ) dp) AS dm_partner
          FROM channels c
          JOIN channel_members cm ON cm.channel_id = c.id AND cm.employee_id = $1
          WHERE c.parent_id = ANY($2)

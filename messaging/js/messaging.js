@@ -139,6 +139,9 @@
   }
 
   function getDmOtherName(ch) {
+    if (ch.dm_partner) {
+      return (ch.dm_partner.first_name || '') + ' ' + (ch.dm_partner.last_name || '');
+    }
     var user = getUser();
     if (ch.latest_message) {
       var senderId = ch.latest_message.sender_id;
@@ -152,6 +155,9 @@
   }
 
   function getDmOtherPhoto(ch) {
+    if (ch.dm_partner && ch.dm_partner.photo_url) {
+      return 'http://localhost:3001/uploads/photos/' + ch.dm_partner.photo_url;
+    }
     var user = getUser();
     if (ch.latest_message && ch.latest_message.sender_id !== user.id && ch.latest_message.sender_photo_url) {
       return 'http://localhost:3001/uploads/photos/' + ch.latest_message.sender_photo_url;
