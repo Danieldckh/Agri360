@@ -359,6 +359,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Department sidebar activation
+  var deptPages = ['production', 'design', 'editorial', 'video', 'agri4all', 'social-media'];
+  var deptNames = {
+    'production': 'Production',
+    'design': 'Design',
+    'editorial': 'Editorial',
+    'video': 'Video',
+    'agri4all': 'Agri4All',
+    'social-media': 'Social Media'
+  };
+  var currentDeptPage = null;
+
+  function activateDeptSidebar(page) {
+    var mainSidebar = document.getElementById('sidebar');
+    var deptSidebar = document.getElementById('deptSidebar');
+    var deptTitle = document.getElementById('deptSidebarTitle');
+
+    if (mainSidebar) mainSidebar.style.display = 'none';
+    if (deptSidebar) deptSidebar.style.display = 'flex';
+    if (deptTitle) deptTitle.textContent = deptNames[page] || 'Department';
+
+    currentDeptPage = page;
+
+    var backBtn = document.getElementById('deptBackBtn');
+    if (backBtn) {
+      backBtn.onclick = function() {
+        deactivateDeptSidebar();
+        var myViewItem = document.querySelector('.nav-item[data-page="my-view"]');
+        if (myViewItem) myViewItem.click();
+      };
+    }
+  }
+
+  function deactivateDeptSidebar() {
+    var mainSidebar = document.getElementById('sidebar');
+    var deptSidebar = document.getElementById('deptSidebar');
+
+    if (mainSidebar) mainSidebar.style.display = '';
+    if (deptSidebar) deptSidebar.style.display = 'none';
+
+    currentDeptPage = null;
+  }
+
   function transitionToPage(page) {
     isTransitioning = true;
 
@@ -366,6 +409,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentPage === 'messaging' && page !== 'messaging') {
       if (window.deactivateMessagingSidebar) window.deactivateMessagingSidebar();
       if (window.cleanupMessaging) window.cleanupMessaging();
+    }
+
+    // Cleanup previous page if it was a department
+    if (deptPages.indexOf(currentPage) !== -1 && deptPages.indexOf(page) === -1) {
+      deactivateDeptSidebar();
     }
 
     dashboardContent.classList.add('page-exit');
@@ -453,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (page === 'production') {
+        activateDeptSidebar('production');
         if (window.renderProductionPage) window.renderProductionPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
@@ -464,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (page === 'design') {
+        activateDeptSidebar('design');
         if (window.renderDesignPage) window.renderDesignPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
@@ -475,6 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (page === 'editorial') {
+        activateDeptSidebar('editorial');
         if (window.renderEditorialPage) window.renderEditorialPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
@@ -486,6 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (page === 'video') {
+        activateDeptSidebar('video');
         if (window.renderVideoPage) window.renderVideoPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
@@ -497,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (page === 'agri4all') {
+        activateDeptSidebar('agri4all');
         if (window.renderAgri4AllPage) window.renderAgri4AllPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
@@ -508,6 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (page === 'social-media') {
+        activateDeptSidebar('social-media');
         if (window.renderSocialMediaPage) window.renderSocialMediaPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {

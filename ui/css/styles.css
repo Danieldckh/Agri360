@@ -727,6 +727,48 @@ html, body {
   }
 }
 
+/* ===== Department Sidebar ===== */
+.dept-sidebar {
+  width: var(--sidebar-width);
+  background: var(--color-secondary);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0 16px 12px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  transition: width var(--sidebar-transition);
+}
+
+.dept-sidebar-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px 0 0;
+}
+
+.dept-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dept-sidebar-item:hover {
+  background: rgba(128, 128, 128, 0.1);
+  color: var(--text-primary);
+}
+
+.dept-sidebar-item.active {
+  background: var(--color-accent-light);
+  color: #fff;
+}
+
 /* ===== Responsive — 8 tiers ===== */
 
 /* Tier 2: Desktop (1440px) */
