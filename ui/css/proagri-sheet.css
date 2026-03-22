@@ -1,0 +1,165 @@
+/* ===== ProAgri Sheet Component ===== */
+
+.proagri-sheet {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.proagri-sheet-header {
+  display: flex;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  transition: opacity 0.2s ease;
+}
+
+.proagri-sheet-header-cell {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex: 1;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.proagri-sheet-header-cell.sortable {
+  cursor: pointer;
+}
+
+.proagri-sheet-header-cell.sortable:hover {
+  color: var(--text-secondary);
+}
+
+.proagri-sheet-sort-icon {
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+.proagri-sheet-sort-icon.sort-active {
+  opacity: 1;
+  color: var(--color-accent-light);
+}
+
+.proagri-sheet-header-cell.radial-col {
+  flex: 0 0 40px;
+}
+
+/* Rows */
+.proagri-sheet-row {
+  display: flex;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  align-items: center;
+  transition: opacity 0.2s ease, background 0.15s ease;
+  animation: sheetRowIn 0.25s ease both;
+}
+
+.proagri-sheet-row:hover {
+  background: rgba(128, 128, 128, 0.05);
+}
+
+@keyframes sheetRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.proagri-sheet-cell {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proagri-sheet-cell.cell-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.proagri-sheet-cell.radial-col {
+  flex: 0 0 40px;
+  text-align: right;
+}
+
+/* Status badges */
+.proagri-sheet-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.proagri-sheet-status-pending {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-in_progress {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-completed,
+.proagri-sheet-status-done {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.proagri-sheet-status-overdue {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-active {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.proagri-sheet-status-inactive {
+  background: rgba(128, 128, 128, 0.15);
+  color: #888;
+}
+
+.proagri-sheet-status-lead {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+/* Empty and loading states */
+.proagri-sheet-empty,
+.proagri-sheet-loading {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.proagri-sheet-loading::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(128, 128, 128, 0.2);
+  border-top-color: var(--text-muted);
+  border-radius: 50%;
+  animation: sheetSpin 0.6s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+@keyframes sheetSpin {
+  to { transform: rotate(360deg); }
+}
