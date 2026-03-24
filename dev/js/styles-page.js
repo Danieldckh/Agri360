@@ -25,12 +25,9 @@
     '--font-size-subtitle': '20',
     '--font-size-body': '14',
     '--font-size-small': '12',
-    '--text-primary-dark': '#ffffff',
-    '--text-secondary-dark': '#bbbbbb',
-    '--text-muted-dark': '#888888',
-    '--text-primary-light': '#1a1a1a',
-    '--text-secondary-light': '#444444',
-    '--text-muted-light': '#666666',
+    '--text-primary': '#1a1a1a',
+    '--text-secondary': '#444444',
+    '--text-muted': '#666666',
     '--color-accent-light': '#f5a623',
     '--color-accent-dark': '#d4791a'
   };
@@ -62,7 +59,6 @@
   function applySettings() {
     var settings = loadSettings();
     var root = document.documentElement;
-    var currentTheme = root.getAttribute('data-theme') || localStorage.getItem('proagri-theme') || 'dark';
 
     // Font family
     var fontVal = settings['--font-family'] || DEFAULTS['--font-family'];
@@ -80,16 +76,10 @@
     if (settings['--color-accent-light']) root.style.setProperty('--color-accent-light', settings['--color-accent-light']);
     if (settings['--color-accent-dark']) root.style.setProperty('--color-accent-dark', settings['--color-accent-dark']);
 
-    // Text colors — apply based on current theme to avoid inline style specificity issues
-    if (currentTheme === 'dark') {
-      root.style.setProperty('--text-primary', settings['--text-primary-dark'] || DEFAULTS['--text-primary-dark']);
-      root.style.setProperty('--text-secondary', settings['--text-secondary-dark'] || DEFAULTS['--text-secondary-dark']);
-      root.style.setProperty('--text-muted', settings['--text-muted-dark'] || DEFAULTS['--text-muted-dark']);
-    } else {
-      root.style.setProperty('--text-primary', settings['--text-primary-light'] || DEFAULTS['--text-primary-light']);
-      root.style.setProperty('--text-secondary', settings['--text-secondary-light'] || DEFAULTS['--text-secondary-light']);
-      root.style.setProperty('--text-muted', settings['--text-muted-light'] || DEFAULTS['--text-muted-light']);
-    }
+    // Text colors — fixed light theme
+    root.style.setProperty('--text-primary', settings['--text-primary'] || DEFAULTS['--text-primary']);
+    root.style.setProperty('--text-secondary', settings['--text-secondary'] || DEFAULTS['--text-secondary']);
+    root.style.setProperty('--text-muted', settings['--text-muted'] || DEFAULTS['--text-muted']);
 
   }
 
@@ -512,12 +502,9 @@
     textColorGrid.className = 'settings-grid';
 
     var textColorConfigs = [
-      { key: '--text-primary-dark', label: 'Text Primary (Dark Mode)', cssVar: null },
-      { key: '--text-secondary-dark', label: 'Text Secondary (Dark Mode)', cssVar: null },
-      { key: '--text-muted-dark', label: 'Text Muted (Dark Mode)', cssVar: null },
-      { key: '--text-primary-light', label: 'Text Primary (Light Mode)', cssVar: null },
-      { key: '--text-secondary-light', label: 'Text Secondary (Light Mode)', cssVar: null },
-      { key: '--text-muted-light', label: 'Text Muted (Light Mode)', cssVar: null }
+      { key: '--text-primary', label: 'Text Primary', cssVar: '--text-primary' },
+      { key: '--text-secondary', label: 'Text Secondary', cssVar: '--text-secondary' },
+      { key: '--text-muted', label: 'Text Muted', cssVar: '--text-muted' }
     ];
 
     textColorConfigs.forEach(function (cfg) {
@@ -551,19 +538,8 @@
         valueSpan.textContent = picker.value;
         setPending(cfg.key, picker.value);
 
-        var theme = document.documentElement.getAttribute('data-theme') || 'dark';
-        if (cfg.key === '--text-primary-dark' && theme === 'dark') {
-          document.documentElement.style.setProperty('--text-primary', picker.value);
-        }
-        if (cfg.key === '--text-secondary-dark' && theme === 'dark') {
-          document.documentElement.style.setProperty('--text-secondary', picker.value);
-        }
-        if (cfg.key === '--text-muted-dark' && theme === 'dark') {
-          document.documentElement.style.setProperty('--text-muted', picker.value);
-        }
-        if (cfg.key.endsWith('-light') && theme === 'light') {
-          var cssKey = cfg.key.replace('-light', '');
-          document.documentElement.style.setProperty(cssKey, picker.value);
+        if (cfg.cssVar) {
+          document.documentElement.style.setProperty(cfg.cssVar, picker.value);
         }
       });
 

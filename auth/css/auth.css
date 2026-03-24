@@ -40,7 +40,7 @@ body[data-page="forgot-password"] {
 }
 
 .auth-title {
-  color: #fff;
+  color: #1a1a1a;
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 24px;
@@ -51,7 +51,7 @@ body[data-page="forgot-password"] {
 }
 
 .form-label {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(0, 0, 0, 0.5);
   font-size: 12px;
   margin-bottom: 6px;
   display: block;
@@ -61,10 +61,10 @@ body[data-page="forgot-password"] {
 
 .form-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 10px;
-  color: #fff;
+  color: #1a1a1a;
   padding: 12px 16px;
   font-size: 14px;
   outline: none;
@@ -77,10 +77,10 @@ body[data-page="forgot-password"] {
 
 .form-select {
   width: 100%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 10px;
-  color: #fff;
+  color: #1a1a1a;
   padding: 12px 16px;
   font-size: 14px;
   outline: none;
@@ -94,8 +94,8 @@ body[data-page="forgot-password"] {
 }
 
 .form-select option {
-  background: var(--color-secondary);
-  color: #fff;
+  background: #fff;
+  color: #1a1a1a;
 }
 
 .btn-primary {
@@ -124,7 +124,7 @@ body[data-page="forgot-password"] {
   text-align: center;
   margin-top: 20px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .auth-link a {
@@ -161,40 +161,6 @@ body[data-page="forgot-password"] {
 
 .step.active {
   display: block;
-}
-
-/* ===== Light Mode ===== */
-[data-theme="light"] .auth-logo {
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .auth-title {
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .form-label {
-  color: rgba(0, 0, 0, 0.5);
-}
-
-[data-theme="light"] .form-input {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .form-select {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .form-select option {
-  background: #fff;
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .auth-link {
-  color: rgba(0, 0, 0, 0.5);
 }
 
 /* ===== Responsive ===== */

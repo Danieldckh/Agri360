@@ -48,14 +48,14 @@
 }
 
 .dev-btn-ghost {
-  background: rgba(255, 255, 255, 0.06);
-  color: #aaa;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  color: #666;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .dev-btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.08);
+  color: #333;
 }
 
 /* ===== Styles Page ===== */
@@ -68,10 +68,10 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #888;
+  color: #555;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .dev-color-grid {
@@ -81,7 +81,7 @@
 }
 
 .dev-color-card {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 12px;
   overflow: hidden;
   transition: transform 0.15s;
@@ -129,7 +129,7 @@
 .dev-color-hex {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #333;
 }
 
 .dev-var-list {
@@ -141,7 +141,7 @@
 .dev-var-list td {
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 13px;
 }
 
@@ -150,7 +150,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #888;
+  color: #666;
 }
 
 .dev-var-name {
@@ -159,14 +159,14 @@
 }
 
 .dev-var-value {
-  color: var(--text-secondary);
+  color: #333;
 }
 
 .dev-var-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
-  color: var(--text-primary);
+  color: #1a1a1a;
   padding: 4px 8px;
   font-size: 13px;
   font-family: 'Consolas', 'Monaco', monospace;
@@ -180,21 +180,21 @@
 
 .dev-typography-sample {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 10px;
   margin-bottom: 12px;
 }
 
 .dev-typography-label {
   font-size: 11px;
-  color: #888;
+  color: #666;
   margin-bottom: 4px;
   font-family: monospace;
 }
 
 /* ===== Components Page ===== */
 .dev-component-section {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
@@ -205,7 +205,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #888;
+  color: #666;
   margin-bottom: 16px;
 }
 
@@ -220,8 +220,8 @@
 .dev-component-classes {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
-  color: #888;
-  background: rgba(0, 0, 0, 0.2);
+  color: #666;
+  background: rgba(0, 0, 0, 0.04);
   padding: 8px 12px;
   border-radius: 8px;
 }
@@ -236,7 +236,7 @@
 .dev-db-sidebar {
   width: 220px;
   flex-shrink: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
   overflow-y: auto;
   padding-right: 12px;
 }
@@ -249,7 +249,7 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: #aaa;
+  color: #666;
   border: none;
   background: none;
   width: 100%;
@@ -258,13 +258,13 @@
 }
 
 .dev-db-table-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.04);
+  color: #1a1a1a;
 }
 
 .dev-db-table-item.active {
-  background: var(--color-secondary);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
   font-weight: 500;
 }
 
@@ -277,14 +277,14 @@
 .dev-db-table-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1a1a1a;
   margin-bottom: 16px;
 }
 
 .dev-db-grid-wrap {
   overflow-x: auto;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .dev-db-grid {
@@ -300,16 +300,16 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #888;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #666;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   white-space: nowrap;
 }
 
 .dev-db-grid td {
   padding: 8px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  color: #333;
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -317,7 +317,7 @@
 }
 
 .dev-db-grid tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .dev-db-pagination {
@@ -327,23 +327,23 @@
   gap: 16px;
   padding: 16px 0;
   font-size: 13px;
-  color: #888;
+  color: #666;
 }
 
 .dev-db-pagination button {
   padding: 6px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
-  color: #aaa;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  color: #666;
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .dev-db-pagination button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
 }
 
 .dev-db-pagination button:disabled {
@@ -352,7 +352,7 @@
 }
 
 .dev-db-empty {
-  color: #666;
+  color: #999;
   font-style: italic;
   text-align: center;
   padding: 40px;
@@ -366,12 +366,12 @@
 
 .dev-db-col-nullable {
   font-size: 11px;
-  color: #888;
+  color: #666;
 }
 
 .dev-db-col-default {
   font-size: 11px;
-  color: #666;
+  color: #888;
   font-family: monospace;
 }
 
@@ -384,7 +384,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #888;
+  color: #666;
   margin-bottom: 10px;
 }
 
@@ -415,7 +415,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #888;
+  color: rgba(0, 0, 0, 0.45);
   text-transform: uppercase;
   flex: 1;
   text-align: left;
@@ -423,8 +423,8 @@
 
 .dev-db-group-count {
   font-size: 10px;
-  color: #555;
-  background: rgba(255, 255, 255, 0.06);
+  color: #888;
+  background: rgba(0, 0, 0, 0.06);
   padding: 1px 6px;
   border-radius: 8px;
   min-width: 18px;
@@ -432,7 +432,7 @@
 }
 
 .dev-db-group-chevron {
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(0, 0, 0, 0.25);
   font-size: 10px;
   transition: transform 0.2s ease;
   flex-shrink: 0;
@@ -458,160 +458,6 @@
   pointer-events: none;
 }
 
-/* ===== Light Theme ===== */
-[data-theme="light"] .dev-page-title {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .dev-btn-ghost {
-  background: rgba(0, 0, 0, 0.04);
-  color: #666;
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="light"] .dev-btn-ghost:hover {
-  background: rgba(0, 0, 0, 0.08);
-  color: #333;
-}
-
-[data-theme="light"] .dev-section-title {
-  color: #555;
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .dev-color-card {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="light"] .dev-color-hex {
-  color: #333;
-}
-
-[data-theme="light"] .dev-var-list th,
-[data-theme="light"] .dev-var-list td {
-  border-bottom-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .dev-var-list th {
-  color: #666;
-}
-
-[data-theme="light"] .dev-var-value {
-  color: #333;
-}
-
-[data-theme="light"] .dev-var-input {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.1);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dev-typography-sample {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="light"] .dev-typography-label {
-  color: #666;
-}
-
-[data-theme="light"] .dev-component-section {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .dev-component-label {
-  color: #666;
-}
-
-[data-theme="light"] .dev-component-classes {
-  background: rgba(0, 0, 0, 0.04);
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-sidebar {
-  border-right-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .dev-db-table-item {
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-table-item:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dev-db-table-item.active {
-  background: rgba(0, 0, 0, 0.08);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dev-db-table-name {
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dev-db-grid-wrap {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .dev-db-grid th {
-  background: rgba(0, 0, 0, 0.03);
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-grid td {
-  border-bottom-color: rgba(0, 0, 0, 0.04);
-  color: #333;
-}
-
-[data-theme="light"] .dev-db-grid tr:hover td {
-  background: rgba(0, 0, 0, 0.02);
-}
-
-[data-theme="light"] .dev-db-pagination {
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-pagination button {
-  border-color: rgba(0, 0, 0, 0.1);
-  background: rgba(0, 0, 0, 0.04);
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-pagination button:hover {
-  background: rgba(0, 0, 0, 0.08);
-  color: #1a1a1a;
-}
-
-[data-theme="light"] .dev-db-empty {
-  color: #999;
-}
-
-[data-theme="light"] .dev-db-col-nullable {
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-col-default {
-  color: #888;
-}
-
-[data-theme="light"] .dev-db-section-label {
-  color: #666;
-}
-
-[data-theme="light"] .dev-db-group-label {
-  color: rgba(0, 0, 0, 0.45);
-}
-
-[data-theme="light"] .dev-db-group-count {
-  color: #888;
-  background: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .dev-db-group-chevron {
-  color: rgba(0, 0, 0, 0.25);
-}
-
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .dev-page {
@@ -623,7 +469,7 @@
   .dev-db-sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     padding-right: 0;
     padding-bottom: 12px;
     max-height: 200px;
@@ -638,9 +484,6 @@
     flex-direction: row;
     flex-wrap: wrap;
     gap: 4px;
-  }
-  [data-theme="light"] .dev-db-sidebar {
-    border-bottom-color: rgba(0, 0, 0, 0.08);
   }
   .dev-db-detail {
     padding-left: 0;

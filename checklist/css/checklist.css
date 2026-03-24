@@ -50,7 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .checklist-modal {
@@ -59,7 +59,7 @@
   max-width: 1200px;
   display: flex;
   flex-direction: column;
-  background: var(--color-secondary);
+  background: #fff;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -229,8 +229,8 @@
 .checklist-input,
 .checklist-textarea,
 .checklist-select {
-  background: rgba(128, 128, 128, 0.08);
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   color: var(--text-primary);
   border-radius: 8px;
   padding: 8px 12px;
@@ -455,13 +455,13 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--color-secondary);
+  background: #fff;
   border: 1px solid rgba(128, 128, 128, 0.2);
   border-radius: 0 0 8px 8px;
   max-height: 200px;
   overflow-y: auto;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .checklist-typeahead-item {
@@ -519,8 +519,8 @@
 /* 14. Financial cards
    ========================================================================== */
 .checklist-financial-card {
-  background: rgba(128, 128, 128, 0.05);
-  border: 1px solid rgba(128, 128, 128, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
@@ -575,7 +575,7 @@
 }
 
 .checklist-confirm-dialog {
-  background: var(--color-secondary);
+  background: #fff;
   border-radius: 12px;
   padding: 24px;
   max-width: 400px;
@@ -596,38 +596,7 @@
   justify-content: center;
 }
 
-/* 16. Light theme overrides
-   ========================================================================== */
-[data-theme="light"] .checklist-modal {
-  background: #fff;
-}
-
-[data-theme="light"] .checklist-typeahead-dropdown {
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="light"] .checklist-confirm-dialog {
-  background: #fff;
-}
-
-[data-theme="light"] .checklist-input,
-[data-theme="light"] .checklist-textarea,
-[data-theme="light"] .checklist-select {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .checklist-financial-card {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="light"] .checklist-overlay {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-/* 17. Radio group
+/* 16. Radio group
    ========================================================================== */
 .checklist-radio-group {
   display: flex;

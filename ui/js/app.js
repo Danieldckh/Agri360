@@ -265,41 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCurrentUser();
 
-  // Theme toggle
-  const themeToggle = document.getElementById('themeToggle');
-  const themeLabel = themeToggle.querySelector('.theme-label');
-  const savedTheme = localStorage.getItem('proagri-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  updateThemeLabel(savedTheme);
-
-  themeToggle.addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('proagri-theme', next);
-    updateThemeLabel(next);
-
-    // Re-apply theme text colors for the new mode
-    try {
-      var themeSettings = JSON.parse(localStorage.getItem('proagri-theme-settings') || '{}');
-      var root = document.documentElement;
-      if (next === 'dark') {
-        root.style.setProperty('--text-primary', themeSettings['--text-primary-dark'] || '#ffffff');
-        root.style.setProperty('--text-secondary', themeSettings['--text-secondary-dark'] || '#bbbbbb');
-        root.style.setProperty('--text-muted', themeSettings['--text-muted-dark'] || '#888888');
-      } else {
-        // In light mode, apply light text colors inline so they override dark mode inline values
-        root.style.setProperty('--text-primary', themeSettings['--text-primary-light'] || '#1a1a1a');
-        root.style.setProperty('--text-secondary', themeSettings['--text-secondary-light'] || '#444444');
-        root.style.setProperty('--text-muted', themeSettings['--text-muted-light'] || '#666666');
-      }
-    } catch (e) {}
-  });
-
-  function updateThemeLabel(theme) {
-    themeLabel.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
-  }
-
   // Toggle sidebar collapse
   collapseBtn.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
