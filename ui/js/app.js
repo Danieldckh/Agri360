@@ -340,8 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'production': ['Action Board', 'Overview', 'Follow Ups'],
     'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
-    'video': ['Dashboard', 'Calendar', 'Clients', 'Freelancers', 'Budgets'],
-    'agri4all': ['Agri4All 1', 'Agri4All 2'],
+    'video': ['Dashboard', 'Calendar', 'Tasks', 'Budgets', 'Team & Freelancers'],
+    'agri4all': ['Listings', 'Newsletters', 'Social Media', 'Banners'],
     'social-media': ['Social Media 1', 'Social Media 2']
   };
   var currentDeptPage = null;
