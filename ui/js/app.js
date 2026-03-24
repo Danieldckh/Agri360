@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Onboarded', 'Declined Proposal'],
     'production': ['Action Board', 'Overview', 'Follow Ups'],
-    'design': ['Design 1', 'Design 2'],
+    'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Editorial 1', 'Editorial 2'],
     'video': ['Dashboard', 'Calendar', 'Clients', 'Freelancers', 'Budgets'],
     'agri4all': ['Agri4All 1', 'Agri4All 2'],
