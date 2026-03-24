@@ -1672,97 +1672,152 @@
 
   // ========== SIDEBAR ACTIVATION ==========
 
-  function activateMessagingSidebar() {
-    var mainSidebar = document.getElementById('sidebar');
-    var msgSidebar = document.getElementById('messagingSidebar');
-    if (mainSidebar) mainSidebar.style.display = 'none';
-    if (msgSidebar) msgSidebar.style.display = 'flex';
+  var savedMsgNavHTML = null;
 
-    renderSidebarContent();
-
-    var backBtn = document.getElementById('msgBackBtn');
-    if (backBtn) {
-      backBtn.onclick = function () {
-        var myViewItem = document.querySelector('.nav-item[data-page="my-view"]');
-        if (myViewItem) myViewItem.click();
-      };
-    }
+  function makeMsgNavSvg(pathD) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'currentColor');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathD);
+    svg.appendChild(path);
+    return svg;
   }
 
-  function renderSidebarContent() {
-    var sidebarContent = document.getElementById('msgSidebarContent');
-    if (!sidebarContent) return;
-    clearEl(sidebarContent);
+  function activateMessagingSidebar() {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
 
-    // Hide the search bar in sidebar (search is in the left pane now)
-    var sidebarSearch = document.querySelector('.msg-sidebar-search');
-    if (sidebarSearch) sidebarSearch.style.display = 'none';
+    if (window.expandSidebarIfCollapsed) window.expandSidebarIfCollapsed();
 
-    // Filter buttons: All | Channels | DMs
-    var filterGroup = document.createElement('div');
-    filterGroup.className = 'msg-sidebar-filters';
+    if (!savedMsgNavHTML) {
+      savedMsgNavHTML = nav.cloneNode(true);
+    }
 
-    var filters = [
-      { id: 'all', label: 'All' },
-      { id: 'channels', label: 'Channels' },
-      { id: 'dms', label: 'Direct Messages' }
-    ];
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
 
-    filters.forEach(function (f) {
-      var btn = document.createElement('button');
-      btn.className = 'msg-sidebar-filter-btn' + (sidebarFilter === f.id ? ' active' : '');
-      btn.textContent = f.label;
-      btn.addEventListener('click', function () {
-        sidebarFilter = f.id;
-        filterGroup.querySelectorAll('.msg-sidebar-filter-btn').forEach(function (b) {
-          b.classList.toggle('active', b === btn);
-        });
-        renderConversationList('');
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+      // Back button
+      var backItem = document.createElement('a');
+      backItem.className = 'nav-item';
+      backItem.tabIndex = 0;
+      backItem.style.cursor = 'pointer';
+      var backIcon = document.createElement('span');
+      backIcon.className = 'nav-icon';
+      backIcon.appendChild(makeMsgNavSvg('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+      backItem.appendChild(backIcon);
+      var backLabel = document.createElement('span');
+      backLabel.className = 'nav-label';
+      backLabel.textContent = 'Messaging';
+      backItem.appendChild(backLabel);
+      backItem.addEventListener('click', function () {
+        deactivateMessagingSidebar();
+        var myViewItem = document.querySelector('.nav-item[data-page="my-view"]');
+        if (myViewItem) myViewItem.click();
       });
-      filterGroup.appendChild(btn);
-    });
+      nav.appendChild(backItem);
 
-    sidebarContent.appendChild(filterGroup);
+      // Separator
+      var sep = document.createElement('div');
+      sep.style.height = '1px';
+      sep.style.background = 'rgba(0,0,0,0.08)';
+      sep.style.margin = '8px 12px';
+      nav.appendChild(sep);
 
-    // Action buttons
-    var actions = document.createElement('div');
-    actions.className = 'msg-sidebar-actions';
+      // Filter items: All, Channels, Direct Messages
+      var filters = [
+        { id: 'all', label: 'All' },
+        { id: 'channels', label: 'Channels' },
+        { id: 'dms', label: 'Direct Messages' }
+      ];
 
-    var newChBtn = document.createElement('button');
-    newChBtn.className = 'msg-sidebar-action-btn';
-    var chIcon = makeSvg('M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z', 14);
-    newChBtn.appendChild(chIcon);
-    var chLabel = document.createElement('span');
-    chLabel.textContent = 'New Channel';
-    newChBtn.appendChild(chLabel);
-    newChBtn.addEventListener('click', function () {
-      renderChannelCreateModal();
-    });
-    actions.appendChild(newChBtn);
+      filters.forEach(function (f) {
+        var item = document.createElement('a');
+        item.className = 'nav-item' + (sidebarFilter === f.id ? ' active' : '');
+        item.tabIndex = 0;
+        item.style.cursor = 'pointer';
+        var label = document.createElement('span');
+        label.className = 'nav-label';
+        label.textContent = f.label;
+        item.appendChild(label);
+        item.addEventListener('click', function () {
+          sidebarFilter = f.id;
+          nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+          item.classList.add('active');
+          renderConversationList('');
+        });
+        nav.appendChild(item);
+      });
 
-    var newDmBtn = document.createElement('button');
-    newDmBtn.className = 'msg-sidebar-action-btn';
-    var dmIcon = makeSvg('M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z', 14);
-    newDmBtn.appendChild(dmIcon);
-    var dmLabel = document.createElement('span');
-    dmLabel.textContent = 'New DM';
-    newDmBtn.appendChild(dmLabel);
-    newDmBtn.addEventListener('click', function () {
-      renderDmCreateModal();
-    });
-    actions.appendChild(newDmBtn);
+      // Separator
+      var sep2 = document.createElement('div');
+      sep2.style.height = '1px';
+      sep2.style.background = 'rgba(0,0,0,0.08)';
+      sep2.style.margin = '8px 12px';
+      nav.appendChild(sep2);
 
-    sidebarContent.appendChild(actions);
+      // Action items: New Channel, New DM
+      var newChItem = document.createElement('a');
+      newChItem.className = 'nav-item';
+      newChItem.tabIndex = 0;
+      newChItem.style.cursor = 'pointer';
+      var chIcon = document.createElement('span');
+      chIcon.className = 'nav-icon';
+      chIcon.appendChild(makeMsgNavSvg('M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'));
+      newChItem.appendChild(chIcon);
+      var chLabel = document.createElement('span');
+      chLabel.className = 'nav-label';
+      chLabel.textContent = 'New Channel';
+      newChItem.appendChild(chLabel);
+      newChItem.addEventListener('click', function () {
+        renderChannelCreateModal();
+      });
+      nav.appendChild(newChItem);
+
+      var newDmItem = document.createElement('a');
+      newDmItem.className = 'nav-item';
+      newDmItem.tabIndex = 0;
+      newDmItem.style.cursor = 'pointer';
+      var dmIcon = document.createElement('span');
+      dmIcon.className = 'nav-icon';
+      dmIcon.appendChild(makeMsgNavSvg('M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z'));
+      newDmItem.appendChild(dmIcon);
+      var dmLabel = document.createElement('span');
+      dmLabel.className = 'nav-label';
+      dmLabel.textContent = 'New DM';
+      newDmItem.appendChild(dmLabel);
+      newDmItem.addEventListener('click', function () {
+        renderDmCreateModal();
+      });
+      nav.appendChild(newDmItem);
+
+      nav.style.opacity = '1';
+    }, 200);
   }
 
   function deactivateMessagingSidebar() {
-    var mainSidebar = document.getElementById('sidebar');
-    var msgSidebar = document.getElementById('messagingSidebar');
-    if (mainSidebar) mainSidebar.style.display = '';
-    if (msgSidebar) msgSidebar.style.display = 'none';
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav || !savedMsgNavHTML) return;
 
-    var sidebarSearch = document.querySelector('.msg-sidebar-search');
-    if (sidebarSearch) sidebarSearch.style.display = '';
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      while (savedMsgNavHTML.firstChild) {
+        nav.appendChild(savedMsgNavHTML.firstChild);
+      }
+      savedMsgNavHTML = null;
+      nav.style.opacity = '1';
+
+      if (window.restoreSidebarCollapsed) window.restoreSidebarCollapsed();
+      if (window.rebindNavItems) window.rebindNavItems();
+    }, 200);
   }
 
   // ========== CLEANUP ==========

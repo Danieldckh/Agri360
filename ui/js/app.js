@@ -360,9 +360,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return svg;
   }
 
+  var wasSidebarCollapsed = false;
+
+  function expandSidebarIfCollapsed() {
+    if (sidebar.classList.contains('collapsed')) {
+      wasSidebarCollapsed = true;
+      sidebar.classList.remove('collapsed');
+      collapseBtn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function restoreSidebarCollapsed() {
+    if (wasSidebarCollapsed) {
+      sidebar.classList.add('collapsed');
+      collapseBtn.setAttribute('aria-expanded', 'false');
+      wasSidebarCollapsed = false;
+    }
+  }
+
   function showDeptSubMenu(page) {
     var nav = document.querySelector('#sidebar nav');
     if (!nav) return;
+
+    expandSidebarIfCollapsed();
 
     if (!savedNavHTML) {
       savedNavHTML = nav.cloneNode(true);
@@ -443,6 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentDeptView = null;
       nav.style.opacity = '1';
 
+      restoreSidebarCollapsed();
       rebindNavItems();
     }, 200);
   }
@@ -489,6 +510,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  window.rebindNavItems = rebindNavItems;
+  window.expandSidebarIfCollapsed = expandSidebarIfCollapsed;
+  window.restoreSidebarCollapsed = restoreSidebarCollapsed;
 
   function transitionToPage(page) {
     isTransitioning = true;
