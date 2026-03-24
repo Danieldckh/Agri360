@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Onboarded', 'Declined Proposal'],
-    'production': ['Production 1', 'Production 2'],
+    'production': ['Action Board', 'Overview', 'Follow Ups'],
     'design': ['Design 1', 'Design 2'],
     'editorial': ['Editorial 1', 'Editorial 2'],
     'video': ['Dashboard', 'Calendar', 'Clients', 'Freelancers', 'Budgets'],
