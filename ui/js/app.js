@@ -336,13 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
     'social-media': 'Social Media'
   };
   var deptMenuItems = {
-    'production': ['Action Board', 'Overview'],
-    'design': ['Action Board', 'Overview'],
-    'editorial': ['Action Board', 'Overview'],
-    'video': ['Action Board', 'Overview'],
-    'agri4all': ['Action Board', 'Overview'],
-    'social-media': ['Action Board', 'Overview'],
-    'admin': ['Action Board', 'Overview']
+    'admin': ['Admin 1', 'Admin 2'],
+    'production': ['Production 1', 'Production 2'],
+    'design': ['Design 1', 'Design 2'],
+    'editorial': ['Editorial 1', 'Editorial 2'],
+    'video': ['Video 1', 'Video 2'],
+    'agri4all': ['Agri4All 1', 'Agri4All 2'],
+    'social-media': ['Social Media 1', 'Social Media 2']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
