@@ -466,81 +466,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (page === 'production') {
-        activateDeptSidebar('production');
-        if (window.renderProductionPage) window.renderProductionPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'design') {
-        activateDeptSidebar('design');
-        if (window.renderDesignPage) window.renderDesignPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'editorial') {
-        activateDeptSidebar('editorial');
-        if (window.renderEditorialPage) window.renderEditorialPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'video') {
-        activateDeptSidebar('video');
-        if (window.renderVideoPage) window.renderVideoPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'agri4all') {
-        activateDeptSidebar('agri4all');
-        if (window.renderAgri4AllPage) window.renderAgri4AllPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'social-media') {
-        activateDeptSidebar('social-media');
-        if (window.renderSocialMediaPage) window.renderSocialMediaPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'admin') {
-        activateDeptSidebar('admin');
-        if (window.renderAdminPage) window.renderAdminPage(dashboardContent);
+      if (deptPages.indexOf(page) !== -1) {
+        activateDeptSidebar(page);
+        var deptPlaceholder = document.createElement('span');
+        deptPlaceholder.className = 'page-placeholder';
+        deptPlaceholder.textContent = (deptNames[page] || page) + ' Department';
+        dashboardContent.appendChild(deptPlaceholder);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);
