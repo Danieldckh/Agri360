@@ -324,17 +324,172 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Department sidebar activation
-  var deptPages = ['production', 'design', 'editorial', 'video', 'agri4all', 'social-media', 'admin'];
+  // Department config
+  var deptPages = ['admin', 'production', 'design', 'editorial', 'video', 'agri4all', 'social-media'];
   var deptNames = {
+    'admin': 'Admin',
     'production': 'Production',
     'design': 'Design',
     'editorial': 'Editorial',
     'video': 'Video',
     'agri4all': 'Agri4All',
-    'social-media': 'Social Media',
-    'admin': 'Admin'
+    'social-media': 'Social Media'
   };
+  var deptMenuItems = {
+    'production': ['Action Board', 'Overview'],
+    'design': ['Action Board', 'Overview'],
+    'editorial': ['Action Board', 'Overview'],
+    'video': ['Action Board', 'Overview'],
+    'agri4all': ['Action Board', 'Overview'],
+    'social-media': ['Action Board', 'Overview'],
+    'admin': ['Action Board', 'Overview']
+  };
+  var currentDeptPage = null;
+  var currentDeptView = null;
+  var savedNavHTML = null;
+
+  function makeSvgIcon(pathD) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'currentColor');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathD);
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function showDeptSubMenu(page) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+
+    if (!savedNavHTML) {
+      savedNavHTML = nav.cloneNode(true);
+    }
+
+    currentDeptPage = page;
+    var items = deptMenuItems[page] || ['Overview'];
+    currentDeptView = items[0];
+
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+      var backItem = document.createElement('a');
+      backItem.className = 'nav-item';
+      backItem.tabIndex = 0;
+      backItem.style.cursor = 'pointer';
+      var backIcon = document.createElement('span');
+      backIcon.className = 'nav-icon';
+      backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+      backItem.appendChild(backIcon);
+      var backLabel = document.createElement('span');
+      backLabel.className = 'nav-label';
+      backLabel.textContent = deptNames[page] || page;
+      backItem.appendChild(backLabel);
+      backItem.addEventListener('click', function () {
+        hideDeptSubMenu();
+        var myViewItem = document.querySelector('.nav-item[data-page="my-view"]');
+        if (myViewItem) myViewItem.click();
+      });
+      nav.appendChild(backItem);
+
+      var sep = document.createElement('div');
+      sep.style.height = '1px';
+      sep.style.background = 'rgba(0,0,0,0.08)';
+      sep.style.margin = '8px 12px';
+      nav.appendChild(sep);
+
+      items.forEach(function (viewName, idx) {
+        var item = document.createElement('a');
+        item.className = 'nav-item' + (idx === 0 ? ' active' : '');
+        item.tabIndex = 0;
+        item.style.cursor = 'pointer';
+        var label = document.createElement('span');
+        label.className = 'nav-label';
+        label.textContent = viewName;
+        item.appendChild(label);
+        item.addEventListener('click', function () {
+          if (currentDeptView === viewName) return;
+          currentDeptView = viewName;
+          nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+          item.classList.add('active');
+          showDeptContent(page, viewName);
+        });
+        nav.appendChild(item);
+      });
+
+      nav.style.opacity = '1';
+    }, 200);
+  }
+
+  function hideDeptSubMenu() {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav || !savedNavHTML) return;
+
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      while (savedNavHTML.firstChild) {
+        nav.appendChild(savedNavHTML.firstChild);
+      }
+      savedNavHTML = null;
+      currentDeptPage = null;
+      currentDeptView = null;
+      nav.style.opacity = '1';
+
+      rebindNavItems();
+    }, 200);
+  }
+
+  function showDeptContent(page, viewName) {
+    while (dashboardContent.firstChild) {
+      dashboardContent.removeChild(dashboardContent.firstChild);
+    }
+    var placeholder = document.createElement('span');
+    placeholder.className = 'page-placeholder';
+    placeholder.textContent = (deptNames[page] || page) + ' Department - ' + viewName;
+    dashboardContent.appendChild(placeholder);
+    dashboardContent.style.display = '';
+    dashboardContent.style.alignItems = '';
+    dashboardContent.style.justifyContent = '';
+    dashboardContent.style.flexDirection = '';
+    dashboardContent.style.height = '';
+    dashboardContent.style.gap = '';
+    dashboardContent.style.padding = '';
+  }
+
+  function rebindNavItems() {
+    var items = document.querySelectorAll('.nav-item[data-page]');
+    items.forEach(function (item) {
+      item.addEventListener('click', function () {
+        var currentActive = document.querySelector('.nav-item.active');
+        if (currentActive === item || isTransitioning) return;
+
+        items.forEach(function (n) {
+          n.classList.remove('active');
+          n.removeAttribute('aria-current');
+        });
+        item.classList.add('active');
+        item.setAttribute('aria-current', 'page');
+
+        transitionToPage(item.dataset.page);
+      });
+
+      item.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          item.click();
+        }
+      });
+    });
+  }
+
   function transitionToPage(page) {
     isTransitioning = true;
 
@@ -342,6 +497,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentPage === 'messaging' && page !== 'messaging') {
       if (window.deactivateMessagingSidebar) window.deactivateMessagingSidebar();
       if (window.cleanupMessaging) window.cleanupMessaging();
+    }
+
+    // Cleanup previous page if it was a department
+    if (currentDeptPage && deptPages.indexOf(page) === -1) {
+      hideDeptSubMenu();
     }
 
     dashboardContent.classList.add('page-exit');
@@ -429,10 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (deptPages.indexOf(page) !== -1) {
-        var deptPlaceholder = document.createElement('span');
-        deptPlaceholder.className = 'page-placeholder';
-        deptPlaceholder.textContent = (deptNames[page] || page) + ' Department';
-        dashboardContent.appendChild(deptPlaceholder);
+        showDeptSubMenu(page);
+        showDeptContent(page, (deptMenuItems[page] || ['Overview'])[0]);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);
