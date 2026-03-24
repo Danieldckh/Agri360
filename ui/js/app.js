@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'social-media': 'Social Media'
   };
   var deptMenuItems = {
-    'admin': ['Admin 1', 'Admin 2'],
+    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Onboarded', 'Declined Proposal'],
     'production': ['Production 1', 'Production 2'],
     'design': ['Design 1', 'Design 2'],
     'editorial': ['Editorial 1', 'Editorial 2'],
