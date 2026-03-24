@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'production': ['Production 1', 'Production 2'],
     'design': ['Design 1', 'Design 2'],
     'editorial': ['Editorial 1', 'Editorial 2'],
-    'video': ['Video 1', 'Video 2'],
+    'video': ['Dashboard', 'Calendar', 'Clients', 'Freelancers', 'Budgets'],
     'agri4all': ['Agri4All 1', 'Agri4All 2'],
     'social-media': ['Social Media 1', 'Social Media 2']
   };
