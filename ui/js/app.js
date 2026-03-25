@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
     'video': ['Dashboard', 'Calendar', 'Tasks', 'Budgets', 'Team & Freelancers'],
     'agri4all': ['Listings', 'Newsletters', 'Social Media', 'Banners'],
-    'social-media': ['Social Media 1', 'Social Media 2']
+    'social-media': ['Dashboard', 'Content Calendars', 'Agri for All', 'Stats', 'Settings']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
