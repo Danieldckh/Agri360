@@ -76,7 +76,7 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS dashboards (
         id SERIAL PRIMARY KEY,
         deliverable_id INTEGER REFERENCES deliverables(id) ON DELETE CASCADE,
-        department_id INTEGER NOT NULL REFERENCES departments(id),
+        department_id INTEGER REFERENCES departments(id),
         deliverable_type VARCHAR(100) NOT NULL,
         title VARCHAR(255) NOT NULL,
         config JSONB DEFAULT '{}',

@@ -8,16 +8,14 @@ async function migrate() {
     // Drop department_views table
     await client.query('DROP TABLE IF EXISTS department_views');
 
-    // Make deliverable_id nullable so dashboards can exist independently
+    // Make deliverable_id and department_id nullable so dashboards can exist independently
     await client.query('ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL');
+    await client.query('ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL');
 
-    // Seed Content Calendar dashboard (no deliverable, no specific department)
+    // Seed a single Content Calendar dashboard
     await client.query(`
       INSERT INTO dashboards (deliverable_id, department_id, deliverable_type, title, config, status)
-      SELECT NULL, d.id, 'content-calendar', 'Content Calendar', '{}', 'active'
-      FROM departments d
-      WHERE d.slug IN ('design', 'editorial', 'social-media')
-      ON CONFLICT DO NOTHING
+      VALUES (NULL, NULL, 'content-calendar', 'Content Calendar', '{}', 'active')
     `);
 
     await client.query('COMMIT');

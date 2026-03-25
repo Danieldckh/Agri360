@@ -58,8 +58,8 @@ router.post('/', async (req, res) => {
   const b = toSnakeBody(req.body);
   const { deliverable_id, department_id, deliverable_type, title, config, status } = b;
 
-  if (!department_id || !deliverable_type || !title) {
-    return res.status(400).json({ error: 'department_id, deliverable_type, and title are required' });
+  if (!deliverable_type || !title) {
+    return res.status(400).json({ error: 'deliverable_type and title are required' });
   }
 
   try {
