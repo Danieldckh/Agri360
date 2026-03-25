@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboardContent = document.getElementById('dashboardContent');
   const navItems = document.querySelectorAll('.nav-item');
   let isTransitioning = false;
-  let currentPage = 'my-view';
+  let currentPage = localStorage.getItem('proagri-active-page') || 'my-view';
 
   // ===== User Menu =====
   const userAvatarBtn = document.getElementById('userAvatarBtn');
@@ -549,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       currentPage = page;
+      localStorage.setItem('proagri-active-page', page);
 
       if (page === 'employees') {
         renderEmployeeSection(dashboardContent);
@@ -664,5 +665,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function onExit() { handleExitComplete(); }
     dashboardContent.addEventListener('animationend', onExit);
+  }
+
+  // Restore last active page on load
+  if (currentPage && currentPage !== 'my-view') {
+    var savedItem = document.querySelector('.nav-item[data-page="' + currentPage + '"]');
+    if (savedItem) {
+      savedItem.click();
+    }
   }
 });
