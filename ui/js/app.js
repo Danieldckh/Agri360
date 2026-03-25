@@ -428,27 +428,16 @@ document.addEventListener('DOMContentLoaded', () => {
         item.className = 'nav-item' + (idx === 0 ? ' active' : '');
         item.tabIndex = 0;
         item.style.cursor = 'pointer';
-
         var label = document.createElement('span');
         label.className = 'nav-label';
         label.textContent = viewName;
         item.appendChild(label);
-
-        // Open-in-new-tab icon
-        var openIcon = document.createElement('span');
-        openIcon.className = 'nav-open-icon';
-        openIcon.appendChild(makeSvgIcon('M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z'));
-        item.appendChild(openIcon);
-
         item.addEventListener('click', function () {
+          if (currentDeptView === viewName) return;
           currentDeptView = viewName;
           nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
           item.classList.add('active');
           showDeptContent(page, viewName);
-
-          // Open sheet in new browser tab
-          var sheetUrl = 'pages/department-sheet.html?dept=' + encodeURIComponent(page) + '&tab=' + encodeURIComponent(viewName);
-          window.open(sheetUrl, '_blank');
         });
         nav.appendChild(item);
       });
@@ -479,21 +468,286 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
+  // Tab-specific column configurations for department sheets
+  var deptTabColumns = {
+    '_default': [
+      { key: 'name', label: 'Name', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' }
+    ],
+    'Proposal': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'proposal_type', label: 'Type', sortable: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'submitted_date', label: 'Submitted', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Booking Form': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'booking_type', label: 'Type', sortable: true },
+      { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
+      { key: 'end_date', label: 'End Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Onboarding': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'progress', label: 'Progress', sortable: true },
+      { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Onboarded': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'onboarded_date', label: 'Onboarded Date', sortable: true, type: 'date' },
+      { key: 'account_manager', label: 'Account Manager', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Declined Proposal': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'proposal_type', label: 'Type', sortable: true },
+      { key: 'reason', label: 'Reason', sortable: true },
+      { key: 'declined_date', label: 'Declined Date', sortable: true, type: 'date' }
+    ],
+    'Action Board': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'priority', label: 'Priority', sortable: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Overview': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'department', label: 'Department', sortable: true },
+      { key: 'progress', label: 'Progress', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Follow Ups': [
+      { key: 'item', label: 'Item', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'follow_up_date', label: 'Follow Up Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Content Calendars': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'platform', label: 'Platform', sortable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Magazine': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'edition', label: 'Edition', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Agri for All': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Web Design': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Own SM': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'platform', label: 'Platform', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Internal Tasks': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'priority', label: 'Priority', sortable: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Proposals': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'type', label: 'Type', sortable: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Online Articles': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'author', label: 'Author', sortable: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Dashboard': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'type', label: 'Type', sortable: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Calendar': [
+      { key: 'event', label: 'Event', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'date', label: 'Date', sortable: true, type: 'date' },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Tasks': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Budgets': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'budget', label: 'Budget', sortable: true },
+      { key: 'spent', label: 'Spent', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Team & Freelancers': [
+      { key: 'name', label: 'Name', sortable: true, isName: true },
+      { key: 'role', label: 'Role', sortable: true },
+      { key: 'type', label: 'Type', sortable: true },
+      { key: 'availability', label: 'Availability', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Listings': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'region', label: 'Region', sortable: true },
+      { key: 'listed_date', label: 'Listed Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Newsletters': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'edition', label: 'Edition', sortable: true },
+      { key: 'send_date', label: 'Send Date', sortable: true, type: 'date' },
+      { key: 'recipients', label: 'Recipients', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Social Media': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'platform', label: 'Platform', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Banners': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'size', label: 'Size', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Stats': [
+      { key: 'platform', label: 'Platform', sortable: true, isName: true },
+      { key: 'metric', label: 'Metric', sortable: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'period', label: 'Period', sortable: true },
+      { key: 'trend', label: 'Trend', sortable: true }
+    ],
+    'Settings': [
+      { key: 'setting', label: 'Setting', sortable: true, isName: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'last_updated', label: 'Last Updated', sortable: true, type: 'date' }
+    ]
+  };
+
   function showDeptContent(page, viewName) {
     while (dashboardContent.firstChild) {
       dashboardContent.removeChild(dashboardContent.firstChild);
     }
-    var placeholder = document.createElement('span');
-    placeholder.className = 'page-placeholder';
-    placeholder.textContent = (deptNames[page] || page) + ' Department - ' + viewName;
-    dashboardContent.appendChild(placeholder);
-    dashboardContent.style.display = '';
+    dashboardContent.style.display = 'block';
     dashboardContent.style.alignItems = '';
     dashboardContent.style.justifyContent = '';
     dashboardContent.style.flexDirection = '';
     dashboardContent.style.height = '';
     dashboardContent.style.gap = '';
     dashboardContent.style.padding = '';
+
+    var section = document.createElement('div');
+    section.className = 'dept-sheet-section';
+
+    // Header with title, count, and search
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+
+    var title = document.createElement('h2');
+    title.className = 'dept-sheet-title';
+    title.textContent = viewName;
+    titleWrap.appendChild(title);
+
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+
+    header.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search ' + viewName.toLowerCase() + '...';
+    header.appendChild(searchInput);
+
+    section.appendChild(header);
+
+    // Sheet container
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    section.appendChild(sheetContainer);
+
+    dashboardContent.appendChild(section);
+
+    // Get columns for this tab
+    var columns = deptTabColumns[viewName] || deptTabColumns['_default'];
+    var allData = [];
+
+    function renderSheetView() {
+      var filtered = allData;
+      var term = searchInput.value.toLowerCase();
+
+      if (term) {
+        filtered = allData.filter(function(row) {
+          return columns.some(function(col) {
+            var val = row[col.key];
+            return val && val.toString().toLowerCase().indexOf(term) !== -1;
+          });
+        });
+      }
+
+      countBadge.textContent = filtered.length;
+
+      if (window.renderSheet) {
+        window.renderSheet(sheetContainer, {
+          columns: columns,
+          data: filtered,
+          radialActions: [
+            { id: 'view', label: 'View Details', action: function(row) { console.log('View:', row); } },
+            { id: 'edit', label: 'Edit', action: function(row) { console.log('Edit:', row); } }
+          ]
+        });
+      }
+    }
+
+    searchInput.addEventListener('input', renderSheetView);
+    renderSheetView();
   }
 
   function rebindNavItems() {
