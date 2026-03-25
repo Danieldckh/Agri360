@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProAgri CRM - Sheet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap&text=Agri360" rel="stylesheet">
+  <link rel="stylesheet" href="../ui/css/proagri-sheet.css">
+  <link rel="stylesheet" href="../ui/css/radial-menu.css">
+  <style>
+    :root {
+      --color-primary: #dce1e8;
+      --color-secondary: #ffffff;
+      --color-accent-light: #f5a623;
+      --color-accent-dark: #d4791a;
+      --accent-gradient: linear-gradient(to top, var(--color-accent-light), var(--color-accent-dark));
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-size-heading: 32px;
+      --font-size-subtitle: 20px;
+      --font-size-body: 14px;
+      --font-size-small: 12px;
+      --text-primary: #1a1a1a;
+      --text-secondary: #444444;
+      --text-muted: #666666;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-family);
+      background: var(--color-primary);
+    }
+
+    .sheet-page {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: var(--color-secondary);
+      border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+    }
+
+    .sheet-header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sheet-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 1px;
+    }
+
+    .sheet-logo .logo-360 {
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sheet-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .sheet-breadcrumb-sep {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .sheet-breadcrumb-dept {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .sheet-breadcrumb-tab {
+      color: var(--color-accent-light);
+      font-weight: 600;
+    }
+
+    .sheet-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sheet-search {
+      padding: 7px 14px;
+      border: 1px solid rgba(128, 128, 128, 0.2);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--color-primary);
+      color: var(--text-primary);
+      outline: none;
+      width: 240px;
+      transition: border-color 0.2s ease;
+    }
+
+    .sheet-search:focus {
+      border-color: var(--color-accent-light);
+    }
+
+    .sheet-search::placeholder {
+      color: var(--text-muted);
+    }
+
+    .sheet-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 12px;
+      background: rgba(245, 166, 35, 0.12);
+      color: var(--color-accent-light);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 28px;
+    }
+
+    .sheet-card {
+      background: var(--color-secondary);
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+
+    .sheet-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: var(--text-muted);
+      gap: 12px;
+    }
+
+    .sheet-empty-icon {
+      width: 48px;
+      height: 48px;
+      opacity: 0.3;
+    }
+
+    .sheet-empty-text {
+      font-size: 14px;
+    }
+
+    .sheet-empty-sub {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet-page">
+    <div class="sheet-header">
+      <div class="sheet-header-left">
+        <span class="sheet-logo">
+          <span>Agri</span><span class="logo-360">360</span>
+        </span>
+        <div class="sheet-breadcrumb">
+          <span class="sheet-breadcrumb-sep">/</span>
+          <span class="sheet-breadcrumb-dept" id="breadcrumbDept"></span>
+          <span class="sheet-breadcrumb-sep">/</span>
+          <span class="sheet-breadcrumb-tab" id="breadcrumbTab"></span>
+        </div>
+      </div>
+      <div class="sheet-header-actions">
+        <span class="sheet-count" id="sheetCount">0</span>
+        <input type="text" class="sheet-search" id="sheetSearch" placeholder="Search...">
+      </div>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-card" id="sheetContainer"></div>
+    </div>
+  </div>
+
+  <script src="../ui/js/radial-menu.js"></script>
+  <script src="../ui/js/proagri-sheet.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var params = new URLSearchParams(window.location.search);
+      var dept = params.get('dept') || '';
+      var tab = params.get('tab') || '';
+
+      // Department display names
+      var deptNames = {
+        'admin': 'Admin',
+        'production': 'Production',
+        'design': 'Design',
+        'editorial': 'Editorial',
+        'video': 'Video',
+        'agri4all': 'Agri4All',
+        'social-media': 'Social Media'
+      };
+
+      var deptDisplayName = deptNames[dept] || dept;
+
+      // Set page title and breadcrumb
+      document.title = deptDisplayName + ' - ' + tab + ' | Agri360';
+      document.getElementById('breadcrumbDept').textContent = deptDisplayName;
+      document.getElementById('breadcrumbTab').textContent = tab;
+
+      // Tab-specific column configurations
+      var tabColumns = {
+        // Default columns used when no specific config exists
+        '_default': [
+          { key: 'name', label: 'Name', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' },
+          { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' }
+        ],
+
+        // Admin
+        'Proposal': [
+          { key: 'client', label: 'Client', sortable: true, isName: true },
+          { key: 'proposal_type', label: 'Type', sortable: true },
+          { key: 'value', label: 'Value', sortable: true },
+          { key: 'submitted_date', label: 'Submitted', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Booking Form': [
+          { key: 'client', label: 'Client', sortable: true, isName: true },
+          { key: 'booking_type', label: 'Type', sortable: true },
+          { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
+          { key: 'end_date', label: 'End Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Onboarding': [
+          { key: 'client', label: 'Client', sortable: true, isName: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'progress', label: 'Progress', sortable: true },
+          { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Onboarded': [
+          { key: 'client', label: 'Client', sortable: true, isName: true },
+          { key: 'onboarded_date', label: 'Onboarded Date', sortable: true, type: 'date' },
+          { key: 'account_manager', label: 'Account Manager', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Declined Proposal': [
+          { key: 'client', label: 'Client', sortable: true, isName: true },
+          { key: 'proposal_type', label: 'Type', sortable: true },
+          { key: 'reason', label: 'Reason', sortable: true },
+          { key: 'declined_date', label: 'Declined Date', sortable: true, type: 'date' }
+        ],
+
+        // Production
+        'Action Board': [
+          { key: 'task', label: 'Task', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'priority', label: 'Priority', sortable: true },
+          { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Overview': [
+          { key: 'project', label: 'Project', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'department', label: 'Department', sortable: true },
+          { key: 'progress', label: 'Progress', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Follow Ups': [
+          { key: 'item', label: 'Item', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'follow_up_date', label: 'Follow Up Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+
+        // Design
+        'Content Calendars': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'platform', label: 'Platform', sortable: true },
+          { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Magazine': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'edition', label: 'Edition', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Agri for All': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'category', label: 'Category', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Web Design': [
+          { key: 'project', label: 'Project', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Own SM': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'platform', label: 'Platform', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Internal Tasks': [
+          { key: 'task', label: 'Task', sortable: true, isName: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'priority', label: 'Priority', sortable: true },
+          { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Proposals': [
+          { key: 'client', label: 'Client', sortable: true, isName: true },
+          { key: 'type', label: 'Type', sortable: true },
+          { key: 'value', label: 'Value', sortable: true },
+          { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+
+        // Editorial
+        'Online Articles': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'author', label: 'Author', sortable: true },
+          { key: 'category', label: 'Category', sortable: true },
+          { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+
+        // Video
+        'Dashboard': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'type', label: 'Type', sortable: true },
+          { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Calendar': [
+          { key: 'event', label: 'Event', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'date', label: 'Date', sortable: true, type: 'date' },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Tasks': [
+          { key: 'task', label: 'Task', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Budgets': [
+          { key: 'project', label: 'Project', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'budget', label: 'Budget', sortable: true },
+          { key: 'spent', label: 'Spent', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Team & Freelancers': [
+          { key: 'name', label: 'Name', sortable: true, isName: true },
+          { key: 'role', label: 'Role', sortable: true },
+          { key: 'type', label: 'Type', sortable: true },
+          { key: 'availability', label: 'Availability', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+
+        // Agri4All
+        'Listings': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'category', label: 'Category', sortable: true },
+          { key: 'region', label: 'Region', sortable: true },
+          { key: 'listed_date', label: 'Listed Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Newsletters': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'edition', label: 'Edition', sortable: true },
+          { key: 'send_date', label: 'Send Date', sortable: true, type: 'date' },
+          { key: 'recipients', label: 'Recipients', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Social Media': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'platform', label: 'Platform', sortable: true },
+          { key: 'assigned_to', label: 'Assigned To', sortable: true },
+          { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+        'Banners': [
+          { key: 'title', label: 'Title', sortable: true, isName: true },
+          { key: 'client', label: 'Client', sortable: true },
+          { key: 'size', label: 'Size', sortable: true },
+          { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+          { key: 'status', label: 'Status', sortable: true, type: 'status' }
+        ],
+
+        // Social Media department
+        'Stats': [
+          { key: 'platform', label: 'Platform', sortable: true, isName: true },
+          { key: 'metric', label: 'Metric', sortable: true },
+          { key: 'value', label: 'Value', sortable: true },
+          { key: 'period', label: 'Period', sortable: true },
+          { key: 'trend', label: 'Trend', sortable: true }
+        ],
+        'Settings': [
+          { key: 'setting', label: 'Setting', sortable: true, isName: true },
+          { key: 'value', label: 'Value', sortable: true },
+          { key: 'category', label: 'Category', sortable: true },
+          { key: 'last_updated', label: 'Last Updated', sortable: true, type: 'date' }
+        ]
+      };
+
+      // Get columns for current tab
+      var columns = tabColumns[tab] || tabColumns['_default'];
+
+      // Render sheet with empty data (ready for API integration)
+      var container = document.getElementById('sheetContainer');
+      var countBadge = document.getElementById('sheetCount');
+      var searchInput = document.getElementById('sheetSearch');
+      var allData = [];
+
+      function renderCurrentSheet() {
+        var filtered = allData;
+        var term = searchInput.value.toLowerCase();
+
+        if (term) {
+          filtered = allData.filter(function(row) {
+            return columns.some(function(col) {
+              var val = row[col.key];
+              return val && val.toString().toLowerCase().indexOf(term) !== -1;
+            });
+          });
+        }
+
+        countBadge.textContent = filtered.length;
+
+        if (window.renderSheet) {
+          window.renderSheet(container, {
+            columns: columns,
+            data: filtered,
+            radialActions: [
+              { id: 'view', label: 'View Details', action: function(row) { console.log('View:', row); } },
+              { id: 'edit', label: 'Edit', action: function(row) { console.log('Edit:', row); } }
+            ]
+          });
+        }
+      }
+
+      searchInput.addEventListener('input', renderCurrentSheet);
+
+      // Initial render with empty state
+      renderCurrentSheet();
+    })();
+  </script>
+</body>
+</html>

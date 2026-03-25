@@ -411,6 +411,29 @@ html, body {
   background: rgba(0, 0, 0, 0.06);
 }
 
+.nav-open-icon {
+  margin-left: auto;
+  opacity: 0;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s ease;
+}
+
+.nav-open-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.nav-item:hover .nav-open-icon {
+  opacity: 0.5;
+}
+
+.nav-item:hover .nav-open-icon:hover {
+  opacity: 1;
+  color: var(--color-accent-light);
+}
+
 .nav-item:focus-visible {
   outline: 2px solid var(--color-accent-light);
   outline-offset: -2px;

@@ -428,16 +428,27 @@ document.addEventListener('DOMContentLoaded', () => {
         item.className = 'nav-item' + (idx === 0 ? ' active' : '');
         item.tabIndex = 0;
         item.style.cursor = 'pointer';
+
         var label = document.createElement('span');
         label.className = 'nav-label';
         label.textContent = viewName;
         item.appendChild(label);
+
+        // Open-in-new-tab icon
+        var openIcon = document.createElement('span');
+        openIcon.className = 'nav-open-icon';
+        openIcon.appendChild(makeSvgIcon('M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z'));
+        item.appendChild(openIcon);
+
         item.addEventListener('click', function () {
-          if (currentDeptView === viewName) return;
           currentDeptView = viewName;
           nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
           item.classList.add('active');
           showDeptContent(page, viewName);
+
+          // Open sheet in new browser tab
+          var sheetUrl = 'pages/department-sheet.html?dept=' + encodeURIComponent(page) + '&tab=' + encodeURIComponent(viewName);
+          window.open(sheetUrl, '_blank');
         });
         nav.appendChild(item);
       });
