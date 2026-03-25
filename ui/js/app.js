@@ -390,7 +390,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     currentDeptPage = page;
     var items = deptMenuItems[page] || ['Overview'];
-    currentDeptView = items[0];
+    var savedView = localStorage.getItem('proagri-dept-tab-' + page);
+    var activeIdx = savedView ? items.indexOf(savedView) : 0;
+    if (activeIdx < 0) activeIdx = 0;
+    currentDeptView = items[activeIdx];
 
     nav.style.transition = 'opacity 0.2s ease';
     nav.style.opacity = '0';
@@ -425,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       items.forEach(function (viewName, idx) {
         var item = document.createElement('a');
-        item.className = 'nav-item' + (idx === 0 ? ' active' : '');
+        item.className = 'nav-item' + (idx === activeIdx ? ' active' : '');
         item.tabIndex = 0;
         item.style.cursor = 'pointer';
         var label = document.createElement('span');
@@ -435,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', function () {
           if (currentDeptView === viewName) return;
           currentDeptView = viewName;
+          localStorage.setItem('proagri-dept-tab-' + page, viewName);
           nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
           item.classList.add('active');
           showDeptContent(page, viewName);
@@ -615,7 +619,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (deptPages.indexOf(page) !== -1) {
         showDeptSubMenu(page);
-        showDeptContent(page, (deptMenuItems[page] || ['Overview'])[0]);
+        var deptItems = deptMenuItems[page] || ['Overview'];
+        var savedDeptView = localStorage.getItem('proagri-dept-tab-' + page);
+        var restoredView = (savedDeptView && deptItems.indexOf(savedDeptView) !== -1) ? savedDeptView : deptItems[0];
+        showDeptContent(page, restoredView);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);
