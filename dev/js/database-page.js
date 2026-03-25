@@ -20,8 +20,7 @@
     'deliverables': 'Clients',
     'dashboards': 'Clients',
     'financials': 'Clients',
-    'departments': 'Departments',
-    'department_views': 'Departments'
+    'departments': 'Departments'
   };
   var MODULE_ORDER = ['Employees', 'Messaging', 'Clients', 'Departments', 'Other'];
 

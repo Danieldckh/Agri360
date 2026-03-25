@@ -75,7 +75,7 @@ async function migrate() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS dashboards (
         id SERIAL PRIMARY KEY,
-        deliverable_id INTEGER NOT NULL REFERENCES deliverables(id) ON DELETE CASCADE,
+        deliverable_id INTEGER REFERENCES deliverables(id) ON DELETE CASCADE,
         department_id INTEGER NOT NULL REFERENCES departments(id),
         deliverable_type VARCHAR(100) NOT NULL,
         title VARCHAR(255) NOT NULL,
@@ -105,20 +105,6 @@ async function migrate() {
       )
     `);
 
-    // Department views
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS department_views (
-        id SERIAL PRIMARY KEY,
-        department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
-        name VARCHAR(100) NOT NULL,
-        view_type VARCHAR(50) NOT NULL,
-        config JSONB DEFAULT '{}',
-        display_order INTEGER DEFAULT 0,
-        is_default BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
     // Indexes
     await client.query(`CREATE INDEX IF NOT EXISTS idx_booking_forms_client_id ON booking_forms(client_id)`);
@@ -129,7 +115,6 @@ async function migrate() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_dashboards_department_id ON dashboards(department_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_dashboards_dept_type ON dashboards(department_id, deliverable_type)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_financials_client_id ON financials(client_id)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_department_views_department_id ON department_views(department_id)`);
 
     // Seed data — departments
     await client.query(`
