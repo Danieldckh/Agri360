@@ -666,32 +666,113 @@ document.addEventListener('DOMContentLoaded', () => {
     ]
   };
 
-  function showDeptContent(page, viewName) {
-    while (dashboardContent.firstChild) {
-      dashboardContent.removeChild(dashboardContent.firstChild);
-    }
-    dashboardContent.style.display = 'block';
-    dashboardContent.style.alignItems = '';
-    dashboardContent.style.justifyContent = '';
-    dashboardContent.style.flexDirection = '';
-    dashboardContent.style.height = '';
-    dashboardContent.style.gap = '';
-    dashboardContent.style.padding = '';
+  // Right-side panel column configs per tab
+  var deptSideColumns = {
+    '_default': [
+      { key: 'item', label: 'Item', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Proposal': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Booking Form': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Onboarding': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'progress', label: 'Progress', sortable: true }
+    ],
+    'Action Board': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'priority', label: 'Priority', sortable: true }
+    ],
+    'Overview': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Follow Ups': [
+      { key: 'item', label: 'Item', sortable: true, isName: true },
+      { key: 'follow_up_date', label: 'Date', sortable: true, type: 'date' }
+    ],
+    'Content Calendars': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'publish_date', label: 'Date', sortable: true, type: 'date' }
+    ],
+    'Magazine': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' }
+    ],
+    'Dashboard': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Tasks': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'due_date', label: 'Due', sortable: true, type: 'date' }
+    ],
+    'Budgets': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'spent', label: 'Spent', sortable: true }
+    ],
+    'Listings': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Newsletters': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'send_date', label: 'Send Date', sortable: true, type: 'date' }
+    ]
+  };
 
-    var section = document.createElement('div');
-    section.className = 'dept-sheet-section';
+  // Side panel title per tab
+  var deptSideTitles = {
+    'Proposal': 'Recent Activity',
+    'Booking Form': 'Pending Bookings',
+    'Onboarding': 'Progress Tracker',
+    'Onboarded': 'Recent Additions',
+    'Declined Proposal': 'Declined History',
+    'Action Board': 'Priorities',
+    'Overview': 'Status Summary',
+    'Follow Ups': 'Upcoming',
+    'Content Calendars': 'Upcoming Posts',
+    'Magazine': 'Deadlines',
+    'Agri for All': 'Deadlines',
+    'Web Design': 'Active Projects',
+    'Own SM': 'Scheduled',
+    'Internal Tasks': 'Urgent',
+    'Proposals': 'Pending',
+    'Online Articles': 'Drafts',
+    'Dashboard': 'Quick View',
+    'Calendar': 'This Week',
+    'Tasks': 'Due Soon',
+    'Budgets': 'Budget Summary',
+    'Team & Freelancers': 'Availability',
+    'Listings': 'Recent',
+    'Newsletters': 'Scheduled',
+    'Social Media': 'Queue',
+    'Banners': 'In Progress',
+    'Stats': 'Highlights',
+    'Settings': 'Recent Changes'
+  };
 
-    // Header with title, count, and search
+  // Build a sheet card with title, optional search, and sheet container
+  function buildSheetCard(title, columns, opts) {
+    opts = opts || {};
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card' + (opts.compact ? ' dept-sheet-card-compact' : '');
+
     var header = document.createElement('div');
     header.className = 'dept-sheet-header';
 
     var titleWrap = document.createElement('div');
     titleWrap.className = 'dept-sheet-title-wrap';
 
-    var title = document.createElement('h2');
-    title.className = 'dept-sheet-title';
-    title.textContent = viewName;
-    titleWrap.appendChild(title);
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = title;
+    titleWrap.appendChild(h);
 
     var countBadge = document.createElement('span');
     countBadge.className = 'dept-sheet-count';
@@ -700,36 +781,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     header.appendChild(titleWrap);
 
-    var searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.className = 'dept-sheet-search';
-    searchInput.placeholder = 'Search ' + viewName.toLowerCase() + '...';
-    header.appendChild(searchInput);
+    var searchInput = null;
+    if (!opts.compact) {
+      searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'dept-sheet-search';
+      searchInput.placeholder = 'Search ' + title.toLowerCase() + '...';
+      header.appendChild(searchInput);
+    }
 
-    section.appendChild(header);
+    card.appendChild(header);
 
-    // Sheet container
     var sheetContainer = document.createElement('div');
     sheetContainer.className = 'dept-sheet-container';
-    section.appendChild(sheetContainer);
+    card.appendChild(sheetContainer);
 
-    dashboardContent.appendChild(section);
-
-    // Get columns for this tab
-    var columns = deptTabColumns[viewName] || deptTabColumns['_default'];
     var allData = [];
 
-    function renderSheetView() {
+    function render() {
       var filtered = allData;
-      var term = searchInput.value.toLowerCase();
-
-      if (term) {
-        filtered = allData.filter(function(row) {
-          return columns.some(function(col) {
-            var val = row[col.key];
-            return val && val.toString().toLowerCase().indexOf(term) !== -1;
+      if (searchInput) {
+        var term = searchInput.value.toLowerCase();
+        if (term) {
+          filtered = allData.filter(function(row) {
+            return columns.some(function(col) {
+              var val = row[col.key];
+              return val && val.toString().toLowerCase().indexOf(term) !== -1;
+            });
           });
-        });
+        }
       }
 
       countBadge.textContent = filtered.length;
@@ -738,7 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.renderSheet(sheetContainer, {
           columns: columns,
           data: filtered,
-          radialActions: [
+          radialActions: opts.compact ? [] : [
             { id: 'view', label: 'View Details', action: function(row) { console.log('View:', row); } },
             { id: 'edit', label: 'Edit', action: function(row) { console.log('Edit:', row); } }
           ]
@@ -746,8 +826,47 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    searchInput.addEventListener('input', renderSheetView);
-    renderSheetView();
+    if (searchInput) {
+      searchInput.addEventListener('input', render);
+    }
+    render();
+
+    return { el: card, update: function(data) { allData = data; render(); } };
+  }
+
+  function showDeptContent(page, viewName) {
+    while (dashboardContent.firstChild) {
+      dashboardContent.removeChild(dashboardContent.firstChild);
+    }
+    dashboardContent.style.display = 'flex';
+    dashboardContent.style.alignItems = 'stretch';
+    dashboardContent.style.justifyContent = '';
+    dashboardContent.style.flexDirection = '';
+    dashboardContent.style.height = '';
+    dashboardContent.style.gap = '';
+    dashboardContent.style.padding = '';
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    // Main sheet (left, ~80%)
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+    var mainColumns = deptTabColumns[viewName] || deptTabColumns['_default'];
+    var mainCard = buildSheetCard(viewName, mainColumns);
+    mainCol.appendChild(mainCard.el);
+    layout.appendChild(mainCol);
+
+    // Side sheet (right, ~20%)
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+    var sideTitle = deptSideTitles[viewName] || 'Summary';
+    var sideColumns = deptSideColumns[viewName] || deptSideColumns['_default'];
+    var sideCard = buildSheetCard(sideTitle, sideColumns, { compact: true });
+    sideCol.appendChild(sideCard.el);
+    layout.appendChild(sideCol);
+
+    dashboardContent.appendChild(layout);
   }
 
   function rebindNavItems() {
