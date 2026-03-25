@@ -64,10 +64,10 @@ router.post('/', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO dashboards (deliverable_id, department_id, deliverable_type, title, config, status)
+      `INSERT INTO dashboards (title, deliverable_id, department_id, deliverable_type, config, status)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [deliverable_id, department_id, deliverable_type, title, config || null, status || 'active']
+      [title, deliverable_id || null, department_id || null, deliverable_type, config || null, status || 'active']
     );
     res.status(201).json(toCamelCase(result.rows[0]));
   } catch (err) {

@@ -14,8 +14,8 @@ async function migrate() {
 
     // Seed a single Content Calendar dashboard
     await client.query(`
-      INSERT INTO dashboards (deliverable_id, department_id, deliverable_type, title, config, status)
-      VALUES (NULL, NULL, 'content-calendar', 'Content Calendar', '{}', 'active')
+      INSERT INTO dashboards (title, deliverable_id, department_id, deliverable_type, config, status)
+      VALUES ('Content Calendar', NULL, NULL, 'content-calendar', '{}', 'active')
     `);
 
     await client.query('COMMIT');

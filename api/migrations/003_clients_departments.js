@@ -75,10 +75,10 @@ async function migrate() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS dashboards (
         id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
         deliverable_id INTEGER REFERENCES deliverables(id) ON DELETE CASCADE,
         department_id INTEGER REFERENCES departments(id),
         deliverable_type VARCHAR(100) NOT NULL,
-        title VARCHAR(255) NOT NULL,
         config JSONB DEFAULT '{}',
         status VARCHAR(30) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
