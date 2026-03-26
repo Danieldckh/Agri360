@@ -58,7 +58,7 @@ app.use('/api/dev', devRoutes);
 app.use(express.static(path.join(__dirname, '..')));
 
 // SPA fallback - serve index.html for non-API routes
-app.get('*', (req, res) => {
+app.get('/{*path}', (req, res) => {
   if (!req.path.startsWith('/api/')) {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
   }
