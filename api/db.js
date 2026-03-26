@@ -132,6 +132,14 @@ async function runMigrations() {
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL`).catch(() => {});
 
+    // Seed admin employee
+    const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
+    if (parseInt(empCheck.rows[0].count) === 0) {
+      await client.query(`INSERT INTO employees (id, first_name, last_name, username, email, role, status)
+        VALUES (1, 'Admin', 'User', 'admin', 'admin@agri360.co.za', 'admin', 'active')`);
+      await client.query(`SELECT setval('employees_id_seq', 1)`);
+    }
+
     // Seed dashboards
     const existing = await client.query(`SELECT COUNT(*) FROM dashboards`);
     if (parseInt(existing.rows[0].count) === 0) {
