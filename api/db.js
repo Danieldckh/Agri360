@@ -4,7 +4,7 @@ const { DB } = require('./config');
 const pool = new Pool(DB);
 
 async function runMigrations() {
-  // Client columns for checklist feature
+  // Client columns for checklist-Agri360 integration
   await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS trading_name VARCHAR(255);`);
   await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS company_reg_no VARCHAR(50);`);
   await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS vat_number VARCHAR(20);`);
@@ -18,7 +18,7 @@ async function runMigrations() {
   await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS material_contact JSONB;`);
   await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS accounts_contact JSONB;`);
 
-  // Booking form columns for checklist feature
+  // Booking form columns for checklist-Agri360 integration
   await pool.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS campaign_month_start VARCHAR(7);`);
   await pool.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS campaign_month_end VARCHAR(7);`);
   await pool.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS form_data JSONB;`);

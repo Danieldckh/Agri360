@@ -44,6 +44,16 @@ app.use('/api/departments', departmentRoutes);
 const devRoutes = require('./routes/dev');
 app.use('/api/dev', devRoutes);
 
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '..')));
+
+// SPA fallback - serve index.html for non-API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`ProAgri API running on http://localhost:${PORT}`);
 });

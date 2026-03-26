@@ -13,7 +13,7 @@
   var convPane = null;
   var chatPane = null;
   var searchDebounceTimer = null;
-  var sidebarFilter = 'all'; // 'all' | 'channels' | 'dms'
+  var sidebarFilter = 'all'; // 'all' | 'channels' | 'dms' | 'clients'
   var isMobileChat = false;
   var currentChannelMembers = [];
 
@@ -347,9 +347,11 @@
 
     // Apply sidebar filter
     if (sidebarFilter === 'channels') {
-      allChannels = allChannels.filter(function (c) { return c.type !== 'dm'; });
+      allChannels = allChannels.filter(function (c) { return c.type !== 'dm' && c.type !== 'client'; });
     } else if (sidebarFilter === 'dms') {
       allChannels = allChannels.filter(function (c) { return c.type === 'dm'; });
+    } else if (sidebarFilter === 'clients') {
+      allChannels = allChannels.filter(function (c) { return c.type === 'client'; });
     }
 
     // Apply search filter
@@ -1733,7 +1735,8 @@
       var filters = [
         { id: 'all', label: 'All' },
         { id: 'channels', label: 'Channels' },
-        { id: 'dms', label: 'Direct Messages' }
+        { id: 'dms', label: 'Direct Messages' },
+        { id: 'clients', label: 'Clients' }
       ];
 
       filters.forEach(function (f) {

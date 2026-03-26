@@ -25,6 +25,22 @@ function toCamelCase(row) {
   return result;
 }
 
+// GET / - list all booking forms with client info
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT bf.*, c.name AS client_name
+       FROM booking_forms bf
+       LEFT JOIN clients c ON c.id = bf.client_id
+       ORDER BY bf.created_at DESC`
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('List all booking forms error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /by-client/:clientId - list booking forms for a client
 router.get('/by-client/:clientId', async (req, res) => {
   try {

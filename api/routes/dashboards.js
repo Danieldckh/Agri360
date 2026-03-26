@@ -25,6 +25,31 @@ function toCamelCase(row) {
   return result;
 }
 
+// GET / - list all dashboards
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM dashboards ORDER BY created_at DESC');
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('List all dashboards error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /by-type/:type - list dashboards by deliverable type
+router.get('/by-type/:type', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM dashboards WHERE deliverable_type = $1 ORDER BY created_at DESC',
+      [req.params.type]
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('List dashboards by type error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /by-deliverable/:deliverableId - list dashboards for a deliverable
 router.get('/by-deliverable/:deliverableId', async (req, res) => {
   try {

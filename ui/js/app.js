@@ -476,6 +476,13 @@ document.addEventListener('DOMContentLoaded', () => {
     while (dashboardContent.firstChild) {
       dashboardContent.removeChild(dashboardContent.firstChild);
     }
+
+    // Route Admin > Proposal to the proposal tab
+    if (page === 'admin' && viewName === 'Proposal' && window.renderProposalTab) {
+      window.renderProposalTab(dashboardContent);
+      return;
+    }
+
     var placeholder = document.createElement('span');
     placeholder.className = 'page-placeholder';
     placeholder.textContent = (deptNames[page] || page) + ' Department - ' + viewName;
@@ -518,6 +525,181 @@ document.addEventListener('DOMContentLoaded', () => {
   window.rebindNavItems = rebindNavItems;
   window.expandSidebarIfCollapsed = expandSidebarIfCollapsed;
   window.restoreSidebarCollapsed = restoreSidebarCollapsed;
+
+  // Content Calendar sidebar sub-menu
+  function showContentCalendarMenu(clientName) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+
+    expandSidebarIfCollapsed();
+
+    if (!savedNavHTML) {
+      savedNavHTML = nav.cloneNode(true);
+    }
+
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+      // Back button
+      var backItem = document.createElement('a');
+      backItem.className = 'nav-item';
+      backItem.tabIndex = 0;
+      backItem.style.cursor = 'pointer';
+      var backIcon = document.createElement('span');
+      backIcon.className = 'nav-icon';
+      backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+      backItem.appendChild(backIcon);
+      var backLabel = document.createElement('span');
+      backLabel.className = 'nav-label';
+      backLabel.textContent = 'Back';
+      backItem.appendChild(backLabel);
+      backItem.addEventListener('click', function () {
+        hideContentCalendarMenu();
+        var myViewItem = document.querySelector('.nav-item[data-page="my-view"]');
+        if (myViewItem) myViewItem.click();
+      });
+      nav.appendChild(backItem);
+
+      // --- Client Name ---
+      var clientSection = document.createElement('div');
+      clientSection.className = 'cc-sidebar-section';
+      var clientAvatar = document.createElement('div');
+      clientAvatar.className = 'cc-sidebar-avatar';
+      clientAvatar.textContent = (clientName || 'C').substring(0, 2).toUpperCase();
+      clientSection.appendChild(clientAvatar);
+      var clientNameEl = document.createElement('div');
+      clientNameEl.className = 'cc-sidebar-client-name';
+      clientNameEl.textContent = clientName || 'Client Name';
+      clientSection.appendChild(clientNameEl);
+      var clientIndustry = document.createElement('div');
+      clientIndustry.className = 'cc-sidebar-meta';
+      clientIndustry.textContent = 'Agriculture • Active';
+      clientSection.appendChild(clientIndustry);
+      nav.appendChild(clientSection);
+
+      nav.appendChild(makeSidebarSep());
+
+      // --- Social Links ---
+      var socialLabel = document.createElement('div');
+      socialLabel.className = 'cc-sidebar-label';
+      socialLabel.textContent = 'Social Links';
+      nav.appendChild(socialLabel);
+
+      var socials = [
+        { name: 'Facebook', icon: 'M12 2.04c-5.5 0-10 4.49-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.52 1.49-3.93 3.78-3.93 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.45 2.9h-2.33v7a10 10 0 008.44-9.9c0-5.53-4.5-10.02-10-10.02z', url: '#' },
+        { name: 'Instagram', icon: 'M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 01-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 017.8 2zm-.2 2A3.6 3.6 0 004 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 003.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6zm9.65 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 110 10 5 5 0 010-10zm0 2a3 3 0 100 6 3 3 0 000-6z', url: '#' },
+        { name: 'Website', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z', url: '#' }
+      ];
+
+      var socialList = document.createElement('div');
+      socialList.className = 'cc-sidebar-social-list';
+      socials.forEach(function (s) {
+        var link = document.createElement('a');
+        link.className = 'cc-sidebar-social-link';
+        link.href = s.url;
+        link.title = s.name;
+        link.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="' + s.icon + '"/></svg>';
+        var linkLabel = document.createElement('span');
+        linkLabel.textContent = s.name;
+        link.appendChild(linkLabel);
+        socialList.appendChild(link);
+      });
+      nav.appendChild(socialList);
+
+      nav.appendChild(makeSidebarSep());
+
+      // --- Calendar Info ---
+      var infoLabel = document.createElement('div');
+      infoLabel.className = 'cc-sidebar-label';
+      infoLabel.textContent = 'Calendar Info';
+      nav.appendChild(infoLabel);
+
+      var infoList = document.createElement('div');
+      infoList.className = 'cc-sidebar-info-list';
+      var infoItems = [
+        { label: 'Status', value: 'Active' },
+        { label: 'Posts/Month', value: '12' },
+        { label: 'Next Due', value: 'Mar 28, 2026' },
+        { label: 'Platform', value: 'FB, IG, Web' }
+      ];
+      infoItems.forEach(function (info) {
+        var row = document.createElement('div');
+        row.className = 'cc-sidebar-info-row';
+        row.innerHTML = '<span class="cc-sidebar-info-label">' + info.label + '</span>' +
+          '<span class="cc-sidebar-info-value">' + info.value + '</span>';
+        infoList.appendChild(row);
+      });
+      nav.appendChild(infoList);
+
+      nav.appendChild(makeSidebarSep());
+
+      // --- Team Members ---
+      var teamLabel = document.createElement('div');
+      teamLabel.className = 'cc-sidebar-label';
+      teamLabel.textContent = 'Team Members';
+      nav.appendChild(teamLabel);
+
+      var teamList = document.createElement('div');
+      teamList.className = 'cc-sidebar-team-list';
+      var members = [
+        { name: 'Jane Smith', role: 'Content Manager', initials: 'JS', color: '#4285f4' },
+        { name: 'Sandra Fourie', role: 'Designer', initials: 'SF', color: '#9b59b6' },
+        { name: 'Pieter Louw', role: 'Copywriter', initials: 'PL', color: '#1abc9c' }
+      ];
+      members.forEach(function (m) {
+        var row = document.createElement('div');
+        row.className = 'cc-sidebar-team-member';
+        var avatar = document.createElement('span');
+        avatar.className = 'cc-sidebar-team-avatar';
+        avatar.style.background = m.color;
+        avatar.textContent = m.initials;
+        row.appendChild(avatar);
+        var info = document.createElement('div');
+        info.className = 'cc-sidebar-team-info';
+        info.innerHTML = '<div class="cc-sidebar-team-name">' + m.name + '</div>' +
+          '<div class="cc-sidebar-team-role">' + m.role + '</div>';
+        row.appendChild(info);
+        teamList.appendChild(row);
+      });
+      nav.appendChild(teamList);
+
+      nav.style.opacity = '1';
+    }, 200);
+  }
+
+  function makeSidebarSep() {
+    var sep = document.createElement('div');
+    sep.style.height = '1px';
+    sep.style.background = 'rgba(128,128,128,0.12)';
+    sep.style.margin = '10px 12px';
+    return sep;
+  }
+
+  function hideContentCalendarMenu() {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav || !savedNavHTML) return;
+
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      while (savedNavHTML.firstChild) {
+        nav.appendChild(savedNavHTML.firstChild);
+      }
+      savedNavHTML = null;
+      nav.style.opacity = '1';
+
+      restoreSidebarCollapsed();
+      rebindNavItems();
+    }, 200);
+  }
+
+  window.showContentCalendarMenu = showContentCalendarMenu;
+  window.hideContentCalendarMenu = hideContentCalendarMenu;
 
   function transitionToPage(page) {
     isTransitioning = true;
@@ -598,6 +780,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (page === 'database') {
         if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent);
+        dashboardContent.classList.add('page-enter');
+        dashboardContent.addEventListener('animationend', function onEnter() {
+          dashboardContent.removeEventListener('animationend', onEnter);
+          dashboardContent.classList.remove('page-enter');
+          isTransitioning = false;
+        });
+        return;
+      }
+
+      if (page === 'dashboards') {
+        if (window.renderDashboardsPage) window.renderDashboardsPage(dashboardContent);
         dashboardContent.classList.add('page-enter');
         dashboardContent.addEventListener('animationend', function onEnter() {
           dashboardContent.removeEventListener('animationend', onEnter);

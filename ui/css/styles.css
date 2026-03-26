@@ -322,6 +322,9 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* ===== Nav Groups ===== */
@@ -474,7 +477,7 @@ html, body {
   height: 100%;
   background: var(--color-secondary);
   border-radius: 20px;
-  padding: 40px;
+  padding: 10px;
   overflow-y: auto;
   color: var(--text-primary);
   font-size: var(--font-size-body);
@@ -635,7 +638,7 @@ html, body {
     --sidebar-width: 240px;
   }
   .card {
-    padding: 36px;
+    padding: 10px;
   }
 }
 
