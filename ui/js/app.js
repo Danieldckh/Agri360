@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
   navItems.forEach(item => {
     item.addEventListener('click', () => {
       const currentActive = document.querySelector('.nav-item.active');
-      if (currentActive === item || isTransitioning) return;
+      if (isTransitioning) return;
 
       // Update active state
       navItems.forEach(n => {
@@ -436,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
         label.textContent = viewName;
         item.appendChild(label);
         item.addEventListener('click', function () {
-          if (currentDeptView === viewName) return;
           currentDeptView = viewName;
           localStorage.setItem('proagri-dept-tab-' + page, viewName);
           nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
@@ -501,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     items.forEach(function (item) {
       item.addEventListener('click', function () {
         var currentActive = document.querySelector('.nav-item.active');
-        if (currentActive === item || isTransitioning) return;
+        if (isTransitioning) return;
 
         items.forEach(function (n) {
           n.classList.remove('active');
