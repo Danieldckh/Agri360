@@ -42,6 +42,7 @@ async function runMigrations() {
       id SERIAL PRIMARY KEY, channel_id INT REFERENCES channels(id) ON DELETE CASCADE,
       sender_id INT REFERENCES employees(id), content TEXT, parent_message_id INT REFERENCES messages(id) ON DELETE SET NULL,
       is_deleted BOOLEAN DEFAULT FALSE, is_pinned BOOLEAN DEFAULT FALSE,
+      status VARCHAR(20) DEFAULT 'sent',
       created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
     )`);
     await client.query(`CREATE TABLE IF NOT EXISTS message_mentions (
@@ -107,6 +108,9 @@ async function runMigrations() {
       type VARCHAR(50), amount DECIMAL(12,2), currency VARCHAR(3) DEFAULT 'ZAR',
       description TEXT, created_at TIMESTAMPTZ DEFAULT NOW()
     )`);
+
+    // Messages status column
+    await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'sent'`);
 
     // Checklist-Agri360 columns
     await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS trading_name VARCHAR(255)`);
