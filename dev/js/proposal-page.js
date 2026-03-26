@@ -492,7 +492,17 @@
 
           var meta = document.createElement('div');
           meta.className = 'proposal-card-meta';
-          meta.textContent = formatDate(form.createdAt);
+
+          if (form.checklistId) {
+            var idBadge = document.createElement('span');
+            idBadge.className = 'proposal-checklist-id';
+            idBadge.textContent = form.checklistId;
+            meta.appendChild(idBadge);
+          }
+
+          var dateSpan = document.createElement('span');
+          dateSpan.textContent = formatDate(form.createdAt);
+          meta.appendChild(dateSpan);
           if (form.status) {
             var badge = document.createElement('span');
             badge.className = 'proposal-badge proposal-badge--' + form.status;

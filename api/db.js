@@ -126,6 +126,9 @@ async function runMigrations() {
       `);
     }
 
+    // Booking form checklist_id for upsert
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS checklist_id VARCHAR(20) UNIQUE`);
+
     // Messages status column
     await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'sent'`);
 
