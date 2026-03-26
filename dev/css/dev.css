@@ -2262,6 +2262,105 @@
   border-left: 1px solid rgba(128, 128, 128, 0.1);
 }
 
+/* --- Deliverables Preview --- */
+.proposal-deliv-wrap {
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
+  padding: 14px 16px;
+  background: rgba(128, 128, 128, 0.02);
+}
+
+.proposal-deliv-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.proposal-deliv-dept {
+  margin-bottom: 12px;
+}
+
+.proposal-deliv-dept-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.proposal-deliv-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.proposal-deliv-dept-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #666);
+}
+
+.proposal-deliv-count {
+  font-size: 10px;
+  background: rgba(128, 128, 128, 0.1);
+  color: var(--text-muted, #999);
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.proposal-deliv-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.proposal-deliv-row:hover {
+  background: rgba(128, 128, 128, 0.05);
+}
+
+.proposal-deliv-cb {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent-light);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.proposal-deliv-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.proposal-deliv-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.proposal-deliv-detail {
+  font-size: 11px;
+  color: var(--text-muted, #999);
+}
+
+.proposal-deliv-type {
+  font-size: 10px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: var(--color-accent-light);
+  background: rgba(245, 166, 35, 0.08);
+  padding: 2px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
 /* ===== Settings Page ===== */
 .settings-page {
   width: 100%;

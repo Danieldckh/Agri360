@@ -124,6 +124,219 @@
     return wrap;
   }
 
+  // Map JSON sections to departments and deliverable types
+  function extractDeliverables(data) {
+    if (!data) return [];
+    var deliverables = [];
+
+    // Social Media Management → Social Media department
+    var smm = data.social_media_management || data.socialMediaManagement;
+    if (smm && (Array.isArray(smm) ? smm.length > 0 : true)) {
+      deliverables.push({
+        department: 'Social Media',
+        type: 'social-media-management',
+        title: 'Social Media Management',
+        detail: Array.isArray(smm) ? smm.length + ' month(s)' : 'Active',
+        data: smm
+      });
+    }
+
+    // Own Page Social Media → Design department
+    var ownSm = data.ownPageSocialMedia || data.own_page_social_media;
+    if (ownSm && (Array.isArray(ownSm) ? ownSm.length > 0 : Object.keys(ownSm).length > 0)) {
+      deliverables.push({
+        department: 'Design',
+        type: 'own-social-media',
+        title: 'Own Social Media Posts',
+        detail: 'Design Department',
+        data: ownSm
+      });
+    }
+
+    // Agri4All → Agri4All department
+    var agri = data.agri4all;
+    if (agri && (Array.isArray(agri) ? agri.length > 0 : true)) {
+      deliverables.push({
+        department: 'Agri4All',
+        type: 'agri4all',
+        title: 'Agri4All',
+        detail: Array.isArray(agri) ? agri.length + ' month(s)' : 'Active',
+        data: agri
+      });
+    }
+
+    // Online Articles → Editorial department
+    var articles = data.online_articles || data.onlineArticles;
+    if (articles && (Array.isArray(articles) ? articles.length > 0 : true)) {
+      deliverables.push({
+        department: 'Editorial',
+        type: 'online-articles',
+        title: 'Online Articles',
+        detail: Array.isArray(articles) ? articles.length + ' month(s)' : 'Active',
+        data: articles
+      });
+    }
+
+    // Banners → Design department
+    var banners = data.banners;
+    if (banners && (Array.isArray(banners) ? banners.length > 0 : true)) {
+      deliverables.push({
+        department: 'Design',
+        type: 'banners',
+        title: 'Banners',
+        detail: Array.isArray(banners) ? banners.length + ' month(s)' : 'Active',
+        data: banners
+      });
+    }
+
+    // Magazine → Editorial department
+    var mag = data.magazine;
+    if (mag && (Array.isArray(mag) ? mag.length > 0 : true)) {
+      deliverables.push({
+        department: 'Editorial',
+        type: 'magazine',
+        title: 'Magazine / Print',
+        detail: Array.isArray(mag) ? mag.length + ' entry(ies)' : 'Active',
+        data: mag
+      });
+    }
+
+    // Video → Video department
+    var video = data.video;
+    if (video && (Array.isArray(video) ? video.length > 0 : true)) {
+      deliverables.push({
+        department: 'Video',
+        type: 'video',
+        title: 'Video Production',
+        detail: Array.isArray(video) ? video.length + ' entry(ies)' : 'Active',
+        data: video
+      });
+    }
+
+    // Website → Design department
+    var website = data.website || data.websiteDesign;
+    if (website && (Array.isArray(website) ? website.length > 0 : true)) {
+      deliverables.push({
+        department: 'Design',
+        type: 'website',
+        title: 'Website Design',
+        detail: Array.isArray(website) ? website.length + ' entry(ies)' : 'Active',
+        data: website
+      });
+    }
+
+    // Content Calendar (from socialLinks having platforms)
+    var socialLinks = data.socialLinks || data.social_links;
+    if (socialLinks && (Array.isArray(socialLinks) ? socialLinks.length > 0 : true)) {
+      deliverables.push({
+        department: 'Design',
+        type: 'content-calendar',
+        title: 'Content Calendar',
+        detail: 'Social platforms linked',
+        data: socialLinks
+      });
+    }
+
+    return deliverables;
+  }
+
+  var deptColors = {
+    'Social Media': '#3498db',
+    'Design': '#9b59b6',
+    'Agri4All': '#1abc9c',
+    'Editorial': '#e67e22',
+    'Video': '#e74c3c',
+    'Production': '#2ecc71',
+    'Admin': '#4285f4'
+  };
+
+  function renderDeliverablesList(deliverables, form) {
+    var wrap = document.createElement('div');
+    wrap.className = 'proposal-deliv-list';
+
+    var heading = document.createElement('div');
+    heading.className = 'proposal-deliv-heading';
+    heading.textContent = 'Deliverables to create (' + deliverables.length + ')';
+    wrap.appendChild(heading);
+
+    // Group by department
+    var grouped = {};
+    deliverables.forEach(function (d) {
+      if (!grouped[d.department]) grouped[d.department] = [];
+      grouped[d.department].push(d);
+    });
+
+    Object.keys(grouped).forEach(function (dept) {
+      var deptSection = document.createElement('div');
+      deptSection.className = 'proposal-deliv-dept';
+
+      var deptHeader = document.createElement('div');
+      deptHeader.className = 'proposal-deliv-dept-header';
+      var deptDot = document.createElement('span');
+      deptDot.className = 'proposal-deliv-dot';
+      deptDot.style.background = deptColors[dept] || '#999';
+      deptHeader.appendChild(deptDot);
+      var deptName = document.createElement('span');
+      deptName.className = 'proposal-deliv-dept-name';
+      deptName.textContent = dept;
+      deptHeader.appendChild(deptName);
+      var deptCount = document.createElement('span');
+      deptCount.className = 'proposal-deliv-count';
+      deptCount.textContent = grouped[dept].length;
+      deptHeader.appendChild(deptCount);
+      deptSection.appendChild(deptHeader);
+
+      grouped[dept].forEach(function (d) {
+        var row = document.createElement('div');
+        row.className = 'proposal-deliv-row';
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = true;
+        cb.className = 'proposal-deliv-cb';
+        row.appendChild(cb);
+
+        var info = document.createElement('div');
+        info.className = 'proposal-deliv-info';
+        var titleEl = document.createElement('span');
+        titleEl.className = 'proposal-deliv-title';
+        titleEl.textContent = d.title;
+        info.appendChild(titleEl);
+        var detailEl = document.createElement('span');
+        detailEl.className = 'proposal-deliv-detail';
+        detailEl.textContent = d.detail;
+        info.appendChild(detailEl);
+        row.appendChild(info);
+
+        var typeBadge = document.createElement('span');
+        typeBadge.className = 'proposal-deliv-type';
+        typeBadge.textContent = d.type;
+        row.appendChild(typeBadge);
+
+        deptSection.appendChild(row);
+      });
+
+      wrap.appendChild(deptSection);
+    });
+
+    // Create button (placeholder - doesn't create yet)
+    var createBtn = document.createElement('button');
+    createBtn.className = 'dev-btn dev-btn-primary';
+    createBtn.style.marginTop = '12px';
+    createBtn.textContent = 'Confirm & Create Selected';
+    createBtn.addEventListener('click', function () {
+      createBtn.textContent = 'Coming soon...';
+      createBtn.disabled = true;
+      setTimeout(function () {
+        createBtn.textContent = 'Confirm & Create Selected';
+        createBtn.disabled = false;
+      }, 2000);
+    });
+    wrap.appendChild(createBtn);
+
+    return wrap;
+  }
+
   function renderProposalTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'block';
@@ -210,8 +423,41 @@
           copyBtn.style.padding = '4px 10px';
           actions.appendChild(copyBtn);
 
+          var delivBtn = document.createElement('button');
+          delivBtn.className = 'dev-btn dev-btn-primary';
+          delivBtn.textContent = 'Create Deliverables';
+          delivBtn.style.fontSize = '11px';
+          delivBtn.style.padding = '4px 12px';
+          actions.appendChild(delivBtn);
+
           cardHeader.appendChild(actions);
           card.appendChild(cardHeader);
+
+          // Deliverables preview (hidden by default)
+          var delivWrap = document.createElement('div');
+          delivWrap.className = 'proposal-deliv-wrap';
+          delivWrap.style.display = 'none';
+          card.appendChild(delivWrap);
+
+          var delivShown = false;
+          delivBtn.addEventListener('click', function () {
+            if (!delivShown) {
+              delivWrap.innerHTML = '';
+              var deliverables = extractDeliverables(form.formData || form);
+              if (deliverables.length === 0) {
+                delivWrap.innerHTML = '<div class="dev-db-empty">No deliverables found in this proposal</div>';
+              } else {
+                delivWrap.appendChild(renderDeliverablesList(deliverables, form));
+              }
+              delivWrap.style.display = '';
+              delivBtn.textContent = 'Hide Deliverables';
+              delivShown = true;
+            } else {
+              delivWrap.style.display = 'none';
+              delivBtn.textContent = 'Create Deliverables';
+              delivShown = false;
+            }
+          });
 
           // JSON viewer (collapsed by default)
           var jsonWrap = document.createElement('div');
