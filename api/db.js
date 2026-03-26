@@ -146,10 +146,10 @@ async function runMigrations() {
   } catch (err) {
     console.error('Migration error:', err.message);
   } finally {
-    client.release();
+    try { client.release(); } catch (e) {}
   }
 }
 
-runMigrations();
+runMigrations().catch(err => console.error('Migration startup error:', err.message));
 
 module.exports = pool;
