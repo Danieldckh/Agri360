@@ -109,6 +109,23 @@ async function runMigrations() {
       description TEXT, created_at TIMESTAMPTZ DEFAULT NOW()
     )`);
 
+    // Departments slug column
+    await client.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS slug VARCHAR(100)`);
+
+    // Seed departments
+    var deptCheck = await client.query(`SELECT COUNT(*) FROM departments`);
+    if (parseInt(deptCheck.rows[0].count) === 0) {
+      await client.query(`INSERT INTO departments (name, slug) VALUES
+        ('Admin', 'admin'),
+        ('Production', 'production'),
+        ('Design', 'design'),
+        ('Editorial', 'editorial'),
+        ('Video', 'video'),
+        ('Agri4All', 'agri4all'),
+        ('Social Media', 'social-media')
+      `);
+    }
+
     // Messages status column
     await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'sent'`);
 

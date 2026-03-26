@@ -337,6 +337,100 @@
     return wrap;
   }
 
+  // Cache departments
+  var departmentsCache = null;
+
+  function getDepartments() {
+    if (departmentsCache) return Promise.resolve(departmentsCache);
+    return fetch('/api/departments', { headers: getHeaders() })
+      .then(function (res) { return res.json(); })
+      .then(function (depts) {
+        departmentsCache = {};
+        depts.forEach(function (d) {
+          departmentsCache[d.slug || d.name.toLowerCase().replace(/\s+/g, '-')] = d.id;
+          departmentsCache[d.name] = d.id;
+        });
+        return departmentsCache;
+      });
+  }
+
+  function createDeliverables(form, btn) {
+    var fd = form.formData;
+    if (!fd) {
+      alert('No form data found');
+      return;
+    }
+
+    btn.textContent = 'Creating...';
+    btn.disabled = true;
+
+    getDepartments().then(function (depts) {
+      var productionId = depts['production'] || depts['Production'];
+      if (!productionId) {
+        alert('Production department not found');
+        btn.textContent = 'Create Deliverables';
+        btn.disabled = false;
+        return;
+      }
+
+      var smm = fd.social_media_management || fd.socialMediaManagement || [];
+      if (!Array.isArray(smm)) smm = [];
+
+      var promises = [];
+
+      smm.forEach(function (entry) {
+        if (!entry.content_calendar) return;
+
+        var platforms = (entry.platforms || []).map(function (p) { return p.platform; });
+        var monthlyPosts = entry.monthly_posts || 0;
+        var monthLabel = entry.month_label || entry.months_display || '';
+
+        var description = 'Monthly Posts: ' + monthlyPosts + '\n' +
+          'Platforms: ' + (platforms.length > 0 ? platforms.join(', ') : 'None') + '\n' +
+          'Period: ' + monthLabel;
+
+        promises.push(
+          fetch('/api/deliverables', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+              bookingFormId: form.id,
+              departmentId: productionId,
+              type: 'content-calendar',
+              title: 'Content Calendar — ' + monthLabel,
+              description: description,
+              status: 'pending'
+            })
+          }).then(function (res) {
+            if (!res.ok) throw new Error('Status ' + res.status);
+            return res.json();
+          })
+        );
+      });
+
+      if (promises.length === 0) {
+        btn.textContent = 'No Content Calendars found';
+        btn.disabled = true;
+        setTimeout(function () {
+          btn.textContent = 'Create Deliverables';
+          btn.disabled = false;
+        }, 2000);
+        return;
+      }
+
+      return Promise.all(promises);
+    }).then(function (results) {
+      if (results && results.length > 0) {
+        btn.textContent = 'Created ' + results.length + ' deliverable(s) ✓';
+        btn.disabled = true;
+      }
+    }).catch(function (err) {
+      console.error('Create deliverables error:', err);
+      btn.textContent = 'Error — try again';
+      btn.disabled = false;
+    });
+  }
+
   function renderProposalTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'block';
@@ -429,12 +523,7 @@
           delivBtn.style.fontSize = '11px';
           delivBtn.style.padding = '4px 12px';
           delivBtn.addEventListener('click', function () {
-            delivBtn.textContent = 'Coming soon...';
-            delivBtn.disabled = true;
-            setTimeout(function () {
-              delivBtn.textContent = 'Create Deliverables';
-              delivBtn.disabled = false;
-            }, 2000);
+            createDeliverables(form, delivBtn);
           });
           actions.appendChild(delivBtn);
 

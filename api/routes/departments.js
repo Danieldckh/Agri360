@@ -19,7 +19,7 @@ function toCamelCase(row) {
 // GET / - list all departments
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM departments ORDER BY display_order');
+    const result = await pool.query('SELECT * FROM departments ORDER BY id');
     res.json(result.rows.map(toCamelCase));
   } catch (err) {
     console.error('List departments error:', err);
