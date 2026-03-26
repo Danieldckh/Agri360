@@ -20,6 +20,11 @@ const upload = multer({ storage });
 
 router.use(requireAuth);
 
+// GET /me - current user
+router.get('/me', (req, res) => {
+  res.json(req.user);
+});
+
 // GET / - list employees
 router.get('/', async (req, res) => {
   try {
