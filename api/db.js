@@ -3,7 +3,21 @@ const { DB } = require('./config');
 
 const pool = new Pool(DB);
 
+pool.on('error', (err) => {
+  console.error('Unexpected pool error:', err.message);
+});
+
 async function runMigrations() {
+  // Wait for DB to be ready
+  for (let i = 0; i < 10; i++) {
+    try {
+      await pool.query('SELECT 1');
+      break;
+    } catch (err) {
+      console.log('Waiting for database... attempt ' + (i + 1));
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  }
   const client = await pool.connect();
   try {
     // Create base tables if they don't exist
