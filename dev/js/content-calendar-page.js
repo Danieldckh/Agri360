@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var API_BASE = 'http://localhost:3001/api/dashboards';
+  var API_BASE = '/api/dashboards';
 
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
@@ -526,7 +526,7 @@
     wrap.className = 'cc-chat';
     var channelId = null;
     var currentUserId = null;
-    var MSG_API = 'http://localhost:3001/api/messaging';
+    var MSG_API = '/api/messaging';
 
     // Header
     var header = document.createElement('div');
@@ -734,7 +734,7 @@
       });
 
     // Try to get current user ID
-    fetch('http://localhost:3001/api/employees/me', { headers: getAuthHeaders() })
+    fetch('/api/employees/me', { headers: getAuthHeaders() })
       .then(function (res) { return res.json(); })
       .then(function (user) { currentUserId = user.id; })
       .catch(function () {});

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var API_BASE = 'http://localhost:3001/api/dev';
+  var API_BASE = '/api/dev';
   var PAGE_SIZE = 50;
 
   var TABLE_MODULES = {

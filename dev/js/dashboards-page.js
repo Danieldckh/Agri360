@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var API_BASE = 'http://localhost:3001/api/dashboards';
+  var API_BASE = '/api/dashboards';
 
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
