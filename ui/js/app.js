@@ -368,9 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebar.classList.remove('collapsed');
       collapseBtn.setAttribute('aria-expanded', 'true');
     }
+    // Hide collapse button in sub-menus
+    collapseBtn.parentElement.style.display = 'none';
   }
 
   function restoreSidebarCollapsed() {
+    // Show collapse button again
+    collapseBtn.parentElement.style.display = '';
     if (wasSidebarCollapsed) {
       sidebar.classList.add('collapsed');
       collapseBtn.setAttribute('aria-expanded', 'false');
