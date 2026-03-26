@@ -428,36 +428,18 @@
           delivBtn.textContent = 'Create Deliverables';
           delivBtn.style.fontSize = '11px';
           delivBtn.style.padding = '4px 12px';
+          delivBtn.addEventListener('click', function () {
+            delivBtn.textContent = 'Coming soon...';
+            delivBtn.disabled = true;
+            setTimeout(function () {
+              delivBtn.textContent = 'Create Deliverables';
+              delivBtn.disabled = false;
+            }, 2000);
+          });
           actions.appendChild(delivBtn);
 
           cardHeader.appendChild(actions);
           card.appendChild(cardHeader);
-
-          // Deliverables preview (hidden by default)
-          var delivWrap = document.createElement('div');
-          delivWrap.className = 'proposal-deliv-wrap';
-          delivWrap.style.display = 'none';
-          card.appendChild(delivWrap);
-
-          var delivShown = false;
-          delivBtn.addEventListener('click', function () {
-            if (!delivShown) {
-              delivWrap.innerHTML = '';
-              var deliverables = extractDeliverables(form.formData || form);
-              if (deliverables.length === 0) {
-                delivWrap.innerHTML = '<div class="dev-db-empty">No deliverables found in this proposal</div>';
-              } else {
-                delivWrap.appendChild(renderDeliverablesList(deliverables, form));
-              }
-              delivWrap.style.display = '';
-              delivBtn.textContent = 'Hide Deliverables';
-              delivShown = true;
-            } else {
-              delivWrap.style.display = 'none';
-              delivBtn.textContent = 'Create Deliverables';
-              delivShown = false;
-            }
-          });
 
           // JSON viewer (collapsed by default)
           var jsonWrap = document.createElement('div');
