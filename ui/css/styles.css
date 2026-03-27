@@ -411,6 +411,124 @@ html, body {
   background: rgba(0, 0, 0, 0.06);
 }
 
+/* ===== Department Dashboard Layout ===== */
+.dept-dashboard-layout {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.dept-dashboard-main {
+  flex: 4;
+  min-width: 0;
+  display: flex;
+}
+
+.dept-dashboard-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+/* ===== Department Sheet Cards ===== */
+.dept-sheet-card {
+  background: #ffffff;
+  border: 0.5px solid #e1e1e1;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.dept-sheet-card-compact {
+  padding: 14px 16px;
+}
+
+.dept-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.dept-sheet-card-compact .dept-sheet-header {
+  margin-bottom: 10px;
+}
+
+.dept-sheet-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dept-sheet-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dept-sheet-card-compact .dept-sheet-title {
+  font-size: 13px;
+}
+
+.dept-sheet-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: rgba(245, 166, 35, 0.12);
+  color: var(--color-accent-light);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dept-sheet-search {
+  padding: 6px 12px;
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: var(--font-family);
+  background: var(--color-secondary);
+  color: var(--text-primary);
+  outline: none;
+  width: 180px;
+  transition: border-color 0.2s ease;
+}
+
+.dept-sheet-search:focus {
+  border-color: var(--color-accent-light);
+}
+
+.dept-sheet-search::placeholder {
+  color: var(--text-muted);
+}
+
+.dept-sheet-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 900px) {
+  .dept-dashboard-layout {
+    flex-direction: column;
+  }
+  .dept-dashboard-side {
+    flex: none;
+  }
+}
+
 .nav-item:focus-visible {
   outline: 2px solid var(--color-accent-light);
   outline-offset: -2px;
