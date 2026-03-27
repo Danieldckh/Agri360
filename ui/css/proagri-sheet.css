@@ -1,10 +1,43 @@
 /* ===== ProAgri Sheet Component ===== */
 
-.proagri-sheet {
+/* === Base Structure === */
+
+.proagri-sheet-wrap {
   width: 100%;
-  border-collapse: collapse;
+  position: relative;
 }
 
+/* Search toolbar */
+.proagri-sheet-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  gap: 8px;
+}
+
+.proagri-sheet-search {
+  flex: 1;
+  max-width: 280px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.06);
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.proagri-sheet-search:focus {
+  border-color: var(--color-accent-light);
+}
+
+.proagri-sheet-search::placeholder {
+  color: var(--text-muted);
+}
+
+/* Header row */
 .proagri-sheet-header {
   display: flex;
   padding: 8px 14px;
@@ -19,6 +52,7 @@
   color: var(--text-muted);
   font-weight: 600;
   flex: 1;
+  min-width: 0;
   cursor: default;
   display: flex;
   align-items: center;
@@ -44,14 +78,27 @@
   color: var(--color-accent-light);
 }
 
-.proagri-sheet-header-cell.radial-col {
+/* Column width classes */
+.proagri-sheet-header-cell.cell-sm,
+.proagri-sheet-cell.cell-sm {
+  flex: 0 0 60px;
+}
+
+.proagri-sheet-header-cell.cell-md,
+.proagri-sheet-cell.cell-md {
+  flex: 0 0 140px;
+}
+
+.proagri-sheet-header-cell.radial-col,
+.proagri-sheet-cell.radial-col {
   flex: 0 0 40px;
 }
 
-/* Rows */
+/* === Data Rows === */
+
 .proagri-sheet-row {
   display: flex;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(128, 128, 128, 0.08);
   align-items: center;
   transition: opacity 0.2s ease, background 0.15s ease;
@@ -59,27 +106,27 @@
 }
 
 .proagri-sheet-row:hover {
-  background: rgba(128, 128, 128, 0.05);
+  background: rgba(128, 128, 128, 0.04);
 }
 
 @keyframes sheetRowIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
+/* === Cells === */
 
 .proagri-sheet-cell {
   font-size: 12px;
   color: var(--text-secondary);
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
 }
 
 .proagri-sheet-cell.cell-name {
@@ -87,12 +134,28 @@
   font-weight: 500;
 }
 
+.proagri-sheet-cell.cell-editable {
+  cursor: pointer;
+}
+
+.proagri-sheet-cell.cell-editable:hover {
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.proagri-sheet-cell.cell-editing {
+  background: rgba(128, 128, 128, 0.1);
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: -1px;
+}
+
 .proagri-sheet-cell.radial-col {
   flex: 0 0 40px;
   text-align: right;
+  overflow: visible;
 }
 
-/* Status badges */
+/* === Status Badges === */
+
 .proagri-sheet-status {
   display: inline-block;
   padding: 2px 10px;
@@ -100,6 +163,7 @@
   font-size: 10px;
   font-weight: 500;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .proagri-sheet-status-pending {
@@ -138,7 +202,581 @@
   color: #f5a623;
 }
 
-/* Empty and loading states */
+.proagri-sheet-status-low {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.proagri-sheet-status-medium {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-high {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-urgent {
+  background: rgba(192, 57, 43, 0.2);
+  color: #c0392b;
+}
+
+.proagri-sheet-status-draft {
+  background: rgba(128, 128, 128, 0.15);
+  color: #888;
+}
+
+/* === Multi-Select Tags (in cell) === */
+
+.proagri-sheet-tags {
+  display: flex;
+  gap: 4px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.proagri-sheet-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proagri-sheet-tag-overflow {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(128, 128, 128, 0.1);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* === Person Avatars (in cell) === */
+
+.proagri-sheet-persons {
+  display: flex;
+  align-items: center;
+}
+
+.proagri-sheet-person-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-secondary, #fff);
+  object-fit: cover;
+  margin-left: -6px;
+  background: rgba(128, 128, 128, 0.15);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.proagri-sheet-person-avatar:first-child {
+  margin-left: 0;
+}
+
+.proagri-sheet-person-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-secondary, #fff);
+  margin-left: -6px;
+  background: rgba(128, 128, 128, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.proagri-sheet-person-avatar-placeholder:first-child {
+  margin-left: 0;
+}
+
+.proagri-sheet-person-avatar-placeholder svg {
+  width: 14px;
+  height: 14px;
+  fill: rgba(128, 128, 128, 0.5);
+}
+
+.proagri-sheet-person-overflow {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-secondary, #fff);
+  margin-left: -6px;
+  background: rgba(128, 128, 128, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Person tooltip */
+.proagri-sheet-person-tooltip {
+  position: fixed;
+  z-index: 600;
+  background: var(--color-secondary, #fff);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 10px 14px;
+  pointer-events: none;
+  animation: editorFadeIn 0.15s ease;
+  white-space: nowrap;
+}
+
+.proagri-sheet-person-tooltip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.proagri-sheet-person-tooltip-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* === Checkbox (in cell) === */
+
+.proagri-sheet-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.proagri-sheet-checkbox.checked {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-light);
+}
+
+.proagri-sheet-checkbox.checked svg {
+  display: block;
+}
+
+.proagri-sheet-checkbox svg {
+  display: none;
+  width: 12px;
+  height: 12px;
+  fill: #fff;
+}
+
+/* === Number Cell === */
+
+.proagri-sheet-cell-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* === Editor Popover Base === */
+
+.proagri-sheet-editor {
+  position: fixed;
+  z-index: 500;
+  background: var(--color-secondary, #fff);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  animation: editorFadeIn 0.15s ease;
+  overflow: hidden;
+}
+
+@keyframes editorFadeIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === Text Inline Editor === */
+
+.proagri-sheet-text-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+/* === Select Dropdown (single select / status) === */
+
+.proagri-sheet-select-dropdown {
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.proagri-sheet-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.proagri-sheet-select-option:hover {
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.proagri-sheet-select-option.selected {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.proagri-sheet-select-check {
+  width: 16px;
+  text-align: center;
+  color: var(--color-accent-light);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* === Multi-Select Dropdown === */
+
+.proagri-sheet-multiselect-dropdown {
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.proagri-sheet-multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.proagri-sheet-multiselect-option:hover {
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.proagri-sheet-multiselect-check {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.proagri-sheet-multiselect-check.checked {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-light);
+}
+
+.proagri-sheet-multiselect-check svg {
+  width: 10px;
+  height: 10px;
+  fill: #fff;
+  display: none;
+}
+
+.proagri-sheet-multiselect-check.checked svg {
+  display: block;
+}
+
+/* === Date Picker === */
+
+.proagri-sheet-datepicker {
+  width: 260px;
+  padding: 12px;
+}
+
+.proagri-sheet-datepicker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.proagri-sheet-datepicker-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.proagri-sheet-datepicker-nav {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: background 0.12s;
+}
+
+.proagri-sheet-datepicker-nav:hover {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.proagri-sheet-datepicker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 4px;
+}
+
+.proagri-sheet-datepicker-weekday {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+.proagri-sheet-datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.proagri-sheet-datepicker-day {
+  text-align: center;
+  padding: 6px 0;
+  font-size: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.12s;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+.proagri-sheet-datepicker-day:hover {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.proagri-sheet-datepicker-day.today {
+  font-weight: 700;
+  color: var(--color-accent-light);
+}
+
+.proagri-sheet-datepicker-day.selected {
+  background: var(--color-accent-light);
+  color: #fff;
+  font-weight: 600;
+}
+
+.proagri-sheet-datepicker-day.other-month {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.proagri-sheet-datepicker-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.proagri-sheet-datepicker-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+  background: rgba(128, 128, 128, 0.08);
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+
+.proagri-sheet-datepicker-btn:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.proagri-sheet-datepicker-btn-primary {
+  background: var(--color-accent-light);
+  color: #fff;
+}
+
+.proagri-sheet-datepicker-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* === Person Picker Dropdown === */
+
+.proagri-sheet-person-picker {
+  width: 280px;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.proagri-sheet-person-picker-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.proagri-sheet-person-picker-search input {
+  width: 100%;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(128, 128, 128, 0.06);
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.proagri-sheet-person-picker-search input:focus {
+  border-color: var(--color-accent-light);
+}
+
+.proagri-sheet-person-picker-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.proagri-sheet-person-picker-list {
+  overflow-y: auto;
+  padding: 6px;
+  flex: 1;
+}
+
+.proagri-sheet-person-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.proagri-sheet-person-picker-item:hover {
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.proagri-sheet-person-picker-item.selected {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.proagri-sheet-person-picker-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.proagri-sheet-person-picker-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(128, 128, 128, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.proagri-sheet-person-picker-avatar-placeholder svg {
+  width: 16px;
+  height: 16px;
+  fill: rgba(128, 128, 128, 0.5);
+}
+
+.proagri-sheet-person-picker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.proagri-sheet-person-picker-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proagri-sheet-person-picker-role {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.proagri-sheet-person-picker-check {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.proagri-sheet-person-picker-check.checked {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-light);
+}
+
+.proagri-sheet-person-picker-check svg {
+  width: 10px;
+  height: 10px;
+  fill: #fff;
+  display: none;
+}
+
+.proagri-sheet-person-picker-check.checked svg {
+  display: block;
+}
+
+.proagri-sheet-person-picker-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* === Loading & Empty States === */
+
 .proagri-sheet-empty,
 .proagri-sheet-loading {
   padding: 40px 20px;
@@ -162,4 +800,24 @@
 
 @keyframes sheetSpin {
   to { transform: rotate(360deg); }
+}
+
+/* === Cell Flash Feedback === */
+
+.proagri-sheet-cell.cell-saved {
+  animation: cellSaved 0.6s ease;
+}
+
+@keyframes cellSaved {
+  0% { background: rgba(39, 174, 96, 0.15); }
+  100% { background: transparent; }
+}
+
+.proagri-sheet-cell.cell-error {
+  animation: cellError 0.6s ease;
+}
+
+@keyframes cellError {
+  0% { background: rgba(231, 76, 60, 0.15); }
+  100% { background: transparent; }
 }

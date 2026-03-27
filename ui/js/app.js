@@ -478,11 +478,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tab-specific column configurations for department sheets
   var deptTabColumns = {
     '_default': [
-      { key: 'name', label: 'Name', sortable: true, isName: true },
+      { key: 'name', label: 'Name', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' },
-      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' }
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true }
     ],
     'Proposal': [
       { key: 'client', label: 'Client', sortable: true, isName: true },
@@ -518,12 +518,12 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'declined_date', label: 'Declined Date', sortable: true, type: 'date' }
     ],
     'Action Board': [
-      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
-      { key: 'priority', label: 'Priority', sortable: true },
-      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: ['low', 'medium', 'high', 'urgent'] },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
     ],
     'Overview': [
       { key: 'project', label: 'Project', sortable: true, isName: true },
@@ -540,18 +540,18 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Content Calendars': [
-      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'title', label: 'Title', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'platform', label: 'Platform', sortable: true },
-      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+      { key: 'platform', label: 'Platform', sortable: true, type: 'status', editable: true, options: ['facebook', 'instagram', 'twitter', 'linkedin', 'website'] },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'pending', 'in_progress', 'completed'] }
     ],
     'Magazine': [
-      { key: 'title', label: 'Title', sortable: true, isName: true },
-      { key: 'edition', label: 'Edition', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
-      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+      { key: 'title', label: 'Title', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'edition', label: 'Edition', sortable: true, type: 'text', editable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
     ],
     'Agri for All': [
       { key: 'title', label: 'Title', sortable: true, isName: true },
@@ -575,11 +575,11 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Internal Tasks': [
-      { key: 'task', label: 'Task', sortable: true, isName: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
-      { key: 'priority', label: 'Priority', sortable: true },
-      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+      { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: ['low', 'medium', 'high', 'urgent'] },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
     ],
     'Proposals': [
       { key: 'client', label: 'Client', sortable: true, isName: true },
@@ -610,18 +610,18 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Tasks': [
-      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
-      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
     ],
     'Budgets': [
-      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'project', label: 'Project', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'budget', label: 'Budget', sortable: true },
-      { key: 'spent', label: 'Spent', sortable: true },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+      { key: 'budget', label: 'Budget', sortable: true, type: 'number', editable: true },
+      { key: 'spent', label: 'Spent', sortable: true, type: 'number', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['active', 'completed', 'overdue'] }
     ],
     'Team & Freelancers': [
       { key: 'name', label: 'Name', sortable: true, isName: true },
@@ -825,10 +825,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.renderSheet(sheetContainer, {
           columns: columns,
           data: filtered,
+          searchable: false,
           radialActions: opts.compact ? [] : [
             { id: 'view', label: 'View Details', action: function(row) { console.log('View:', row); } },
             { id: 'edit', label: 'Edit', action: function(row) { console.log('Edit:', row); } }
-          ]
+          ],
+          apiEndpoint: opts.apiEndpoint || null,
+          onCellEdit: opts.onCellEdit || null
         });
       }
     }
