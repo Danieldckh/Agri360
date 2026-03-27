@@ -1,20 +1,11 @@
 const { Router } = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { toCamelCase, toSnakeBody } = require('../utils');
 
 const router = Router();
 
 router.use(requireAuth);
-
-function toCamelCase(row) {
-  if (!row) return row;
-  const result = {};
-  for (const [key, value] of Object.entries(row)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-    result[camelKey] = value;
-  }
-  return result;
-}
 
 // GET / - list all clients
 router.get('/', async (req, res) => {
@@ -53,12 +44,7 @@ router.get('/:id', async (req, res) => {
 
 // POST / - create client
 router.post('/', async (req, res) => {
-  // Convert all incoming keys to snake_case
-  const body = {};
-  for (const [key, value] of Object.entries(req.body)) {
-    const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
-    body[snakeKey] = value;
-  }
+  const body = toSnakeBody(req.body);
 
   const { name } = body;
 
@@ -112,12 +98,7 @@ router.post('/', async (req, res) => {
 
 // PATCH /:id - update client
 router.patch('/:id', async (req, res) => {
-  // Accept both snake_case and camelCase keys
-  const body = {};
-  for (const [key, value] of Object.entries(req.body)) {
-    const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
-    body[snakeKey] = value;
-  }
+  const body = toSnakeBody(req.body);
   const fields = [
     'name', 'contact_person', 'email', 'phone', 'address', 'notes',
     'trading_name', 'company_reg_no', 'vat_number', 'website',

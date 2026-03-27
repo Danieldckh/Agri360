@@ -1,4 +1,5 @@
 var API_URL = 'http://localhost:3001/api';
+window.API_URL = API_URL;
 
 function getAuthHeaders() {
   var token = localStorage.getItem('token');

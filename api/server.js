@@ -3,9 +3,18 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { PORT, UPLOAD_DIR, AUTH_ENABLED } = require('./config');
+
+// Route imports
 const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employees');
 const messagingRoutes = require('./routes/messaging');
+const clientRoutes = require('./routes/clients');
+const bookingFormRoutes = require('./routes/booking-forms');
+const deliverableRoutes = require('./routes/deliverables');
+const dashboardRoutes = require('./routes/dashboards');
+const financialRoutes = require('./routes/financials');
+const departmentRoutes = require('./routes/departments');
+const devRoutes = require('./routes/dev');
 
 // Ensure uploads directories exist
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -26,22 +35,12 @@ app.get('/api/auth/config', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/messaging', messagingRoutes);
-
-const clientRoutes = require('./routes/clients');
-const bookingFormRoutes = require('./routes/booking-forms');
-const deliverableRoutes = require('./routes/deliverables');
-const dashboardRoutes = require('./routes/dashboards');
-const financialRoutes = require('./routes/financials');
-const departmentRoutes = require('./routes/departments');
-
 app.use('/api/clients', clientRoutes);
 app.use('/api/booking-forms', bookingFormRoutes);
 app.use('/api/deliverables', deliverableRoutes);
 app.use('/api/dashboards', dashboardRoutes);
 app.use('/api/financials', financialRoutes);
 app.use('/api/departments', departmentRoutes);
-
-const devRoutes = require('./routes/dev');
 app.use('/api/dev', devRoutes);
 
 app.listen(PORT, () => {
