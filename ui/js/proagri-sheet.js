@@ -689,6 +689,10 @@
     var sortDir = config._sortDir || 'asc';
     var searchTerm = config._searchTerm || '';
 
+    // Reuse existing search input if present to preserve focus
+    var existingSearch = container.querySelector('.proagri-sheet-search');
+    var existingToolbar = container.querySelector('.proagri-sheet-toolbar');
+
     while (container.firstChild) container.removeChild(container.firstChild);
     var wrap = document.createElement('div');
     wrap.className = 'proagri-sheet-wrap';
@@ -703,24 +707,30 @@
       return { update: function (d) { renderSheet(container, Object.assign({}, config, { data: d })); } };
     }
 
-    // Search
+    // Search — reuse the existing input element to keep focus
+    var si = null;
     if (searchable) {
-      var tb = document.createElement('div');
-      tb.className = 'proagri-sheet-toolbar';
-      var si = document.createElement('input');
-      si.className = 'proagri-sheet-search';
-      si.type = 'text';
-      si.placeholder = 'Search...';
-      si.value = searchTerm;
-      var dt = null;
-      si.addEventListener('input', function () {
-        clearTimeout(dt);
-        dt = setTimeout(function () {
-          renderSheet(container, Object.assign({}, config, { _searchTerm: si.value, _sortKey: sortKey, _sortDir: sortDir }));
-        }, 200);
-      });
-      tb.appendChild(si);
-      wrap.appendChild(tb);
+      if (existingSearch && existingToolbar) {
+        si = existingSearch;
+        wrap.appendChild(existingToolbar);
+      } else {
+        var tb = document.createElement('div');
+        tb.className = 'proagri-sheet-toolbar';
+        si = document.createElement('input');
+        si.className = 'proagri-sheet-search';
+        si.type = 'text';
+        si.placeholder = 'Search...';
+        si.value = searchTerm;
+        var dt = null;
+        si.addEventListener('input', function () {
+          clearTimeout(dt);
+          dt = setTimeout(function () {
+            renderSheet(container, Object.assign({}, config, { _searchTerm: si.value, _sortKey: sortKey, _sortDir: sortDir }));
+          }, 200);
+        });
+        tb.appendChild(si);
+        wrap.appendChild(tb);
+      }
     }
 
     var filtered = filterData(data, searchTerm, columns);

@@ -54,12 +54,15 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/dev', devRoutes);
 
 // Serve static frontend files
-app.use(express.static(path.join(__dirname, '..')));
+var ROOT_DIR = path.join(__dirname, '..');
+app.use(express.static(ROOT_DIR));
 
-// SPA fallback - serve index.html for non-API routes
-app.get('/{*path}', (req, res) => {
-  if (!req.path.startsWith('/api/')) {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+// Fallback - serve index.html for non-API routes
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+    res.sendFile(path.join(ROOT_DIR, 'index.html'));
+  } else {
+    next();
   }
 });
 

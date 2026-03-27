@@ -23,6 +23,9 @@
     'departments': 'Departments'
   };
   var MODULE_ORDER = ['Employees', 'Messaging', 'Clients', 'Departments', 'Other'];
+  var TABLE_ORDER = {
+    'Clients': ['clients', 'booking_forms', 'deliverables', 'financials', 'dashboards']
+  };
 
   function groupTablesByModule(tables) {
     var groups = {};
@@ -35,7 +38,18 @@
     }
     for (mod in groups) {
       if (groups.hasOwnProperty(mod)) {
-        groups[mod].sort();
+        if (TABLE_ORDER[mod]) {
+          var order = TABLE_ORDER[mod];
+          groups[mod].sort(function (a, b) {
+            var ai = order.indexOf(a);
+            var bi = order.indexOf(b);
+            if (ai === -1) ai = 999;
+            if (bi === -1) bi = 999;
+            return ai - bi;
+          });
+        } else {
+          groups[mod].sort();
+        }
       }
     }
     var result = [];
