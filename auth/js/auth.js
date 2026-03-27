@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  var API_URL = 'http://localhost:3001/api';
+  var API_URL = '/api';
   var page = document.body.dataset.page;
 
   function showMessage(type, text) {

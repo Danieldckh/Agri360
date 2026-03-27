@@ -666,7 +666,20 @@
 }
 
 .msg-bubble-own .msg-bubble-body {
-  background: rgba(0, 0, 0, 0.03);
+  background: linear-gradient(135deg, var(--color-accent-light), var(--color-accent-dark));
+  color: #fff;
+}
+
+.msg-bubble-own .msg-bubble-sender {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.msg-bubble-own .msg-bubble-time {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.msg-bubble-own .msg-bubble-content {
+  color: #fff;
 }
 
 .msg-bubble-meta {

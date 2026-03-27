@@ -1,8 +1,6 @@
 /* Messaging Module — WhatsApp-style layout */
 (function () {
-  var MSG_BASE_URL = (window.API_URL || 'http://localhost:3001/api');
-  var MSG_API = MSG_BASE_URL + '/messaging';
-  var MSG_HOST = MSG_BASE_URL.replace('/api', '');
+  var MSG_API = (window.API_URL || '/api') + '/messaging';
   var DEFAULT_AVATAR = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(128,128,128,0.4)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
 
   // State
@@ -15,7 +13,7 @@
   var convPane = null;
   var chatPane = null;
   var searchDebounceTimer = null;
-  var sidebarFilter = 'all'; // 'all' | 'channels' | 'dms'
+  var sidebarFilter = 'all'; // 'all' | 'channels' | 'dms' | 'clients'
   var isMobileChat = false;
   var currentChannelMembers = [];
 
@@ -124,7 +122,7 @@
 
   function fetchEmployees() {
     if (employeeCache) return Promise.resolve(employeeCache);
-    return fetch(MSG_BASE_URL + '/employees', { headers: authHeaders() })
+    return fetch((window.API_URL || '/api') + '/employees', { headers: authHeaders() })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         employeeCache = Array.isArray(data) ? data : [];
@@ -165,11 +163,11 @@
 
   function getDmOtherPhoto(ch) {
     if (ch.dm_partner && ch.dm_partner.photo_url) {
-      return MSG_HOST + '/uploads/photos/' + ch.dm_partner.photo_url;
+      return '/uploads/photos/' + ch.dm_partner.photo_url;
     }
     var user = getUser();
     if (ch.latest_message && ch.latest_message.sender_id !== user.id && ch.latest_message.sender_photo_url) {
-      return MSG_HOST + '/uploads/photos/' + ch.latest_message.sender_photo_url;
+      return '/uploads/photos/' + ch.latest_message.sender_photo_url;
     }
     return null;
   }
@@ -349,9 +347,11 @@
 
     // Apply sidebar filter
     if (sidebarFilter === 'channels') {
-      allChannels = allChannels.filter(function (c) { return c.type !== 'dm'; });
+      allChannels = allChannels.filter(function (c) { return c.type !== 'dm' && c.type !== 'client'; });
     } else if (sidebarFilter === 'dms') {
       allChannels = allChannels.filter(function (c) { return c.type === 'dm'; });
+    } else if (sidebarFilter === 'clients') {
+      allChannels = allChannels.filter(function (c) { return c.type === 'client'; });
     }
 
     // Apply search filter
@@ -731,7 +731,7 @@
         avatar.className = 'msg-people-avatar';
         if (member.photo_url) {
           var avatarImg = document.createElement('img');
-          avatarImg.src = MSG_HOST + '/uploads/photos/' + member.photo_url;
+          avatarImg.src = '/uploads/photos/' + member.photo_url;
           avatarImg.alt = '';
           avatar.appendChild(avatarImg);
         } else {
@@ -796,7 +796,7 @@
       avatar.className = 'msg-bubble-avatar';
       avatar.alt = '';
       if (msg.sender_photo_url) {
-        avatar.src = MSG_HOST + '/uploads/photos/' + msg.sender_photo_url;
+        avatar.src = '/uploads/photos/' + msg.sender_photo_url;
       } else {
         avatar.src = DEFAULT_AVATAR;
       }
@@ -840,13 +840,13 @@
         if (att.mime_type && att.mime_type.indexOf('image/') === 0) {
           var img = document.createElement('img');
           img.className = 'msg-attachment-img';
-          img.src = MSG_HOST + '/uploads/attachments/' + att.filename;
+          img.src = '/uploads/attachments/' + att.filename;
           img.alt = att.original_name || 'Image';
           attEl.appendChild(img);
         } else {
           var link = document.createElement('a');
           link.className = 'msg-attachment-link';
-          link.href = MSG_HOST + '/uploads/attachments/' + att.filename;
+          link.href = '/uploads/attachments/' + att.filename;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           var fileIcon = makeSvg('M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z', 14);
@@ -1735,7 +1735,8 @@
       var filters = [
         { id: 'all', label: 'All' },
         { id: 'channels', label: 'Channels' },
-        { id: 'dms', label: 'Direct Messages' }
+        { id: 'dms', label: 'Direct Messages' },
+        { id: 'clients', label: 'Clients' }
       ];
 
       filters.forEach(function (f) {

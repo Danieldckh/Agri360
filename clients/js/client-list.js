@@ -1,4 +1,4 @@
-var CLIENT_API_URL = window.API_URL || 'http://localhost:3001/api';
+var CLIENT_API_URL = window.API_URL || '/api';
 
 window.renderClientListPage = function(container) {
   while (container.firstChild) {

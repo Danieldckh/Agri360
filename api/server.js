@@ -1,3 +1,10 @@
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+});
+
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -26,6 +33,9 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Health check
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 // Auth config endpoint
 app.get('/api/auth/config', (_req, res) => {
   res.json({ authEnabled: AUTH_ENABLED });
@@ -42,6 +52,16 @@ app.use('/api/dashboards', dashboardRoutes);
 app.use('/api/financials', financialRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/dev', devRoutes);
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '..')));
+
+// SPA fallback - serve index.html for non-API routes
+app.get('/{*path}', (req, res) => {
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`ProAgri API running on http://localhost:${PORT}`);

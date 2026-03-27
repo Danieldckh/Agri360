@@ -1,5 +1,4 @@
-var EMPLOYEES_API_URL = window.API_URL || 'http://localhost:3001/api';
-var EMPLOYEES_BASE_URL = EMPLOYEES_API_URL.replace('/api', '');
+var EMPLOYEES_API_URL = window.API_URL || '/api';
 var DEFAULT_PHOTO_SVG = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(128,128,128,0.4)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
 
 function createEmployeeCard(emp, currentUser, onRefresh) {
@@ -11,7 +10,7 @@ function createEmployeeCard(emp, currentUser, onRefresh) {
 
   // Photo
   var photoSrc = emp.photo_url
-    ? EMPLOYEES_BASE_URL + emp.photo_url
+    ? emp.photo_url
     : DEFAULT_PHOTO_SVG;
 
   if (isOwnCard) {
@@ -54,7 +53,7 @@ function createEmployeeCard(emp, currentUser, onRefresh) {
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (data.photo_url) {
-            img.src = EMPLOYEES_BASE_URL + data.photo_url;
+            img.src = data.photo_url;
           }
           if (onRefresh) onRefresh();
         })

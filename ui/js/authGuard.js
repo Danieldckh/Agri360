@@ -1,4 +1,4 @@
-var API_URL = 'http://localhost:3001/api';
+var API_URL = '/api';
 window.API_URL = API_URL;
 
 function getAuthHeaders() {
