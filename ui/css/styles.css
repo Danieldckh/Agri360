@@ -435,6 +435,17 @@ html, body {
   display: flex;
 }
 
+/* Proposal dashboard: side column stacks two sheets vertically */
+.proposal-side-col {
+  flex-direction: column;
+  gap: 16px;
+}
+
+.proposal-side-col .dept-sheet-card {
+  flex: 1;
+  min-height: 0;
+}
+
 /* ===== Department Sheet Cards ===== */
 .dept-sheet-card {
   background: #ffffff;
