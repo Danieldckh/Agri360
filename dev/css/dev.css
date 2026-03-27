@@ -217,6 +217,11 @@
   margin-bottom: 16px;
 }
 
+.dev-component-preview-full {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
 .dev-component-classes {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
