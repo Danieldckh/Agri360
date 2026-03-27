@@ -519,6 +519,28 @@ document.addEventListener('DOMContentLoaded', () => {
   window.expandSidebarIfCollapsed = expandSidebarIfCollapsed;
   window.restoreSidebarCollapsed = restoreSidebarCollapsed;
 
+  // Page renderer registry — add new pages here
+  var pageRenderers = {
+    'employees': function () { renderEmployeeSection(dashboardContent); },
+    'messaging': function () {
+      if (window.activateMessagingSidebar) window.activateMessagingSidebar();
+      if (window.renderMessagingSection) window.renderMessagingSection(dashboardContent);
+    },
+    'styles': function () { if (window.renderStylesPage) window.renderStylesPage(dashboardContent); },
+    'components': function () { if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent); },
+    'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
+    'client-list': function () { if (window.renderClientListPage) window.renderClientListPage(dashboardContent); }
+  };
+
+  function finishPageEnter() {
+    dashboardContent.classList.add('page-enter');
+    dashboardContent.addEventListener('animationend', function onEnter() {
+      dashboardContent.removeEventListener('animationend', onEnter);
+      dashboardContent.classList.remove('page-enter');
+      isTransitioning = false;
+    });
+  }
+
   function transitionToPage(page) {
     isTransitioning = true;
 
@@ -551,89 +573,25 @@ document.addEventListener('DOMContentLoaded', () => {
       currentPage = page;
       localStorage.setItem('proagri-active-page', page);
 
-      if (page === 'employees') {
-        renderEmployeeSection(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
+      // Check page renderer registry
+      if (pageRenderers[page]) {
+        pageRenderers[page]();
+        finishPageEnter();
         return;
       }
 
-      if (page === 'messaging') {
-        if (window.activateMessagingSidebar) window.activateMessagingSidebar();
-        if (window.renderMessagingSection) window.renderMessagingSection(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'styles') {
-        if (window.renderStylesPage) window.renderStylesPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'components') {
-        if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'database') {
-        if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'client-list') {
-        if (window.renderClientListPage) window.renderClientListPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
+      // Department pages
       if (deptPages.indexOf(page) !== -1) {
         showDeptSubMenu(page);
         var deptItems = deptMenuItems[page] || ['Overview'];
         var savedDeptView = localStorage.getItem('proagri-dept-tab-' + page);
         var restoredView = (savedDeptView && deptItems.indexOf(savedDeptView) !== -1) ? savedDeptView : deptItems[0];
         showDeptContent(page, restoredView);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
+        finishPageEnter();
         return;
       }
 
-      // Reset container styles for other pages
+      // Default: show placeholder
       dashboardContent.style.display = '';
       dashboardContent.style.alignItems = '';
       dashboardContent.style.justifyContent = '';
@@ -644,23 +602,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const placeholder = document.createElement('span');
       placeholder.className = 'page-placeholder';
-
-      switch (page) {
-        case 'my-view':
-          placeholder.textContent = 'My View';
-          break;
-        default:
-          placeholder.textContent = page;
-      }
-
+      placeholder.textContent = page === 'my-view' ? 'My View' : page;
       dashboardContent.appendChild(placeholder);
 
-      dashboardContent.classList.add('page-enter');
-      dashboardContent.addEventListener('animationend', function onEnter() {
-        dashboardContent.removeEventListener('animationend', onEnter);
-        dashboardContent.classList.remove('page-enter');
-        isTransitioning = false;
-      });
+      finishPageEnter();
     }
 
     function onExit() { handleExitComplete(); }

@@ -1,29 +1,11 @@
 const { Router } = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { toCamelCase, toSnakeBody } = require('../utils');
 
 const router = Router();
 
 router.use(requireAuth);
-
-function toSnakeBody(body) {
-  const result = {};
-  for (const [key, value] of Object.entries(body)) {
-    const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
-    result[snakeKey] = value;
-  }
-  return result;
-}
-
-function toCamelCase(row) {
-  if (!row) return row;
-  const result = {};
-  for (const [key, value] of Object.entries(row)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-    result[camelKey] = value;
-  }
-  return result;
-}
 
 // GET /by-booking/:bookingFormId - list deliverables for a booking form
 router.get('/by-booking/:bookingFormId', async (req, res) => {

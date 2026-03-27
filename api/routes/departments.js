@@ -1,20 +1,11 @@
 const { Router } = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { toCamelCase } = require('../utils');
 
 const router = Router();
 
 router.use(requireAuth);
-
-function toCamelCase(row) {
-  if (!row) return row;
-  const result = {};
-  for (const [key, value] of Object.entries(row)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-    result[camelKey] = value;
-  }
-  return result;
-}
 
 // GET / - list all departments
 router.get('/', async (req, res) => {

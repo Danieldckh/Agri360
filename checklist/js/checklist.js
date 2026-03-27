@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  var API_URL = 'http://localhost:3001/api';
+  var API_URL = window.API_URL || 'http://localhost:3001/api';
 
   function authHeaders(json) {
     var h = window.getAuthHeaders ? window.getAuthHeaders() : {};
