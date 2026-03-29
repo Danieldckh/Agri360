@@ -685,9 +685,9 @@
     // --- Design Review row actions: Request Changes | Approve ---
     var reviewActions = [
       {
-        icon: ICON_SKIP,
+        icon: ICON_DELETE,
         tooltip: 'Request design changes',
-        className: 'action-skip',
+        className: 'action-delete',
         onClick: function (rowData) {
           fetch(API_BASE + '/' + rowData.id, {
             method: 'PATCH',
