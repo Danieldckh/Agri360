@@ -68,6 +68,79 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Default production deliverable types
+const DEFAULT_DELIVERABLES = [
+  { type: 'sm-posts', title: 'SM Management - Posts' },
+  { type: 'sm-videos', title: 'SM Management - Videos' },
+  { type: 'sm-google-ads', title: 'SM Management - Google Ads' },
+  { type: 'sm-linkedin', title: 'SM Management - LinkedIn' },
+  { type: 'sm-twitter', title: 'SM Management - Twitter/X' },
+  { type: 'sm-content-calendar', title: 'SM Management - Content Calendar' },
+  { type: 'agri4all-posts', title: 'Agri4All - Posts' },
+  { type: 'agri4all-videos', title: 'Agri4All - Videos' },
+  { type: 'agri4all-product-uploads', title: 'Agri4All - Product Uploads' },
+  { type: 'agri4all-newsletters', title: 'Agri4All - Newsletters' },
+  { type: 'agri4all-banners', title: 'Agri4All - Banners' },
+  { type: 'agri4all-linkedin', title: 'Agri4All - LinkedIn' },
+  { type: 'online-articles', title: 'Online Articles' },
+  { type: 'magazine', title: 'Magazine' },
+  { type: 'video', title: 'Video' },
+  { type: 'website-design', title: 'Website Design' }
+];
+
+// POST /bulk - create all production deliverables for a booking form
+router.post('/bulk', async (req, res) => {
+  const { booking_form_id } = toSnakeBody(req.body);
+
+  if (!booking_form_id) {
+    return res.status(400).json({ error: 'bookingFormId is required' });
+  }
+
+  try {
+    // Idempotency: check if deliverables already exist for this booking form
+    const existing = await pool.query(
+      'SELECT * FROM deliverables WHERE booking_form_id = $1',
+      [booking_form_id]
+    );
+    if (existing.rows.length > 0) {
+      return res.json(existing.rows.map(toCamelCase));
+    }
+
+    // Look up production department ID
+    const deptResult = await pool.query("SELECT id FROM departments WHERE slug = 'production'");
+    if (deptResult.rows.length === 0) {
+      return res.status(500).json({ error: 'Production department not found' });
+    }
+    const departmentId = deptResult.rows[0].id;
+
+    // Insert all 16 deliverables in a transaction
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const created = [];
+      for (const d of DEFAULT_DELIVERABLES) {
+        const result = await client.query(
+          `INSERT INTO deliverables (booking_form_id, department_id, type, title, status)
+           VALUES ($1, $2, $3, $4, 'pending')
+           RETURNING *`,
+          [booking_form_id, departmentId, d.type, d.title]
+        );
+        created.push(result.rows[0]);
+      }
+      await client.query('COMMIT');
+      res.status(201).json(created.map(toCamelCase));
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Bulk create deliverables error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST / - create deliverable
 router.post('/', async (req, res) => {
   const b = toSnakeBody(req.body);
