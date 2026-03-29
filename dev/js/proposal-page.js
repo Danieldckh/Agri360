@@ -543,7 +543,14 @@
             headers: getHeaders(),
             body: JSON.stringify({ department: 'admin-onboarded', status: 'onboarded' })
           }).then(function (res) {
-            if (res.ok) refreshAll();
+            if (!res.ok) return;
+            return fetch('/api/deliverables/bulk', {
+              method: 'POST',
+              headers: getHeaders(),
+              body: JSON.stringify({ bookingFormId: rowData.id })
+            });
+          }).then(function (res) {
+            if (res && res.ok) refreshAll();
           });
         }
       }

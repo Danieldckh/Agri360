@@ -873,6 +873,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Production > Action Board to production deliverables view
+    if (page === 'production' && viewName === 'Action Board' && window.renderProductionTab) {
+      window.renderProductionTab(dashboardContent);
+      return;
+    }
+
     // Route Design > Proposals to live design proposals view
     if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
       window.renderDesignProposalsTab(dashboardContent);
