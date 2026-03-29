@@ -3,6 +3,11 @@
 
   var API_BASE = '/api/booking-forms';
 
+  // SVG icon paths for row actions
+  var ICON_DELETE = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z';
+  var ICON_SKIP = 'M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16.5 6H18v12h-1.5V6z';
+  var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
+
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
     if (window.getAuthHeaders) {
@@ -126,18 +131,19 @@
       countBadge.textContent = filtered.length;
 
       if (window.renderSheet) {
-        window.renderSheet(sheetContainer, {
+        var sheetConfig = {
           columns: columns,
           data: filtered,
           searchable: false,
           apiEndpoint: API_BASE,
           onCellEdit: function (rowData, key, newValue) {
-            // When status changes, refresh all sheets to move rows between them
             if (key === 'status' && opts.onStatusChange) {
               setTimeout(function () { opts.onStatusChange(); }, 300);
             }
           }
-        });
+        };
+        if (opts.rowActions) sheetConfig.rowActions = opts.rowActions;
+        window.renderSheet(sheetContainer, sheetConfig);
       }
     }
 
@@ -170,9 +176,56 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side proposal-side-col';
 
+    // Row actions for admin-proposals
+    var proposalRowActions = [
+      {
+        icon: ICON_DELETE,
+        tooltip: 'Delete proposal',
+        className: 'action-delete',
+        onClick: function (rowData) {
+          if (!confirm('Delete this proposal?')) return;
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'DELETE',
+            headers: getHeaders()
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_SKIP,
+        tooltip: 'Skip to booking form dashboard',
+        className: 'action-skip',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'booking-form-dashboard' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_ADVANCE,
+        tooltip: 'Send to design proposals',
+        className: 'action-advance',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'design-proposals' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
     // Build the 3 sheets
     var todoSheet = buildProposalSheet('To Do', todoColumns, {
-      onStatusChange: refreshAll
+      onStatusChange: refreshAll,
+      rowActions: proposalRowActions
     });
     var designSheet = buildProposalSheet('In Design', sideColumns, {
       compact: true,
@@ -193,7 +246,7 @@
 
     // Fetch and distribute data
     function refreshAll() {
-      fetch(API_BASE, { headers: getHeaders() })
+      fetch(API_BASE + '?department=admin-proposals', { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');
           return res.json();

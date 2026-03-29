@@ -821,3 +821,65 @@
   0% { background: rgba(231, 76, 60, 0.15); }
   100% { background: transparent; }
 }
+
+/* === Row Hover Actions === */
+
+.proagri-sheet-actions-col {
+  overflow: visible;
+  text-align: right;
+  padding: 0 4px !important;
+}
+
+.proagri-sheet-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.proagri-sheet-row:hover .proagri-sheet-row-actions {
+  opacity: 1;
+}
+
+.proagri-sheet-row-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #999);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.proagri-sheet-row-action-btn:hover {
+  background: rgba(128, 128, 128, 0.15);
+  color: var(--text-primary, #333);
+}
+
+.proagri-sheet-row-action-btn.action-delete:hover {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-row-action-btn.action-advance:hover {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-row-action-btn.action-skip:hover {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-row-action-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}

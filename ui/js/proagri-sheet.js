@@ -682,6 +682,7 @@
     var columns = config.columns || [];
     var data = config.data;
     var radialActions = config.radialActions || [];
+    var rowActions = config.rowActions || [];
     var searchable = config.searchable || false;
     var onCellEdit = config.onCellEdit || null;
     var apiEndpoint = config.apiEndpoint || null;
@@ -770,6 +771,12 @@
       }
       hr.appendChild(th);
     });
+    if (rowActions.length > 0) {
+      var ah = document.createElement('div');
+      ah.className = 'proagri-sheet-header-cell proagri-sheet-actions-col';
+      ah.style.flex = '0 0 ' + (rowActions.length * 28 + 8) + 'px';
+      hr.appendChild(ah);
+    }
     if (radialActions.length > 0) {
       var rh = document.createElement('div');
       rh.className = 'proagri-sheet-header-cell radial-col';
@@ -847,6 +854,30 @@
         }
         row.appendChild(cell);
       });
+
+      if (rowActions.length > 0) {
+        var actionsCell = document.createElement('div');
+        actionsCell.className = 'proagri-sheet-cell proagri-sheet-actions-col';
+        actionsCell.style.flex = '0 0 ' + (rowActions.length * 28 + 8) + 'px';
+        var actionsWrap = document.createElement('div');
+        actionsWrap.className = 'proagri-sheet-row-actions';
+        rowActions.forEach(function (action) {
+          var btn = document.createElement('button');
+          btn.className = 'proagri-sheet-row-action-btn' + (action.className ? ' ' + action.className : '');
+          btn.title = action.tooltip || '';
+          btn.type = 'button';
+          if (action.icon) {
+            btn.appendChild(makeSvgEl(action.icon, 14));
+          }
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (action.onClick) action.onClick(rowData);
+          });
+          actionsWrap.appendChild(btn);
+        });
+        actionsCell.appendChild(actionsWrap);
+        row.appendChild(actionsCell);
+      }
 
       if (radialActions.length > 0) {
         var tc = document.createElement('div');

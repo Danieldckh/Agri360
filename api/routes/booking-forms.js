@@ -10,12 +10,16 @@ router.use(requireAuth);
 // GET / - list all booking forms with client info
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT bf.*, c.name AS client_name
+    let query = `SELECT bf.*, c.name AS client_name
        FROM booking_forms bf
-       LEFT JOIN clients c ON c.id = bf.client_id
-       ORDER BY bf.created_at DESC`
-    );
+       LEFT JOIN clients c ON c.id = bf.client_id`;
+    const params = [];
+    if (req.query.department) {
+      query += ' WHERE bf.department = $1';
+      params.push(req.query.department);
+    }
+    query += ' ORDER BY bf.created_at DESC';
+    const result = await pool.query(query, params);
     res.json(result.rows.map(toCamelCase));
   } catch (err) {
     console.error('List all booking forms error:', err);
@@ -123,7 +127,7 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update booking form
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'status', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative'];
+  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative'];
   const updates = [];
   const values = [];
   let idx = 1;
