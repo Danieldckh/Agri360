@@ -549,16 +549,15 @@
       }
     ];
 
-    var mainSheet = buildProposalSheet('Onboarding', onboardingColumns, {
+    var onboardingSheet = buildProposalSheet('Onboarding', onboardingSideColumns, {
+      compact: true,
       onStatusChange: refreshAll,
       rowActions: onboardingActions
     });
-    var sideSheet = buildProposalSheet('Onboarded', onboardingSideColumns, {
-      compact: true
-    });
+    var onboardedSheet = buildProposalSheet('Onboarded', onboardingColumns, {});
 
-    mainCol.appendChild(mainSheet.el);
-    sideCol.appendChild(sideSheet.el);
+    mainCol.appendChild(onboardedSheet.el);
+    sideCol.appendChild(onboardingSheet.el);
     layout.appendChild(mainCol);
     layout.appendChild(sideCol);
     container.appendChild(layout);
@@ -571,8 +570,8 @@
 
       Promise.all([onboardingReq, onboardedReq])
         .then(function (results) {
-          mainSheet.update(results[0].map(mapFormToRow));
-          sideSheet.update(results[1].map(mapFormToRow));
+          onboardingSheet.update(results[0].map(mapFormToRow));
+          onboardedSheet.update(results[1].map(mapFormToRow));
         })
         .catch(function (err) {
           console.error('Onboarding fetch error:', err);
