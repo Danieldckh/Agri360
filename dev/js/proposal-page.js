@@ -267,4 +267,77 @@
   }
 
   window.renderProposalTab = renderProposalTab;
+
+  // === Booking Form Dashboard Tab ===
+
+  var bookingColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
+    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'pending', 'in_design', 'sent_to_client', 'approved', 'declined'] }
+  ];
+
+  var bookingSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
+
+  function renderBookingFormTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = 'flex';
+    container.style.alignItems = 'stretch';
+    container.style.justifyContent = '';
+    container.style.flexDirection = '';
+    container.style.height = '';
+    container.style.gap = '';
+    container.style.padding = '';
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    var mainSheet = buildProposalSheet('Booking Forms', bookingColumns, {
+      onStatusChange: refreshAll
+    });
+    var sideSheet = buildProposalSheet('Pending Bookings', bookingSideColumns, {
+      compact: true,
+      onStatusChange: refreshAll
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=booking-form-dashboard', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          mainSheet.update(all);
+          var pending = all.filter(function (r) { return r.status === 'pending' || r.status === 'draft'; });
+          sideSheet.update(pending);
+        })
+        .catch(function (err) {
+          console.error('Booking form fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderBookingFormTab = renderBookingFormTab;
 })();

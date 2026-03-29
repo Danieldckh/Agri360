@@ -855,6 +855,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Admin > Booking Form to the booking form tab
+    if (page === 'admin' && viewName === 'Booking Form' && window.renderBookingFormTab) {
+      window.renderBookingFormTab(dashboardContent);
+      return;
+    }
+
     dashboardContent.style.display = 'flex';
     dashboardContent.style.alignItems = 'stretch';
     dashboardContent.style.justifyContent = '';
