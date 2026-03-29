@@ -630,4 +630,90 @@
   }
 
   window.renderDeclinedTab = renderDeclinedTab;
+
+  // =============================================
+  // 6. DESIGN PROPOSALS TAB (Design > Proposals)
+  // =============================================
+
+  var designProposalColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
+    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'in_design', 'proposal_ready', 'sent_to_client'] }
+  ];
+
+  var designProposalSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
+
+  function renderDesignProposalsTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    // --- Row actions: Approve → back to admin as proposal_ready ---
+    var designActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Approve — send back as proposal ready',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'admin-proposals', status: 'sent_to_client' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    var mainSheet = buildProposalSheet('Design Proposals', designProposalColumns, {
+      onStatusChange: refreshAll,
+      rowActions: designActions
+    });
+    var sideSheet = buildProposalSheet('Pending', designProposalSideColumns, {
+      compact: true
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=design-proposals', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          mainSheet.update(all);
+          sideSheet.update(all.slice(0, 10));
+        })
+        .catch(function (err) {
+          console.error('Design proposals fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderDesignProposalsTab = renderDesignProposalsTab;
 })();

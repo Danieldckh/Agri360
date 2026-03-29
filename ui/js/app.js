@@ -873,6 +873,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Design > Proposals to live design proposals view
+    if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
+      window.renderDesignProposalsTab(dashboardContent);
+      return;
+    }
+
     dashboardContent.style.display = 'flex';
     dashboardContent.style.alignItems = 'stretch';
     dashboardContent.style.justifyContent = '';
