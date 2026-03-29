@@ -32,7 +32,6 @@
     return 'status-pending';
   }
 
-  // Group deliverables array by clientName
   function groupByClient(deliverables) {
     var groups = {};
     var order = [];
@@ -49,37 +48,60 @@
 
   function renderProductionTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = '';
-    container.style.alignItems = '';
+    container.style.display = 'flex';
+    container.style.alignItems = 'stretch';
     container.style.justifyContent = '';
     container.style.flexDirection = '';
     container.style.height = '';
     container.style.gap = '';
     container.style.padding = '';
 
-    var wrapper = document.createElement('div');
-    wrapper.className = 'production-wrapper';
+    // Use the standard dept-sheet-card layout
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card';
+    card.style.width = '100%';
 
+    // Header
     var header = document.createElement('div');
-    header.className = 'production-header';
+    header.className = 'dept-sheet-header';
 
-    var title = document.createElement('h2');
-    title.className = 'production-title';
-    title.textContent = 'Client Communications';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = 'Client Communications';
+    titleWrap.appendChild(h);
 
     var countBadge = document.createElement('span');
     countBadge.className = 'dept-sheet-count';
     countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
 
-    header.appendChild(title);
-    header.appendChild(countBadge);
-    wrapper.appendChild(header);
+    header.appendChild(titleWrap);
 
-    var clientList = document.createElement('div');
-    clientList.className = 'production-client-list';
-    wrapper.appendChild(clientList);
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search deliverables...';
+    header.appendChild(searchInput);
 
-    container.appendChild(wrapper);
+    card.appendChild(header);
+
+    // Sheet container for the grouped table
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    sheetContainer.style.overflow = 'auto';
+    sheetContainer.style.flex = '1';
+    card.appendChild(sheetContainer);
+
+    container.appendChild(card);
+
+    var allGroups = [];
+
+    searchInput.addEventListener('input', function () {
+      renderTable(allGroups, searchInput.value.toLowerCase());
+    });
 
     function refreshAll() {
       fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
@@ -88,79 +110,97 @@
           return res.json();
         })
         .then(function (deliverables) {
-          var groups = groupByClient(deliverables);
-          countBadge.textContent = groups.length + (groups.length === 1 ? ' client' : ' clients');
-          renderGroups(groups);
+          allGroups = groupByClient(deliverables);
+          countBadge.textContent = deliverables.length;
+          renderTable(allGroups, searchInput.value.toLowerCase());
         })
         .catch(function (err) {
           console.error('Production fetch error:', err);
         });
     }
 
-    function renderGroups(groups) {
-      while (clientList.firstChild) clientList.removeChild(clientList.firstChild);
+    function renderTable(groups, filterTerm) {
+      while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
 
       if (groups.length === 0) {
         var empty = document.createElement('div');
-        empty.className = 'production-empty';
-        empty.textContent = 'No deliverables to display';
-        clientList.appendChild(empty);
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = 'No items to display';
+        sheetContainer.appendChild(empty);
         return;
       }
 
+      var table = document.createElement('table');
+      table.className = 'production-sheet-table';
+
+      // Header row
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      ['Title', 'Type', 'Status', 'Assigned To', 'Due Date'].forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      var visibleCount = 0;
+
       groups.forEach(function (group) {
-        var section = document.createElement('div');
-        section.className = 'production-client-section';
+        // Filter items
+        var items = group.items;
+        if (filterTerm) {
+          items = items.filter(function (item) {
+            return (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1) ||
+              (group.clientName.toLowerCase().indexOf(filterTerm) !== -1);
+          });
+        }
+        if (items.length === 0) return;
 
-        // Client header (collapsible)
-        var clientHeader = document.createElement('div');
-        clientHeader.className = 'production-client-header';
+        // Client parent row
+        var clientRow = document.createElement('tr');
+        clientRow.className = 'production-client-row';
+        clientRow.style.cursor = 'pointer';
 
-        var clientName = document.createElement('span');
-        clientName.className = 'production-client-name';
-        clientName.textContent = group.clientName;
+        var clientCell = document.createElement('td');
+        clientCell.colSpan = 5;
 
-        var itemCount = document.createElement('span');
-        itemCount.className = 'dept-sheet-count';
-        itemCount.textContent = group.items.length;
+        var clientWrap = document.createElement('div');
+        clientWrap.style.display = 'flex';
+        clientWrap.style.alignItems = 'center';
+        clientWrap.style.gap = '8px';
 
         var chevron = document.createElement('span');
         chevron.className = 'production-chevron';
         chevron.textContent = '\u25BC';
 
-        clientHeader.appendChild(clientName);
-        clientHeader.appendChild(itemCount);
-        clientHeader.appendChild(chevron);
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'production-client-name';
+        nameSpan.textContent = group.clientName;
 
-        var content = document.createElement('div');
-        content.className = 'production-client-content';
+        var badge = document.createElement('span');
+        badge.className = 'dept-sheet-count';
+        badge.textContent = items.length;
 
-        clientHeader.addEventListener('click', function () {
-          var isOpen = content.style.display !== 'none';
-          content.style.display = isOpen ? 'none' : '';
-          chevron.textContent = isOpen ? '\u25B6' : '\u25BC';
-          section.classList.toggle('collapsed', isOpen);
-        });
+        clientWrap.appendChild(chevron);
+        clientWrap.appendChild(nameSpan);
+        clientWrap.appendChild(badge);
+        clientCell.appendChild(clientWrap);
+        clientRow.appendChild(clientCell);
+        tbody.appendChild(clientRow);
 
-        // Table
-        var table = document.createElement('table');
-        table.className = 'production-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        ['Title', 'Type', 'Status', 'Assigned To', 'Due Date'].forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col;
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        var tbody = document.createElement('tbody');
-        group.items.forEach(function (item) {
+        // Deliverable child rows
+        var childRows = [];
+        items.forEach(function (item) {
           var row = document.createElement('tr');
+          row.className = 'production-child-row';
 
           var tdTitle = document.createElement('td');
+          tdTitle.className = 'production-indented';
           tdTitle.textContent = item.title || '—';
           row.appendChild(tdTitle);
 
@@ -187,14 +227,22 @@
           row.appendChild(tdDue);
 
           tbody.appendChild(row);
+          childRows.push(row);
+          visibleCount++;
         });
-        table.appendChild(tbody);
 
-        content.appendChild(table);
-        section.appendChild(clientHeader);
-        section.appendChild(content);
-        clientList.appendChild(section);
+        // Toggle collapse on client row click
+        clientRow.addEventListener('click', (function (rows, chev) {
+          return function () {
+            var isOpen = rows[0] && rows[0].style.display !== 'none';
+            rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
+            chev.textContent = isOpen ? '\u25B6' : '\u25BC';
+          };
+        })(childRows, chevron));
       });
+
+      table.appendChild(tbody);
+      sheetContainer.appendChild(table);
     }
 
     refreshAll();
