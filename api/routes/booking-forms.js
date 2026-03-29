@@ -127,7 +127,7 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update booking form
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative'];
+  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason'];
   const updates = [];
   const values = [];
   let idx = 1;

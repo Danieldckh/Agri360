@@ -7,6 +7,8 @@
   var ICON_DELETE = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z';
   var ICON_SKIP = 'M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16.5 6H18v12h-1.5V6z';
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
+  var ICON_DECLINE = 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z';
+  var ICON_APPROVE = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
 
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
@@ -19,7 +21,59 @@
     return headers;
   }
 
-  // Column configs for each sheet
+  // --- Decline Reason Modal ---
+  function showDeclineModal(onConfirm) {
+    var overlay = document.createElement('div');
+    overlay.className = 'decline-modal-overlay';
+
+    var modal = document.createElement('div');
+    modal.className = 'decline-modal';
+
+    var title = document.createElement('h3');
+    title.textContent = 'Reason for Decline';
+    modal.appendChild(title);
+
+    var textarea = document.createElement('textarea');
+    textarea.className = 'decline-modal-textarea';
+    textarea.placeholder = 'Enter the reason for declining this proposal...';
+    textarea.rows = 4;
+    modal.appendChild(textarea);
+
+    var btnRow = document.createElement('div');
+    btnRow.className = 'decline-modal-buttons';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'decline-modal-btn decline-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () {
+      document.body.removeChild(overlay);
+    });
+
+    var confirmBtn = document.createElement('button');
+    confirmBtn.className = 'decline-modal-btn decline-modal-confirm';
+    confirmBtn.textContent = 'Decline';
+    confirmBtn.addEventListener('click', function () {
+      var reason = textarea.value.trim();
+      if (!reason) {
+        textarea.style.borderColor = '#e74c3c';
+        textarea.placeholder = 'A reason is required...';
+        return;
+      }
+      document.body.removeChild(overlay);
+      onConfirm(reason);
+    });
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(confirmBtn);
+    modal.appendChild(btnRow);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    setTimeout(function () { textarea.focus(); }, 50);
+  }
+
+  // --- Column Configs ---
+
   var todoColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'title', label: 'Title', sortable: true, type: 'text' },
@@ -37,7 +91,53 @@
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
-  // Map API response to sheet row data
+  var bookingColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
+    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
+  ];
+
+  var bookingSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
+
+  var onboardingColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
+
+  var onboardingSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' }
+  ];
+
+  var declinedColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'declineReason', label: 'Reason', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
+
+  var declinedSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'declineReason', label: 'Reason', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' }
+  ];
+
+  // --- Row Mappers ---
+
   function mapFormToRow(form) {
     return {
       id: form.id,
@@ -47,11 +147,12 @@
       campaignStart: form.campaignMonthStart || null,
       campaignEnd: form.campaignMonthEnd || null,
       createdAt: form.createdAt || null,
-      status: form.status || 'draft'
+      status: form.status || 'draft',
+      declineReason: form.declineReason || ''
     };
   }
 
-  // Filter forms by status into the 3 buckets
+  // Filter forms by status into the 3 proposal buckets
   function splitByStatus(forms) {
     var todo = [];
     var inDesign = [];
@@ -65,7 +166,6 @@
       } else if (s === 'sent_to_client' || s === 'sent') {
         sentToClient.push(row);
       } else {
-        // draft, pending, or anything else goes to To Do
         todo.push(row);
       }
     });
@@ -73,7 +173,8 @@
     return { todo: todo, inDesign: inDesign, sentToClient: sentToClient };
   }
 
-  // Reusable sheet card builder (mirrors buildSheetCard from app.js)
+  // --- Reusable Sheet Builder ---
+
   function buildProposalSheet(title, columns, opts) {
     opts = opts || {};
     var card = document.createElement('div');
@@ -155,7 +256,8 @@
     return { el: card, update: function (data) { allData = data; render(); } };
   }
 
-  function renderProposalTab(container) {
+  // Helper to reset container styles
+  function resetContainer(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'flex';
     container.style.alignItems = 'stretch';
@@ -164,19 +266,25 @@
     container.style.height = '';
     container.style.gap = '';
     container.style.padding = '';
+  }
+
+  // =============================================
+  // 1. PROPOSAL TAB (Admin > Proposal)
+  // =============================================
+
+  function renderProposalTab(container) {
+    resetContainer(container);
 
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
 
-    // Left column — main "To Do" sheet
     var mainCol = document.createElement('div');
     mainCol.className = 'dept-dashboard-main';
 
-    // Right column — stacked "In Design" + "Sent to Client"
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side proposal-side-col';
 
-    // Row actions for admin-proposals
+    // --- To Do row actions: Delete | Skip to Booking Form | Send to Design ---
     var proposalRowActions = [
       {
         icon: ICON_DELETE,
@@ -194,7 +302,7 @@
       },
       {
         icon: ICON_SKIP,
-        tooltip: 'Skip to booking form dashboard',
+        tooltip: 'Skip to booking form',
         className: 'action-skip',
         onClick: function (rowData) {
           fetch(API_BASE + '/' + rowData.id, {
@@ -208,7 +316,7 @@
       },
       {
         icon: ICON_ADVANCE,
-        tooltip: 'Send to design proposals',
+        tooltip: 'Send to design',
         className: 'action-advance',
         onClick: function (rowData) {
           fetch(API_BASE + '/' + rowData.id, {
@@ -222,7 +330,40 @@
       }
     ];
 
-    // Build the 3 sheets
+    // --- Sent to Client row actions: Approve → Booking Form | Decline ---
+    var sentToClientActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Approve — move to booking form',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'booking-form-dashboard', status: 'client_approved' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_DECLINE,
+        tooltip: 'Decline proposal',
+        className: 'action-decline',
+        onClick: function (rowData) {
+          showDeclineModal(function (reason) {
+            fetch(API_BASE + '/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ department: 'admin-declined', status: 'declined', declineReason: reason })
+            }).then(function (res) {
+              if (res.ok) refreshAll();
+            });
+          });
+        }
+      }
+    ];
+
     var todoSheet = buildProposalSheet('To Do', todoColumns, {
       onStatusChange: refreshAll,
       rowActions: proposalRowActions
@@ -233,7 +374,8 @@
     });
     var sentSheet = buildProposalSheet('Sent to Client', sideColumns, {
       compact: true,
-      onStatusChange: refreshAll
+      onStatusChange: refreshAll,
+      rowActions: sentToClientActions
     });
 
     mainCol.appendChild(todoSheet.el);
@@ -244,7 +386,6 @@
     layout.appendChild(sideCol);
     container.appendChild(layout);
 
-    // Fetch and distribute data
     function refreshAll() {
       fetch(API_BASE + '?department=admin-proposals', { headers: getHeaders() })
         .then(function (res) {
@@ -262,40 +403,17 @@
         });
     }
 
-    // Initial load
     refreshAll();
   }
 
   window.renderProposalTab = renderProposalTab;
 
-  // === Booking Form Dashboard Tab ===
-
-  var bookingColumns = [
-    { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
-    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
-    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
-  ];
-
-  var bookingSideColumns = [
-    { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status' }
-  ];
+  // =============================================
+  // 2. BOOKING FORM TAB (Admin > Booking Form)
+  // =============================================
 
   function renderBookingFormTab(container) {
-    while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = 'flex';
-    container.style.alignItems = 'stretch';
-    container.style.justifyContent = '';
-    container.style.flexDirection = '';
-    container.style.height = '';
-    container.style.gap = '';
-    container.style.padding = '';
+    resetContainer(container);
 
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout';
@@ -306,12 +424,66 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side';
 
+    // --- Booking Forms row actions: Advance → Sent to Client ---
+    var bookingFormActions = [
+      {
+        icon: ICON_ADVANCE,
+        tooltip: 'Send to client',
+        className: 'action-advance',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'sent_to_client' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    // --- Sent to Client row actions: Approve → Onboarding | Decline ---
+    var bookingSentActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Approve — move to onboarding',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'admin-onboarding', status: 'onboarding' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_DECLINE,
+        tooltip: 'Decline booking',
+        className: 'action-decline',
+        onClick: function (rowData) {
+          showDeclineModal(function (reason) {
+            fetch(API_BASE + '/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ department: 'admin-declined', status: 'declined', declineReason: reason })
+            }).then(function (res) {
+              if (res.ok) refreshAll();
+            });
+          });
+        }
+      }
+    ];
+
     var mainSheet = buildProposalSheet('Booking Forms', bookingColumns, {
-      onStatusChange: refreshAll
+      onStatusChange: refreshAll,
+      rowActions: bookingFormActions
     });
     var sideSheet = buildProposalSheet('Sent to Client', bookingSideColumns, {
       compact: true,
-      onStatusChange: refreshAll
+      onStatusChange: refreshAll,
+      rowActions: bookingSentActions
     });
 
     mainCol.appendChild(mainSheet.el);
@@ -342,4 +514,170 @@
   }
 
   window.renderBookingFormTab = renderBookingFormTab;
+
+  // =============================================
+  // 3. ONBOARDING TAB (Admin > Onboarding)
+  // =============================================
+
+  function renderOnboardingTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    // --- Onboarding row actions: Advance → Onboarded ---
+    var onboardingActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Mark as onboarded',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'admin-onboarded', status: 'onboarded' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    var mainSheet = buildProposalSheet('Onboarding', onboardingColumns, {
+      onStatusChange: refreshAll,
+      rowActions: onboardingActions
+    });
+    var sideSheet = buildProposalSheet('Progress Tracker', onboardingSideColumns, {
+      compact: true
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=admin-onboarding', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          mainSheet.update(all);
+          // Side sheet shows recently added (last 5)
+          sideSheet.update(all.slice(0, 5));
+        })
+        .catch(function (err) {
+          console.error('Onboarding fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderOnboardingTab = renderOnboardingTab;
+
+  // =============================================
+  // 4. ONBOARDED TAB (Admin > Onboarded)
+  // =============================================
+
+  function renderOnboardedTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    var mainSheet = buildProposalSheet('Onboarded', onboardingColumns, {});
+    var sideSheet = buildProposalSheet('Recent Additions', onboardingSideColumns, {
+      compact: true
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=admin-onboarded', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          mainSheet.update(all);
+          sideSheet.update(all.slice(0, 5));
+        })
+        .catch(function (err) {
+          console.error('Onboarded fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderOnboardedTab = renderOnboardedTab;
+
+  // =============================================
+  // 5. DECLINED PROPOSAL TAB (Admin > Declined)
+  // =============================================
+
+  function renderDeclinedTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    var mainSheet = buildProposalSheet('Declined Proposals', declinedColumns, {});
+    var sideSheet = buildProposalSheet('Declined History', declinedSideColumns, {
+      compact: true
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=admin-declined', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          mainSheet.update(all);
+          sideSheet.update(all.slice(0, 10));
+        })
+        .catch(function (err) {
+          console.error('Declined fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderDeclinedTab = renderDeclinedTab;
 })();

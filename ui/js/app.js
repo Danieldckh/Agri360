@@ -861,6 +861,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Admin > Onboarding to the onboarding tab
+    if (page === 'admin' && viewName === 'Onboarding' && window.renderOnboardingTab) {
+      window.renderOnboardingTab(dashboardContent);
+      return;
+    }
+
+    // Route Admin > Onboarded to the onboarded tab
+    if (page === 'admin' && viewName === 'Onboarded' && window.renderOnboardedTab) {
+      window.renderOnboardedTab(dashboardContent);
+      return;
+    }
+
+    // Route Admin > Declined Proposal to the declined tab
+    if (page === 'admin' && viewName === 'Declined Proposal' && window.renderDeclinedTab) {
+      window.renderDeclinedTab(dashboardContent);
+      return;
+    }
+
     dashboardContent.style.display = 'flex';
     dashboardContent.style.alignItems = 'stretch';
     dashboardContent.style.justifyContent = '';
