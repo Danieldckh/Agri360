@@ -642,21 +642,21 @@
     { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
     { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
     { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'in_design', 'proposal_ready', 'sent_to_client'] }
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var designProposalSideColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'title', label: 'Title', sortable: true, type: 'text' },
     { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   function renderDesignProposalsTab(container) {
     resetContainer(container);
 
     var layout = document.createElement('div');
-    layout.className = 'dept-dashboard-layout';
+    layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
 
     var mainCol = document.createElement('div');
     mainCol.className = 'dept-dashboard-main';
@@ -664,11 +664,43 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side';
 
-    // --- Row actions: Approve → back to admin as proposal_ready ---
+    // --- Design Proposal row actions: Advance → move to Design Review ---
     var designActions = [
       {
+        icon: ICON_ADVANCE,
+        tooltip: 'Send to design review',
+        className: 'action-advance',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'proposal_ready' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    // --- Design Review row actions: Request Changes | Approve ---
+    var reviewActions = [
+      {
+        icon: ICON_SKIP,
+        tooltip: 'Request design changes',
+        className: 'action-skip',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'in_design' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
         icon: ICON_APPROVE,
-        tooltip: 'Approve — send back as proposal ready',
+        tooltip: 'Approve — send to admin as proposal ready',
         className: 'action-approve',
         onClick: function (rowData) {
           fetch(API_BASE + '/' + rowData.id, {
@@ -682,16 +714,18 @@
       }
     ];
 
-    var mainSheet = buildProposalSheet('Design Proposals', designProposalColumns, {
+    var designSheet = buildProposalSheet('Design Proposal', designProposalColumns, {
       onStatusChange: refreshAll,
       rowActions: designActions
     });
-    var sideSheet = buildProposalSheet('Pending', designProposalSideColumns, {
-      compact: true
+    var reviewSheet = buildProposalSheet('Design Review', designProposalSideColumns, {
+      compact: true,
+      onStatusChange: refreshAll,
+      rowActions: reviewActions
     });
 
-    mainCol.appendChild(mainSheet.el);
-    sideCol.appendChild(sideSheet.el);
+    mainCol.appendChild(designSheet.el);
+    sideCol.appendChild(reviewSheet.el);
     layout.appendChild(mainCol);
     layout.appendChild(sideCol);
     container.appendChild(layout);
@@ -704,8 +738,16 @@
         })
         .then(function (forms) {
           var all = forms.map(mapFormToRow);
-          mainSheet.update(all);
-          sideSheet.update(all.slice(0, 10));
+          var designing = all.filter(function (r) {
+            var s = r.status.toLowerCase().replace(/\s+/g, '_');
+            return s !== 'proposal_ready';
+          });
+          var reviewing = all.filter(function (r) {
+            var s = r.status.toLowerCase().replace(/\s+/g, '_');
+            return s === 'proposal_ready';
+          });
+          designSheet.update(designing);
+          reviewSheet.update(reviewing);
         })
         .catch(function (err) {
           console.error('Design proposals fetch error:', err);
