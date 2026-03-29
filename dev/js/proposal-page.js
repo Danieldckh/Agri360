@@ -556,10 +556,10 @@
     });
     var onboardedSheet = buildProposalSheet('Onboarded', onboardingColumns, {});
 
-    mainCol.appendChild(onboardedSheet.el);
     sideCol.appendChild(onboardingSheet.el);
-    layout.appendChild(mainCol);
+    mainCol.appendChild(onboardedSheet.el);
     layout.appendChild(sideCol);
+    layout.appendChild(mainCol);
     container.appendChild(layout);
 
     function refreshAll() {
