@@ -516,7 +516,7 @@
   window.renderBookingFormTab = renderBookingFormTab;
 
   // =============================================
-  // 3. ONBOARDING TAB (Admin > Onboarding)
+  // 3. ONBOARDING TAB (Onboarding left + Onboarded right)
   // =============================================
 
   function renderOnboardingTab(container) {
@@ -553,7 +553,7 @@
       onStatusChange: refreshAll,
       rowActions: onboardingActions
     });
-    var sideSheet = buildProposalSheet('Progress Tracker', onboardingSideColumns, {
+    var sideSheet = buildProposalSheet('Onboarded', onboardingSideColumns, {
       compact: true
     });
 
@@ -564,16 +564,15 @@
     container.appendChild(layout);
 
     function refreshAll() {
-      fetch(API_BASE + '?department=admin-onboarding', { headers: getHeaders() })
-        .then(function (res) {
-          if (!res.ok) throw new Error('Failed to fetch');
-          return res.json();
-        })
-        .then(function (forms) {
-          var all = forms.map(mapFormToRow);
-          mainSheet.update(all);
-          // Side sheet shows recently added (last 5)
-          sideSheet.update(all.slice(0, 5));
+      var onboardingReq = fetch(API_BASE + '?department=admin-onboarding', { headers: getHeaders() })
+        .then(function (res) { return res.ok ? res.json() : []; });
+      var onboardedReq = fetch(API_BASE + '?department=admin-onboarded', { headers: getHeaders() })
+        .then(function (res) { return res.ok ? res.json() : []; });
+
+      Promise.all([onboardingReq, onboardedReq])
+        .then(function (results) {
+          mainSheet.update(results[0].map(mapFormToRow));
+          sideSheet.update(results[1].map(mapFormToRow));
         })
         .catch(function (err) {
           console.error('Onboarding fetch error:', err);
@@ -584,54 +583,6 @@
   }
 
   window.renderOnboardingTab = renderOnboardingTab;
-
-  // =============================================
-  // 4. ONBOARDED TAB (Admin > Onboarded)
-  // =============================================
-
-  function renderOnboardedTab(container) {
-    resetContainer(container);
-
-    var layout = document.createElement('div');
-    layout.className = 'dept-dashboard-layout';
-
-    var mainCol = document.createElement('div');
-    mainCol.className = 'dept-dashboard-main';
-
-    var sideCol = document.createElement('div');
-    sideCol.className = 'dept-dashboard-side';
-
-    var mainSheet = buildProposalSheet('Onboarded', onboardingColumns, {});
-    var sideSheet = buildProposalSheet('Recent Additions', onboardingSideColumns, {
-      compact: true
-    });
-
-    mainCol.appendChild(mainSheet.el);
-    sideCol.appendChild(sideSheet.el);
-    layout.appendChild(mainCol);
-    layout.appendChild(sideCol);
-    container.appendChild(layout);
-
-    function refreshAll() {
-      fetch(API_BASE + '?department=admin-onboarded', { headers: getHeaders() })
-        .then(function (res) {
-          if (!res.ok) throw new Error('Failed to fetch');
-          return res.json();
-        })
-        .then(function (forms) {
-          var all = forms.map(mapFormToRow);
-          mainSheet.update(all);
-          sideSheet.update(all.slice(0, 5));
-        })
-        .catch(function (err) {
-          console.error('Onboarded fetch error:', err);
-        });
-    }
-
-    refreshAll();
-  }
-
-  window.renderOnboardedTab = renderOnboardedTab;
 
   // =============================================
   // 5. DECLINED PROPOSAL TAB (Admin > Declined)

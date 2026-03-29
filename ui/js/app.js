@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'social-media': 'Social Media'
   };
   var deptMenuItems = {
-    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Onboarded', 'Declined Proposal'],
+    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
     'production': ['Action Board', 'Overview', 'Follow Ups'],
     'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
@@ -864,12 +864,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Route Admin > Onboarding to the onboarding tab
     if (page === 'admin' && viewName === 'Onboarding' && window.renderOnboardingTab) {
       window.renderOnboardingTab(dashboardContent);
-      return;
-    }
-
-    // Route Admin > Onboarded to the onboarded tab
-    if (page === 'admin' && viewName === 'Onboarded' && window.renderOnboardedTab) {
-      window.renderOnboardedTab(dashboardContent);
       return;
     }
 
