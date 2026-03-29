@@ -227,6 +227,61 @@
   color: #888;
 }
 
+.proagri-sheet-status-outline_proposal {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-design_proposal {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-design_review {
+  background: rgba(41, 128, 185, 0.15);
+  color: #2980b9;
+}
+
+.proagri-sheet-status-proposal_ready {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.proagri-sheet-status-sent_to_client {
+  background: rgba(243, 156, 18, 0.15);
+  color: #f39c12;
+}
+
+.proagri-sheet-status-client_approved {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+.proagri-sheet-status-booking_form_ready {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+.proagri-sheet-status-onboarding {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-onboarded {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.proagri-sheet-status-declined {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-approved {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
 /* === Multi-Select Tags (in cell) === */
 
 .proagri-sheet-tags {

@@ -27,14 +27,14 @@
     { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
     { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
     { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'pending', 'in_design', 'sent_to_client', 'approved', 'declined'] }
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var sideColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'title', label: 'Title', sortable: true, type: 'text' },
     { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'pending', 'in_design', 'sent_to_client', 'approved', 'declined'] }
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   // Map API response to sheet row data
@@ -200,7 +200,7 @@
           fetch(API_BASE + '/' + rowData.id, {
             method: 'PATCH',
             headers: getHeaders(),
-            body: JSON.stringify({ department: 'booking-form-dashboard' })
+            body: JSON.stringify({ department: 'booking-form-dashboard', status: 'client_approved' })
           }).then(function (res) {
             if (res.ok) refreshAll();
           });
@@ -277,12 +277,13 @@
     { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
     { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
     { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'pending', 'in_design', 'sent_to_client', 'approved', 'declined'] }
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
   ];
 
   var bookingSideColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
     { key: 'status', label: 'Status', sortable: true, type: 'status' }
   ];
 
@@ -308,7 +309,7 @@
     var mainSheet = buildProposalSheet('Booking Forms', bookingColumns, {
       onStatusChange: refreshAll
     });
-    var sideSheet = buildProposalSheet('Pending Bookings', bookingSideColumns, {
+    var sideSheet = buildProposalSheet('Sent to Client', bookingSideColumns, {
       compact: true,
       onStatusChange: refreshAll
     });
@@ -327,9 +328,10 @@
         })
         .then(function (forms) {
           var all = forms.map(mapFormToRow);
-          mainSheet.update(all);
-          var pending = all.filter(function (r) { return r.status === 'pending' || r.status === 'draft'; });
-          sideSheet.update(pending);
+          var clientApproved = all.filter(function (r) { return r.status === 'client_approved'; });
+          var sentToClient = all.filter(function (r) { return r.status === 'sent_to_client'; });
+          mainSheet.update(clientApproved);
+          sideSheet.update(sentToClient);
         })
         .catch(function (err) {
           console.error('Booking form fetch error:', err);
