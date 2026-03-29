@@ -156,6 +156,9 @@ async function runMigrations() {
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT 'admin-proposals'`);
     await client.query(`UPDATE booking_forms SET department = 'admin-proposals' WHERE department IS NULL`);
 
+    // Decline reason for proposals/booking forms
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS decline_reason TEXT`);
+
     // Make dashboard foreign keys nullable
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL`).catch(() => {});
