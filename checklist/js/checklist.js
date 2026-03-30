@@ -1066,7 +1066,7 @@
         }).then(function (r) { return r.json(); });
       }
 
-      function onSuccess() {
+      function onSuccess(bookingFormResult) {
         nextBtn.disabled = false;
         nextBtn.textContent = 'Submit';
         // Show success
@@ -1074,6 +1074,45 @@
         var msg = el('div', 'checklist-success');
         msg.appendChild(el('h3', '', 'Booking Form Saved'));
         msg.appendChild(el('p', '', 'The booking form has been created successfully.'));
+
+        // Send to editable booking form service
+        var bfId = bookingFormResult && bookingFormResult.id;
+        if (bfId) {
+          var sendingMsg = el('p', 'checklist-sending-msg', 'Generating editable booking form...');
+          msg.appendChild(sendingMsg);
+
+          fetch(API_URL + '/booking-forms/' + bfId + '/send-to-editor', {
+            method: 'POST',
+            headers: authHeaders(true)
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (editorResult) {
+              sendingMsg.textContent = '';
+              if (editorResult.editableUrl) {
+                var link = el('a', 'checklist-editor-link', 'Open Editable Booking Form');
+                link.href = editorResult.editableUrl;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.style.display = 'inline-block';
+                link.style.marginTop = '12px';
+                link.style.padding = '10px 24px';
+                link.style.background = 'var(--accent-gradient, linear-gradient(to top, #f5a623, #d4791a))';
+                link.style.color = '#fff';
+                link.style.borderRadius = '6px';
+                link.style.textDecoration = 'none';
+                link.style.fontWeight = '600';
+                msg.insertBefore(link, closeSuccessBtn);
+                // Auto-open in new tab
+                window.open(editorResult.editableUrl, '_blank');
+              } else {
+                sendingMsg.textContent = 'Could not generate editable form: ' + (editorResult.error || 'Unknown error');
+              }
+            })
+            .catch(function (err) {
+              sendingMsg.textContent = 'Editor generation failed: ' + err.message;
+            });
+        }
+
         var closeSuccessBtn = el('button', 'checklist-btn checklist-btn-next', 'Close');
         closeSuccessBtn.addEventListener('click', function () { cleanup(); });
         msg.appendChild(closeSuccessBtn);
@@ -1113,7 +1152,7 @@
           })
           .then(function (result) {
             if (result && result.error) { onError(result); return; }
-            onSuccess();
+            onSuccess(result);
           })
           .catch(function (err) { onError(err); });
       } else {
