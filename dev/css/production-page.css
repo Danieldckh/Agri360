@@ -75,3 +75,37 @@
   background: var(--hover-bg, rgba(0, 0, 0, 0.06));
   color: var(--text-secondary, #666);
 }
+
+/* Status dropdown menu */
+.status-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.status-dropdown-option {
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.status-dropdown-option:hover {
+  background: var(--hover-bg, rgba(0, 0, 0, 0.04));
+}
+
+.status-dropdown-option.status-dropdown-active {
+  font-weight: 600;
+  background: var(--hover-bg, rgba(0, 0, 0, 0.06));
+}
