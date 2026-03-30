@@ -765,4 +765,95 @@
   }
 
   window.renderDesignProposalsTab = renderDesignProposalsTab;
+
+  // =============================================
+  // 7. DESIGN WEB DESIGN TAB (Design > Web Design)
+  // =============================================
+
+  // Web design workflow: next status for design-visible statuses
+  var WEB_DESIGN_NEXT_DESIGN = {
+    'sitemap': { next: 'wireframe', tooltip: 'Advance to Wireframe' },
+    'wireframe': { next: 'prototype', tooltip: 'Advance to Prototype' },
+    'prototype': { next: 'ready_for_approval', tooltip: 'Send for approval (Production)' },
+    'design_changes': { next: 'prototype', tooltip: 'Back to Prototype' },
+    'approved': { next: 'development', tooltip: 'Start Development (Production)' }
+  };
+
+  var webDesignColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true,
+      options: ['sitemap', 'wireframe', 'prototype', 'design_changes', 'approved', 'ready_for_approval'] }
+  ];
+
+  function renderDesignWebDesignTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    // Row actions with advance based on current status
+    function makeRowActions(refreshFn) {
+      return [
+        {
+          icon: ICON_ADVANCE,
+          tooltip: 'Advance',
+          className: 'action-advance',
+          onClick: function (rowData) {
+            var wf = WEB_DESIGN_NEXT_DESIGN[rowData.status];
+            if (!wf) return;
+            fetch('/api/deliverables/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: wf.next })
+            }).then(function (res) {
+              if (res.ok) refreshFn();
+            });
+          }
+        }
+      ];
+    }
+
+    var mainSheet = buildProposalSheet('Web Design Projects', webDesignColumns, {
+      onStatusChange: refreshAll,
+      rowActions: makeRowActions(function () { refreshAll(); })
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    layout.appendChild(mainCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      // Fetch deliverables from design department with type website-design
+      fetch('/api/deliverables/by-department/design', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (deliverables) {
+          var webDesign = deliverables.filter(function (d) { return d.type === 'website-design'; });
+          var rows = webDesign.map(function (d) {
+            return {
+              id: d.id,
+              client: d.clientName || 'Unknown',
+              title: d.bookingFormTitle || d.title || '—',
+              createdAt: d.createdAt || null,
+              status: d.status || 'pending'
+            };
+          });
+          mainSheet.update(rows);
+        })
+        .catch(function (err) {
+          console.error('Design web design fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderDesignWebDesignTab = renderDesignWebDesignTab;
 })();

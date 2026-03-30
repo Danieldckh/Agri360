@@ -885,6 +885,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Design > Web Design to web design workflow view
+    if (page === 'design' && viewName === 'Web Design' && window.renderDesignWebDesignTab) {
+      window.renderDesignWebDesignTab(dashboardContent);
+      return;
+    }
+
     dashboardContent.style.display = 'flex';
     dashboardContent.style.alignItems = 'stretch';
     dashboardContent.style.justifyContent = '';

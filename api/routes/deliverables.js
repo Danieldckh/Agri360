@@ -85,8 +85,24 @@ const DEFAULT_DELIVERABLES = [
   { type: 'online-articles', title: 'Online Articles' },
   { type: 'magazine', title: 'Magazine' },
   { type: 'video', title: 'Video' },
-  { type: 'website-design', title: 'Website Design' }
+  { type: 'website-design', title: 'Website Design', initialStatus: 'request_client_materials' }
 ];
+
+// Website design workflow: status → department slug mapping
+const WEB_DESIGN_DEPT_MAP = {
+  'request_client_materials': 'production',
+  'sitemap': 'design',
+  'wireframe': 'design',
+  'prototype': 'design',
+  'design_changes': 'design',
+  'approved': 'design',
+  'ready_for_approval': 'production',
+  'sent_for_approval': 'production',
+  'development': 'production',
+  'site_developed': 'production',
+  'hosting_seo': 'production',
+  'complete': 'production'
+};
 
 // POST /bulk - create all production deliverables for a booking form
 router.post('/bulk', async (req, res) => {
@@ -119,11 +135,12 @@ router.post('/bulk', async (req, res) => {
       await client.query('BEGIN');
       const created = [];
       for (const d of DEFAULT_DELIVERABLES) {
+        const status = d.initialStatus || 'pending';
         const result = await client.query(
           `INSERT INTO deliverables (booking_form_id, department_id, type, title, status)
-           VALUES ($1, $2, $3, $4, 'pending')
+           VALUES ($1, $2, $3, $4, $5)
            RETURNING *`,
-          [booking_form_id, departmentId, d.type, d.title]
+          [booking_form_id, departmentId, d.type, d.title, status]
         );
         created.push(result.rows[0]);
       }
@@ -164,9 +181,22 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH /:id - update deliverable
+// PATCH /:id - update deliverable (auto-routes website-design by status)
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
+
+  // Auto-route website-design deliverables to correct department on status change
+  if (body.status && WEB_DESIGN_DEPT_MAP[body.status]) {
+    const existing = await pool.query('SELECT type FROM deliverables WHERE id = $1', [req.params.id]);
+    if (existing.rows.length > 0 && existing.rows[0].type === 'website-design') {
+      const targetSlug = WEB_DESIGN_DEPT_MAP[body.status];
+      const deptResult = await pool.query('SELECT id FROM departments WHERE slug = $1', [targetSlug]);
+      if (deptResult.rows.length > 0) {
+        body.department_id = deptResult.rows[0].id;
+      }
+    }
+  }
+
   const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id'];
   const updates = [];
   const values = [];
