@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'social-media': 'Social Media'
   };
   var deptMenuItems = {
-    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal', 'Action Board'],
+    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
     'production': ['Client Communications', 'Follow Ups'],
     'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
@@ -908,11 +908,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Route Admin > Action Board to production deliverables view
-    if (page === 'admin' && viewName === 'Action Board' && window.renderProductionTab) {
-      window.renderProductionTab(dashboardContent);
-      return;
-    }
 
     // Route Production > Client Communications to production deliverables view
     if (page === 'production' && viewName === 'Client Communications' && window.renderProductionTab) {
