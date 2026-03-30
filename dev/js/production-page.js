@@ -6,6 +6,169 @@
   // SVG icons
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
 
+  // ── Month Helpers ──────────────────────────────────────────────
+  var FULL_MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  function getCurrentMonth() {
+    var d = new Date();
+    var m = d.getMonth() + 1;
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m);
+  }
+
+  function formatMonthLong(ym) {
+    if (!ym) return '';
+    var parts = ym.split('-');
+    return FULL_MONTH_NAMES[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+  }
+
+  function formatMonthShort(ym) {
+    if (!ym) return '';
+    var parts = ym.split('-');
+    var shortNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return shortNames[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+  }
+
+  function shiftMonth(ym, delta) {
+    var parts = ym.split('-');
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10) - 1 + delta;
+    while (m < 0) { m += 12; y--; }
+    while (m > 11) { m -= 12; y++; }
+    var mm = m + 1;
+    return y + '-' + (mm < 10 ? '0' + mm : mm);
+  }
+
+  function buildMonthParam(startMonth, endMonth) {
+    if (startMonth === endMonth) {
+      return 'month=' + encodeURIComponent(startMonth);
+    }
+    return 'monthStart=' + encodeURIComponent(startMonth) + '&monthEnd=' + encodeURIComponent(endMonth);
+  }
+
+  function groupByMonth(deliverables) {
+    var months = {};
+    var order = [];
+    deliverables.forEach(function (d) {
+      var m = d.deliveryMonth || 'unknown';
+      if (!months[m]) {
+        months[m] = [];
+        order.push(m);
+      }
+      months[m].push(d);
+    });
+    order.sort();
+    return order.map(function (m) { return { month: m, items: months[m] }; });
+  }
+
+  // ── Month Selector Component ───────────────────────────────────
+  function renderMonthSelector(container, currentStart, currentEnd, onChange) {
+    var bar = document.createElement('div');
+    bar.className = 'month-selector-bar';
+
+    var isRange = currentStart !== currentEnd;
+
+    // Left arrow
+    var leftBtn = document.createElement('button');
+    leftBtn.className = 'month-selector-arrow';
+    leftBtn.textContent = '\u25C0';
+    leftBtn.title = 'Previous month';
+    leftBtn.addEventListener('click', function () {
+      var newStart = shiftMonth(currentStart, -1);
+      var newEnd = isRange ? shiftMonth(currentEnd, -1) : newStart;
+      onChange(newStart, newEnd);
+    });
+    bar.appendChild(leftBtn);
+
+    // Month display
+    var display = document.createElement('span');
+    display.className = 'month-selector-display';
+    if (isRange) {
+      display.textContent = formatMonthShort(currentStart) + ' \u2013 ' + formatMonthShort(currentEnd);
+    } else {
+      display.textContent = formatMonthShort(currentStart);
+    }
+    bar.appendChild(display);
+
+    // Right arrow
+    var rightBtn = document.createElement('button');
+    rightBtn.className = 'month-selector-arrow';
+    rightBtn.textContent = '\u25B6';
+    rightBtn.title = 'Next month';
+    rightBtn.addEventListener('click', function () {
+      var newStart = shiftMonth(currentStart, 1);
+      var newEnd = isRange ? shiftMonth(currentEnd, 1) : newStart;
+      onChange(newStart, newEnd);
+    });
+    bar.appendChild(rightBtn);
+
+    // Separator
+    var sep = document.createElement('span');
+    sep.className = 'month-selector-sep';
+    sep.textContent = '|';
+    bar.appendChild(sep);
+
+    // Range toggle
+    var rangeToggle = document.createElement('button');
+    rangeToggle.className = 'month-selector-range-toggle' + (isRange ? ' active' : '');
+    rangeToggle.textContent = 'Date Range';
+    bar.appendChild(rangeToggle);
+
+    // Range picker (hidden by default)
+    var rangePicker = document.createElement('div');
+    rangePicker.className = 'month-selector-range-picker';
+    rangePicker.style.display = isRange ? 'flex' : 'none';
+
+    var startInput = document.createElement('input');
+    startInput.type = 'month';
+    startInput.className = 'month-selector-input';
+    startInput.value = currentStart;
+
+    var toLabel = document.createElement('span');
+    toLabel.className = 'month-selector-to';
+    toLabel.textContent = 'to';
+
+    var endInput = document.createElement('input');
+    endInput.type = 'month';
+    endInput.className = 'month-selector-input';
+    endInput.value = currentEnd;
+
+    var applyBtn = document.createElement('button');
+    applyBtn.className = 'month-selector-apply';
+    applyBtn.textContent = 'Apply';
+    applyBtn.addEventListener('click', function () {
+      var s = startInput.value;
+      var e = endInput.value;
+      if (s && e && s <= e) {
+        onChange(s, e);
+      }
+    });
+
+    rangePicker.appendChild(startInput);
+    rangePicker.appendChild(toLabel);
+    rangePicker.appendChild(endInput);
+    rangePicker.appendChild(applyBtn);
+
+    rangeToggle.addEventListener('click', function () {
+      if (rangePicker.style.display === 'none') {
+        rangePicker.style.display = 'flex';
+        rangeToggle.classList.add('active');
+      } else {
+        rangePicker.style.display = 'none';
+        rangeToggle.classList.remove('active');
+        // Collapse back to single month
+        if (isRange) {
+          onChange(currentStart, currentStart);
+        }
+      }
+    });
+
+    bar.appendChild(rangePicker);
+    container.appendChild(bar);
+  }
+
   // Unified workflows from shared definition
   var workflows = window.DELIVERABLE_WORKFLOWS;
 
@@ -138,6 +301,9 @@
     container.style.gap = '';
     container.style.padding = '';
 
+    var monthStart = getCurrentMonth();
+    var monthEnd = monthStart;
+
     var card = document.createElement('div');
     card.className = 'dept-sheet-card';
     card.style.width = '100%';
@@ -168,6 +334,21 @@
 
     card.appendChild(header);
 
+    // Month selector
+    var monthSelectorWrap = document.createElement('div');
+    card.appendChild(monthSelectorWrap);
+
+    function rebuildMonthSelector() {
+      while (monthSelectorWrap.firstChild) monthSelectorWrap.removeChild(monthSelectorWrap.firstChild);
+      renderMonthSelector(monthSelectorWrap, monthStart, monthEnd, function (s, e) {
+        monthStart = s;
+        monthEnd = e;
+        rebuildMonthSelector();
+        refreshAll();
+      });
+    }
+    rebuildMonthSelector();
+
     var sheetContainer = document.createElement('div');
     sheetContainer.className = 'dept-sheet-container';
     sheetContainer.style.overflow = 'auto';
@@ -176,15 +357,16 @@
 
     container.appendChild(card);
 
-    var allGroups = [];
+    var allDeliverables = [];
     var clientCommSort = { key: null, dir: 'asc' };
 
     searchInput.addEventListener('input', function () {
-      renderTable(allGroups, searchInput.value.toLowerCase());
+      renderTable(allDeliverables, searchInput.value.toLowerCase());
     });
 
     function refreshAll() {
-      fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+      var url = API_BASE + '/by-department/production?' + buildMonthParam(monthStart, monthEnd);
+      fetch(url, { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');
           return res.json();
@@ -193,9 +375,9 @@
           var filtered = deliverables.filter(function (d) {
             return d.status === 'request_client_materials';
           });
-          allGroups = groupByClient(filtered);
+          allDeliverables = filtered;
           countBadge.textContent = filtered.length;
-          renderTable(allGroups, searchInput.value.toLowerCase());
+          renderTable(filtered, searchInput.value.toLowerCase());
         })
         .catch(function (err) {
           console.error('Production fetch error:', err);
@@ -212,10 +394,10 @@
       });
     }
 
-    function renderTable(groups, filterTerm) {
+    function renderTable(deliverables, filterTerm) {
       while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
 
-      if (groups.length === 0) {
+      if (deliverables.length === 0) {
         var empty = document.createElement('div');
         empty.style.padding = '40px';
         empty.style.textAlign = 'center';
@@ -224,6 +406,9 @@
         sheetContainer.appendChild(empty);
         return;
       }
+
+      var monthGroups = groupByMonth(deliverables);
+      var showMonthHeaders = monthStart !== monthEnd;
 
       var table = document.createElement('table');
       table.className = 'production-sheet-table';
@@ -248,141 +433,191 @@
       table.appendChild(thead);
 
       makeSortableHeaders(thead, columns, clientCommSort, function () {
-        renderTable(allGroups, searchInput.value.toLowerCase());
+        renderTable(allDeliverables, searchInput.value.toLowerCase());
       });
 
       var tbody = document.createElement('tbody');
 
-      groups.forEach(function (group) {
-        var items = group.items;
+      monthGroups.forEach(function (mg) {
+        var monthItems = mg.items;
         if (filterTerm) {
-          items = items.filter(function (item) {
+          monthItems = monthItems.filter(function (item) {
             return (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
               (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (group.clientName.toLowerCase().indexOf(filterTerm) !== -1);
+              (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1);
           });
         }
-        if (items.length === 0) return;
+        if (monthItems.length === 0) return;
 
-        // Client parent row
-        var clientRow = document.createElement('tr');
-        clientRow.className = 'production-client-row';
-        clientRow.style.cursor = 'pointer';
+        var monthChildRows = [];
 
-        var clientCell = document.createElement('td');
-        clientCell.colSpan = 6;
+        // Month header row (collapsible, only shown for range)
+        if (showMonthHeaders) {
+          var monthRow = document.createElement('tr');
+          monthRow.className = 'production-month-row';
+          monthRow.style.cursor = 'pointer';
+          var monthCell = document.createElement('td');
+          monthCell.colSpan = 6;
+          var monthWrap = document.createElement('div');
+          monthWrap.style.display = 'flex';
+          monthWrap.style.alignItems = 'center';
+          monthWrap.style.gap = '8px';
+          var monthChev = document.createElement('span');
+          monthChev.className = 'production-chevron';
+          monthChev.textContent = '\u25BC';
+          var monthLabel = document.createElement('span');
+          monthLabel.className = 'production-month-name';
+          monthLabel.textContent = formatMonthLong(mg.month);
+          var monthBadge = document.createElement('span');
+          monthBadge.className = 'dept-sheet-count';
+          monthBadge.textContent = monthItems.length;
+          monthWrap.appendChild(monthChev);
+          monthWrap.appendChild(monthLabel);
+          monthWrap.appendChild(monthBadge);
+          monthCell.appendChild(monthWrap);
+          monthRow.appendChild(monthCell);
+          tbody.appendChild(monthRow);
+        }
 
-        var clientWrap = document.createElement('div');
-        clientWrap.style.display = 'flex';
-        clientWrap.style.alignItems = 'center';
-        clientWrap.style.gap = '8px';
+        var clientGroups = groupByClient(monthItems);
 
-        var chevron = document.createElement('span');
-        chevron.className = 'production-chevron';
-        chevron.textContent = '\u25BC';
+        clientGroups.forEach(function (group) {
+          var items = group.items;
 
-        var nameSpan = document.createElement('span');
-        nameSpan.className = 'production-client-name';
-        nameSpan.textContent = group.clientName;
+          // Client parent row
+          var clientRow = document.createElement('tr');
+          clientRow.className = 'production-client-row';
+          clientRow.style.cursor = 'pointer';
 
-        var badge = document.createElement('span');
-        badge.className = 'dept-sheet-count';
-        badge.textContent = items.length;
+          var clientCell = document.createElement('td');
+          clientCell.colSpan = 6;
 
-        clientWrap.appendChild(chevron);
-        clientWrap.appendChild(nameSpan);
-        clientWrap.appendChild(badge);
-        clientCell.appendChild(clientWrap);
-        clientRow.appendChild(clientCell);
-        tbody.appendChild(clientRow);
+          var clientWrap = document.createElement('div');
+          clientWrap.style.display = 'flex';
+          clientWrap.style.alignItems = 'center';
+          clientWrap.style.gap = '8px';
+          if (showMonthHeaders) clientWrap.style.paddingLeft = '16px';
 
-        // Child rows — sorted
-        var sortedItems = sortItems(items, clientCommSort.key, clientCommSort.dir);
-        var childRows = [];
-        sortedItems.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
+          var chevron = document.createElement('span');
+          chevron.className = 'production-chevron';
+          chevron.textContent = '\u25BC';
 
-          var tdTitle = document.createElement('td');
-          tdTitle.className = 'production-indented';
-          tdTitle.textContent = item.title || '—';
-          row.appendChild(tdTitle);
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'production-client-name';
+          nameSpan.textContent = group.clientName;
 
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '—';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
+          var badge = document.createElement('span');
+          badge.className = 'dept-sheet-count';
+          badge.textContent = items.length;
 
-          var tdStatus = document.createElement('td');
-          tdStatus.style.position = 'relative';
-          var statusBadge = document.createElement('span');
-          statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
-          statusBadge.textContent = formatStatus(item.status);
-          statusBadge.style.cursor = 'pointer';
-          statusBadge.addEventListener('click', (function (itm, badge, cell) {
-            return function (e) {
-              e.stopPropagation();
-              showStatusDropdown(itm, badge, cell, refreshAll);
-            };
-          })(item, statusBadge, tdStatus));
-          tdStatus.appendChild(statusBadge);
-          row.appendChild(tdStatus);
+          clientWrap.appendChild(chevron);
+          clientWrap.appendChild(nameSpan);
+          clientWrap.appendChild(badge);
+          clientCell.appendChild(clientWrap);
+          clientRow.appendChild(clientCell);
+          tbody.appendChild(clientRow);
+          monthChildRows.push(clientRow);
 
-          var tdAssigned = document.createElement('td');
-          var assignedId = item.assignedProduction || item.assignedTo;
-          if (assignedId && window._employeeCacheLookup) {
-            var emp = window._employeeCacheLookup(assignedId);
-            if (emp && emp.photo_url) {
-              var avatarImg = document.createElement('img');
-              avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
-              avatarImg.src = emp.photo_url;
-              avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
-              avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
-              tdAssigned.appendChild(avatarImg);
-            } else {
-              tdAssigned.textContent = assignedId;
-            }
-          } else {
-            tdAssigned.textContent = '—';
-          }
-          row.appendChild(tdAssigned);
+          // Child rows — sorted
+          var sortedItems = sortItems(items, clientCommSort.key, clientCommSort.dir);
+          var childRows = [];
+          sortedItems.forEach(function (item) {
+            var row = document.createElement('tr');
+            row.className = 'production-child-row';
 
-          var tdDue = document.createElement('td');
-          tdDue.textContent = formatDate(item.dueDate);
-          row.appendChild(tdDue);
+            var tdTitle = document.createElement('td');
+            tdTitle.className = 'production-indented';
+            tdTitle.textContent = item.title || '—';
+            row.appendChild(tdTitle);
 
-          // Action column — unified workflow chain per type
-          var tdAction = document.createElement('td');
-          var wf = workflows.getNextStatus(item.type, item.status);
-          if (wf) {
-            var btn = document.createElement('button');
-            btn.className = 'proagri-sheet-row-action-btn action-advance';
-            btn.title = wf.tooltip;
-            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-            btn.style.opacity = '1';
-            btn.addEventListener('click', (function (id, next) {
+            var tdType = document.createElement('td');
+            var typeBadge = document.createElement('span');
+            typeBadge.className = 'production-type-badge';
+            typeBadge.textContent = item.type || '—';
+            tdType.appendChild(typeBadge);
+            row.appendChild(tdType);
+
+            var tdStatus = document.createElement('td');
+            tdStatus.style.position = 'relative';
+            var statusBadge = document.createElement('span');
+            statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
+            statusBadge.textContent = formatStatus(item.status);
+            statusBadge.style.cursor = 'pointer';
+            statusBadge.addEventListener('click', (function (itm, badge, cell) {
               return function (e) {
                 e.stopPropagation();
-                advanceStatus(id, next);
+                showStatusDropdown(itm, badge, cell, refreshAll);
               };
-            })(item.id, wf.next));
-            tdAction.appendChild(btn);
-          }
-          row.appendChild(tdAction);
+            })(item, statusBadge, tdStatus));
+            tdStatus.appendChild(statusBadge);
+            row.appendChild(tdStatus);
 
-          tbody.appendChild(row);
-          childRows.push(row);
+            var tdAssigned = document.createElement('td');
+            var assignedId = item.assignedProduction || item.assignedTo;
+            if (assignedId && window._employeeCacheLookup) {
+              var emp = window._employeeCacheLookup(assignedId);
+              if (emp && emp.photo_url) {
+                var avatarImg = document.createElement('img');
+                avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
+                avatarImg.src = emp.photo_url;
+                avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
+                avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
+                tdAssigned.appendChild(avatarImg);
+              } else {
+                tdAssigned.textContent = assignedId;
+              }
+            } else {
+              tdAssigned.textContent = '—';
+            }
+            row.appendChild(tdAssigned);
+
+            var tdDue = document.createElement('td');
+            tdDue.textContent = formatDate(item.dueDate);
+            row.appendChild(tdDue);
+
+            // Action column — unified workflow chain per type
+            var tdAction = document.createElement('td');
+            var wf = workflows.getNextStatus(item.type, item.status);
+            if (wf) {
+              var btn = document.createElement('button');
+              btn.className = 'proagri-sheet-row-action-btn action-advance';
+              btn.title = wf.tooltip;
+              btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+              btn.style.opacity = '1';
+              btn.addEventListener('click', (function (id, next) {
+                return function (e) {
+                  e.stopPropagation();
+                  advanceStatus(id, next);
+                };
+              })(item.id, wf.next));
+              tdAction.appendChild(btn);
+            }
+            row.appendChild(tdAction);
+
+            tbody.appendChild(row);
+            childRows.push(row);
+            monthChildRows.push(row);
+          });
+
+          clientRow.addEventListener('click', (function (rows, chev) {
+            return function () {
+              var isOpen = rows[0] && rows[0].style.display !== 'none';
+              rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
+              chev.textContent = isOpen ? '\u25B6' : '\u25BC';
+            };
+          })(childRows, chevron));
         });
 
-        clientRow.addEventListener('click', (function (rows, chev) {
-          return function () {
-            var isOpen = rows[0] && rows[0].style.display !== 'none';
-            rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
-            chev.textContent = isOpen ? '\u25B6' : '\u25BC';
-          };
-        })(childRows, chevron));
+        // Month row collapse toggle
+        if (showMonthHeaders) {
+          monthRow.addEventListener('click', (function (rows, chev) {
+            return function () {
+              var isOpen = rows[0] && rows[0].style.display !== 'none';
+              rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
+              chev.textContent = isOpen ? '\u25B6' : '\u25BC';
+            };
+          })(monthChildRows, monthChev));
+        }
       });
 
       table.appendChild(tbody);
@@ -402,6 +637,13 @@
     container.style.height = '';
     container.style.gap = '';
     container.style.padding = '';
+
+    var monthStart = getCurrentMonth();
+    var monthEnd = monthStart;
+
+    // Month selector at top
+    var monthSelectorWrap = document.createElement('div');
+    container.appendChild(monthSelectorWrap);
 
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout';
@@ -495,6 +737,17 @@
     var leftSort = { key: null, dir: 'asc' };
     var rightSort = { key: null, dir: 'asc' };
 
+    function rebuildMonthSelector() {
+      while (monthSelectorWrap.firstChild) monthSelectorWrap.removeChild(monthSelectorWrap.firstChild);
+      renderMonthSelector(monthSelectorWrap, monthStart, monthEnd, function (s, e) {
+        monthStart = s;
+        monthEnd = e;
+        rebuildMonthSelector();
+        refreshData();
+      });
+    }
+    rebuildMonthSelector();
+
     leftSearch.addEventListener('input', function () {
       renderLeftTable(leftItems, leftSearch.value.toLowerCase());
     });
@@ -504,7 +757,8 @@
     });
 
     function refreshData() {
-      fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+      var url = API_BASE + '/by-department/production?' + buildMonthParam(monthStart, monthEnd);
+      fetch(url, { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');
           return res.json();
@@ -789,6 +1043,13 @@
     container.style.gap = '';
     container.style.padding = '';
 
+    var monthStart = getCurrentMonth();
+    var monthEnd = monthStart;
+
+    // Month selector at top
+    var monthSelectorWrap = document.createElement('div');
+    container.appendChild(monthSelectorWrap);
+
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout';
     container.appendChild(layout);
@@ -881,6 +1142,17 @@
     var leftSort = { key: null, dir: 'asc' };
     var rightSort = { key: null, dir: 'asc' };
 
+    function rebuildMonthSelector() {
+      while (monthSelectorWrap.firstChild) monthSelectorWrap.removeChild(monthSelectorWrap.firstChild);
+      renderMonthSelector(monthSelectorWrap, monthStart, monthEnd, function (s, e) {
+        monthStart = s;
+        monthEnd = e;
+        rebuildMonthSelector();
+        refreshData();
+      });
+    }
+    rebuildMonthSelector();
+
     leftSearch.addEventListener('input', function () {
       renderLeftTable(leftItems, leftSearch.value.toLowerCase());
     });
@@ -890,7 +1162,8 @@
     });
 
     function refreshData() {
-      fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+      var url = API_BASE + '/by-department/production?' + buildMonthParam(monthStart, monthEnd);
+      fetch(url, { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');
           return res.json();
@@ -1216,6 +1489,9 @@
 
     var allowedTypes = typeFilters[viewName] || [];
 
+    var monthStart = getCurrentMonth();
+    var monthEnd = monthStart;
+
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'flex';
     container.style.alignItems = 'stretch';
@@ -1255,6 +1531,21 @@
 
     card.appendChild(header);
 
+    // Month selector
+    var monthSelectorWrap = document.createElement('div');
+    card.appendChild(monthSelectorWrap);
+
+    function rebuildMonthSelector() {
+      while (monthSelectorWrap.firstChild) monthSelectorWrap.removeChild(monthSelectorWrap.firstChild);
+      renderMonthSelector(monthSelectorWrap, monthStart, monthEnd, function (s, e) {
+        monthStart = s;
+        monthEnd = e;
+        rebuildMonthSelector();
+        refreshAll();
+      });
+    }
+    rebuildMonthSelector();
+
     var sheetContainer = document.createElement('div');
     sheetContainer.className = 'dept-sheet-container';
     sheetContainer.style.overflow = 'auto';
@@ -1263,14 +1554,16 @@
 
     container.appendChild(card);
 
+    var allDeliverables = [];
     var allGroups = [];
 
     searchInput.addEventListener('input', function () {
-      renderDeptTable(allGroups, searchInput.value.toLowerCase());
+      renderDeptTable(allDeliverables, searchInput.value.toLowerCase());
     });
 
     function refreshAll() {
-      fetch(API_BASE + '/by-department/' + deptSlug, { headers: getHeaders() })
+      var url = API_BASE + '/by-department/' + deptSlug + '?' + buildMonthParam(monthStart, monthEnd);
+      fetch(url, { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');
           return res.json();
@@ -1279,19 +1572,20 @@
           var filtered = deliverables.filter(function (d) {
             return allowedTypes.indexOf(d.type) !== -1;
           });
+          allDeliverables = filtered;
           allGroups = groupByClient(filtered);
           countBadge.textContent = filtered.length;
-          renderDeptTable(allGroups, searchInput.value.toLowerCase());
+          renderDeptTable(filtered, searchInput.value.toLowerCase());
         })
         .catch(function (err) {
           console.error('Dept tab fetch error:', err);
         });
     }
 
-    function renderDeptTable(groups, filterTerm) {
+    function renderDeptTable(deliverables, filterTerm) {
       while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
 
-      if (groups.length === 0) {
+      if (deliverables.length === 0) {
         var empty = document.createElement('div');
         empty.style.padding = '40px';
         empty.style.textAlign = 'center';
@@ -1300,6 +1594,9 @@
         sheetContainer.appendChild(empty);
         return;
       }
+
+      var monthGroups = groupByMonth(deliverables);
+      var showMonthHeaders = monthStart !== monthEnd;
 
       var table = document.createElement('table');
       table.className = 'production-sheet-table';
@@ -1317,138 +1614,186 @@
 
       var tbody = document.createElement('tbody');
 
-      groups.forEach(function (group) {
-        var items = group.items;
+      monthGroups.forEach(function (mg) {
+        var monthItems = mg.items;
         if (filterTerm) {
-          items = items.filter(function (item) {
+          monthItems = monthItems.filter(function (item) {
             return (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
               (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (group.clientName.toLowerCase().indexOf(filterTerm) !== -1);
+              (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1);
           });
         }
-        if (items.length === 0) return;
+        if (monthItems.length === 0) return;
 
-        var clientRow = document.createElement('tr');
-        clientRow.className = 'production-client-row';
-        clientRow.style.cursor = 'pointer';
+        var monthChildRows = [];
 
-        var clientCell = document.createElement('td');
-        clientCell.colSpan = 6;
+        if (showMonthHeaders) {
+          var monthRow = document.createElement('tr');
+          monthRow.className = 'production-month-row';
+          monthRow.style.cursor = 'pointer';
+          var monthCell = document.createElement('td');
+          monthCell.colSpan = 6;
+          var monthWrap = document.createElement('div');
+          monthWrap.style.display = 'flex';
+          monthWrap.style.alignItems = 'center';
+          monthWrap.style.gap = '8px';
+          var monthChev = document.createElement('span');
+          monthChev.className = 'production-chevron';
+          monthChev.textContent = '\u25BC';
+          var monthLabel = document.createElement('span');
+          monthLabel.className = 'production-month-name';
+          monthLabel.textContent = formatMonthLong(mg.month);
+          var monthBadge = document.createElement('span');
+          monthBadge.className = 'dept-sheet-count';
+          monthBadge.textContent = monthItems.length;
+          monthWrap.appendChild(monthChev);
+          monthWrap.appendChild(monthLabel);
+          monthWrap.appendChild(monthBadge);
+          monthCell.appendChild(monthWrap);
+          monthRow.appendChild(monthCell);
+          tbody.appendChild(monthRow);
+        }
 
-        var clientWrap = document.createElement('div');
-        clientWrap.style.display = 'flex';
-        clientWrap.style.alignItems = 'center';
-        clientWrap.style.gap = '8px';
+        var clientGroups = groupByClient(monthItems);
 
-        var chevron = document.createElement('span');
-        chevron.className = 'production-chevron';
-        chevron.textContent = '\u25BC';
+        clientGroups.forEach(function (group) {
+          var items = group.items;
 
-        var nameSpan = document.createElement('span');
-        nameSpan.className = 'production-client-name';
-        nameSpan.textContent = group.clientName;
+          var clientRow = document.createElement('tr');
+          clientRow.className = 'production-client-row';
+          clientRow.style.cursor = 'pointer';
 
-        var badge = document.createElement('span');
-        badge.className = 'dept-sheet-count';
-        badge.textContent = items.length;
+          var clientCell = document.createElement('td');
+          clientCell.colSpan = 6;
 
-        clientWrap.appendChild(chevron);
-        clientWrap.appendChild(nameSpan);
-        clientWrap.appendChild(badge);
-        clientCell.appendChild(clientWrap);
-        clientRow.appendChild(clientCell);
-        tbody.appendChild(clientRow);
+          var clientWrap = document.createElement('div');
+          clientWrap.style.display = 'flex';
+          clientWrap.style.alignItems = 'center';
+          clientWrap.style.gap = '8px';
+          if (showMonthHeaders) clientWrap.style.paddingLeft = '16px';
 
-        var childRows = [];
-        items.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
+          var chevron = document.createElement('span');
+          chevron.className = 'production-chevron';
+          chevron.textContent = '\u25BC';
 
-          var tdTitle = document.createElement('td');
-          tdTitle.className = 'production-indented';
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'production-client-name';
+          nameSpan.textContent = group.clientName;
 
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
+          var badge = document.createElement('span');
+          badge.className = 'dept-sheet-count';
+          badge.textContent = items.length;
 
-          var tdStatus = document.createElement('td');
-          tdStatus.style.position = 'relative';
-          var statusBadge = document.createElement('span');
-          statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
-          statusBadge.textContent = formatStatus(item.status);
-          statusBadge.style.cursor = 'pointer';
-          statusBadge.addEventListener('click', (function (itm, bdg, cel) {
-            return function (e) {
-              e.stopPropagation();
-              showStatusDropdown(itm, bdg, cel, refreshAll);
-            };
-          })(item, statusBadge, tdStatus));
-          tdStatus.appendChild(statusBadge);
-          row.appendChild(tdStatus);
+          clientWrap.appendChild(chevron);
+          clientWrap.appendChild(nameSpan);
+          clientWrap.appendChild(badge);
+          clientCell.appendChild(clientWrap);
+          clientRow.appendChild(clientCell);
+          tbody.appendChild(clientRow);
+          monthChildRows.push(clientRow);
 
-          var tdAssigned = document.createElement('td');
-          var assignedId = item.assignedProduction || item.assignedTo;
-          if (assignedId && window._employeeCacheLookup) {
-            var emp = window._employeeCacheLookup(assignedId);
-            if (emp && emp.photo_url) {
-              var avatarImg = document.createElement('img');
-              avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
-              avatarImg.src = emp.photo_url;
-              avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
-              avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
-              tdAssigned.appendChild(avatarImg);
-            } else {
-              tdAssigned.textContent = assignedId;
-            }
-          } else {
-            tdAssigned.textContent = '\u2014';
-          }
-          row.appendChild(tdAssigned);
+          var childRows = [];
+          items.forEach(function (item) {
+            var row = document.createElement('tr');
+            row.className = 'production-child-row';
 
-          var tdDue = document.createElement('td');
-          tdDue.textContent = formatDate(item.dueDate);
-          row.appendChild(tdDue);
+            var tdTitle = document.createElement('td');
+            tdTitle.className = 'production-indented';
+            tdTitle.textContent = item.title || '\u2014';
+            row.appendChild(tdTitle);
 
-          var tdAction = document.createElement('td');
-          var wf = workflows.getNextStatus(item.type, item.status);
-          if (wf) {
-            var btn = document.createElement('button');
-            btn.className = 'proagri-sheet-row-action-btn action-advance';
-            btn.title = wf.tooltip;
-            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-            btn.style.opacity = '1';
-            btn.addEventListener('click', (function (id, next) {
+            var tdType = document.createElement('td');
+            var typeBadge = document.createElement('span');
+            typeBadge.className = 'production-type-badge';
+            typeBadge.textContent = item.type || '\u2014';
+            tdType.appendChild(typeBadge);
+            row.appendChild(tdType);
+
+            var tdStatus = document.createElement('td');
+            tdStatus.style.position = 'relative';
+            var statusBadge = document.createElement('span');
+            statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
+            statusBadge.textContent = formatStatus(item.status);
+            statusBadge.style.cursor = 'pointer';
+            statusBadge.addEventListener('click', (function (itm, bdg, cel) {
               return function (e) {
                 e.stopPropagation();
-                fetch(API_BASE + '/' + id, {
-                  method: 'PATCH',
-                  headers: getHeaders(),
-                  body: JSON.stringify({ status: next })
-                }).then(function (res) {
-                  if (res.ok) refreshAll();
-                });
+                showStatusDropdown(itm, bdg, cel, refreshAll);
               };
-            })(item.id, wf.next));
-            tdAction.appendChild(btn);
-          }
-          row.appendChild(tdAction);
+            })(item, statusBadge, tdStatus));
+            tdStatus.appendChild(statusBadge);
+            row.appendChild(tdStatus);
 
-          tbody.appendChild(row);
-          childRows.push(row);
+            var tdAssigned = document.createElement('td');
+            var assignedId = item.assignedProduction || item.assignedTo;
+            if (assignedId && window._employeeCacheLookup) {
+              var emp = window._employeeCacheLookup(assignedId);
+              if (emp && emp.photo_url) {
+                var avatarImg = document.createElement('img');
+                avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
+                avatarImg.src = emp.photo_url;
+                avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
+                avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
+                tdAssigned.appendChild(avatarImg);
+              } else {
+                tdAssigned.textContent = assignedId;
+              }
+            } else {
+              tdAssigned.textContent = '\u2014';
+            }
+            row.appendChild(tdAssigned);
+
+            var tdDue = document.createElement('td');
+            tdDue.textContent = formatDate(item.dueDate);
+            row.appendChild(tdDue);
+
+            var tdAction = document.createElement('td');
+            var wf = workflows.getNextStatus(item.type, item.status);
+            if (wf) {
+              var btn = document.createElement('button');
+              btn.className = 'proagri-sheet-row-action-btn action-advance';
+              btn.title = wf.tooltip;
+              btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+              btn.style.opacity = '1';
+              btn.addEventListener('click', (function (id, next) {
+                return function (e) {
+                  e.stopPropagation();
+                  fetch(API_BASE + '/' + id, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ status: next })
+                  }).then(function (res) {
+                    if (res.ok) refreshAll();
+                  });
+                };
+              })(item.id, wf.next));
+              tdAction.appendChild(btn);
+            }
+            row.appendChild(tdAction);
+
+            tbody.appendChild(row);
+            childRows.push(row);
+            monthChildRows.push(row);
+          });
+
+          clientRow.addEventListener('click', (function (rows, chev) {
+            return function () {
+              var isOpen = rows[0] && rows[0].style.display !== 'none';
+              rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
+              chev.textContent = isOpen ? '\u25B6' : '\u25BC';
+            };
+          })(childRows, chevron));
         });
 
-        clientRow.addEventListener('click', (function (rows, chev) {
-          return function () {
-            var isOpen = rows[0] && rows[0].style.display !== 'none';
-            rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
-            chev.textContent = isOpen ? '\u25B6' : '\u25BC';
-          };
-        })(childRows, chevron));
+        if (showMonthHeaders) {
+          monthRow.addEventListener('click', (function (rows, chev) {
+            return function () {
+              var isOpen = rows[0] && rows[0].style.display !== 'none';
+              rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
+              chev.textContent = isOpen ? '\u25B6' : '\u25BC';
+            };
+          })(monthChildRows, monthChev));
+        }
       });
 
       table.appendChild(tbody);

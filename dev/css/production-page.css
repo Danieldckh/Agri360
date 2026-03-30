@@ -146,3 +146,134 @@
   content: '\25BC';
   opacity: 0.8;
 }
+
+/* Month selector bar */
+.month-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background: var(--hover-bg, rgba(0, 0, 0, 0.02));
+  flex-wrap: wrap;
+}
+
+.month-selector-arrow {
+  background: none;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.month-selector-arrow:hover {
+  background: var(--accent-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  color: #fff;
+  border-color: transparent;
+}
+
+.month-selector-display {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  min-width: 100px;
+  text-align: center;
+}
+
+.month-selector-sep {
+  color: var(--border-color, #e0e0e0);
+  font-size: 14px;
+  margin: 0 2px;
+}
+
+.month-selector-range-toggle {
+  background: none;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  color: var(--text-muted, #999);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 11px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.month-selector-range-toggle:hover {
+  color: var(--text-primary, #333);
+  border-color: var(--text-muted, #999);
+}
+
+.month-selector-range-toggle.active {
+  background: var(--accent-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  color: #fff;
+  border-color: transparent;
+}
+
+.month-selector-range-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
+}
+
+.month-selector-input {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  color: var(--text-primary, #333);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.month-selector-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.month-selector-to {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+}
+
+.month-selector-apply {
+  background: var(--accent-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.month-selector-apply:hover {
+  opacity: 0.85;
+}
+
+/* Month group header row */
+.production-month-row td {
+  padding: 10px 14px;
+  background: var(--card-bg, #fff);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-top: 2px solid var(--border-color, #e0e0e0);
+  user-select: none;
+}
+
+.production-month-row:hover td {
+  background: var(--hover-bg, rgba(0, 0, 0, 0.02));
+}
+
+.production-month-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary, #333);
+  background: var(--accent-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

@@ -26,8 +26,26 @@ router.get('/by-booking/:bookingFormId', async (req, res) => {
 });
 
 // GET /by-department/:deptSlug - list deliverables for a department slug
+// Optional query params: ?month=2026-02 OR ?monthStart=2026-02&monthEnd=2026-06
+// Default: current month if no month params provided
 router.get('/by-department/:deptSlug', async (req, res) => {
   try {
+    const params = [req.params.deptSlug];
+    let monthClause = '';
+
+    if (req.query.month) {
+      params.push(req.query.month);
+      monthClause = ` AND d.delivery_month = $${params.length}`;
+    } else if (req.query.monthStart && req.query.monthEnd) {
+      params.push(req.query.monthStart);
+      params.push(req.query.monthEnd);
+      monthClause = ` AND d.delivery_month BETWEEN $${params.length - 1} AND $${params.length}`;
+    } else {
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      params.push(currentMonth);
+      monthClause = ` AND d.delivery_month = $${params.length}`;
+    }
+
     const result = await pool.query(
       `SELECT d.*, dept.name AS department_name, dept.slug AS department_slug,
               bf.title AS booking_form_title, c.name AS client_name, c.id AS client_id
@@ -35,9 +53,9 @@ router.get('/by-department/:deptSlug', async (req, res) => {
        JOIN departments dept ON dept.id = d.department_id
        JOIN booking_forms bf ON bf.id = d.booking_form_id
        JOIN clients c ON c.id = bf.client_id
-       WHERE dept.slug = $1
-       ORDER BY d.created_at DESC`,
-      [req.params.deptSlug]
+       WHERE dept.slug = $1${monthClause}
+       ORDER BY d.delivery_month ASC, d.created_at DESC`,
+      params
     );
     res.json(result.rows.map(toCamelCase));
   } catch (err) {
