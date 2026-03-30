@@ -159,6 +159,18 @@ async function runMigrations() {
     // Decline reason for proposals/booking forms
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS decline_reason TEXT`);
 
+    // Editable and e-sign URLs
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS editable_url TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS esign_url TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS checklist_url TEXT`);
+
+    // E-sign data
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_pdf TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signature_data JSONB`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_at TIMESTAMPTZ`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS change_request_pdf TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS change_notes TEXT`);
+
     // Make dashboard foreign keys nullable
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL`).catch(() => {});
