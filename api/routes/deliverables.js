@@ -112,7 +112,7 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update deliverable
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id'];
+  const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id', 'follow_up_count'];
   const updates = [];
   const values = [];
   let idx = 1;

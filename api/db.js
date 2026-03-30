@@ -25,6 +25,9 @@ async function runMigrations() {
   await pool.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS sign_off_date DATE;`);
   await pool.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS representative VARCHAR(255);`);
 
+  // Deliverables columns for follow-up tracking
+  await pool.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS follow_up_count INTEGER DEFAULT 0;`);
+
   // Drop NOT NULL constraint on existing title column
   await pool.query(`ALTER TABLE booking_forms ALTER COLUMN title DROP NOT NULL;`);
 }
