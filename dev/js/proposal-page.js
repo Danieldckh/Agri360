@@ -445,10 +445,21 @@
     // Header
     var header = document.createElement('div');
     header.className = 'dev-page-header';
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
     var title = document.createElement('h2');
     title.className = 'dev-page-title';
     title.textContent = 'Proposals';
     header.appendChild(title);
+
+    var newBookingBtn = document.createElement('a');
+    newBookingBtn.href = '/checklist/';
+    newBookingBtn.className = 'dev-btn dev-btn-primary';
+    newBookingBtn.textContent = 'New Booking';
+    newBookingBtn.style.textDecoration = 'none';
+    header.appendChild(newBookingBtn);
+
     page.appendChild(header);
 
     // Cards container
