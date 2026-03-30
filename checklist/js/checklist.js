@@ -108,10 +108,16 @@
   // openChecklistForClient — the main wizard entry point
   // ============================================================
 
-  window.openChecklistForClient = function (presetClientId) {
+  window.openChecklistForClient = function (presetClientId, savedFormData) {
     var checklistId = generateChecklistId();
     var currentPage = 1;
     var maxVisited = 1;
+
+    // If savedFormData provided (loading from existing booking form), use it
+    if (savedFormData && typeof savedFormData === 'object' && savedFormData.companyName) {
+      var formData = savedFormData;
+      if (presetClientId) formData.existingClientId = presetClientId;
+    } else {
 
     var formData = {
       companyName: '', tradingName: '', companyRegNo: '', vatNumber: '',
@@ -152,6 +158,7 @@
 
       signOffDate: '', representative: ''
     };
+    } // end else (no savedFormData)
 
     // Initialize own page items
     OWN_PAGE_TYPES.forEach(function (t) {
@@ -1078,6 +1085,13 @@
         // Send to editable booking form service
         var bfId = bookingFormResult && bookingFormResult.id;
         if (bfId) {
+          // Store the unique checklist URL in the booking form
+          var checklistUrl = window.location.origin + '/#checklist=' + bfId;
+          fetch(API_URL + '/booking-forms/' + bfId, {
+            method: 'PATCH',
+            headers: authHeaders(true),
+            body: JSON.stringify({ checklistUrl: checklistUrl })
+          }).catch(function () {});
           var sendingMsg = el('p', 'checklist-sending-msg', 'Generating editable booking form...');
           msg.appendChild(sendingMsg);
 
@@ -1306,5 +1320,61 @@
         alert('Failed to load booking form: ' + err.message);
       });
   };
+
+  // ============================================================
+  // openChecklistFromBookingForm — Load and open wizard from saved booking form
+  // ============================================================
+
+  window.openChecklistFromBookingForm = function (bookingFormId) {
+    var API_URL = window.API_URL || '/api';
+    fetch(API_URL + '/booking-forms/' + bookingFormId, {
+      headers: (window.getAuthHeaders ? window.getAuthHeaders() : {})
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { alert('Error: ' + data.error); return; }
+        var savedData = data.formData || data.form_data || {};
+        // Ensure existingClientId is set from the booking form's client
+        if (data.clientId || data.client_id) {
+          savedData.existingClientId = data.clientId || data.client_id;
+        }
+        window.openChecklistForClient(null, savedData);
+      })
+      .catch(function (err) {
+        alert('Failed to load checklist: ' + err.message);
+      });
+  };
+
+  // ============================================================
+  // generateChecklistUrl — Create a unique URL for a prefilled checklist
+  // ============================================================
+
+  window.generateChecklistUrl = function (bookingFormId) {
+    return window.location.origin + '/#checklist=' + bookingFormId;
+  };
+
+  // Auto-detect checklist URL hash on page load
+  function checkHashForChecklist() {
+    var hash = window.location.hash || '';
+    var match = hash.match(/^#checklist=(\d+)$/);
+    if (match) {
+      var bfId = parseInt(match[1], 10);
+      if (bfId) {
+        // Small delay to let the page load
+        setTimeout(function () {
+          window.openChecklistFromBookingForm(bfId);
+        }, 500);
+      }
+    }
+  }
+
+  // Listen for hash changes too
+  window.addEventListener('hashchange', checkHashForChecklist);
+  // Check on initial load
+  if (document.readyState === 'complete') {
+    checkHashForChecklist();
+  } else {
+    window.addEventListener('load', checkHashForChecklist);
+  }
 
 })();
