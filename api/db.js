@@ -163,6 +163,9 @@ async function runMigrations() {
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL`).catch(() => {});
 
+    // Deliverables columns for follow-up tracking
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS follow_up_count INTEGER DEFAULT 0`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {
