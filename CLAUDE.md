@@ -137,6 +137,26 @@ This project supports multiple concurrent Claude Code sessions. To prevent sessi
 - Back button restores the original sidebar
 - Department config is in `deptPages`, `deptNames`, `deptMenuItems` objects in app.js
 
+### Content Calendar Workflow
+
+Content calendars follow this status chain:
+`request_focus_points → focus_points_requested → focus_points_received → design → design_review → proofread → approved → scheduled → posted`
+
+**Branch statuses**: `design_changes` → design, `client_changes` → design
+
+**Flow**: Production asks client for focus points and images → Design creates designs, captions, post dates → Editorial proofreads (sends back to design if unhappy) → Client approves (may request changes → back to design → editorial → client) → Social Media schedules → Auto-posted via automation.
+
+**Dept routing**: production (focus points) → design (artwork) → editorial (proofread) → social-media (schedule/post)
+
+See full Mermaid diagram: `docs/deliverable-workflows/content-calendar.md`
+
+### Deliverable Workflows
+
+Status chains, department routing maps, and branch statuses are defined in:
+- **Frontend**: `ui/js/deliverable-workflows.js` — exposed via `window.DELIVERABLE_WORKFLOWS`
+- **Backend**: `api/routes/deliverables.js` — `DEPT_MAPS` and `DEPT_MAP_ALIASES` objects
+- **Documentation**: `docs/deliverable-workflows/` — Mermaid diagrams per workflow
+
 ---
 
 ## Key Conventions
