@@ -62,6 +62,72 @@
     return svg;
   }
 
+  // ── Sort Helpers ───────────────────────────────────────────────
+
+  function formatStatusChanged(dateStr) {
+    if (!dateStr) return '—';
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    var now = new Date();
+    var diffMs = now - d;
+    var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    var diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    var relative;
+    if (diffDays > 0) relative = diffDays + 'd ago';
+    else if (diffHours > 0) relative = diffHours + 'h ago';
+    else relative = 'just now';
+    return formatDate(dateStr) + ' (' + relative + ')';
+  }
+
+  function sortItems(items, sortKey, sortDir) {
+    if (!sortKey) return items;
+    return items.slice().sort(function (a, b) {
+      var va = a[sortKey];
+      var vb = b[sortKey];
+      // Handle nulls
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      // Date-like keys
+      if (sortKey === 'dueDate' || sortKey === 'statusChangedAt') {
+        va = va ? new Date(va).getTime() : 0;
+        vb = vb ? new Date(vb).getTime() : 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      // Numeric
+      if (typeof va === 'number' && typeof vb === 'number') {
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      // String comparison
+      va = String(va).toLowerCase();
+      vb = String(vb).toLowerCase();
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function makeSortableHeaders(thead, columns, sortState, onSort) {
+    var ths = thead.querySelectorAll('th');
+    columns.forEach(function (col, i) {
+      if (!col.sortKey) return;
+      ths[i].classList.add('sortable');
+      if (sortState.key === col.sortKey) {
+        ths[i].classList.add(sortState.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+      ths[i].addEventListener('click', function () {
+        if (sortState.key === col.sortKey) {
+          sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState.key = col.sortKey;
+          sortState.dir = 'asc';
+        }
+        onSort();
+      });
+    });
+  }
+
+  // ── Client Communications Tab ──────────────────────────────────
   function renderProductionTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'flex';
@@ -111,6 +177,7 @@
     container.appendChild(card);
 
     var allGroups = [];
+    var clientCommSort = { key: null, dir: 'asc' };
 
     searchInput.addEventListener('input', function () {
       renderTable(allGroups, searchInput.value.toLowerCase());
@@ -123,8 +190,11 @@
           return res.json();
         })
         .then(function (deliverables) {
-          allGroups = groupByClient(deliverables);
-          countBadge.textContent = deliverables.length;
+          var filtered = deliverables.filter(function (d) {
+            return d.status === 'request_client_materials';
+          });
+          allGroups = groupByClient(filtered);
+          countBadge.textContent = filtered.length;
           renderTable(allGroups, searchInput.value.toLowerCase());
         })
         .catch(function (err) {
@@ -160,14 +230,26 @@
 
       var thead = document.createElement('thead');
       var headerRow = document.createElement('tr');
-      ['Title', 'Type', 'Status', 'Assigned To', 'Due Date', ''].forEach(function (col) {
+      var columns = [
+        { label: 'Title', sortKey: 'title' },
+        { label: 'Type', sortKey: 'type' },
+        { label: 'Status', sortKey: 'status' },
+        { label: 'Assigned To', sortKey: null },
+        { label: 'Due Date', sortKey: 'dueDate' },
+        { label: '', sortKey: null }
+      ];
+      columns.forEach(function (col) {
         var th = document.createElement('th');
-        th.textContent = col;
-        if (col === '') th.style.width = '40px';
+        th.textContent = col.label;
+        if (col.label === '') th.style.width = '40px';
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
       table.appendChild(thead);
+
+      makeSortableHeaders(thead, columns, clientCommSort, function () {
+        renderTable(allGroups, searchInput.value.toLowerCase());
+      });
 
       var tbody = document.createElement('tbody');
 
@@ -214,9 +296,10 @@
         clientRow.appendChild(clientCell);
         tbody.appendChild(clientRow);
 
-        // Child rows
+        // Child rows — sorted
+        var sortedItems = sortItems(items, clientCommSort.key, clientCommSort.dir);
         var childRows = [];
-        items.forEach(function (item) {
+        sortedItems.forEach(function (item) {
           var row = document.createElement('tr');
           row.className = 'production-child-row';
 
@@ -309,7 +392,7 @@
     refreshAll();
   }
 
-  // ── Follow Ups Tab (2-sheet layout) ────────────────────────────
+  // ── Follow Ups Tab (50/50 layout) ──────────────────────────────
   function renderFollowUpsTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = '';
@@ -324,93 +407,101 @@
     layout.className = 'dept-dashboard-layout';
     container.appendChild(layout);
 
-    // ── LEFT: Materials Requested (main sheet) ──
-    var mainCol = document.createElement('div');
-    mainCol.className = 'dept-dashboard-main';
-    layout.appendChild(mainCol);
+    // ── LEFT: Materials Requested ──
+    var leftCol = document.createElement('div');
+    leftCol.className = 'dept-dashboard-half';
+    layout.appendChild(leftCol);
 
-    var mainCard = document.createElement('div');
-    mainCard.className = 'dept-sheet-card';
-    mainCol.appendChild(mainCard);
+    var leftCard = document.createElement('div');
+    leftCard.className = 'dept-sheet-card';
+    leftCol.appendChild(leftCard);
 
-    var mainHeader = document.createElement('div');
-    mainHeader.className = 'dept-sheet-header';
+    var leftHeader = document.createElement('div');
+    leftHeader.className = 'dept-sheet-header';
 
-    var mainTitleWrap = document.createElement('div');
-    mainTitleWrap.className = 'dept-sheet-title-wrap';
+    var leftTitleWrap = document.createElement('div');
+    leftTitleWrap.className = 'dept-sheet-title-wrap';
 
-    var mainH = document.createElement('h3');
-    mainH.className = 'dept-sheet-title';
-    mainH.textContent = 'Materials Requested';
-    mainTitleWrap.appendChild(mainH);
+    var leftH = document.createElement('h3');
+    leftH.className = 'dept-sheet-title';
+    leftH.textContent = 'Materials Requested';
+    leftTitleWrap.appendChild(leftH);
 
-    var mainCount = document.createElement('span');
-    mainCount.className = 'dept-sheet-count';
-    mainCount.textContent = '0';
-    mainTitleWrap.appendChild(mainCount);
+    var leftCount = document.createElement('span');
+    leftCount.className = 'dept-sheet-count';
+    leftCount.textContent = '0';
+    leftTitleWrap.appendChild(leftCount);
 
-    mainHeader.appendChild(mainTitleWrap);
+    leftHeader.appendChild(leftTitleWrap);
 
-    var mainSearch = document.createElement('input');
-    mainSearch.type = 'text';
-    mainSearch.className = 'dept-sheet-search';
-    mainSearch.placeholder = 'Search...';
-    mainHeader.appendChild(mainSearch);
+    var leftSearch = document.createElement('input');
+    leftSearch.type = 'text';
+    leftSearch.className = 'dept-sheet-search';
+    leftSearch.placeholder = 'Search...';
+    leftHeader.appendChild(leftSearch);
 
-    mainCard.appendChild(mainHeader);
+    leftCard.appendChild(leftHeader);
 
-    var mainSheet = document.createElement('div');
-    mainSheet.className = 'dept-sheet-container';
-    mainSheet.style.overflow = 'auto';
-    mainSheet.style.flex = '1';
-    mainCard.appendChild(mainSheet);
+    var leftSheet = document.createElement('div');
+    leftSheet.className = 'dept-sheet-container';
+    leftSheet.style.overflow = 'auto';
+    leftSheet.style.flex = '1';
+    leftCard.appendChild(leftSheet);
 
-    // ── RIGHT: Follow Ups (side sheet) ──
-    var sideCol = document.createElement('div');
-    sideCol.className = 'dept-dashboard-side';
-    layout.appendChild(sideCol);
+    // ── RIGHT: Sent for Approval ──
+    var rightCol = document.createElement('div');
+    rightCol.className = 'dept-dashboard-half';
+    layout.appendChild(rightCol);
 
-    var sideCard = document.createElement('div');
-    sideCard.className = 'dept-sheet-card dept-sheet-card-compact';
-    sideCol.appendChild(sideCard);
+    var rightCard = document.createElement('div');
+    rightCard.className = 'dept-sheet-card';
+    rightCol.appendChild(rightCard);
 
-    var sideHeader = document.createElement('div');
-    sideHeader.className = 'dept-sheet-header';
+    var rightHeader = document.createElement('div');
+    rightHeader.className = 'dept-sheet-header';
 
-    var sideTitleWrap = document.createElement('div');
-    sideTitleWrap.className = 'dept-sheet-title-wrap';
+    var rightTitleWrap = document.createElement('div');
+    rightTitleWrap.className = 'dept-sheet-title-wrap';
 
-    var sideH = document.createElement('h3');
-    sideH.className = 'dept-sheet-title';
-    sideH.textContent = 'Follow Ups';
-    sideTitleWrap.appendChild(sideH);
+    var rightH = document.createElement('h3');
+    rightH.className = 'dept-sheet-title';
+    rightH.textContent = 'Sent for Approval';
+    rightTitleWrap.appendChild(rightH);
 
-    var sideCount = document.createElement('span');
-    sideCount.className = 'dept-sheet-count';
-    sideCount.textContent = '0';
-    sideTitleWrap.appendChild(sideCount);
+    var rightCount = document.createElement('span');
+    rightCount.className = 'dept-sheet-count';
+    rightCount.textContent = '0';
+    rightTitleWrap.appendChild(rightCount);
 
-    sideHeader.appendChild(sideTitleWrap);
-    sideCard.appendChild(sideHeader);
+    rightHeader.appendChild(rightTitleWrap);
 
-    var sideSheet = document.createElement('div');
-    sideSheet.className = 'dept-sheet-container';
-    sideSheet.style.overflow = 'auto';
-    sideSheet.style.flex = '1';
-    sideCard.appendChild(sideSheet);
+    var rightSearch = document.createElement('input');
+    rightSearch.type = 'text';
+    rightSearch.className = 'dept-sheet-search';
+    rightSearch.placeholder = 'Search...';
+    rightHeader.appendChild(rightSearch);
+
+    rightCard.appendChild(rightHeader);
+
+    var rightSheet = document.createElement('div');
+    rightSheet.className = 'dept-sheet-container';
+    rightSheet.style.overflow = 'auto';
+    rightSheet.style.flex = '1';
+    rightCard.appendChild(rightSheet);
 
     // ── Data ──
-    var allItems = [];
+    var leftItems = [];
+    var rightItems = [];
+    var leftSort = { key: null, dir: 'asc' };
+    var rightSort = { key: null, dir: 'asc' };
 
-    mainSearch.addEventListener('input', function () {
-      renderMainTable(allItems, mainSearch.value.toLowerCase());
+    leftSearch.addEventListener('input', function () {
+      renderLeftTable(leftItems, leftSearch.value.toLowerCase());
     });
 
-    function hoursWithoutContact(item) {
-      if (!item.updatedAt) return 0;
-      var diff = Date.now() - new Date(item.updatedAt).getTime();
-      return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
-    }
+    rightSearch.addEventListener('input', function () {
+      renderRightTable(rightItems, rightSearch.value.toLowerCase());
+    });
 
     function refreshData() {
       fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
@@ -419,13 +510,16 @@
           return res.json();
         })
         .then(function (deliverables) {
-          allItems = deliverables.filter(function (d) {
-            return d.type === 'website-design' && d.status === 'materials_requested';
+          leftItems = deliverables.filter(function (d) {
+            return d.status === 'materials_requested';
           });
-          mainCount.textContent = allItems.length;
-          sideCount.textContent = allItems.length;
-          renderMainTable(allItems, mainSearch.value.toLowerCase());
-          renderSideTable(allItems);
+          rightItems = deliverables.filter(function (d) {
+            return d.status === 'sent_for_approval';
+          });
+          leftCount.textContent = leftItems.length;
+          rightCount.textContent = rightItems.length;
+          renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+          renderRightTable(rightItems, rightSearch.value.toLowerCase());
         })
         .catch(function (err) {
           console.error('Follow Ups fetch error:', err);
@@ -452,15 +546,16 @@
       });
     }
 
-    // ── Main table: Materials Requested ──
-    function renderMainTable(items, filterTerm) {
-      while (mainSheet.firstChild) mainSheet.removeChild(mainSheet.firstChild);
+    // ── Left table: Materials Requested ──
+    function renderLeftTable(items, filterTerm) {
+      while (leftSheet.firstChild) leftSheet.removeChild(leftSheet.firstChild);
 
       var filtered = items;
       if (filterTerm) {
         filtered = items.filter(function (item) {
           return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-            (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1);
+            (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
         });
       }
 
@@ -470,7 +565,7 @@
         empty.style.textAlign = 'center';
         empty.style.color = 'var(--text-muted, #999)';
         empty.textContent = 'No materials requested';
-        mainSheet.appendChild(empty);
+        leftSheet.appendChild(empty);
         return;
       }
 
@@ -479,17 +574,31 @@
 
       var thead = document.createElement('thead');
       var headerRow = document.createElement('tr');
-      ['Client', 'Title', 'Status', 'Hours Without Contact', 'Follow Up Count', ''].forEach(function (col) {
+      var columns = [
+        { label: 'Client', sortKey: 'clientName' },
+        { label: 'Title', sortKey: 'title' },
+        { label: 'Type', sortKey: 'type' },
+        { label: 'Status Changed', sortKey: 'statusChangedAt' },
+        { label: 'Follow Up Count', sortKey: 'followUpCount' },
+        { label: '', sortKey: null }
+      ];
+      columns.forEach(function (col) {
         var th = document.createElement('th');
-        th.textContent = col;
-        if (col === '') th.style.width = '40px';
+        th.textContent = col.label;
+        if (col.label === '') th.style.width = '40px';
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
       table.appendChild(thead);
 
+      makeSortableHeaders(thead, columns, leftSort, function () {
+        renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+      });
+
+      var sorted = sortItems(filtered, leftSort.key, leftSort.dir);
+
       var tbody = document.createElement('tbody');
-      filtered.forEach(function (item) {
+      sorted.forEach(function (item) {
         var row = document.createElement('tr');
         row.className = 'production-child-row';
 
@@ -502,19 +611,16 @@
         tdTitle.textContent = item.title || '—';
         row.appendChild(tdTitle);
 
-        var tdStatus = document.createElement('td');
-        var statusBadge = document.createElement('span');
-        statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
-        statusBadge.textContent = formatStatus(item.status);
-        tdStatus.appendChild(statusBadge);
-        row.appendChild(tdStatus);
+        var tdType = document.createElement('td');
+        var typeBadge = document.createElement('span');
+        typeBadge.className = 'production-type-badge';
+        typeBadge.textContent = item.type || '—';
+        tdType.appendChild(typeBadge);
+        row.appendChild(tdType);
 
-        var tdHours = document.createElement('td');
-        var hours = hoursWithoutContact(item);
-        tdHours.textContent = hours + 'h';
-        if (hours >= 48) tdHours.style.color = 'var(--color-error, #e53935)';
-        else if (hours >= 24) tdHours.style.color = 'var(--color-warning, #f59e0b)';
-        row.appendChild(tdHours);
+        var tdChanged = document.createElement('td');
+        tdChanged.textContent = formatStatusChanged(item.statusChangedAt);
+        row.appendChild(tdChanged);
 
         var tdFollowUp = document.createElement('td');
         var count = item.followUpCount || 0;
@@ -550,20 +656,29 @@
         tbody.appendChild(row);
       });
       table.appendChild(tbody);
-      mainSheet.appendChild(table);
+      leftSheet.appendChild(table);
     }
 
-    // ── Side table: Follow Ups summary ──
-    function renderSideTable(items) {
-      while (sideSheet.firstChild) sideSheet.removeChild(sideSheet.firstChild);
+    // ── Right table: Sent for Approval ──
+    function renderRightTable(items, filterTerm) {
+      while (rightSheet.firstChild) rightSheet.removeChild(rightSheet.firstChild);
 
-      if (items.length === 0) {
+      var filtered = items;
+      if (filterTerm) {
+        filtered = items.filter(function (item) {
+          return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
+        });
+      }
+
+      if (filtered.length === 0) {
         var empty = document.createElement('div');
-        empty.style.padding = '20px';
+        empty.style.padding = '40px';
         empty.style.textAlign = 'center';
         empty.style.color = 'var(--text-muted, #999)';
-        empty.textContent = 'No follow ups';
-        sideSheet.appendChild(empty);
+        empty.textContent = 'No items sent for approval';
+        rightSheet.appendChild(empty);
         return;
       }
 
@@ -572,50 +687,461 @@
 
       var thead = document.createElement('thead');
       var headerRow = document.createElement('tr');
-      ['Client', 'Hours', 'Follow Ups'].forEach(function (col) {
+      var columns = [
+        { label: 'Client', sortKey: 'clientName' },
+        { label: 'Title', sortKey: 'title' },
+        { label: 'Type', sortKey: 'type' },
+        { label: 'Status Changed', sortKey: 'statusChangedAt' },
+        { label: 'Follow Up Count', sortKey: 'followUpCount' },
+        { label: '', sortKey: null }
+      ];
+      columns.forEach(function (col) {
         var th = document.createElement('th');
-        th.textContent = col;
+        th.textContent = col.label;
+        if (col.label === '') th.style.width = '40px';
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
       table.appendChild(thead);
 
-      var tbody = document.createElement('tbody');
-      // Sort by hours descending (most urgent first)
-      var sorted = items.slice().sort(function (a, b) {
-        return hoursWithoutContact(b) - hoursWithoutContact(a);
+      makeSortableHeaders(thead, columns, rightSort, function () {
+        renderRightTable(rightItems, rightSearch.value.toLowerCase());
       });
 
+      var sorted = sortItems(filtered, rightSort.key, rightSort.dir);
+
+      var tbody = document.createElement('tbody');
       sorted.forEach(function (item) {
         var row = document.createElement('tr');
         row.className = 'production-child-row';
 
         var tdClient = document.createElement('td');
         tdClient.style.fontWeight = '600';
-        tdClient.style.fontSize = '12px';
         tdClient.textContent = item.clientName || '—';
         row.appendChild(tdClient);
 
-        var tdHours = document.createElement('td');
-        var hours = hoursWithoutContact(item);
-        tdHours.textContent = hours + 'h';
-        tdHours.style.fontSize = '12px';
-        if (hours >= 48) tdHours.style.color = 'var(--color-error, #e53935)';
-        else if (hours >= 24) tdHours.style.color = 'var(--color-warning, #f59e0b)';
-        row.appendChild(tdHours);
+        var tdTitle = document.createElement('td');
+        tdTitle.textContent = item.title || '—';
+        row.appendChild(tdTitle);
 
-        var tdCount = document.createElement('td');
-        tdCount.style.fontSize = '12px';
-        var sideCountBadge = document.createElement('span');
-        sideCountBadge.className = 'dept-sheet-count';
-        sideCountBadge.textContent = item.followUpCount || 0;
-        tdCount.appendChild(sideCountBadge);
-        row.appendChild(tdCount);
+        var tdType = document.createElement('td');
+        var typeBadge = document.createElement('span');
+        typeBadge.className = 'production-type-badge';
+        typeBadge.textContent = item.type || '—';
+        tdType.appendChild(typeBadge);
+        row.appendChild(tdType);
+
+        var tdChanged = document.createElement('td');
+        tdChanged.textContent = formatStatusChanged(item.statusChangedAt);
+        row.appendChild(tdChanged);
+
+        var tdFollowUp = document.createElement('td');
+        var count = item.followUpCount || 0;
+        var countBadge = document.createElement('span');
+        countBadge.className = 'dept-sheet-count';
+        countBadge.textContent = count;
+        countBadge.style.cursor = 'pointer';
+        countBadge.title = 'Click to increment follow up count';
+        countBadge.addEventListener('click', (function (id, c) {
+          return function (e) {
+            e.stopPropagation();
+            incrementFollowUp(id, c);
+          };
+        })(item.id, count));
+        tdFollowUp.appendChild(countBadge);
+        row.appendChild(tdFollowUp);
+
+        var tdAction = document.createElement('td');
+        var wf = workflows.getNextStatus(item.type, item.status);
+        if (wf) {
+          var btn = document.createElement('button');
+          btn.className = 'proagri-sheet-row-action-btn action-advance';
+          btn.title = wf.tooltip;
+          btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+          btn.style.opacity = '1';
+          btn.addEventListener('click', (function (id, next) {
+            return function (e) {
+              e.stopPropagation();
+              advanceStatus(id, next);
+            };
+          })(item.id, wf.next));
+          tdAction.appendChild(btn);
+        }
+        row.appendChild(tdAction);
 
         tbody.appendChild(row);
       });
       table.appendChild(tbody);
-      sideSheet.appendChild(table);
+      rightSheet.appendChild(table);
+    }
+
+    refreshData();
+  }
+
+  // ── Approvals Tab (50/50 layout) ───────────────────────────────
+  function renderApprovalsTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = '';
+    container.style.alignItems = '';
+    container.style.justifyContent = '';
+    container.style.flexDirection = '';
+    container.style.height = '';
+    container.style.gap = '';
+    container.style.padding = '';
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+    container.appendChild(layout);
+
+    // ── LEFT: Send for Approval ──
+    var leftCol = document.createElement('div');
+    leftCol.className = 'dept-dashboard-half';
+    layout.appendChild(leftCol);
+
+    var leftCard = document.createElement('div');
+    leftCard.className = 'dept-sheet-card';
+    leftCol.appendChild(leftCard);
+
+    var leftHeader = document.createElement('div');
+    leftHeader.className = 'dept-sheet-header';
+
+    var leftTitleWrap = document.createElement('div');
+    leftTitleWrap.className = 'dept-sheet-title-wrap';
+
+    var leftH = document.createElement('h3');
+    leftH.className = 'dept-sheet-title';
+    leftH.textContent = 'Send for Approval';
+    leftTitleWrap.appendChild(leftH);
+
+    var leftCount = document.createElement('span');
+    leftCount.className = 'dept-sheet-count';
+    leftCount.textContent = '0';
+    leftTitleWrap.appendChild(leftCount);
+
+    leftHeader.appendChild(leftTitleWrap);
+
+    var leftSearch = document.createElement('input');
+    leftSearch.type = 'text';
+    leftSearch.className = 'dept-sheet-search';
+    leftSearch.placeholder = 'Search...';
+    leftHeader.appendChild(leftSearch);
+
+    leftCard.appendChild(leftHeader);
+
+    var leftSheet = document.createElement('div');
+    leftSheet.className = 'dept-sheet-container';
+    leftSheet.style.overflow = 'auto';
+    leftSheet.style.flex = '1';
+    leftCard.appendChild(leftSheet);
+
+    // ── RIGHT: Sent for Approval ──
+    var rightCol = document.createElement('div');
+    rightCol.className = 'dept-dashboard-half';
+    layout.appendChild(rightCol);
+
+    var rightCard = document.createElement('div');
+    rightCard.className = 'dept-sheet-card';
+    rightCol.appendChild(rightCard);
+
+    var rightHeader = document.createElement('div');
+    rightHeader.className = 'dept-sheet-header';
+
+    var rightTitleWrap = document.createElement('div');
+    rightTitleWrap.className = 'dept-sheet-title-wrap';
+
+    var rightH = document.createElement('h3');
+    rightH.className = 'dept-sheet-title';
+    rightH.textContent = 'Sent for Approval';
+    rightTitleWrap.appendChild(rightH);
+
+    var rightCount = document.createElement('span');
+    rightCount.className = 'dept-sheet-count';
+    rightCount.textContent = '0';
+    rightTitleWrap.appendChild(rightCount);
+
+    rightHeader.appendChild(rightTitleWrap);
+
+    var rightSearch = document.createElement('input');
+    rightSearch.type = 'text';
+    rightSearch.className = 'dept-sheet-search';
+    rightSearch.placeholder = 'Search...';
+    rightHeader.appendChild(rightSearch);
+
+    rightCard.appendChild(rightHeader);
+
+    var rightSheet = document.createElement('div');
+    rightSheet.className = 'dept-sheet-container';
+    rightSheet.style.overflow = 'auto';
+    rightSheet.style.flex = '1';
+    rightCard.appendChild(rightSheet);
+
+    // ── Data ──
+    var leftItems = [];
+    var rightItems = [];
+    var leftSort = { key: null, dir: 'asc' };
+    var rightSort = { key: null, dir: 'asc' };
+
+    leftSearch.addEventListener('input', function () {
+      renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+    });
+
+    rightSearch.addEventListener('input', function () {
+      renderRightTable(rightItems, rightSearch.value.toLowerCase());
+    });
+
+    function refreshData() {
+      fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (deliverables) {
+          leftItems = deliverables.filter(function (d) {
+            return d.status === 'ready_for_approval';
+          });
+          rightItems = deliverables.filter(function (d) {
+            return d.status === 'sent_for_approval';
+          });
+          leftCount.textContent = leftItems.length;
+          rightCount.textContent = rightItems.length;
+          renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+          renderRightTable(rightItems, rightSearch.value.toLowerCase());
+        })
+        .catch(function (err) {
+          console.error('Approvals fetch error:', err);
+        });
+    }
+
+    function advanceStatus(itemId, nextStatus) {
+      fetch(API_BASE + '/' + itemId, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: nextStatus })
+      }).then(function (res) {
+        if (res.ok) refreshData();
+      });
+    }
+
+    function renderAssignedCell(item) {
+      var td = document.createElement('td');
+      var assignedId = item.assignedProduction || item.assignedTo;
+      if (assignedId && window._employeeCacheLookup) {
+        var emp = window._employeeCacheLookup(assignedId);
+        if (emp && emp.photo_url) {
+          var avatarImg = document.createElement('img');
+          avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
+          avatarImg.src = emp.photo_url;
+          avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
+          avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
+          td.appendChild(avatarImg);
+        } else {
+          td.textContent = assignedId;
+        }
+      } else {
+        td.textContent = '—';
+      }
+      return td;
+    }
+
+    // ── Left table: Send for Approval (ready_for_approval) ──
+    function renderLeftTable(items, filterTerm) {
+      while (leftSheet.firstChild) leftSheet.removeChild(leftSheet.firstChild);
+
+      var filtered = items;
+      if (filterTerm) {
+        filtered = items.filter(function (item) {
+          return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
+        });
+      }
+
+      if (filtered.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = 'No items ready for approval';
+        leftSheet.appendChild(empty);
+        return;
+      }
+
+      var table = document.createElement('table');
+      table.className = 'production-sheet-table';
+
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      var columns = [
+        { label: 'Client', sortKey: 'clientName' },
+        { label: 'Title', sortKey: 'title' },
+        { label: 'Type', sortKey: 'type' },
+        { label: 'Assigned To', sortKey: null },
+        { label: 'Due Date', sortKey: 'dueDate' },
+        { label: '', sortKey: null }
+      ];
+      columns.forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col.label;
+        if (col.label === '') th.style.width = '40px';
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      makeSortableHeaders(thead, columns, leftSort, function () {
+        renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+      });
+
+      var sorted = sortItems(filtered, leftSort.key, leftSort.dir);
+
+      var tbody = document.createElement('tbody');
+      sorted.forEach(function (item) {
+        var row = document.createElement('tr');
+        row.className = 'production-child-row';
+
+        var tdClient = document.createElement('td');
+        tdClient.style.fontWeight = '600';
+        tdClient.textContent = item.clientName || '—';
+        row.appendChild(tdClient);
+
+        var tdTitle = document.createElement('td');
+        tdTitle.textContent = item.title || '—';
+        row.appendChild(tdTitle);
+
+        var tdType = document.createElement('td');
+        var typeBadge = document.createElement('span');
+        typeBadge.className = 'production-type-badge';
+        typeBadge.textContent = item.type || '—';
+        tdType.appendChild(typeBadge);
+        row.appendChild(tdType);
+
+        row.appendChild(renderAssignedCell(item));
+
+        var tdDue = document.createElement('td');
+        tdDue.textContent = formatDate(item.dueDate);
+        row.appendChild(tdDue);
+
+        var tdAction = document.createElement('td');
+        var btn = document.createElement('button');
+        btn.className = 'proagri-sheet-row-action-btn action-advance';
+        btn.title = 'Send for Approval';
+        btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+        btn.style.opacity = '1';
+        btn.addEventListener('click', (function (id) {
+          return function (e) {
+            e.stopPropagation();
+            advanceStatus(id, 'sent_for_approval');
+          };
+        })(item.id));
+        tdAction.appendChild(btn);
+        row.appendChild(tdAction);
+
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      leftSheet.appendChild(table);
+    }
+
+    // ── Right table: Sent for Approval ──
+    function renderRightTable(items, filterTerm) {
+      while (rightSheet.firstChild) rightSheet.removeChild(rightSheet.firstChild);
+
+      var filtered = items;
+      if (filterTerm) {
+        filtered = items.filter(function (item) {
+          return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
+        });
+      }
+
+      if (filtered.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = 'No items sent for approval';
+        rightSheet.appendChild(empty);
+        return;
+      }
+
+      var table = document.createElement('table');
+      table.className = 'production-sheet-table';
+
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      var columns = [
+        { label: 'Client', sortKey: 'clientName' },
+        { label: 'Title', sortKey: 'title' },
+        { label: 'Type', sortKey: 'type' },
+        { label: 'Assigned To', sortKey: null },
+        { label: 'Due Date', sortKey: 'dueDate' },
+        { label: '', sortKey: null }
+      ];
+      columns.forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col.label;
+        if (col.label === '') th.style.width = '40px';
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      makeSortableHeaders(thead, columns, rightSort, function () {
+        renderRightTable(rightItems, rightSearch.value.toLowerCase());
+      });
+
+      var sorted = sortItems(filtered, rightSort.key, rightSort.dir);
+
+      var tbody = document.createElement('tbody');
+      sorted.forEach(function (item) {
+        var row = document.createElement('tr');
+        row.className = 'production-child-row';
+
+        var tdClient = document.createElement('td');
+        tdClient.style.fontWeight = '600';
+        tdClient.textContent = item.clientName || '—';
+        row.appendChild(tdClient);
+
+        var tdTitle = document.createElement('td');
+        tdTitle.textContent = item.title || '—';
+        row.appendChild(tdTitle);
+
+        var tdType = document.createElement('td');
+        var typeBadge = document.createElement('span');
+        typeBadge.className = 'production-type-badge';
+        typeBadge.textContent = item.type || '—';
+        tdType.appendChild(typeBadge);
+        row.appendChild(tdType);
+
+        row.appendChild(renderAssignedCell(item));
+
+        var tdDue = document.createElement('td');
+        tdDue.textContent = formatDate(item.dueDate);
+        row.appendChild(tdDue);
+
+        var tdAction = document.createElement('td');
+        var wf = workflows.getNextStatus(item.type, item.status);
+        if (wf) {
+          var btn = document.createElement('button');
+          btn.className = 'proagri-sheet-row-action-btn action-advance';
+          btn.title = wf.tooltip;
+          btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+          btn.style.opacity = '1';
+          btn.addEventListener('click', (function (id, next) {
+            return function (e) {
+              e.stopPropagation();
+              advanceStatus(id, next);
+            };
+          })(item.id, wf.next));
+          tdAction.appendChild(btn);
+        }
+        row.appendChild(tdAction);
+
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      rightSheet.appendChild(table);
     }
 
     refreshData();
@@ -934,4 +1460,5 @@
 
   window.renderProductionTab = renderProductionTab;
   window.renderFollowUpsTab = renderFollowUpsTab;
+  window.renderApprovalsTab = renderApprovalsTab;
 })();
