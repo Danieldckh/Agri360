@@ -8,7 +8,8 @@
 
   // Website design workflow: next status for production-visible statuses
   var WEB_DESIGN_NEXT = {
-    'request_client_materials': { next: 'sitemap', tooltip: 'Advance to Sitemap (Design)' },
+    'request_client_materials': { next: 'materials_requested', tooltip: 'Mark as Materials Requested' },
+    'materials_requested': { next: 'sitemap', tooltip: 'Advance to Sitemap (Design)' },
     'ready_for_approval': { next: 'sent_for_approval', tooltip: 'Send for client approval' },
     'sent_for_approval': null, // split: approve or design changes — handled elsewhere
     'development': { next: 'site_developed', tooltip: 'Mark as developed' },

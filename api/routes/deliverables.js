@@ -91,6 +91,7 @@ const DEFAULT_DELIVERABLES = [
 // Website design workflow: status → department slug mapping
 const WEB_DESIGN_DEPT_MAP = {
   'request_client_materials': 'production',
+  'materials_requested': 'production',
   'sitemap': 'design',
   'wireframe': 'design',
   'prototype': 'design',
