@@ -233,9 +233,17 @@
           row.appendChild(tdType);
 
           var tdStatus = document.createElement('td');
+          tdStatus.style.position = 'relative';
           var statusBadge = document.createElement('span');
           statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
           statusBadge.textContent = formatStatus(item.status);
+          statusBadge.style.cursor = 'pointer';
+          statusBadge.addEventListener('click', (function (itm, badge, cell) {
+            return function (e) {
+              e.stopPropagation();
+              showStatusDropdown(itm, badge, cell, refreshAll);
+            };
+          })(item, statusBadge, tdStatus));
           tdStatus.appendChild(statusBadge);
           row.appendChild(tdStatus);
 
@@ -612,6 +620,317 @@
 
     refreshData();
   }
+
+  // ── Status Dropdown ─────────────────────────────────────────────
+  function showStatusDropdown(item, badge, cell, onRefresh) {
+    // Close any existing dropdown
+    var existing = document.querySelector('.status-dropdown-menu');
+    if (existing) existing.remove();
+
+    var chain = workflows.getStatusChain(item.type);
+    if (!chain || chain.length === 0) return;
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'status-dropdown-menu';
+
+    chain.forEach(function (st) {
+      var option = document.createElement('div');
+      option.className = 'status-dropdown-option';
+      if (st === item.status) option.classList.add('status-dropdown-active');
+      option.textContent = formatStatus(st);
+      option.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.remove();
+        if (st === item.status) return;
+        fetch(API_BASE + '/' + item.id, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status: st })
+        }).then(function (res) {
+          if (res.ok) onRefresh();
+        });
+      });
+      dropdown.appendChild(option);
+    });
+
+    cell.appendChild(dropdown);
+
+    // Close on outside click
+    function closeDropdown(e) {
+      if (!dropdown.contains(e.target) && e.target !== badge) {
+        dropdown.remove();
+        document.removeEventListener('click', closeDropdown, true);
+      }
+    }
+    setTimeout(function () {
+      document.addEventListener('click', closeDropdown, true);
+    }, 0);
+  }
+
+  // ── Generic Department Type Tab ────────────────────────────────
+  window.renderDeptTypeTab = function (container, deptSlug, viewName) {
+    var typeFilters = {
+      'Content Calendars': ['sm-content-calendar', 'sm-posts', 'sm-videos', 'sm-google-ads', 'sm-linkedin', 'sm-twitter'],
+      'Agri for All': ['agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads', 'agri4all-newsletters', 'agri4all-linkedin'],
+      'Magazine': ['magazine'],
+      'Web Design': ['website-design'],
+      'Banners': ['agri4all-banners'],
+      'Online Articles': ['online-articles'],
+      'Briefs': ['video'],
+      'Production': ['video'],
+      'Editing': ['video'],
+      'Review': ['video'],
+      'Posts': ['agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads', 'agri4all-linkedin'],
+      'Newsletters': ['agri4all-newsletters'],
+      'Links': ['agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads', 'agri4all-newsletters', 'agri4all-linkedin'],
+      'Stats': ['agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads', 'agri4all-newsletters', 'agri4all-banners', 'agri4all-linkedin'],
+      'Scheduling': ['sm-content-calendar', 'sm-posts', 'sm-videos', 'sm-google-ads', 'sm-linkedin', 'sm-twitter', 'agri4all-banners'],
+      'Proposals': ['proposal']
+    };
+
+    var allowedTypes = typeFilters[viewName] || [];
+
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = 'flex';
+    container.style.alignItems = 'stretch';
+    container.style.justifyContent = '';
+    container.style.flexDirection = '';
+    container.style.height = '';
+    container.style.gap = '';
+    container.style.padding = '';
+
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card';
+    card.style.width = '100%';
+
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = viewName;
+    titleWrap.appendChild(h);
+
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+
+    header.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search...';
+    header.appendChild(searchInput);
+
+    card.appendChild(header);
+
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    sheetContainer.style.overflow = 'auto';
+    sheetContainer.style.flex = '1';
+    card.appendChild(sheetContainer);
+
+    container.appendChild(card);
+
+    var allGroups = [];
+
+    searchInput.addEventListener('input', function () {
+      renderDeptTable(allGroups, searchInput.value.toLowerCase());
+    });
+
+    function refreshAll() {
+      fetch(API_BASE + '/by-department/' + deptSlug, { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (deliverables) {
+          var filtered = deliverables.filter(function (d) {
+            return allowedTypes.indexOf(d.type) !== -1;
+          });
+          allGroups = groupByClient(filtered);
+          countBadge.textContent = filtered.length;
+          renderDeptTable(allGroups, searchInput.value.toLowerCase());
+        })
+        .catch(function (err) {
+          console.error('Dept tab fetch error:', err);
+        });
+    }
+
+    function renderDeptTable(groups, filterTerm) {
+      while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
+
+      if (groups.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = 'No items to display';
+        sheetContainer.appendChild(empty);
+        return;
+      }
+
+      var table = document.createElement('table');
+      table.className = 'production-sheet-table';
+
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      ['Title', 'Type', 'Status', 'Assigned To', 'Due Date', ''].forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col;
+        if (col === '') th.style.width = '40px';
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+
+      groups.forEach(function (group) {
+        var items = group.items;
+        if (filterTerm) {
+          items = items.filter(function (item) {
+            return (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1) ||
+              (group.clientName.toLowerCase().indexOf(filterTerm) !== -1);
+          });
+        }
+        if (items.length === 0) return;
+
+        var clientRow = document.createElement('tr');
+        clientRow.className = 'production-client-row';
+        clientRow.style.cursor = 'pointer';
+
+        var clientCell = document.createElement('td');
+        clientCell.colSpan = 6;
+
+        var clientWrap = document.createElement('div');
+        clientWrap.style.display = 'flex';
+        clientWrap.style.alignItems = 'center';
+        clientWrap.style.gap = '8px';
+
+        var chevron = document.createElement('span');
+        chevron.className = 'production-chevron';
+        chevron.textContent = '\u25BC';
+
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'production-client-name';
+        nameSpan.textContent = group.clientName;
+
+        var badge = document.createElement('span');
+        badge.className = 'dept-sheet-count';
+        badge.textContent = items.length;
+
+        clientWrap.appendChild(chevron);
+        clientWrap.appendChild(nameSpan);
+        clientWrap.appendChild(badge);
+        clientCell.appendChild(clientWrap);
+        clientRow.appendChild(clientCell);
+        tbody.appendChild(clientRow);
+
+        var childRows = [];
+        items.forEach(function (item) {
+          var row = document.createElement('tr');
+          row.className = 'production-child-row';
+
+          var tdTitle = document.createElement('td');
+          tdTitle.className = 'production-indented';
+          tdTitle.textContent = item.title || '\u2014';
+          row.appendChild(tdTitle);
+
+          var tdType = document.createElement('td');
+          var typeBadge = document.createElement('span');
+          typeBadge.className = 'production-type-badge';
+          typeBadge.textContent = item.type || '\u2014';
+          tdType.appendChild(typeBadge);
+          row.appendChild(tdType);
+
+          var tdStatus = document.createElement('td');
+          tdStatus.style.position = 'relative';
+          var statusBadge = document.createElement('span');
+          statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
+          statusBadge.textContent = formatStatus(item.status);
+          statusBadge.style.cursor = 'pointer';
+          statusBadge.addEventListener('click', (function (itm, bdg, cel) {
+            return function (e) {
+              e.stopPropagation();
+              showStatusDropdown(itm, bdg, cel, refreshAll);
+            };
+          })(item, statusBadge, tdStatus));
+          tdStatus.appendChild(statusBadge);
+          row.appendChild(tdStatus);
+
+          var tdAssigned = document.createElement('td');
+          var assignedId = item.assignedProduction || item.assignedTo;
+          if (assignedId && window._employeeCacheLookup) {
+            var emp = window._employeeCacheLookup(assignedId);
+            if (emp && emp.photo_url) {
+              var avatarImg = document.createElement('img');
+              avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
+              avatarImg.src = emp.photo_url;
+              avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
+              avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
+              tdAssigned.appendChild(avatarImg);
+            } else {
+              tdAssigned.textContent = assignedId;
+            }
+          } else {
+            tdAssigned.textContent = '\u2014';
+          }
+          row.appendChild(tdAssigned);
+
+          var tdDue = document.createElement('td');
+          tdDue.textContent = formatDate(item.dueDate);
+          row.appendChild(tdDue);
+
+          var tdAction = document.createElement('td');
+          var wf = workflows.getNextStatus(item.type, item.status);
+          if (wf) {
+            var btn = document.createElement('button');
+            btn.className = 'proagri-sheet-row-action-btn action-advance';
+            btn.title = wf.tooltip;
+            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+            btn.style.opacity = '1';
+            btn.addEventListener('click', (function (id, next) {
+              return function (e) {
+                e.stopPropagation();
+                fetch(API_BASE + '/' + id, {
+                  method: 'PATCH',
+                  headers: getHeaders(),
+                  body: JSON.stringify({ status: next })
+                }).then(function (res) {
+                  if (res.ok) refreshAll();
+                });
+              };
+            })(item.id, wf.next));
+            tdAction.appendChild(btn);
+          }
+          row.appendChild(tdAction);
+
+          tbody.appendChild(row);
+          childRows.push(row);
+        });
+
+        clientRow.addEventListener('click', (function (rows, chev) {
+          return function () {
+            var isOpen = rows[0] && rows[0].style.display !== 'none';
+            rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
+            chev.textContent = isOpen ? '\u25B6' : '\u25BC';
+          };
+        })(childRows, chevron));
+      });
+
+      table.appendChild(tbody);
+      sheetContainer.appendChild(table);
+    }
+
+    refreshAll();
+  };
 
   window.renderProductionTab = renderProductionTab;
   window.renderFollowUpsTab = renderFollowUpsTab;

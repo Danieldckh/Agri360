@@ -349,11 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
     'production': ['Client Communications', 'Follow Ups'],
-    'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
-    'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
-    'video': ['Dashboard', 'Calendar', 'Tasks', 'Budgets', 'Team & Freelancers'],
-    'agri4all': ['Listings', 'Newsletters', 'Social Media', 'Banners'],
-    'social-media': ['Dashboard', 'Content Calendars', 'Agri for All', 'Stats', 'Settings']
+    'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
+    'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
+    'video': ['Briefs', 'Production', 'Editing', 'Review'],
+    'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
+    'social-media': ['Content Calendars', 'Agri for All', 'Banners', 'Scheduling']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
@@ -930,6 +930,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Route Design > Web Design to web design workflow view
     if (page === 'design' && viewName === 'Web Design' && window.renderDesignWebDesignTab) {
       window.renderDesignWebDesignTab(dashboardContent);
+      return;
+    }
+
+    // Route department tabs to generic type-filtered view
+    var deptTypeViews = ['Content Calendars', 'Agri for All', 'Magazine', 'Banners', 'Online Articles',
+      'Briefs', 'Production', 'Editing', 'Review', 'Posts', 'Newsletters', 'Links', 'Stats', 'Scheduling'];
+    if (deptTypeViews.indexOf(viewName) !== -1 && window.renderDeptTypeTab) {
+      window.renderDeptTypeTab(dashboardContent, page, viewName);
       return;
     }
 

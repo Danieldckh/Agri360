@@ -68,43 +68,92 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Default production deliverable types
+// Default production deliverable types with initial statuses
 const DEFAULT_DELIVERABLES = [
-  { type: 'sm-posts', title: 'SM Management - Posts' },
-  { type: 'sm-videos', title: 'SM Management - Videos' },
-  { type: 'sm-google-ads', title: 'SM Management - Google Ads' },
-  { type: 'sm-linkedin', title: 'SM Management - LinkedIn' },
-  { type: 'sm-twitter', title: 'SM Management - Twitter/X' },
-  { type: 'sm-content-calendar', title: 'SM Management - Content Calendar' },
-  { type: 'agri4all-posts', title: 'Agri4All - Posts' },
-  { type: 'agri4all-videos', title: 'Agri4All - Videos' },
-  { type: 'agri4all-product-uploads', title: 'Agri4All - Product Uploads' },
-  { type: 'agri4all-newsletters', title: 'Agri4All - Newsletters' },
-  { type: 'agri4all-banners', title: 'Agri4All - Banners' },
-  { type: 'agri4all-linkedin', title: 'Agri4All - LinkedIn' },
-  { type: 'online-articles', title: 'Online Articles' },
-  { type: 'magazine', title: 'Magazine' },
-  { type: 'video', title: 'Video' },
+  { type: 'sm-posts', title: 'SM Management - Posts', initialStatus: 'request_client_materials' },
+  { type: 'sm-videos', title: 'SM Management - Videos', initialStatus: 'request_client_materials' },
+  { type: 'sm-google-ads', title: 'SM Management - Google Ads', initialStatus: 'request_client_materials' },
+  { type: 'sm-linkedin', title: 'SM Management - LinkedIn', initialStatus: 'request_client_materials' },
+  { type: 'sm-twitter', title: 'SM Management - Twitter/X', initialStatus: 'request_client_materials' },
+  { type: 'sm-content-calendar', title: 'SM Management - Content Calendar', initialStatus: 'request_client_materials' },
+  { type: 'agri4all-posts', title: 'Agri4All - Posts', initialStatus: 'request_client_materials' },
+  { type: 'agri4all-videos', title: 'Agri4All - Videos', initialStatus: 'request_client_materials' },
+  { type: 'agri4all-product-uploads', title: 'Agri4All - Product Uploads', initialStatus: 'request_client_materials' },
+  { type: 'agri4all-newsletters', title: 'Agri4All - Newsletters', initialStatus: 'request_client_materials' },
+  { type: 'agri4all-banners', title: 'Agri4All - Banners', initialStatus: 'design' },
+  { type: 'agri4all-linkedin', title: 'Agri4All - LinkedIn', initialStatus: 'request_client_materials' },
+  { type: 'online-articles', title: 'Online Articles', initialStatus: 'request_client_materials' },
+  { type: 'magazine', title: 'Magazine', initialStatus: 'request_client_materials' },
+  { type: 'video', title: 'Video', initialStatus: 'send_request_form' },
   { type: 'website-design', title: 'Website Design', initialStatus: 'request_client_materials' }
 ];
 
-// Website design workflow: status → department slug mapping
-const WEB_DESIGN_DEPT_MAP = {
-  'request_client_materials': 'production',
-  'materials_requested':      'production',
-  'materials_received':       'production',
-  'sitemap':                  'design',
-  'wireframe':                'design',
-  'prototype':                'design',
-  'design_changes':           'design',
-  'approved':                 'design',
-  'ready_for_approval':       'production',
-  'sent_for_approval':        'production',
-  'development':              'production',
-  'site_developed':           'production',
-  'hosting_seo':              'production',
-  'complete':                 'production'
+// Comprehensive status → department slug routing for all types
+const DEPT_MAPS = {
+  'sm-posts': {
+    'request_client_materials': 'production', 'upload_materials': 'production',
+    'artwork_design': 'design', 'design_changes': 'design',
+    'create_captions': 'editorial', 'editorial_review': 'editorial',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'production',
+    'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
+  },
+  'sm-content-calendar': {
+    'request_client_materials': 'production', 'upload_materials': 'production',
+    'artwork_design': 'design', 'design_changes': 'design',
+    'create_captions': 'editorial', 'editorial_review': 'editorial',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'production',
+    'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
+  },
+  'agri4all-posts': {
+    'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
+    'design': 'design', 'design_review': 'design', 'design_changes': 'design',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production',
+    'approved': 'agri4all', 'create_links': 'agri4all',
+    'ready_for_scheduling': 'social-media', 'scheduled': 'social-media',
+    'create_stat_sheet': 'agri4all', 'complete': 'agri4all'
+  },
+  'agri4all-banners': {
+    'design': 'design', 'design_review': 'design', 'design_changes': 'design',
+    'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media',
+    'create_stat_sheet': 'agri4all'
+  },
+  'magazine': {
+    'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
+    'editing': 'editorial', 'design': 'design', 'design_review': 'design', 'design_changes': 'design',
+    'editorial_review': 'editorial', 'editorial_changes': 'editorial',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'design',
+    'approved': 'production'
+  },
+  'online-articles': {
+    'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
+    'editing': 'editorial', 'editorial_changes': 'editorial',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'editorial',
+    'approved': 'editorial', 'translating': 'editorial', 'ready_to_upload': 'editorial', 'posted': 'editorial'
+  },
+  'website-design': {
+    'request_client_materials': 'production', 'materials_requested': 'production', 'materials_received': 'production',
+    'sitemap': 'design', 'wireframe': 'design', 'prototype': 'design', 'design_changes': 'design', 'approved': 'design',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production',
+    'development': 'production', 'site_developed': 'production', 'hosting_seo': 'production', 'complete': 'production'
+  },
+  'video': {
+    'send_request_form': 'production', 'request_form_sent': 'production', 'request_form_received': 'production', 'populating_video_dept': 'production',
+    'brief_received': 'video', 'assign_and_schedule': 'video', 'production': 'video',
+    'editing': 'video', 'review': 'video', 'changes_requested': 'video', 'final_delivery': 'video'
+  }
 };
+
+// Aliases: types that share dept maps
+const DEPT_MAP_ALIASES = {
+  'sm-videos': 'sm-posts', 'sm-google-ads': 'sm-posts', 'sm-linkedin': 'sm-posts', 'sm-twitter': 'sm-posts',
+  'agri4all-videos': 'agri4all-posts', 'agri4all-product-uploads': 'agri4all-posts',
+  'agri4all-newsletters': 'agri4all-posts', 'agri4all-linkedin': 'agri4all-posts'
+};
+
+function getDeptMapForType(type) {
+  const key = DEPT_MAP_ALIASES[type] || type;
+  return DEPT_MAPS[key] || null;
+}
 
 // POST /bulk - create all production deliverables for a booking form
 router.post('/bulk', async (req, res) => {
@@ -124,20 +173,25 @@ router.post('/bulk', async (req, res) => {
       return res.json(existing.rows.map(toCamelCase));
     }
 
-    // Look up production department ID
-    const deptResult = await pool.query("SELECT id FROM departments WHERE slug = 'production'");
-    if (deptResult.rows.length === 0) {
+    // Look up all department IDs
+    const deptResult = await pool.query("SELECT id, slug FROM departments");
+    const deptBySlug = {};
+    deptResult.rows.forEach(r => { deptBySlug[r.slug] = r.id; });
+    const defaultDeptId = deptBySlug['production'];
+    if (!defaultDeptId) {
       return res.status(500).json({ error: 'Production department not found' });
     }
-    const departmentId = deptResult.rows[0].id;
 
-    // Insert all 16 deliverables in a transaction
+    // Insert all 16 deliverables in a transaction, routing to correct department
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       const created = [];
       for (const d of DEFAULT_DELIVERABLES) {
         const status = d.initialStatus || 'pending';
+        const deptMap = getDeptMapForType(d.type);
+        const targetSlug = deptMap && deptMap[status] ? deptMap[status] : 'production';
+        const departmentId = deptBySlug[targetSlug] || defaultDeptId;
         const result = await client.query(
           `INSERT INTO deliverables (booking_form_id, department_id, type, title, status)
            VALUES ($1, $2, $3, $4, $5)
@@ -187,14 +241,17 @@ router.post('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
 
-  // Auto-route website-design deliverables to correct department on status change
-  if (body.status && WEB_DESIGN_DEPT_MAP[body.status]) {
+  // Auto-route deliverables to correct department on status change
+  if (body.status) {
     const existing = await pool.query('SELECT type FROM deliverables WHERE id = $1', [req.params.id]);
-    if (existing.rows.length > 0 && existing.rows[0].type === 'website-design') {
-      const targetSlug = WEB_DESIGN_DEPT_MAP[body.status];
-      const deptResult = await pool.query('SELECT id FROM departments WHERE slug = $1', [targetSlug]);
-      if (deptResult.rows.length > 0) {
-        body.department_id = deptResult.rows[0].id;
+    if (existing.rows.length > 0) {
+      const deptMap = getDeptMapForType(existing.rows[0].type);
+      if (deptMap && deptMap[body.status]) {
+        const targetSlug = deptMap[body.status];
+        const deptResult = await pool.query('SELECT id FROM departments WHERE slug = $1', [targetSlug]);
+        if (deptResult.rows.length > 0) {
+          body.department_id = deptResult.rows[0].id;
+        }
       }
     }
   }
