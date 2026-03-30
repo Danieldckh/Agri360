@@ -3,6 +3,13 @@
 
   var API_BASE = '/api/booking-forms';
 
+  // SVG icon paths for row actions
+  var ICON_DELETE = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z';
+  var ICON_SKIP = 'M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16.5 6H18v12h-1.5V6z';
+  var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
+  var ICON_DECLINE = 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z';
+  var ICON_APPROVE = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
+
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
     if (window.getAuthHeaders) {
@@ -14,577 +21,847 @@
     return headers;
   }
 
-  function formatDate(iso) {
-    if (!iso) return '—';
-    var d = new Date(iso);
-    return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+  // --- Decline Reason Modal ---
+  function showDeclineModal(onConfirm) {
+    var overlay = document.createElement('div');
+    overlay.className = 'decline-modal-overlay';
+
+    var modal = document.createElement('div');
+    modal.className = 'decline-modal';
+
+    var title = document.createElement('h3');
+    title.textContent = 'Reason for Decline';
+    modal.appendChild(title);
+
+    var textarea = document.createElement('textarea');
+    textarea.className = 'decline-modal-textarea';
+    textarea.placeholder = 'Enter the reason for declining this proposal...';
+    textarea.rows = 4;
+    modal.appendChild(textarea);
+
+    var btnRow = document.createElement('div');
+    btnRow.className = 'decline-modal-buttons';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'decline-modal-btn decline-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () {
+      document.body.removeChild(overlay);
+    });
+
+    var confirmBtn = document.createElement('button');
+    confirmBtn.className = 'decline-modal-btn decline-modal-confirm';
+    confirmBtn.textContent = 'Decline';
+    confirmBtn.addEventListener('click', function () {
+      var reason = textarea.value.trim();
+      if (!reason) {
+        textarea.style.borderColor = '#e74c3c';
+        textarea.placeholder = 'A reason is required...';
+        return;
+      }
+      document.body.removeChild(overlay);
+      onConfirm(reason);
+    });
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(confirmBtn);
+    modal.appendChild(btnRow);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    setTimeout(function () { textarea.focus(); }, 50);
   }
 
-  // JSON tree renderer with collapsible sections
-  function renderJsonTree(data, depth) {
-    depth = depth || 0;
-    var wrap = document.createElement('div');
-    wrap.className = 'json-tree';
+  // --- Column Configs ---
 
-    if (data === null || data === undefined) {
-      var nullEl = document.createElement('span');
-      nullEl.className = 'json-null';
-      nullEl.textContent = 'null';
-      wrap.appendChild(nullEl);
-      return wrap;
-    }
+  var todoColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
+    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
+  ];
 
-    if (typeof data !== 'object') {
-      var valEl = document.createElement('span');
-      if (typeof data === 'string') {
-        valEl.className = 'json-string';
-        valEl.textContent = '"' + data + '"';
-      } else if (typeof data === 'number') {
-        valEl.className = 'json-number';
-        valEl.textContent = data;
-      } else if (typeof data === 'boolean') {
-        valEl.className = 'json-boolean';
-        valEl.textContent = data;
-      }
-      wrap.appendChild(valEl);
-      return wrap;
-    }
+  var sideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
+  ];
 
-    var isArray = Array.isArray(data);
-    var keys = isArray ? data : Object.keys(data);
-    var entries = isArray ? data.map(function (v, i) { return [i, v]; }) : Object.entries(data);
+  var bookingColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
+    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
+  ];
 
-    entries.forEach(function (entry) {
-      var key = entry[0];
-      var value = entry[1];
-      var row = document.createElement('div');
-      row.className = 'json-row';
-      row.style.paddingLeft = (depth * 16) + 'px';
+  var bookingSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
 
-      var isExpandable = value !== null && typeof value === 'object';
+  var onboardingColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
 
-      if (isExpandable) {
-        var toggle = document.createElement('span');
-        toggle.className = 'json-toggle';
-        toggle.textContent = '▸';
-        var collapsed = depth > 1;
+  var onboardingSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' }
+  ];
 
-        var keyEl = document.createElement('span');
-        keyEl.className = 'json-key';
-        keyEl.textContent = isArray ? '[' + key + ']' : key;
+  var declinedColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'declineReason', label: 'Reason', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status' }
+  ];
 
-        var preview = document.createElement('span');
-        preview.className = 'json-preview';
-        var childCount = Array.isArray(value) ? value.length : Object.keys(value).length;
-        preview.textContent = (Array.isArray(value) ? '[' : '{') + childCount + (Array.isArray(value) ? ' items]' : ' keys}');
+  var declinedSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'declineReason', label: 'Reason', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' }
+  ];
 
-        var children = renderJsonTree(value, depth + 1);
-        children.className += ' json-children';
+  // --- Row Mappers ---
 
-        if (collapsed) {
-          children.style.display = 'none';
-        } else {
-          toggle.textContent = '▾';
-          preview.style.display = 'none';
-        }
+  function mapFormToRow(form) {
+    return {
+      id: form.id,
+      client: form.clientName || form.title || 'Untitled',
+      title: form.title || '—',
+      representative: form.representative || '—',
+      campaignStart: form.campaignMonthStart || null,
+      campaignEnd: form.campaignMonthEnd || null,
+      createdAt: form.createdAt || null,
+      status: form.status || 'draft',
+      declineReason: form.declineReason || ''
+    };
+  }
 
-        toggle.addEventListener('click', function () {
-          if (children.style.display === 'none') {
-            children.style.display = '';
-            toggle.textContent = '▾';
-            preview.style.display = 'none';
-          } else {
-            children.style.display = 'none';
-            toggle.textContent = '▸';
-            preview.style.display = '';
-          }
-        });
+  // Filter forms by status into the 3 proposal buckets
+  function splitByStatus(forms) {
+    var todo = [];
+    var inDesign = [];
+    var sentToClient = [];
 
-        row.appendChild(toggle);
-        row.appendChild(keyEl);
-        row.appendChild(document.createTextNode(': '));
-        row.appendChild(preview);
-        wrap.appendChild(row);
-        wrap.appendChild(children);
+    forms.forEach(function (form) {
+      var row = mapFormToRow(form);
+      var s = (form.status || 'draft').toLowerCase().replace(/\s+/g, '_');
+      if (s === 'in_design') {
+        inDesign.push(row);
+      } else if (s === 'sent_to_client' || s === 'sent') {
+        sentToClient.push(row);
       } else {
-        var spacer = document.createElement('span');
-        spacer.className = 'json-spacer';
-        row.appendChild(spacer);
-
-        var keyEl2 = document.createElement('span');
-        keyEl2.className = 'json-key';
-        keyEl2.textContent = isArray ? '[' + key + ']' : key;
-        row.appendChild(keyEl2);
-        row.appendChild(document.createTextNode(': '));
-        row.appendChild(renderJsonTree(value, depth + 1));
-        wrap.appendChild(row);
+        todo.push(row);
       }
     });
 
-    return wrap;
+    return { todo: todo, inDesign: inDesign, sentToClient: sentToClient };
   }
 
-  // Map JSON sections to departments and deliverable types
-  function extractDeliverables(data) {
-    if (!data) return [];
-    var deliverables = [];
+  // --- Reusable Sheet Builder ---
 
-    // Social Media Management → Social Media department
-    var smm = data.social_media_management || data.socialMediaManagement;
-    if (smm && (Array.isArray(smm) ? smm.length > 0 : true)) {
-      deliverables.push({
-        department: 'Social Media',
-        type: 'social-media-management',
-        title: 'Social Media Management',
-        detail: Array.isArray(smm) ? smm.length + ' month(s)' : 'Active',
-        data: smm
-      });
-    }
+  function buildProposalSheet(title, columns, opts) {
+    opts = opts || {};
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card' + (opts.compact ? ' dept-sheet-card-compact' : '');
 
-    // Own Page Social Media → Design department
-    var ownSm = data.ownPageSocialMedia || data.own_page_social_media;
-    if (ownSm && (Array.isArray(ownSm) ? ownSm.length > 0 : Object.keys(ownSm).length > 0)) {
-      deliverables.push({
-        department: 'Design',
-        type: 'own-social-media',
-        title: 'Own Social Media Posts',
-        detail: 'Design Department',
-        data: ownSm
-      });
-    }
-
-    // Agri4All → Agri4All department
-    var agri = data.agri4all;
-    if (agri && (Array.isArray(agri) ? agri.length > 0 : true)) {
-      deliverables.push({
-        department: 'Agri4All',
-        type: 'agri4all',
-        title: 'Agri4All',
-        detail: Array.isArray(agri) ? agri.length + ' month(s)' : 'Active',
-        data: agri
-      });
-    }
-
-    // Online Articles → Editorial department
-    var articles = data.online_articles || data.onlineArticles;
-    if (articles && (Array.isArray(articles) ? articles.length > 0 : true)) {
-      deliverables.push({
-        department: 'Editorial',
-        type: 'online-articles',
-        title: 'Online Articles',
-        detail: Array.isArray(articles) ? articles.length + ' month(s)' : 'Active',
-        data: articles
-      });
-    }
-
-    // Banners → Design department
-    var banners = data.banners;
-    if (banners && (Array.isArray(banners) ? banners.length > 0 : true)) {
-      deliverables.push({
-        department: 'Design',
-        type: 'banners',
-        title: 'Banners',
-        detail: Array.isArray(banners) ? banners.length + ' month(s)' : 'Active',
-        data: banners
-      });
-    }
-
-    // Magazine → Editorial department
-    var mag = data.magazine;
-    if (mag && (Array.isArray(mag) ? mag.length > 0 : true)) {
-      deliverables.push({
-        department: 'Editorial',
-        type: 'magazine',
-        title: 'Magazine / Print',
-        detail: Array.isArray(mag) ? mag.length + ' entry(ies)' : 'Active',
-        data: mag
-      });
-    }
-
-    // Video → Video department
-    var video = data.video;
-    if (video && (Array.isArray(video) ? video.length > 0 : true)) {
-      deliverables.push({
-        department: 'Video',
-        type: 'video',
-        title: 'Video Production',
-        detail: Array.isArray(video) ? video.length + ' entry(ies)' : 'Active',
-        data: video
-      });
-    }
-
-    // Website → Design department
-    var website = data.website || data.websiteDesign;
-    if (website && (Array.isArray(website) ? website.length > 0 : true)) {
-      deliverables.push({
-        department: 'Design',
-        type: 'website',
-        title: 'Website Design',
-        detail: Array.isArray(website) ? website.length + ' entry(ies)' : 'Active',
-        data: website
-      });
-    }
-
-    // Content Calendar (from socialLinks having platforms)
-    var socialLinks = data.socialLinks || data.social_links;
-    if (socialLinks && (Array.isArray(socialLinks) ? socialLinks.length > 0 : true)) {
-      deliverables.push({
-        department: 'Design',
-        type: 'content-calendar',
-        title: 'Content Calendar',
-        detail: 'Social platforms linked',
-        data: socialLinks
-      });
-    }
-
-    return deliverables;
-  }
-
-  var deptColors = {
-    'Social Media': '#3498db',
-    'Design': '#9b59b6',
-    'Agri4All': '#1abc9c',
-    'Editorial': '#e67e22',
-    'Video': '#e74c3c',
-    'Production': '#2ecc71',
-    'Admin': '#4285f4'
-  };
-
-  function renderDeliverablesList(deliverables, form) {
-    var wrap = document.createElement('div');
-    wrap.className = 'proposal-deliv-list';
-
-    var heading = document.createElement('div');
-    heading.className = 'proposal-deliv-heading';
-    heading.textContent = 'Deliverables to create (' + deliverables.length + ')';
-    wrap.appendChild(heading);
-
-    // Group by department
-    var grouped = {};
-    deliverables.forEach(function (d) {
-      if (!grouped[d.department]) grouped[d.department] = [];
-      grouped[d.department].push(d);
-    });
-
-    Object.keys(grouped).forEach(function (dept) {
-      var deptSection = document.createElement('div');
-      deptSection.className = 'proposal-deliv-dept';
-
-      var deptHeader = document.createElement('div');
-      deptHeader.className = 'proposal-deliv-dept-header';
-      var deptDot = document.createElement('span');
-      deptDot.className = 'proposal-deliv-dot';
-      deptDot.style.background = deptColors[dept] || '#999';
-      deptHeader.appendChild(deptDot);
-      var deptName = document.createElement('span');
-      deptName.className = 'proposal-deliv-dept-name';
-      deptName.textContent = dept;
-      deptHeader.appendChild(deptName);
-      var deptCount = document.createElement('span');
-      deptCount.className = 'proposal-deliv-count';
-      deptCount.textContent = grouped[dept].length;
-      deptHeader.appendChild(deptCount);
-      deptSection.appendChild(deptHeader);
-
-      grouped[dept].forEach(function (d) {
-        var row = document.createElement('div');
-        row.className = 'proposal-deliv-row';
-
-        var cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = true;
-        cb.className = 'proposal-deliv-cb';
-        row.appendChild(cb);
-
-        var info = document.createElement('div');
-        info.className = 'proposal-deliv-info';
-        var titleEl = document.createElement('span');
-        titleEl.className = 'proposal-deliv-title';
-        titleEl.textContent = d.title;
-        info.appendChild(titleEl);
-        var detailEl = document.createElement('span');
-        detailEl.className = 'proposal-deliv-detail';
-        detailEl.textContent = d.detail;
-        info.appendChild(detailEl);
-        row.appendChild(info);
-
-        var typeBadge = document.createElement('span');
-        typeBadge.className = 'proposal-deliv-type';
-        typeBadge.textContent = d.type;
-        row.appendChild(typeBadge);
-
-        deptSection.appendChild(row);
-      });
-
-      wrap.appendChild(deptSection);
-    });
-
-    // Create button (placeholder - doesn't create yet)
-    var createBtn = document.createElement('button');
-    createBtn.className = 'dev-btn dev-btn-primary';
-    createBtn.style.marginTop = '12px';
-    createBtn.textContent = 'Confirm & Create Selected';
-    createBtn.addEventListener('click', function () {
-      createBtn.textContent = 'Coming soon...';
-      createBtn.disabled = true;
-      setTimeout(function () {
-        createBtn.textContent = 'Confirm & Create Selected';
-        createBtn.disabled = false;
-      }, 2000);
-    });
-    wrap.appendChild(createBtn);
-
-    return wrap;
-  }
-
-  // Cache departments
-  var departmentsCache = null;
-
-  function getDepartments() {
-    if (departmentsCache) return Promise.resolve(departmentsCache);
-    return fetch('/api/departments', { headers: getHeaders() })
-      .then(function (res) { return res.json(); })
-      .then(function (depts) {
-        departmentsCache = {};
-        depts.forEach(function (d) {
-          departmentsCache[d.slug || d.name.toLowerCase().replace(/\s+/g, '-')] = d.id;
-          departmentsCache[d.name] = d.id;
-        });
-        return departmentsCache;
-      });
-  }
-
-  function createDeliverables(form, btn) {
-    var fd = form.formData;
-    if (!fd) {
-      alert('No form data found');
-      return;
-    }
-
-    btn.textContent = 'Creating...';
-    btn.disabled = true;
-
-    getDepartments().then(function (depts) {
-      var productionId = depts['production'] || depts['Production'];
-      if (!productionId) {
-        alert('Production department not found');
-        btn.textContent = 'Create Deliverables';
-        btn.disabled = false;
-        return;
-      }
-
-      var smm = fd.social_media_management || fd.socialMediaManagement || [];
-      if (!Array.isArray(smm)) smm = [];
-
-      var promises = [];
-
-      smm.forEach(function (entry) {
-        if (!entry.content_calendar) return;
-
-        var platforms = (entry.platforms || []).map(function (p) { return p.platform; });
-        var monthlyPosts = entry.monthly_posts || 0;
-        var monthLabel = entry.month_label || entry.months_display || '';
-
-        var description = 'Monthly Posts: ' + monthlyPosts + '\n' +
-          'Platforms: ' + (platforms.length > 0 ? platforms.join(', ') : 'None') + '\n' +
-          'Period: ' + monthLabel;
-
-        promises.push(
-          fetch('/api/deliverables', {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({
-              bookingFormId: form.id,
-              departmentId: productionId,
-              type: 'content-calendar',
-              title: 'Content Calendar — ' + monthLabel,
-              description: description,
-              status: 'pending'
-            })
-          }).then(function (res) {
-            if (!res.ok) throw new Error('Status ' + res.status);
-            return res.json();
-          })
-        );
-      });
-
-      if (promises.length === 0) {
-        btn.textContent = 'No Content Calendars found';
-        btn.disabled = true;
-        setTimeout(function () {
-          btn.textContent = 'Create Deliverables';
-          btn.disabled = false;
-        }, 2000);
-        return;
-      }
-
-      return Promise.all(promises);
-    }).then(function (results) {
-      if (results && results.length > 0) {
-        btn.textContent = 'Created ' + results.length + ' deliverable(s) ✓';
-        btn.disabled = true;
-      }
-    }).catch(function (err) {
-      console.error('Create deliverables error:', err);
-      btn.textContent = 'Error — try again';
-      btn.disabled = false;
-    });
-  }
-
-  function renderProposalTab(container) {
-    while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = 'block';
-    container.style.height = 'auto';
-    container.style.padding = '0';
-    container.style.alignItems = '';
-    container.style.justifyContent = '';
-
-    var page = document.createElement('div');
-    page.className = 'dev-page';
-
-    // Header
     var header = document.createElement('div');
-    header.className = 'dev-page-header';
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
-    var title = document.createElement('h2');
-    title.className = 'dev-page-title';
-    title.textContent = 'Proposals';
-    header.appendChild(title);
+    header.className = 'dept-sheet-header';
 
-    var newBookingBtn = document.createElement('a');
-    newBookingBtn.href = '/checklist/';
-    newBookingBtn.className = 'dev-btn dev-btn-primary';
-    newBookingBtn.textContent = 'New Booking';
-    newBookingBtn.style.textDecoration = 'none';
-    header.appendChild(newBookingBtn);
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
 
-    page.appendChild(header);
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = title;
+    titleWrap.appendChild(h);
 
-    // Cards container
-    var cardsWrap = document.createElement('div');
-    cardsWrap.className = 'proposal-cards';
-    cardsWrap.innerHTML = '<div class="dev-db-empty">Loading proposals...</div>';
-    page.appendChild(cardsWrap);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
 
-    container.appendChild(page);
+    header.appendChild(titleWrap);
 
-    // Fetch booking forms
-    fetch(API_BASE, { headers: getHeaders() })
-      .then(function (res) {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then(function (forms) {
-        cardsWrap.innerHTML = '';
+    var searchInput = null;
+    if (!opts.compact) {
+      searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'dept-sheet-search';
+      searchInput.placeholder = 'Search ' + title.toLowerCase() + '...';
+      header.appendChild(searchInput);
+    }
 
-        if (forms.length === 0) {
-          cardsWrap.innerHTML = '<div class="dev-db-empty">No proposals yet</div>';
-          return;
-        }
+    card.appendChild(header);
 
-        forms.forEach(function (form, idx) {
-          var card = document.createElement('div');
-          card.className = 'proposal-card';
-          card.style.animationDelay = (idx * 0.05) + 's';
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    card.appendChild(sheetContainer);
 
-          // Card header (always visible)
-          var cardHeader = document.createElement('div');
-          cardHeader.className = 'proposal-card-header';
+    var allData = [];
 
-          var left = document.createElement('div');
-          left.className = 'proposal-card-left';
-
-          var nameEl = document.createElement('div');
-          nameEl.className = 'proposal-card-name';
-          nameEl.textContent = form.clientName || form.title || 'Untitled';
-          left.appendChild(nameEl);
-
-          var meta = document.createElement('div');
-          meta.className = 'proposal-card-meta';
-
-          if (form.checklistId) {
-            var idBadge = document.createElement('span');
-            idBadge.className = 'proposal-checklist-id';
-            idBadge.textContent = form.checklistId;
-            meta.appendChild(idBadge);
-          }
-
-          var dateSpan = document.createElement('span');
-          dateSpan.textContent = formatDate(form.createdAt);
-          meta.appendChild(dateSpan);
-          if (form.status) {
-            var badge = document.createElement('span');
-            badge.className = 'proposal-badge proposal-badge--' + form.status;
-            badge.textContent = form.status;
-            meta.appendChild(badge);
-          }
-          left.appendChild(meta);
-          cardHeader.appendChild(left);
-
-          var actions = document.createElement('div');
-          actions.className = 'proposal-card-actions';
-
-          var expandBtn = document.createElement('button');
-          expandBtn.className = 'proposal-expand-btn';
-          expandBtn.innerHTML = '▸ View JSON';
-          actions.appendChild(expandBtn);
-
-          var copyBtn = document.createElement('button');
-          copyBtn.className = 'dev-btn dev-btn-ghost';
-          copyBtn.textContent = 'Copy';
-          copyBtn.style.fontSize = '11px';
-          copyBtn.style.padding = '4px 10px';
-          actions.appendChild(copyBtn);
-
-          var delivBtn = document.createElement('button');
-          delivBtn.className = 'dev-btn dev-btn-primary';
-          delivBtn.textContent = 'Create Deliverables';
-          delivBtn.style.fontSize = '11px';
-          delivBtn.style.padding = '4px 12px';
-          delivBtn.addEventListener('click', function () {
-            createDeliverables(form, delivBtn);
-          });
-          actions.appendChild(delivBtn);
-
-          cardHeader.appendChild(actions);
-          card.appendChild(cardHeader);
-
-          // JSON viewer (collapsed by default)
-          var jsonWrap = document.createElement('div');
-          jsonWrap.className = 'proposal-json-wrap';
-          jsonWrap.style.display = 'none';
-
-          var jsonData = form.formData || form;
-          jsonWrap.appendChild(renderJsonTree(jsonData, 0));
-
-          card.appendChild(jsonWrap);
-
-          // Toggle expand
-          var expanded = false;
-          expandBtn.addEventListener('click', function () {
-            expanded = !expanded;
-            jsonWrap.style.display = expanded ? '' : 'none';
-            expandBtn.innerHTML = expanded ? '▾ Hide JSON' : '▸ View JSON';
-          });
-
-          // Copy JSON
-          copyBtn.addEventListener('click', function () {
-            var jsonStr = JSON.stringify(jsonData, null, 2);
-            navigator.clipboard.writeText(jsonStr).then(function () {
-              copyBtn.textContent = 'Copied!';
-              setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    function render() {
+      var filtered = allData;
+      if (searchInput) {
+        var term = searchInput.value.toLowerCase();
+        if (term) {
+          filtered = allData.filter(function (row) {
+            return columns.some(function (col) {
+              var val = row[col.key];
+              return val && val.toString().toLowerCase().indexOf(term) !== -1;
             });
           });
+        }
+      }
 
-          cardsWrap.appendChild(card);
+      countBadge.textContent = filtered.length;
+
+      if (window.renderSheet) {
+        var sheetConfig = {
+          columns: columns,
+          data: filtered,
+          searchable: false,
+          apiEndpoint: API_BASE,
+          onCellEdit: function (rowData, key, newValue) {
+            if (key === 'status' && opts.onStatusChange) {
+              setTimeout(function () { opts.onStatusChange(); }, 300);
+            }
+          }
+        };
+        if (opts.rowActions) sheetConfig.rowActions = opts.rowActions;
+        window.renderSheet(sheetContainer, sheetConfig);
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', render);
+    }
+    render();
+
+    return { el: card, update: function (data) { allData = data; render(); } };
+  }
+
+  // Helper to reset container styles
+  function resetContainer(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = 'flex';
+    container.style.alignItems = 'stretch';
+    container.style.justifyContent = '';
+    container.style.flexDirection = '';
+    container.style.height = '';
+    container.style.gap = '';
+    container.style.padding = '';
+  }
+
+  // =============================================
+  // 1. PROPOSAL TAB (Admin > Proposal)
+  // =============================================
+
+  function renderProposalTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side proposal-side-col';
+
+    // --- To Do row actions: Delete | Skip to Booking Form | Send to Design ---
+    var proposalRowActions = [
+      {
+        icon: ICON_DELETE,
+        tooltip: 'Delete proposal',
+        className: 'action-delete',
+        onClick: function (rowData) {
+          if (!confirm('Delete this proposal?')) return;
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'DELETE',
+            headers: getHeaders()
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_SKIP,
+        tooltip: 'Skip to booking form',
+        className: 'action-skip',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'booking-form-dashboard', status: 'client_approved' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_ADVANCE,
+        tooltip: 'Send to design',
+        className: 'action-advance',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'design-proposals' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    // --- Sent to Client row actions: Approve → Booking Form | Decline ---
+    var sentToClientActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Approve — move to booking form',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'booking-form-dashboard', status: 'client_approved' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_DECLINE,
+        tooltip: 'Decline proposal',
+        className: 'action-decline',
+        onClick: function (rowData) {
+          showDeclineModal(function (reason) {
+            fetch(API_BASE + '/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ department: 'admin-declined', status: 'declined', declineReason: reason })
+            }).then(function (res) {
+              if (res.ok) refreshAll();
+            });
+          });
+        }
+      }
+    ];
+
+    var todoSheet = buildProposalSheet('To Do', todoColumns, {
+      onStatusChange: refreshAll,
+      rowActions: proposalRowActions
+    });
+    var designSheet = buildProposalSheet('In Design', sideColumns, {
+      compact: true,
+      onStatusChange: refreshAll
+    });
+    var sentSheet = buildProposalSheet('Sent to Client', sideColumns, {
+      compact: true,
+      onStatusChange: refreshAll,
+      rowActions: sentToClientActions
+    });
+
+    mainCol.appendChild(todoSheet.el);
+    sideCol.appendChild(designSheet.el);
+    sideCol.appendChild(sentSheet.el);
+
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=admin-proposals', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var split = splitByStatus(forms);
+          todoSheet.update(split.todo);
+          designSheet.update(split.inDesign);
+          sentSheet.update(split.sentToClient);
+        })
+        .catch(function (err) {
+          console.error('Proposal fetch error:', err);
         });
-      })
-      .catch(function (err) {
-        cardsWrap.innerHTML = '<div class="dev-db-empty">Error: ' + err.message + '</div>';
-      });
+    }
+
+    refreshAll();
   }
 
   window.renderProposalTab = renderProposalTab;
+
+  // =============================================
+  // 2. BOOKING FORM TAB (Admin > Booking Form)
+  // =============================================
+
+  function renderBookingFormTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    // --- Booking Forms row actions: Advance → Sent to Client ---
+    var bookingFormActions = [
+      {
+        icon: ICON_ADVANCE,
+        tooltip: 'Send to client',
+        className: 'action-advance',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'sent_to_client' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    // --- Sent to Client row actions: Approve → Onboarding | Decline ---
+    var bookingSentActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Approve — move to onboarding',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'admin-onboarding', status: 'onboarding' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_DECLINE,
+        tooltip: 'Decline booking',
+        className: 'action-decline',
+        onClick: function (rowData) {
+          showDeclineModal(function (reason) {
+            fetch(API_BASE + '/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ department: 'admin-declined', status: 'declined', declineReason: reason })
+            }).then(function (res) {
+              if (res.ok) refreshAll();
+            });
+          });
+        }
+      }
+    ];
+
+    var mainSheet = buildProposalSheet('Booking Forms', bookingColumns, {
+      onStatusChange: refreshAll,
+      rowActions: bookingFormActions
+    });
+    var sideSheet = buildProposalSheet('Sent to Client', bookingSideColumns, {
+      compact: true,
+      onStatusChange: refreshAll,
+      rowActions: bookingSentActions
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=booking-form-dashboard', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          var clientApproved = all.filter(function (r) { return r.status === 'client_approved'; });
+          var sentToClient = all.filter(function (r) { return r.status === 'sent_to_client'; });
+          mainSheet.update(clientApproved);
+          sideSheet.update(sentToClient);
+        })
+        .catch(function (err) {
+          console.error('Booking form fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderBookingFormTab = renderBookingFormTab;
+
+  // =============================================
+  // 3. ONBOARDING TAB (Onboarding left + Onboarded right)
+  // =============================================
+
+  function renderOnboardingTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    // --- Onboarding row actions: Advance → Onboarded | Delete ---
+    var onboardingActions = [
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Mark as onboarded',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'admin-onboarded', status: 'onboarded' })
+          }).then(function (res) {
+            if (!res.ok) return;
+            return fetch('/api/deliverables/bulk', {
+              method: 'POST',
+              headers: getHeaders(),
+              body: JSON.stringify({ bookingFormId: rowData.id })
+            });
+          }).then(function (res) {
+            if (res && res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_DELETE,
+        tooltip: 'Delete',
+        className: 'action-delete',
+        onClick: function (rowData) {
+          if (!confirm('Delete this onboarding entry?')) return;
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'DELETE',
+            headers: getHeaders()
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    var onboardingSheet = buildProposalSheet('Onboarding', onboardingSideColumns, {
+      compact: true,
+      onStatusChange: refreshAll,
+      rowActions: onboardingActions
+    });
+    var onboardedSheet = buildProposalSheet('Onboarded', onboardingColumns, {});
+
+    sideCol.appendChild(onboardingSheet.el);
+    mainCol.appendChild(onboardedSheet.el);
+    layout.appendChild(sideCol);
+    layout.appendChild(mainCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      var onboardingReq = fetch(API_BASE + '?department=admin-onboarding', { headers: getHeaders() })
+        .then(function (res) { return res.ok ? res.json() : []; });
+      var onboardedReq = fetch(API_BASE + '?department=admin-onboarded', { headers: getHeaders() })
+        .then(function (res) { return res.ok ? res.json() : []; });
+
+      Promise.all([onboardingReq, onboardedReq])
+        .then(function (results) {
+          onboardingSheet.update(results[0].map(mapFormToRow));
+          onboardedSheet.update(results[1].map(mapFormToRow));
+        })
+        .catch(function (err) {
+          console.error('Onboarding fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderOnboardingTab = renderOnboardingTab;
+
+  // =============================================
+  // 5. DECLINED PROPOSAL TAB (Admin > Declined)
+  // =============================================
+
+  function renderDeclinedTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    var mainSheet = buildProposalSheet('Declined Proposals', declinedColumns, {});
+    var sideSheet = buildProposalSheet('Declined History', declinedSideColumns, {
+      compact: true
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    sideCol.appendChild(sideSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=admin-declined', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          mainSheet.update(all);
+          sideSheet.update(all.slice(0, 10));
+        })
+        .catch(function (err) {
+          console.error('Declined fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderDeclinedTab = renderDeclinedTab;
+
+  // =============================================
+  // 6. DESIGN PROPOSALS TAB (Design > Proposals)
+  // =============================================
+
+  var designProposalColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
+    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
+    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
+  ];
+
+  var designProposalSideColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
+  ];
+
+  function renderDesignProposalsTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+
+    // --- Design Proposal row actions: Advance → move to Design Review ---
+    var designActions = [
+      {
+        icon: ICON_ADVANCE,
+        tooltip: 'Send to design review',
+        className: 'action-advance',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'proposal_ready' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    // --- Design Review row actions: Request Changes | Approve ---
+    var reviewActions = [
+      {
+        icon: ICON_DELETE,
+        tooltip: 'Request design changes',
+        className: 'action-delete',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'in_design' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      },
+      {
+        icon: ICON_APPROVE,
+        tooltip: 'Approve — send to admin as proposal ready',
+        className: 'action-approve',
+        onClick: function (rowData) {
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ department: 'admin-proposals', status: 'sent_to_client' })
+          }).then(function (res) {
+            if (res.ok) refreshAll();
+          });
+        }
+      }
+    ];
+
+    var designSheet = buildProposalSheet('Design Proposal', designProposalColumns, {
+      onStatusChange: refreshAll,
+      rowActions: designActions
+    });
+    var reviewSheet = buildProposalSheet('Design Review', designProposalSideColumns, {
+      compact: true,
+      onStatusChange: refreshAll,
+      rowActions: reviewActions
+    });
+
+    mainCol.appendChild(designSheet.el);
+    sideCol.appendChild(reviewSheet.el);
+    layout.appendChild(mainCol);
+    layout.appendChild(sideCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      fetch(API_BASE + '?department=design-proposals', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          var all = forms.map(mapFormToRow);
+          var designing = all.filter(function (r) {
+            var s = r.status.toLowerCase().replace(/\s+/g, '_');
+            return s !== 'proposal_ready';
+          });
+          var reviewing = all.filter(function (r) {
+            var s = r.status.toLowerCase().replace(/\s+/g, '_');
+            return s === 'proposal_ready';
+          });
+          designSheet.update(designing);
+          reviewSheet.update(reviewing);
+        })
+        .catch(function (err) {
+          console.error('Design proposals fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderDesignProposalsTab = renderDesignProposalsTab;
+
+  // =============================================
+  // 7. DESIGN WEB DESIGN TAB (Design > Web Design)
+  // =============================================
+
+  // Unified workflow from shared definition
+  var workflows = window.DELIVERABLE_WORKFLOWS;
+
+  var webDesignColumns = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'title', label: 'Title', sortable: true, type: 'text' },
+    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true,
+      options: workflows.getStatusChain('website-design') }
+  ];
+
+  function renderDesignWebDesignTab(container) {
+    resetContainer(container);
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+
+    // Row actions with advance based on current status
+    function makeRowActions(refreshFn) {
+      return [
+        {
+          icon: ICON_ADVANCE,
+          tooltip: 'Advance',
+          className: 'action-advance',
+          onClick: function (rowData) {
+            var wf = workflows.getNextStatus('website-design', rowData.status);
+            if (!wf) return;
+            fetch('/api/deliverables/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: wf.next })
+            }).then(function (res) {
+              if (res.ok) refreshFn();
+            });
+          }
+        }
+      ];
+    }
+
+    var mainSheet = buildProposalSheet('Web Design Projects', webDesignColumns, {
+      onStatusChange: refreshAll,
+      rowActions: makeRowActions(function () { refreshAll(); })
+    });
+
+    mainCol.appendChild(mainSheet.el);
+    layout.appendChild(mainCol);
+    container.appendChild(layout);
+
+    function refreshAll() {
+      // Fetch deliverables from design department with type website-design
+      fetch('/api/deliverables/by-department/design', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (deliverables) {
+          var webDesign = deliverables.filter(function (d) { return d.type === 'website-design'; });
+          var rows = webDesign.map(function (d) {
+            return {
+              id: d.id,
+              client: d.clientName || 'Unknown',
+              title: d.bookingFormTitle || d.title || '—',
+              createdAt: d.createdAt || null,
+              status: d.status || 'pending'
+            };
+          });
+          mainSheet.update(rows);
+        })
+        .catch(function (err) {
+          console.error('Design web design fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
+  window.renderDesignWebDesignTab = renderDesignWebDesignTab;
 })();

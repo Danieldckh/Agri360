@@ -336,13 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
     'social-media': 'Social Media'
   };
   var deptMenuItems = {
-    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Onboarded', 'Declined Proposal'],
-    'production': ['Action Board', 'Overview', 'Follow Ups'],
-    'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
-    'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
-    'video': ['Dashboard', 'Calendar', 'Tasks', 'Budgets', 'Team & Freelancers'],
-    'agri4all': ['Listings', 'Newsletters', 'Social Media', 'Banners'],
-    'social-media': ['Dashboard', 'Content Calendars', 'Agri for All', 'Stats', 'Settings']
+    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
+    'production': ['Client Communications', 'Follow Ups', 'Approvals'],
+    'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
+    'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
+    'video': ['Briefs', 'Production', 'Editing', 'Review'],
+    'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
+    'social-media': ['Content Calendars', 'Agri for All', 'Banners', 'Scheduling']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
@@ -475,9 +475,417 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
+  // Department slug → assigned column key mapping (camelCase to match API response)
+  var deptAssignedKey = {
+    'admin': 'assignedAdmin',
+    'production': 'assignedProduction',
+    'design': 'assignedDesign',
+    'editorial': 'assignedEditorial',
+    'video': 'assignedVideo',
+    'agri4all': 'assignedAgri4all',
+    'social-media': 'assignedSocialMedia'
+  };
+
+  // Resolve generic assigned_to columns to department-specific ones
+  function resolveAssignedColumns(columns, deptSlug) {
+    var assignKey = deptAssignedKey[deptSlug];
+    if (!assignKey) return columns;
+    return columns.map(function(col) {
+      // Replace generic assigned_to with dept-specific key
+      if (col.key === 'assigned_to') {
+        return Object.assign({}, col, { key: assignKey, type: 'person', editable: true });
+      }
+      return col;
+    });
+  }
+
+  // Tab-specific column configurations for department sheets
+  var deptTabColumns = {
+    '_default': [
+      { key: 'name', label: 'Name', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true }
+    ],
+    'Proposal': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'proposal_type', label: 'Type', sortable: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'submitted_date', label: 'Submitted', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Booking Form': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'booking_type', label: 'Type', sortable: true },
+      { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
+      { key: 'end_date', label: 'End Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Onboarding': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'assignedAdmin', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'progress', label: 'Progress', sortable: true },
+      { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Onboarded': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'onboarded_date', label: 'Onboarded Date', sortable: true, type: 'date' },
+      { key: 'account_manager', label: 'Account Manager', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Declined Proposal': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'proposal_type', label: 'Type', sortable: true },
+      { key: 'reason', label: 'Reason', sortable: true },
+      { key: 'declined_date', label: 'Declined Date', sortable: true, type: 'date' }
+    ],
+    'Action Board': [
+      { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assignedProduction', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: ['low', 'medium', 'high', 'urgent'] },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
+    ],
+    'Overview': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'department', label: 'Department', sortable: true },
+      { key: 'progress', label: 'Progress', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Follow Ups': [
+      { key: 'item', label: 'Item', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assignedProduction', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'follow_up_date', label: 'Follow Up Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Content Calendars': [
+      { key: 'title', label: 'Title', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'platform', label: 'Platform', sortable: true, type: 'status', editable: true, options: ['facebook', 'instagram', 'twitter', 'linkedin', 'website'] },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['draft', 'pending', 'in_progress', 'completed'] }
+    ],
+    'Magazine': [
+      { key: 'title', label: 'Title', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'edition', label: 'Edition', sortable: true, type: 'text', editable: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
+    ],
+    'Agri for All': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'assignedAgri4all', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Web Design': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Own SM': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'platform', label: 'Platform', sortable: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Internal Tasks': [
+      { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: ['low', 'medium', 'high', 'urgent'] },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
+    ],
+    'Proposals': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'type', label: 'Type', sortable: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Online Articles': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'author', label: 'Author', sortable: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Dashboard': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'type', label: 'Type', sortable: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Calendar': [
+      { key: 'event', label: 'Event', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'date', label: 'Date', sortable: true, type: 'date' },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Tasks': [
+      { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
+    ],
+    'Budgets': [
+      { key: 'project', label: 'Project', sortable: true, isName: true, type: 'text', editable: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'budget', label: 'Budget', sortable: true, type: 'number', editable: true },
+      { key: 'spent', label: 'Spent', sortable: true, type: 'number', editable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['active', 'completed', 'overdue'] }
+    ],
+    'Team & Freelancers': [
+      { key: 'name', label: 'Name', sortable: true, isName: true },
+      { key: 'role', label: 'Role', sortable: true },
+      { key: 'type', label: 'Type', sortable: true },
+      { key: 'availability', label: 'Availability', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Listings': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'region', label: 'Region', sortable: true },
+      { key: 'listed_date', label: 'Listed Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Newsletters': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'edition', label: 'Edition', sortable: true },
+      { key: 'send_date', label: 'Send Date', sortable: true, type: 'date' },
+      { key: 'recipients', label: 'Recipients', sortable: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Social Media': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'platform', label: 'Platform', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
+      { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Banners': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'client', label: 'Client', sortable: true },
+      { key: 'size', label: 'Size', sortable: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Stats': [
+      { key: 'platform', label: 'Platform', sortable: true, isName: true },
+      { key: 'metric', label: 'Metric', sortable: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'period', label: 'Period', sortable: true },
+      { key: 'trend', label: 'Trend', sortable: true }
+    ],
+    'Settings': [
+      { key: 'setting', label: 'Setting', sortable: true, isName: true },
+      { key: 'value', label: 'Value', sortable: true },
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'last_updated', label: 'Last Updated', sortable: true, type: 'date' }
+    ]
+  };
+
+  // Right-side panel column configs per tab
+  var deptSideColumns = {
+    '_default': [
+      { key: 'item', label: 'Item', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Proposal': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Booking Form': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Onboarding': [
+      { key: 'client', label: 'Client', sortable: true, isName: true },
+      { key: 'progress', label: 'Progress', sortable: true }
+    ],
+    'Action Board': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'priority', label: 'Priority', sortable: true }
+    ],
+    'Overview': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Follow Ups': [
+      { key: 'item', label: 'Item', sortable: true, isName: true },
+      { key: 'follow_up_date', label: 'Date', sortable: true, type: 'date' }
+    ],
+    'Content Calendars': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'publish_date', label: 'Date', sortable: true, type: 'date' }
+    ],
+    'Magazine': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' }
+    ],
+    'Dashboard': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Tasks': [
+      { key: 'task', label: 'Task', sortable: true, isName: true },
+      { key: 'due_date', label: 'Due', sortable: true, type: 'date' }
+    ],
+    'Budgets': [
+      { key: 'project', label: 'Project', sortable: true, isName: true },
+      { key: 'spent', label: 'Spent', sortable: true }
+    ],
+    'Listings': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'status', label: 'Status', sortable: true, type: 'status' }
+    ],
+    'Newsletters': [
+      { key: 'title', label: 'Title', sortable: true, isName: true },
+      { key: 'send_date', label: 'Send Date', sortable: true, type: 'date' }
+    ]
+  };
+
+  // Side panel title per tab
+  var deptSideTitles = {
+    'Proposal': 'Recent Activity',
+    'Booking Form': 'Pending Bookings',
+    'Onboarding': 'Progress Tracker',
+    'Onboarded': 'Recent Additions',
+    'Declined Proposal': 'Declined History',
+    'Action Board': 'Priorities',
+    'Overview': 'Status Summary',
+    'Follow Ups': 'Upcoming',
+    'Content Calendars': 'Upcoming Posts',
+    'Magazine': 'Deadlines',
+    'Agri for All': 'Deadlines',
+    'Web Design': 'Active Projects',
+    'Own SM': 'Scheduled',
+    'Internal Tasks': 'Urgent',
+    'Proposals': 'Pending',
+    'Online Articles': 'Drafts',
+    'Dashboard': 'Quick View',
+    'Calendar': 'This Week',
+    'Tasks': 'Due Soon',
+    'Budgets': 'Budget Summary',
+    'Team & Freelancers': 'Availability',
+    'Listings': 'Recent',
+    'Newsletters': 'Scheduled',
+    'Social Media': 'Queue',
+    'Banners': 'In Progress',
+    'Stats': 'Highlights',
+    'Settings': 'Recent Changes'
+  };
+
+  // Build a sheet card with title, optional search, and sheet container
+  function buildSheetCard(title, columns, opts) {
+    opts = opts || {};
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card' + (opts.compact ? ' dept-sheet-card-compact' : '');
+
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = title;
+    titleWrap.appendChild(h);
+
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+
+    header.appendChild(titleWrap);
+
+    var searchInput = null;
+    if (!opts.compact) {
+      searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'dept-sheet-search';
+      searchInput.placeholder = 'Search ' + title.toLowerCase() + '...';
+      header.appendChild(searchInput);
+    }
+
+    card.appendChild(header);
+
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    card.appendChild(sheetContainer);
+
+    var allData = [];
+
+    function render() {
+      var filtered = allData;
+      if (searchInput) {
+        var term = searchInput.value.toLowerCase();
+        if (term) {
+          filtered = allData.filter(function(row) {
+            return columns.some(function(col) {
+              var val = row[col.key];
+              return val && val.toString().toLowerCase().indexOf(term) !== -1;
+            });
+          });
+        }
+      }
+
+      countBadge.textContent = filtered.length;
+
+      if (window.renderSheet) {
+        window.renderSheet(sheetContainer, {
+          columns: columns,
+          data: filtered,
+          searchable: false,
+          radialActions: opts.compact ? [] : [
+            { id: 'view', label: 'View Details', action: function(row) { console.log('View:', row); } },
+            { id: 'edit', label: 'Edit', action: function(row) { console.log('Edit:', row); } }
+          ],
+          apiEndpoint: opts.apiEndpoint || null,
+          onCellEdit: opts.onCellEdit || null
+        });
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', render);
+    }
+    render();
+
+    return { el: card, update: function(data) { allData = data; render(); } };
+  }
+
   function showDeptContent(page, viewName) {
     while (dashboardContent.firstChild) {
       dashboardContent.removeChild(dashboardContent.firstChild);
+    }
+
+    // Admin top bar with New Booking button
+    if (page === 'admin') {
+      var topBar = document.createElement('div');
+      topBar.style.cssText = 'display:flex;align-items:center;padding:12px 16px 0;';
+      var newBookingLink = document.createElement('a');
+      newBookingLink.href = 'http://kgso4o000o48kww4k4c8048c.148.230.100.16.sslip.io/';
+      newBookingLink.target = '_blank';
+      newBookingLink.rel = 'noopener';
+      newBookingLink.className = 'dev-btn dev-btn-primary';
+      newBookingLink.textContent = 'New Booking';
+      newBookingLink.style.textDecoration = 'none';
+      topBar.appendChild(newBookingLink);
+      dashboardContent.appendChild(topBar);
     }
 
     // Route Admin > Proposal to the proposal tab
@@ -486,17 +894,92 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    var placeholder = document.createElement('span');
-    placeholder.className = 'page-placeholder';
-    placeholder.textContent = (deptNames[page] || page) + ' Department - ' + viewName;
-    dashboardContent.appendChild(placeholder);
-    dashboardContent.style.display = '';
-    dashboardContent.style.alignItems = '';
+    // Route Admin > Booking Form to the booking form tab
+    if (page === 'admin' && viewName === 'Booking Form' && window.renderBookingFormTab) {
+      window.renderBookingFormTab(dashboardContent);
+      return;
+    }
+
+    // Route Admin > Onboarding to the onboarding tab
+    if (page === 'admin' && viewName === 'Onboarding' && window.renderOnboardingTab) {
+      window.renderOnboardingTab(dashboardContent);
+      return;
+    }
+
+    // Route Admin > Declined Proposal to the declined tab
+    if (page === 'admin' && viewName === 'Declined Proposal' && window.renderDeclinedTab) {
+      window.renderDeclinedTab(dashboardContent);
+      return;
+    }
+
+
+    // Route Production > Client Communications to production deliverables view
+    if (page === 'production' && viewName === 'Client Communications' && window.renderProductionTab) {
+      window.renderProductionTab(dashboardContent);
+      return;
+    }
+
+    // Route Production > Follow Ups to follow-ups 2-sheet view
+    if (page === 'production' && viewName === 'Follow Ups' && window.renderFollowUpsTab) {
+      window.renderFollowUpsTab(dashboardContent);
+      return;
+    }
+
+    // Route Production > Approvals to approvals 2-sheet view
+    if (page === 'production' && viewName === 'Approvals' && window.renderApprovalsTab) {
+      window.renderApprovalsTab(dashboardContent);
+      return;
+    }
+
+    // Route Design > Proposals to live design proposals view
+    if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
+      window.renderDesignProposalsTab(dashboardContent);
+      return;
+    }
+
+    // Route Design > Web Design to web design workflow view
+    if (page === 'design' && viewName === 'Web Design' && window.renderDesignWebDesignTab) {
+      window.renderDesignWebDesignTab(dashboardContent);
+      return;
+    }
+
+    // Route department tabs to generic type-filtered view
+    var deptTypeViews = ['Content Calendars', 'Agri for All', 'Magazine', 'Banners', 'Online Articles',
+      'Briefs', 'Production', 'Editing', 'Review', 'Posts', 'Newsletters', 'Links', 'Stats', 'Scheduling'];
+    if (deptTypeViews.indexOf(viewName) !== -1 && window.renderDeptTypeTab) {
+      window.renderDeptTypeTab(dashboardContent, page, viewName);
+      return;
+    }
+
+    dashboardContent.style.display = 'flex';
+    dashboardContent.style.alignItems = 'stretch';
     dashboardContent.style.justifyContent = '';
     dashboardContent.style.flexDirection = '';
     dashboardContent.style.height = '';
     dashboardContent.style.gap = '';
     dashboardContent.style.padding = '';
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+
+    // Main sheet (left, ~80%)
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+    var mainColumns = resolveAssignedColumns(deptTabColumns[viewName] || deptTabColumns['_default'], page);
+    var mainCard = buildSheetCard(viewName, mainColumns);
+    mainCol.appendChild(mainCard.el);
+    layout.appendChild(mainCol);
+
+    // Side sheet (right, ~20%)
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+    var sideTitle = deptSideTitles[viewName] || 'Summary';
+    var sideColumns = deptSideColumns[viewName] || deptSideColumns['_default'];
+    var sideCard = buildSheetCard(sideTitle, sideColumns, { compact: true });
+    sideCol.appendChild(sideCard.el);
+    layout.appendChild(sideCol);
+
+    dashboardContent.appendChild(layout);
   }
 
   function rebindNavItems() {
@@ -528,6 +1011,30 @@ document.addEventListener('DOMContentLoaded', () => {
   window.rebindNavItems = rebindNavItems;
   window.expandSidebarIfCollapsed = expandSidebarIfCollapsed;
   window.restoreSidebarCollapsed = restoreSidebarCollapsed;
+
+  // Page renderer registry — add new pages here
+  var pageRenderers = {
+    'employees': function () { renderEmployeeSection(dashboardContent); },
+    'messaging': function () {
+      if (window.activateMessagingSidebar) window.activateMessagingSidebar();
+      if (window.renderMessagingSection) window.renderMessagingSection(dashboardContent);
+    },
+    'styles': function () { if (window.renderStylesPage) window.renderStylesPage(dashboardContent); },
+    'components': function () { if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent); },
+    'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
+    'client-list': function () { if (window.renderClientListPage) window.renderClientListPage(dashboardContent); },
+    'dashboards': function () { if (window.renderDashboardsPage) window.renderDashboardsPage(dashboardContent); }
+  };
+
+  function finishPageEnter() {
+    dashboardContent.classList.add('page-enter');
+    dashboardContent.addEventListener('animationend', function onEnter() {
+      dashboardContent.removeEventListener('animationend', onEnter);
+      dashboardContent.classList.remove('page-enter');
+      isTransitioning = false;
+    });
+  }
+
 
   // Content Calendar sidebar sub-menu
   function showContentCalendarMenu(clientName) {
@@ -736,100 +1243,25 @@ document.addEventListener('DOMContentLoaded', () => {
       currentPage = page;
       localStorage.setItem('proagri-active-page', page);
 
-      if (page === 'employees') {
-        renderEmployeeSection(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
+      // Check page renderer registry
+      if (pageRenderers[page]) {
+        pageRenderers[page]();
+        finishPageEnter();
         return;
       }
 
-      if (page === 'messaging') {
-        if (window.activateMessagingSidebar) window.activateMessagingSidebar();
-        if (window.renderMessagingSection) window.renderMessagingSection(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'styles') {
-        if (window.renderStylesPage) window.renderStylesPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'components') {
-        if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'database') {
-        if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'dashboards') {
-        if (window.renderDashboardsPage) window.renderDashboardsPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
-      if (page === 'client-list') {
-        if (window.renderClientListPage) window.renderClientListPage(dashboardContent);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
-        return;
-      }
-
+      // Department pages
       if (deptPages.indexOf(page) !== -1) {
         showDeptSubMenu(page);
         var deptItems = deptMenuItems[page] || ['Overview'];
         var savedDeptView = localStorage.getItem('proagri-dept-tab-' + page);
         var restoredView = (savedDeptView && deptItems.indexOf(savedDeptView) !== -1) ? savedDeptView : deptItems[0];
         showDeptContent(page, restoredView);
-        dashboardContent.classList.add('page-enter');
-        dashboardContent.addEventListener('animationend', function onEnter() {
-          dashboardContent.removeEventListener('animationend', onEnter);
-          dashboardContent.classList.remove('page-enter');
-          isTransitioning = false;
-        });
+        finishPageEnter();
         return;
       }
 
-      // Reset container styles for other pages
+      // Default: show placeholder
       dashboardContent.style.display = '';
       dashboardContent.style.alignItems = '';
       dashboardContent.style.justifyContent = '';
@@ -840,23 +1272,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const placeholder = document.createElement('span');
       placeholder.className = 'page-placeholder';
-
-      switch (page) {
-        case 'my-view':
-          placeholder.textContent = 'My View';
-          break;
-        default:
-          placeholder.textContent = page;
-      }
-
+      placeholder.textContent = page === 'my-view' ? 'My View' : page;
       dashboardContent.appendChild(placeholder);
 
-      dashboardContent.classList.add('page-enter');
-      dashboardContent.addEventListener('animationend', function onEnter() {
-        dashboardContent.removeEventListener('animationend', onEnter);
-        dashboardContent.classList.remove('page-enter');
-        isTransitioning = false;
-      });
+      finishPageEnter();
     }
 
     function onExit() { handleExitComplete(); }
