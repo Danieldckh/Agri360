@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
-    'production': ['Action Board', 'Overview', 'Follow Ups'],
+    'production': ['Action Board', 'Follow Ups'],
     'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
     'video': ['Dashboard', 'Calendar', 'Tasks', 'Budgets', 'Team & Freelancers'],
