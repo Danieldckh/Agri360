@@ -178,6 +178,10 @@ async function runMigrations() {
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL`).catch(() => {});
 
+    // Deliverables: delivery month for per-month grouping
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS delivery_month VARCHAR(7)`);
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS client_id INT REFERENCES clients(id)`);
+
     // Deliverables columns for follow-up tracking
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS follow_up_count INTEGER DEFAULT 0`);
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ`);
