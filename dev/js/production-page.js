@@ -6,17 +6,8 @@
   // SVG icons
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
 
-  // Website design workflow: next status for production-visible statuses
-  var WEB_DESIGN_NEXT = {
-    'request_client_materials': { next: 'materials_requested', tooltip: 'Mark as Materials Requested' },
-    'materials_requested': { next: 'sitemap', tooltip: 'Advance to Sitemap (Design)' },
-    'ready_for_approval': { next: 'sent_for_approval', tooltip: 'Send for client approval' },
-    'sent_for_approval': null, // split: approve or design changes — handled elsewhere
-    'development': { next: 'site_developed', tooltip: 'Mark as developed' },
-    'site_developed': { next: 'hosting_seo', tooltip: 'Move to Hosting & SEO' },
-    'hosting_seo': { next: 'complete', tooltip: 'Mark as complete' },
-    'complete': null
-  };
+  // Unified workflows from shared definition
+  var workflows = window.DELIVERABLE_WORKFLOWS;
 
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
@@ -41,10 +32,8 @@
   }
 
   function statusClass(status) {
-    var s = (status || 'pending').toLowerCase();
-    if (s === 'completed' || s === 'done' || s === 'complete') return 'status-completed';
-    if (s === 'in_progress' || s === 'active' || s === 'development' || s === 'site_developed' || s === 'hosting_seo') return 'status-in-progress';
-    return 'status-pending';
+    var s = (status || 'pending').toLowerCase().replace(/\s+/g, '_');
+    return 'proagri-sheet-status-' + s;
   }
 
   function groupByClient(deliverables) {
@@ -143,7 +132,7 @@
         });
     }
 
-    function advanceWebDesign(itemId, nextStatus) {
+    function advanceStatus(itemId, nextStatus) {
       fetch(API_BASE + '/' + itemId, {
         method: 'PATCH',
         headers: getHeaders(),
@@ -273,24 +262,22 @@
           tdDue.textContent = formatDate(item.dueDate);
           row.appendChild(tdDue);
 
-          // Action column
+          // Action column — unified workflow chain per type
           var tdAction = document.createElement('td');
-          if (item.type === 'website-design') {
-            var wf = WEB_DESIGN_NEXT[item.status];
-            if (wf) {
-              var btn = document.createElement('button');
-              btn.className = 'proagri-sheet-row-action-btn action-advance';
-              btn.title = wf.tooltip;
-              btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-              btn.style.opacity = '1';
-              btn.addEventListener('click', (function (id, next) {
-                return function (e) {
-                  e.stopPropagation();
-                  advanceWebDesign(id, next);
-                };
-              })(item.id, wf.next));
-              tdAction.appendChild(btn);
-            }
+          var wf = workflows.getNextStatus(item.type, item.status);
+          if (wf) {
+            var btn = document.createElement('button');
+            btn.className = 'proagri-sheet-row-action-btn action-advance';
+            btn.title = wf.tooltip;
+            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+            btn.style.opacity = '1';
+            btn.addEventListener('click', (function (id, next) {
+              return function (e) {
+                e.stopPropagation();
+                advanceStatus(id, next);
+              };
+            })(item.id, wf.next));
+            tdAction.appendChild(btn);
           }
           row.appendChild(tdAction);
 

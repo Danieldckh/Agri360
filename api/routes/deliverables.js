@@ -91,18 +91,19 @@ const DEFAULT_DELIVERABLES = [
 // Website design workflow: status → department slug mapping
 const WEB_DESIGN_DEPT_MAP = {
   'request_client_materials': 'production',
-  'materials_requested': 'production',
-  'sitemap': 'design',
-  'wireframe': 'design',
-  'prototype': 'design',
-  'design_changes': 'design',
-  'approved': 'design',
-  'ready_for_approval': 'production',
-  'sent_for_approval': 'production',
-  'development': 'production',
-  'site_developed': 'production',
-  'hosting_seo': 'production',
-  'complete': 'production'
+  'materials_requested':      'production',
+  'materials_received':       'production',
+  'sitemap':                  'design',
+  'wireframe':                'design',
+  'prototype':                'design',
+  'design_changes':           'design',
+  'approved':                 'design',
+  'ready_for_approval':       'production',
+  'sent_for_approval':        'production',
+  'development':              'production',
+  'site_developed':           'production',
+  'hosting_seo':              'production',
+  'complete':                 'production'
 };
 
 // POST /bulk - create all production deliverables for a booking form

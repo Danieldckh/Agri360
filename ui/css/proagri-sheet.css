@@ -293,6 +293,72 @@
   color: #2ecc71;
 }
 
+/* Web-design pipeline statuses */
+.proagri-sheet-status-request_client_materials {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-materials_requested {
+  background: rgba(243, 156, 18, 0.15);
+  color: #f39c12;
+}
+
+.proagri-sheet-status-materials_received {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+.proagri-sheet-status-sitemap {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-wireframe {
+  background: rgba(142, 68, 173, 0.15);
+  color: #8e44ad;
+}
+
+.proagri-sheet-status-prototype {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-ready_for_approval {
+  background: rgba(243, 156, 18, 0.15);
+  color: #f39c12;
+}
+
+.proagri-sheet-status-sent_for_approval {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-design_changes {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-development {
+  background: rgba(41, 128, 185, 0.15);
+  color: #2980b9;
+}
+
+.proagri-sheet-status-site_developed {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.proagri-sheet-status-hosting_seo {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+.proagri-sheet-status-complete {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
 /* === Multi-Select Tags (in cell) === */
 
 .proagri-sheet-tags {

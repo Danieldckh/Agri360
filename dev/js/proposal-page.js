@@ -770,21 +770,15 @@
   // 7. DESIGN WEB DESIGN TAB (Design > Web Design)
   // =============================================
 
-  // Web design workflow: next status for design-visible statuses
-  var WEB_DESIGN_NEXT_DESIGN = {
-    'sitemap': { next: 'wireframe', tooltip: 'Advance to Wireframe' },
-    'wireframe': { next: 'prototype', tooltip: 'Advance to Prototype' },
-    'prototype': { next: 'ready_for_approval', tooltip: 'Send for approval (Production)' },
-    'design_changes': { next: 'prototype', tooltip: 'Back to Prototype' },
-    'approved': { next: 'development', tooltip: 'Start Development (Production)' }
-  };
+  // Unified workflow from shared definition
+  var workflows = window.DELIVERABLE_WORKFLOWS;
 
   var webDesignColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'title', label: 'Title', sortable: true, type: 'text' },
     { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true,
-      options: ['sitemap', 'wireframe', 'prototype', 'design_changes', 'approved', 'ready_for_approval'] }
+      options: workflows.getStatusChain('website-design') }
   ];
 
   function renderDesignWebDesignTab(container) {
@@ -804,7 +798,7 @@
           tooltip: 'Advance',
           className: 'action-advance',
           onClick: function (rowData) {
-            var wf = WEB_DESIGN_NEXT_DESIGN[rowData.status];
+            var wf = workflows.getNextStatus('website-design', rowData.status);
             if (!wf) return;
             fetch('/api/deliverables/' + rowData.id, {
               method: 'PATCH',
