@@ -165,6 +165,8 @@ async function runMigrations() {
 
     // Deliverables columns for follow-up tracking
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS follow_up_count INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ`);
+    await client.query(`UPDATE deliverables SET status_changed_at = updated_at WHERE status_changed_at IS NULL`);
 
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);

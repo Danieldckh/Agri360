@@ -271,6 +271,11 @@ router.patch('/:id', async (req, res) => {
     }
   }
 
+  // Auto-set status_changed_at when status changes
+  if (body.status !== undefined) {
+    updates.push('status_changed_at = NOW()');
+  }
+
   if (updates.length === 0) {
     return res.status(400).json({ error: 'No fields to update' });
   }
