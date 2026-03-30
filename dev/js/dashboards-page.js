@@ -3,15 +3,6 @@
 
   var API_BASE = '/api/dashboards';
 
-  function getHeaders() {
-    var h = { 'Content-Type': 'application/json' };
-    if (window.getAuthHeaders) {
-      var auth = window.getAuthHeaders();
-      for (var key in auth) if (auth.hasOwnProperty(key)) h[key] = auth[key];
-    }
-    return h;
-  }
-
   function formatDate(iso) {
     if (!iso) return '—';
     var d = new Date(iso);
@@ -21,15 +12,17 @@
   function initDashboardsPage(container) {
     var grid = container.querySelector('#dashboards-grid');
     var detailView = container.querySelector('#dashboard-detail');
-    var listView = container.querySelector('.dev-page');
+    var listView = container.querySelector('#dashboards-list');
     var backBtn = container.querySelector('#dashboard-back-btn');
+    var dashboardsById = {};
 
     backBtn.addEventListener('click', function () {
-      detailView.style.display = 'none';
-      listView.style.display = '';
+      detailView.classList.add('hidden');
+      listView.classList.remove('hidden');
     });
 
-    fetch(API_BASE, { headers: getHeaders() })
+    var headers = window.getAuthHeaders ? window.getAuthHeaders() : {};
+    fetch(API_BASE, { headers: headers })
       .then(function (res) {
         if (!res.ok) throw new Error('Failed to fetch dashboards');
         return res.json();
@@ -40,58 +33,55 @@
           return;
         }
 
+        dashboards.forEach(function (db) { dashboardsById[db.id] = db; });
+
         var items = dashboards.map(function (db) {
           return {
+            id: String(db.id),
             title: db.title,
             deliverableType: db.deliverableType || 'general',
             status: db.status || 'active',
-            createdDate: 'Created ' + formatDate(db.createdAt),
-            _raw: db
+            createdDate: 'Created ' + formatDate(db.createdAt)
           };
         });
 
         bindList(grid, 'dashboard-card-tmpl', items, function (el, item) {
-          // Add status class to the status badge
-          var badges = el.querySelectorAll('.dev-dashboard-badge');
-          if (badges[1]) badges[1].className = 'dev-dashboard-badge dev-dashboard-badge--' + item.status;
+          var badge = el.querySelector('.dev-dashboard-badge:last-child');
+          if (badge) badge.className = 'dev-dashboard-badge dev-dashboard-badge--' + item.status;
 
           el.addEventListener('click', function () {
-            openDetail(container, item._raw);
+            openDetail(container, dashboardsById[item.id]);
           });
         });
       })
       .catch(function (err) {
-        grid.innerHTML = '<div class="dev-db-empty">Error loading dashboards: ' + err.message + '</div>';
+        grid.innerHTML = '<div class="dev-db-empty">Error: ' + err.message + '</div>';
       });
   }
 
   function openDetail(container, db) {
-    var listView = container.querySelector('.dev-page');
+    var listView = container.querySelector('#dashboards-list');
     var detailView = container.querySelector('#dashboard-detail');
 
-    // Check for content calendar dashboards
     if ((db.deliverableType === 'content-calendar' || db.deliverableType === 'agri4all-posts') && window.renderContentCalendarPage) {
-      var parent = container;
-      while (parent.firstChild) parent.removeChild(parent.firstChild);
-      window.renderContentCalendarPage(parent, db.title);
+      while (container.firstChild) container.removeChild(container.firstChild);
+      window.renderContentCalendarPage(container, db.title);
       return;
     }
 
-    listView.style.display = 'none';
-    detailView.style.display = '';
+    listView.classList.add('hidden');
+    detailView.classList.remove('hidden');
 
     container.querySelector('#dashboard-detail-title').textContent = db.title;
 
-    var data = {
+    bindData(detailView, {
       id: db.id || '—',
       deliverableType: db.deliverableType || '—',
       status: db.status || '—',
       departmentId: db.departmentId || '—',
       deliverableId: db.deliverableId || '—',
       createdDate: formatDate(db.createdAt)
-    };
-
-    bindData(detailView, data);
+    });
   }
 
   window.initDashboardsPage = initDashboardsPage;

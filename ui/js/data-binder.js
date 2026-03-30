@@ -55,13 +55,10 @@
     targetContainer.innerHTML = '';
 
     for (var i = 0; i < items.length; i++) {
-      var clone = tmpl.content.cloneNode(true);
-      var wrapper = document.createElement('div');
-      wrapper.appendChild(clone);
-      var el = wrapper.firstElementChild;
+      var el = tmpl.content.firstElementChild.cloneNode(true);
 
-      bindData(wrapper, items[i]);
-      bindAttr(wrapper, items[i]);
+      bindData(el, items[i]);
+      bindAttr(el, items[i]);
 
       if (bindFn) bindFn(el, items[i], i);
 
