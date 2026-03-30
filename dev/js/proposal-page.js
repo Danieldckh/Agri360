@@ -102,9 +102,9 @@
   var bookingColumns = [
     { key: 'assignedAdmin', label: 'Admin', sortable: true, type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'bookingForm', label: 'Booking Form', sortable: true, type: 'text' },
-    { key: 'checklistUrl', label: 'Checklist', sortable: true, type: 'link' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
+    { key: 'esignUrl', label: 'E-Sign Form', sortable: false, type: 'link' },
+    { key: 'checklistUrl', label: 'Checklist', sortable: false, type: 'link' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var bookingSideColumns = [
@@ -155,6 +155,7 @@
       campaignStart: form.campaignMonthStart || null,
       campaignEnd: form.campaignMonthEnd || null,
       checklistUrl: form.checklistUrl || '',
+      esignUrl: form.esignUrl || '',
       createdAt: form.createdAt || null,
       status: form.status || 'draft',
       declineReason: form.declineReason || ''
@@ -460,45 +461,16 @@
   function renderBookingFormTab(container) {
     resetContainer(container);
 
+    // Single-column layout: "Sent to Client" only
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout';
 
     var mainCol = document.createElement('div');
     mainCol.className = 'dept-dashboard-main';
+    mainCol.style.width = '100%';
 
-    var sideCol = document.createElement('div');
-    sideCol.className = 'dept-dashboard-side';
-
-    // --- Booking Forms row actions: View | Advance → Sent to Client ---
-    var bookingFormActions = [
-      {
-        icon: ICON_VIEW,
-        tooltip: 'View checklist JSON',
-        className: 'action-view',
-        onClick: function (rowData) {
-          if (window.viewChecklistJson) {
-            window.viewChecklistJson(rowData.id);
-          }
-        }
-      },
-      {
-        icon: ICON_ADVANCE,
-        tooltip: 'Send to client',
-        className: 'action-advance',
-        onClick: function (rowData) {
-          fetch(API_BASE + '/' + rowData.id, {
-            method: 'PATCH',
-            headers: getHeaders(),
-            body: JSON.stringify({ status: 'sent_to_client' })
-          }).then(function (res) {
-            if (res.ok) refreshAll();
-          });
-        }
-      }
-    ];
-
-    // --- Sent to Client row actions: Approve → Onboarding | Decline ---
-    var bookingSentActions = [
+    // --- Row actions: Approve → Onboarding | Decline ---
+    var bookingActions = [
       {
         icon: ICON_APPROVE,
         tooltip: 'Approve — move to onboarding',
@@ -531,20 +503,13 @@
       }
     ];
 
-    var mainSheet = buildProposalSheet('Booking Forms', bookingColumns, {
+    var mainSheet = buildProposalSheet('Sent to Client', bookingColumns, {
       onStatusChange: refreshAll,
-      rowActions: bookingFormActions
-    });
-    var sideSheet = buildProposalSheet('Sent to Client', bookingSideColumns, {
-      compact: true,
-      onStatusChange: refreshAll,
-      rowActions: bookingSentActions
+      rowActions: bookingActions
     });
 
     mainCol.appendChild(mainSheet.el);
-    sideCol.appendChild(sideSheet.el);
     layout.appendChild(mainCol);
-    layout.appendChild(sideCol);
     container.appendChild(layout);
 
     function refreshAll() {
@@ -555,10 +520,7 @@
         })
         .then(function (forms) {
           var all = forms.map(mapFormToRow);
-          var clientApproved = all.filter(function (r) { return r.status === 'client_approved'; });
-          var sentToClient = all.filter(function (r) { return r.status === 'sent_to_client'; });
-          mainSheet.update(clientApproved);
-          sideSheet.update(sentToClient);
+          mainSheet.update(all);
         })
         .catch(function (err) {
           console.error('Booking form fetch error:', err);
