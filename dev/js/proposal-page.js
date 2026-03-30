@@ -9,6 +9,7 @@
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
   var ICON_DECLINE = 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z';
   var ICON_APPROVE = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
+  var ICON_VIEW = 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z';
 
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
@@ -275,6 +276,32 @@
   function renderProposalTab(container) {
     resetContainer(container);
 
+    // New Booking button
+    var topBar = document.createElement('div');
+    topBar.style.display = 'flex';
+    topBar.style.justifyContent = 'flex-end';
+    topBar.style.marginBottom = '12px';
+
+    var newBookingBtn = document.createElement('button');
+    newBookingBtn.className = 'checklist-btn-primary';
+    newBookingBtn.textContent = 'New Booking';
+    newBookingBtn.style.padding = '8px 20px';
+    newBookingBtn.style.borderRadius = '6px';
+    newBookingBtn.style.border = 'none';
+    newBookingBtn.style.cursor = 'pointer';
+    newBookingBtn.style.fontWeight = '600';
+    newBookingBtn.style.color = '#fff';
+    newBookingBtn.style.background = 'var(--accent-gradient, linear-gradient(to top, #f5a623, #d4791a))';
+    newBookingBtn.addEventListener('click', function () {
+      if (window.openChecklistForClient) {
+        window.openChecklistForClient();
+      } else {
+        alert('Checklist wizard not loaded');
+      }
+    });
+    topBar.appendChild(newBookingBtn);
+    container.appendChild(topBar);
+
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
 
@@ -284,8 +311,18 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side proposal-side-col';
 
-    // --- To Do row actions: Delete | Skip to Booking Form | Send to Design ---
+    // --- To Do row actions: View | Delete | Skip to Booking Form | Send to Design ---
     var proposalRowActions = [
+      {
+        icon: ICON_VIEW,
+        tooltip: 'View checklist JSON',
+        className: 'action-view',
+        onClick: function (rowData) {
+          if (window.viewChecklistJson) {
+            window.viewChecklistJson(rowData.id);
+          }
+        }
+      },
       {
         icon: ICON_DELETE,
         tooltip: 'Delete proposal',
@@ -424,8 +461,18 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side';
 
-    // --- Booking Forms row actions: Advance → Sent to Client ---
+    // --- Booking Forms row actions: View | Advance → Sent to Client ---
     var bookingFormActions = [
+      {
+        icon: ICON_VIEW,
+        tooltip: 'View checklist JSON',
+        className: 'action-view',
+        onClick: function (rowData) {
+          if (window.viewChecklistJson) {
+            window.viewChecklistJson(rowData.id);
+          }
+        }
+      },
       {
         icon: ICON_ADVANCE,
         tooltip: 'Send to client',
