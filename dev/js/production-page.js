@@ -3,6 +3,20 @@
 
   var API_BASE = '/api/deliverables';
 
+  // SVG icons
+  var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
+
+  // Website design workflow: next status for production-visible statuses
+  var WEB_DESIGN_NEXT = {
+    'request_client_materials': { next: 'sitemap', tooltip: 'Advance to Sitemap (Design)' },
+    'ready_for_approval': { next: 'sent_for_approval', tooltip: 'Send for client approval' },
+    'sent_for_approval': null, // split: approve or design changes — handled elsewhere
+    'development': { next: 'site_developed', tooltip: 'Mark as developed' },
+    'site_developed': { next: 'hosting_seo', tooltip: 'Move to Hosting & SEO' },
+    'hosting_seo': { next: 'complete', tooltip: 'Mark as complete' },
+    'complete': null
+  };
+
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
     if (window.getAuthHeaders) {
@@ -27,8 +41,8 @@
 
   function statusClass(status) {
     var s = (status || 'pending').toLowerCase();
-    if (s === 'completed' || s === 'done') return 'status-completed';
-    if (s === 'in_progress' || s === 'active') return 'status-in-progress';
+    if (s === 'completed' || s === 'done' || s === 'complete') return 'status-completed';
+    if (s === 'in_progress' || s === 'active' || s === 'development' || s === 'site_developed' || s === 'hosting_seo') return 'status-in-progress';
     return 'status-pending';
   }
 
@@ -46,6 +60,18 @@
     return order.map(function (name) { return groups[name]; });
   }
 
+  function makeSvgIcon(pathD) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'currentColor');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathD);
+    svg.appendChild(path);
+    return svg;
+  }
+
   function renderProductionTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'flex';
@@ -56,12 +82,10 @@
     container.style.gap = '';
     container.style.padding = '';
 
-    // Use the standard dept-sheet-card layout
     var card = document.createElement('div');
     card.className = 'dept-sheet-card';
     card.style.width = '100%';
 
-    // Header
     var header = document.createElement('div');
     header.className = 'dept-sheet-header';
 
@@ -88,7 +112,6 @@
 
     card.appendChild(header);
 
-    // Sheet container for the grouped table
     var sheetContainer = document.createElement('div');
     sheetContainer.className = 'dept-sheet-container';
     sheetContainer.style.overflow = 'auto';
@@ -119,6 +142,16 @@
         });
     }
 
+    function advanceWebDesign(itemId, nextStatus) {
+      fetch(API_BASE + '/' + itemId, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: nextStatus })
+      }).then(function (res) {
+        if (res.ok) refreshAll();
+      });
+    }
+
     function renderTable(groups, filterTerm) {
       while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
 
@@ -135,22 +168,20 @@
       var table = document.createElement('table');
       table.className = 'production-sheet-table';
 
-      // Header row
       var thead = document.createElement('thead');
       var headerRow = document.createElement('tr');
-      ['Title', 'Type', 'Status', 'Assigned To', 'Due Date'].forEach(function (col) {
+      ['Title', 'Type', 'Status', 'Assigned To', 'Due Date', ''].forEach(function (col) {
         var th = document.createElement('th');
         th.textContent = col;
+        if (col === '') th.style.width = '40px';
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
       table.appendChild(thead);
 
       var tbody = document.createElement('tbody');
-      var visibleCount = 0;
 
       groups.forEach(function (group) {
-        // Filter items
         var items = group.items;
         if (filterTerm) {
           items = items.filter(function (item) {
@@ -167,7 +198,7 @@
         clientRow.style.cursor = 'pointer';
 
         var clientCell = document.createElement('td');
-        clientCell.colSpan = 5;
+        clientCell.colSpan = 6;
 
         var clientWrap = document.createElement('div');
         clientWrap.style.display = 'flex';
@@ -193,7 +224,7 @@
         clientRow.appendChild(clientCell);
         tbody.appendChild(clientRow);
 
-        // Deliverable child rows
+        // Child rows
         var childRows = [];
         items.forEach(function (item) {
           var row = document.createElement('tr');
@@ -226,12 +257,31 @@
           tdDue.textContent = formatDate(item.dueDate);
           row.appendChild(tdDue);
 
+          // Action column
+          var tdAction = document.createElement('td');
+          if (item.type === 'website-design') {
+            var wf = WEB_DESIGN_NEXT[item.status];
+            if (wf) {
+              var btn = document.createElement('button');
+              btn.className = 'proagri-sheet-row-action-btn action-advance';
+              btn.title = wf.tooltip;
+              btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+              btn.style.opacity = '1';
+              btn.addEventListener('click', (function (id, next) {
+                return function (e) {
+                  e.stopPropagation();
+                  advanceWebDesign(id, next);
+                };
+              })(item.id, wf.next));
+              tdAction.appendChild(btn);
+            }
+          }
+          row.appendChild(tdAction);
+
           tbody.appendChild(row);
           childRows.push(row);
-          visibleCount++;
         });
 
-        // Toggle collapse on client row click
         clientRow.addEventListener('click', (function (rows, chev) {
           return function () {
             var isOpen = rows[0] && rows[0].style.display !== 'none';
