@@ -197,6 +197,17 @@
   color: #888;
 }
 
+.proagri-sheet-status-request_client_materials,
+.proagri-sheet-status-materials_requested {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-materials_received {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
 .proagri-sheet-status-lead {
   background: rgba(245, 166, 35, 0.15);
   color: #f5a623;

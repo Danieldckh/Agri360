@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'social-media': 'Social Media'
   };
   var deptMenuItems = {
-    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
+    'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal', 'Action Board'],
     'production': ['Action Board', 'Follow Ups'],
     'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
@@ -905,6 +905,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Route Admin > Declined Proposal to the declined tab
     if (page === 'admin' && viewName === 'Declined Proposal' && window.renderDeclinedTab) {
       window.renderDeclinedTab(dashboardContent);
+      return;
+    }
+
+    // Route Admin > Action Board to admin action board view
+    if (page === 'admin' && viewName === 'Action Board' && window.renderAdminActionBoard) {
+      window.renderAdminActionBoard(dashboardContent);
       return;
     }
 
