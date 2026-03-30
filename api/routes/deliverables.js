@@ -75,7 +75,7 @@ const DEFAULT_DELIVERABLES = [
   { type: 'sm-google-ads', title: 'SM Management - Google Ads', initialStatus: 'request_client_materials' },
   { type: 'sm-linkedin', title: 'SM Management - LinkedIn', initialStatus: 'request_client_materials' },
   { type: 'sm-twitter', title: 'SM Management - Twitter/X', initialStatus: 'request_client_materials' },
-  { type: 'sm-content-calendar', title: 'SM Management - Content Calendar', initialStatus: 'request_client_materials' },
+  { type: 'sm-content-calendar', title: 'Content Calendar', initialStatus: 'request_focus_points' },
   { type: 'agri4all-posts', title: 'Agri4All - Posts', initialStatus: 'request_client_materials' },
   { type: 'agri4all-videos', title: 'Agri4All - Videos', initialStatus: 'request_client_materials' },
   { type: 'agri4all-product-uploads', title: 'Agri4All - Product Uploads', initialStatus: 'request_client_materials' },
@@ -98,11 +98,10 @@ const DEPT_MAPS = {
     'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
   },
   'sm-content-calendar': {
-    'request_client_materials': 'production', 'upload_materials': 'production',
-    'artwork_design': 'design', 'design_changes': 'design',
-    'create_captions': 'editorial', 'editorial_review': 'editorial',
-    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'production',
-    'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
+    'request_focus_points': 'production', 'focus_points_requested': 'production', 'focus_points_received': 'production',
+    'design': 'design', 'design_review': 'design', 'design_changes': 'design',
+    'proofread': 'editorial', 'client_changes': 'production',
+    'approved': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
   },
   'agri4all-posts': {
     'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
