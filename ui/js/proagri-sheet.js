@@ -208,6 +208,18 @@
       cell.textContent = formatDate(value);
     },
 
+    link: function (cell, value) {
+      if (!value) { cell.textContent = '—'; return; }
+      var a = document.createElement('a');
+      a.href = value;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = 'View';
+      a.className = 'proagri-sheet-link';
+      a.addEventListener('click', function (e) { e.stopPropagation(); });
+      cell.appendChild(a);
+    },
+
     person: function (cell, value) {
       var ids = Array.isArray(value) ? value : (value ? [value] : []);
       var wrap = document.createElement('div');

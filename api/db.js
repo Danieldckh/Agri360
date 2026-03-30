@@ -159,6 +159,9 @@ async function runMigrations() {
     // Decline reason for proposals/booking forms
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS decline_reason TEXT`);
 
+    // Admin assignment for proposals
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS assigned_admin INT REFERENCES employees(id)`);
+
     // Editable and e-sign URLs
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS editable_url TEXT`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS esign_url TEXT`);

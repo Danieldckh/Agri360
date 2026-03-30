@@ -73,32 +73,37 @@
     setTimeout(function () { textarea.focus(); }, 50);
   }
 
+  // --- Month name helper ---
+  var MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function formatCampaignRange(start, end) {
+    if (!start || !end) return '—';
+    var sp = start.split('-'), ep = end.split('-');
+    var sm = MONTH_NAMES[parseInt(sp[1], 10) - 1] || '';
+    var em = MONTH_NAMES[parseInt(ep[1], 10) - 1] || '';
+    return sm + ' ' + sp[0] + ' — ' + em + ' ' + ep[0];
+  }
+
   // --- Column Configs ---
 
   var todoColumns = [
+    { key: 'assignedAdmin', label: 'Admin', sortable: true, type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
-    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
-    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'bookingForm', label: 'Booking Form', sortable: true, type: 'text' },
+    { key: 'checklistUrl', label: 'Checklist', sortable: true, type: 'link' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var sideColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'bookingForm', label: 'Booking Form', sortable: true, type: 'text' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var bookingColumns = [
+    { key: 'assignedAdmin', label: 'Admin', sortable: true, type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
-    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
-    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'bookingForm', label: 'Booking Form', sortable: true, type: 'text' },
+    { key: 'checklistUrl', label: 'Checklist', sortable: true, type: 'link' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
   ];
 
@@ -142,11 +147,14 @@
   function mapFormToRow(form) {
     return {
       id: form.id,
+      assignedAdmin: form.assignedAdmin || form.createdBy || null,
       client: form.clientName || form.title || 'Untitled',
       title: form.title || '—',
+      bookingForm: formatCampaignRange(form.campaignMonthStart, form.campaignMonthEnd),
       representative: form.representative || '—',
       campaignStart: form.campaignMonthStart || null,
       campaignEnd: form.campaignMonthEnd || null,
+      checklistUrl: form.checklistUrl || '',
       createdAt: form.createdAt || null,
       status: form.status || 'draft',
       declineReason: form.declineReason || ''
