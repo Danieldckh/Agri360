@@ -430,6 +430,17 @@ document.addEventListener('DOMContentLoaded', () => {
       sep.style.margin = '8px 12px';
       nav.appendChild(sep);
 
+      // New Booking button for Admin department
+      if (page === 'admin') {
+        var bookingLink = document.createElement('a');
+        bookingLink.href = 'http://kgso4o000o48kww4k4c8048c.148.230.100.16.sslip.io/';
+        bookingLink.target = '_blank';
+        bookingLink.rel = 'noopener';
+        bookingLink.className = 'nav-item nav-new-booking';
+        bookingLink.textContent = '+ New Booking';
+        nav.appendChild(bookingLink);
+      }
+
       items.forEach(function (viewName, idx) {
         var item = document.createElement('a');
         item.className = 'nav-item' + (idx === activeIdx ? ' active' : '');
@@ -871,21 +882,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function showDeptContent(page, viewName) {
     while (dashboardContent.firstChild) {
       dashboardContent.removeChild(dashboardContent.firstChild);
-    }
-
-    // Admin top bar with New Booking button
-    if (page === 'admin') {
-      var topBar = document.createElement('div');
-      topBar.style.cssText = 'display:flex;align-items:center;padding:12px 16px 0;';
-      var newBookingLink = document.createElement('a');
-      newBookingLink.href = 'http://kgso4o000o48kww4k4c8048c.148.230.100.16.sslip.io/';
-      newBookingLink.target = '_blank';
-      newBookingLink.rel = 'noopener';
-      newBookingLink.className = 'dev-btn dev-btn-primary';
-      newBookingLink.textContent = 'New Booking';
-      newBookingLink.style.textDecoration = 'none';
-      topBar.appendChild(newBookingLink);
-      dashboardContent.appendChild(topBar);
     }
 
     // Route Admin > Proposal to the proposal tab
