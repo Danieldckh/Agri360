@@ -26,11 +26,15 @@
 
   var STATUS_ORDER = {
     'pending': 0, 'draft': 0, 'lead': 0,
+    'request_client_materials': 0, 'materials_requested': 0, 'materials_received': 1,
     'outline_proposal': 1, 'design_proposal': 1, 'design_review': 1,
     'in_progress': 1, 'in progress': 1, 'active': 1,
+    'sitemap': 1, 'wireframe': 1, 'prototype': 1,
+    'ready_for_approval': 2, 'sent_for_approval': 2,
     'proposal_ready': 2, 'client_approved': 2, 'booking_form_ready': 2,
-    'sent_to_client': 2, 'approved': 2,
-    'completed': 2, 'done': 2, 'onboarding': 2, 'onboarded': 3,
+    'sent_to_client': 2, 'approved': 2, 'design_changes': 1,
+    'development': 2, 'site_developed': 2, 'hosting_seo': 2,
+    'completed': 2, 'done': 2, 'complete': 2, 'onboarding': 2, 'onboarded': 3,
     'overdue': 3, 'inactive': 4, 'declined': 4,
     'low': 0, 'medium': 1, 'high': 2, 'urgent': 3
   };
