@@ -17,6 +17,14 @@
     'complete': null
   };
 
+  // Generic workflow for all other deliverable types
+  var GENERIC_NEXT = {
+    'pending':     { next: 'in_progress', tooltip: 'Start — mark as In Progress' },
+    'in_progress': { next: 'completed',   tooltip: 'Advance to Completed' },
+    'overdue':     { next: 'in_progress', tooltip: 'Resume — mark as In Progress' },
+    'completed': null
+  };
+
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
     if (window.getAuthHeaders) {
@@ -142,7 +150,7 @@
         });
     }
 
-    function advanceWebDesign(itemId, nextStatus) {
+    function advanceStatus(itemId, nextStatus) {
       fetch(API_BASE + '/' + itemId, {
         method: 'PATCH',
         headers: getHeaders(),
@@ -272,24 +280,24 @@
           tdDue.textContent = formatDate(item.dueDate);
           row.appendChild(tdDue);
 
-          // Action column
+          // Action column — pick workflow map based on type
           var tdAction = document.createElement('td');
-          if (item.type === 'website-design') {
-            var wf = WEB_DESIGN_NEXT[item.status];
-            if (wf) {
-              var btn = document.createElement('button');
-              btn.className = 'proagri-sheet-row-action-btn action-advance';
-              btn.title = wf.tooltip;
-              btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-              btn.style.opacity = '1';
-              btn.addEventListener('click', (function (id, next) {
-                return function (e) {
-                  e.stopPropagation();
-                  advanceWebDesign(id, next);
-                };
-              })(item.id, wf.next));
-              tdAction.appendChild(btn);
-            }
+          var wf = item.type === 'website-design'
+            ? WEB_DESIGN_NEXT[item.status]
+            : GENERIC_NEXT[item.status];
+          if (wf) {
+            var btn = document.createElement('button');
+            btn.className = 'proagri-sheet-row-action-btn action-advance';
+            btn.title = wf.tooltip;
+            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+            btn.style.opacity = '1';
+            btn.addEventListener('click', (function (id, next) {
+              return function (e) {
+                e.stopPropagation();
+                advanceStatus(id, next);
+              };
+            })(item.id, wf.next));
+            tdAction.appendChild(btn);
           }
           row.appendChild(tdAction);
 
