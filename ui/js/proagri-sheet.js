@@ -72,6 +72,10 @@
     return null;
   }
 
+  // Expose lookup for other modules
+  window._employeeCacheLookup = getEmployeeById;
+  window._fetchEmployees = fetchEmployees;
+
   // === Active editor singleton ===
   var activeEditor = null;
   var activeEditorCleanup = null;
@@ -202,9 +206,17 @@
 
     person: function (cell, value) {
       var ids = Array.isArray(value) ? value : (value ? [value] : []);
-      if (ids.length === 0) { cell.textContent = '-'; return; }
       var wrap = document.createElement('div');
       wrap.className = 'proagri-sheet-persons';
+      if (ids.length === 0) {
+        // Show empty avatar placeholder circle
+        var empty = document.createElement('div');
+        empty.className = 'proagri-sheet-person-avatar-empty';
+        empty.appendChild(makeSvgEl(PERSON_SVG_PATH, 16));
+        wrap.appendChild(empty);
+        cell.appendChild(wrap);
+        return;
+      }
       var max = 3;
       for (var i = 0; i < Math.min(ids.length, max); i++) {
         var emp = getEmployeeById(ids[i]);
@@ -487,7 +499,7 @@
   function openPersonEditor(cell, value, col, rowData, onSave) {
     closeActiveEditor();
     cell.classList.add('cell-editing');
-    var multiple = col.multiple !== false;
+    var multiple = col.multiple === true;
     var selected = Array.isArray(value) ? value.slice() : (value ? [value] : []);
     var editor = document.createElement('div');
     editor.className = 'proagri-sheet-editor proagri-sheet-person-picker';
@@ -513,6 +525,34 @@
             ((e.username || '').toLowerCase().indexOf(term) !== -1);
         });
       }
+
+      // "Unassign" option at the top for single-select when someone is assigned
+      if (!multiple && selected.length > 0 && !filter) {
+        var unassignItem = document.createElement('div');
+        unassignItem.className = 'proagri-sheet-person-picker-item proagri-sheet-person-picker-unassign';
+        var unassignIcon = document.createElement('div');
+        unassignIcon.className = 'proagri-sheet-person-avatar-empty';
+        unassignIcon.style.width = '28px';
+        unassignIcon.style.height = '28px';
+        unassignIcon.style.borderStyle = 'dashed';
+        unassignIcon.appendChild(makeSvgEl(PERSON_SVG_PATH, 14));
+        unassignItem.appendChild(unassignIcon);
+        var unassignInfo = document.createElement('div');
+        unassignInfo.className = 'proagri-sheet-person-picker-info';
+        var unassignName = document.createElement('div');
+        unassignName.className = 'proagri-sheet-person-picker-name';
+        unassignName.textContent = 'Unassign';
+        unassignName.style.color = 'var(--text-muted)';
+        unassignInfo.appendChild(unassignName);
+        unassignItem.appendChild(unassignInfo);
+        unassignItem.addEventListener('click', function () {
+          cell.classList.remove('cell-editing');
+          closeActiveEditor();
+          onSave(null);
+        });
+        list.appendChild(unassignItem);
+      }
+
       if (filtered.length === 0) {
         var empty = document.createElement('div');
         empty.className = 'proagri-sheet-person-picker-empty';
@@ -559,7 +599,7 @@
           } else {
             cell.classList.remove('cell-editing');
             closeActiveEditor();
-            onSave([emp.id]);
+            onSave(emp.id);
           }
         });
         list.appendChild(item);
@@ -581,8 +621,10 @@
 
     activeEditorCleanup = function () {
       cell.classList.remove('cell-editing');
-      var original = Array.isArray(value) ? value : (value ? [value] : []);
-      if (JSON.stringify(selected) !== JSON.stringify(original)) onSave(selected);
+      if (multiple) {
+        var original = Array.isArray(value) ? value : (value ? [value] : []);
+        if (JSON.stringify(selected) !== JSON.stringify(original)) onSave(selected);
+      }
     };
   }
 

@@ -326,8 +326,8 @@
 }
 
 .proagri-sheet-person-avatar {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid var(--color-secondary, #fff);
   object-fit: cover;
@@ -336,6 +336,11 @@
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
+  transition: box-shadow 0.15s;
+}
+
+.proagri-sheet-person-avatar:hover {
+  box-shadow: 0 0 0 2px var(--color-primary, #4f46e5);
 }
 
 .proagri-sheet-person-avatar:first-child {
@@ -343,8 +348,8 @@
 }
 
 .proagri-sheet-person-avatar-placeholder {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid var(--color-secondary, #fff);
   margin-left: -6px;
@@ -352,7 +357,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   flex-shrink: 0;
+  transition: box-shadow 0.15s;
+}
+
+.proagri-sheet-person-avatar-placeholder:hover {
+  box-shadow: 0 0 0 2px var(--color-primary, #4f46e5);
 }
 
 .proagri-sheet-person-avatar-placeholder:first-child {
@@ -363,6 +374,36 @@
   width: 14px;
   height: 14px;
   fill: rgba(128, 128, 128, 0.5);
+}
+
+.proagri-sheet-person-avatar-empty {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px dashed rgba(128, 128, 128, 0.35);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.proagri-sheet-person-avatar-empty:hover {
+  border-color: var(--color-primary, #4f46e5);
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.proagri-sheet-person-avatar-empty svg {
+  width: 16px;
+  height: 16px;
+  fill: rgba(128, 128, 128, 0.4);
+  transition: fill 0.15s;
+}
+
+.proagri-sheet-person-avatar-empty:hover svg {
+  fill: var(--color-primary, #4f46e5);
 }
 
 .proagri-sheet-person-overflow {
@@ -821,6 +862,15 @@
 
 .proagri-sheet-person-picker-check.checked svg {
   display: block;
+}
+
+.proagri-sheet-person-picker-unassign {
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  opacity: 0.7;
+}
+
+.proagri-sheet-person-picker-unassign:hover {
+  opacity: 1;
 }
 
 .proagri-sheet-person-picker-empty {

@@ -250,7 +250,22 @@
           row.appendChild(tdStatus);
 
           var tdAssigned = document.createElement('td');
-          tdAssigned.textContent = item.assignedTo || '—';
+          var assignedId = item.assignedProduction || item.assignedTo;
+          if (assignedId && window._employeeCacheLookup) {
+            var emp = window._employeeCacheLookup(assignedId);
+            if (emp && emp.photo_url) {
+              var avatarImg = document.createElement('img');
+              avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
+              avatarImg.src = emp.photo_url;
+              avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
+              avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
+              tdAssigned.appendChild(avatarImg);
+            } else {
+              tdAssigned.textContent = assignedId;
+            }
+          } else {
+            tdAssigned.textContent = '—';
+          }
           row.appendChild(tdAssigned);
 
           var tdDue = document.createElement('td');

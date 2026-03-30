@@ -486,12 +486,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
+  // Department slug → assigned column key mapping (camelCase to match API response)
+  var deptAssignedKey = {
+    'admin': 'assignedAdmin',
+    'production': 'assignedProduction',
+    'design': 'assignedDesign',
+    'editorial': 'assignedEditorial',
+    'video': 'assignedVideo',
+    'agri4all': 'assignedAgri4all',
+    'social-media': 'assignedSocialMedia'
+  };
+
+  // Resolve generic assigned_to columns to department-specific ones
+  function resolveAssignedColumns(columns, deptSlug) {
+    var assignKey = deptAssignedKey[deptSlug];
+    if (!assignKey) return columns;
+    return columns.map(function(col) {
+      // Replace generic assigned_to with dept-specific key
+      if (col.key === 'assigned_to') {
+        return Object.assign({}, col, { key: assignKey, type: 'person', editable: true });
+      }
+      return col;
+    });
+  }
+
   // Tab-specific column configurations for department sheets
   var deptTabColumns = {
     '_default': [
       { key: 'name', label: 'Name', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] },
       { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true }
     ],
@@ -511,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ],
     'Onboarding': [
       { key: 'client', label: 'Client', sortable: true, isName: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assignedAdmin', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'progress', label: 'Progress', sortable: true },
       { key: 'start_date', label: 'Start Date', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
@@ -531,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Action Board': [
       { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'assignedProduction', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: ['low', 'medium', 'high', 'urgent'] },
       { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
@@ -546,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Follow Ups': [
       { key: 'item', label: 'Item', sortable: true, isName: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assignedProduction', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'follow_up_date', label: 'Follow Up Date', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
@@ -560,34 +584,34 @@ document.addEventListener('DOMContentLoaded', () => {
     'Magazine': [
       { key: 'title', label: 'Title', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'edition', label: 'Edition', sortable: true, type: 'text', editable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'deadline', label: 'Deadline', sortable: true, type: 'date', editable: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
     ],
     'Agri for All': [
       { key: 'title', label: 'Title', sortable: true, isName: true },
       { key: 'category', label: 'Category', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assignedAgri4all', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Web Design': [
       { key: 'project', label: 'Project', sortable: true, isName: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Own SM': [
       { key: 'title', label: 'Title', sortable: true, isName: true },
       { key: 'platform', label: 'Platform', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Internal Tasks': [
       { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'assignedDesign', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: ['low', 'medium', 'high', 'urgent'] },
       { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
@@ -617,13 +641,13 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'event', label: 'Event', sortable: true, isName: true },
       { key: 'client', label: 'Client', sortable: true },
       { key: 'date', label: 'Date', sortable: true, type: 'date' },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
     'Tasks': [
       { key: 'task', label: 'Task', sortable: true, isName: true, type: 'text', editable: true },
       { key: 'client', label: 'Client', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true, multiple: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'due_date', label: 'Due Date', sortable: true, type: 'date', editable: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['pending', 'in_progress', 'completed', 'overdue'] }
     ],
@@ -658,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Social Media': [
       { key: 'title', label: 'Title', sortable: true, isName: true },
       { key: 'platform', label: 'Platform', sortable: true },
-      { key: 'assigned_to', label: 'Assigned To', sortable: true },
+      { key: 'assigned_to', label: 'Assigned To', sortable: true, type: 'person', editable: true },
       { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
@@ -916,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Main sheet (left, ~80%)
     var mainCol = document.createElement('div');
     mainCol.className = 'dept-dashboard-main';
-    var mainColumns = deptTabColumns[viewName] || deptTabColumns['_default'];
+    var mainColumns = resolveAssignedColumns(deptTabColumns[viewName] || deptTabColumns['_default'], page);
     var mainCard = buildSheetCard(viewName, mainColumns);
     mainCol.appendChild(mainCard.el);
     layout.appendChild(mainCol);

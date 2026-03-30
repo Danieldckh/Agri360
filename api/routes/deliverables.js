@@ -197,7 +197,9 @@ router.patch('/:id', async (req, res) => {
     }
   }
 
-  const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id'];
+  const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id',
+    'assigned_admin', 'assigned_production', 'assigned_design', 'assigned_editorial',
+    'assigned_video', 'assigned_agri4all', 'assigned_social_media'];
   const updates = [];
   const values = [];
   let idx = 1;
