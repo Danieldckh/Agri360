@@ -915,6 +915,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Production > Follow Ups to follow-ups 2-sheet view
+    if (page === 'production' && viewName === 'Follow Ups' && window.renderFollowUpsTab) {
+      window.renderFollowUpsTab(dashboardContent);
+      return;
+    }
+
     // Route Design > Proposals to live design proposals view
     if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
       window.renderDesignProposalsTab(dashboardContent);

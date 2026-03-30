@@ -301,5 +301,318 @@
     refreshAll();
   }
 
+  // ── Follow Ups Tab (2-sheet layout) ────────────────────────────
+  function renderFollowUpsTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = '';
+    container.style.alignItems = '';
+    container.style.justifyContent = '';
+    container.style.flexDirection = '';
+    container.style.height = '';
+    container.style.gap = '';
+    container.style.padding = '';
+
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
+    container.appendChild(layout);
+
+    // ── LEFT: Materials Requested (main sheet) ──
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+    layout.appendChild(mainCol);
+
+    var mainCard = document.createElement('div');
+    mainCard.className = 'dept-sheet-card';
+    mainCol.appendChild(mainCard);
+
+    var mainHeader = document.createElement('div');
+    mainHeader.className = 'dept-sheet-header';
+
+    var mainTitleWrap = document.createElement('div');
+    mainTitleWrap.className = 'dept-sheet-title-wrap';
+
+    var mainH = document.createElement('h3');
+    mainH.className = 'dept-sheet-title';
+    mainH.textContent = 'Materials Requested';
+    mainTitleWrap.appendChild(mainH);
+
+    var mainCount = document.createElement('span');
+    mainCount.className = 'dept-sheet-count';
+    mainCount.textContent = '0';
+    mainTitleWrap.appendChild(mainCount);
+
+    mainHeader.appendChild(mainTitleWrap);
+
+    var mainSearch = document.createElement('input');
+    mainSearch.type = 'text';
+    mainSearch.className = 'dept-sheet-search';
+    mainSearch.placeholder = 'Search...';
+    mainHeader.appendChild(mainSearch);
+
+    mainCard.appendChild(mainHeader);
+
+    var mainSheet = document.createElement('div');
+    mainSheet.className = 'dept-sheet-container';
+    mainSheet.style.overflow = 'auto';
+    mainSheet.style.flex = '1';
+    mainCard.appendChild(mainSheet);
+
+    // ── RIGHT: Follow Ups (side sheet) ──
+    var sideCol = document.createElement('div');
+    sideCol.className = 'dept-dashboard-side';
+    layout.appendChild(sideCol);
+
+    var sideCard = document.createElement('div');
+    sideCard.className = 'dept-sheet-card dept-sheet-card-compact';
+    sideCol.appendChild(sideCard);
+
+    var sideHeader = document.createElement('div');
+    sideHeader.className = 'dept-sheet-header';
+
+    var sideTitleWrap = document.createElement('div');
+    sideTitleWrap.className = 'dept-sheet-title-wrap';
+
+    var sideH = document.createElement('h3');
+    sideH.className = 'dept-sheet-title';
+    sideH.textContent = 'Follow Ups';
+    sideTitleWrap.appendChild(sideH);
+
+    var sideCount = document.createElement('span');
+    sideCount.className = 'dept-sheet-count';
+    sideCount.textContent = '0';
+    sideTitleWrap.appendChild(sideCount);
+
+    sideHeader.appendChild(sideTitleWrap);
+    sideCard.appendChild(sideHeader);
+
+    var sideSheet = document.createElement('div');
+    sideSheet.className = 'dept-sheet-container';
+    sideSheet.style.overflow = 'auto';
+    sideSheet.style.flex = '1';
+    sideCard.appendChild(sideSheet);
+
+    // ── Data ──
+    var allItems = [];
+
+    mainSearch.addEventListener('input', function () {
+      renderMainTable(allItems, mainSearch.value.toLowerCase());
+    });
+
+    function hoursWithoutContact(item) {
+      if (!item.updatedAt) return 0;
+      var diff = Date.now() - new Date(item.updatedAt).getTime();
+      return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
+    }
+
+    function refreshData() {
+      fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (deliverables) {
+          allItems = deliverables.filter(function (d) {
+            return d.type === 'website-design' && d.status === 'materials_requested';
+          });
+          mainCount.textContent = allItems.length;
+          sideCount.textContent = allItems.length;
+          renderMainTable(allItems, mainSearch.value.toLowerCase());
+          renderSideTable(allItems);
+        })
+        .catch(function (err) {
+          console.error('Follow Ups fetch error:', err);
+        });
+    }
+
+    function advanceStatus(itemId, nextStatus) {
+      fetch(API_BASE + '/' + itemId, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: nextStatus })
+      }).then(function (res) {
+        if (res.ok) refreshData();
+      });
+    }
+
+    function incrementFollowUp(itemId, currentCount) {
+      fetch(API_BASE + '/' + itemId, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ followUpCount: currentCount + 1 })
+      }).then(function (res) {
+        if (res.ok) refreshData();
+      });
+    }
+
+    // ── Main table: Materials Requested ──
+    function renderMainTable(items, filterTerm) {
+      while (mainSheet.firstChild) mainSheet.removeChild(mainSheet.firstChild);
+
+      var filtered = items;
+      if (filterTerm) {
+        filtered = items.filter(function (item) {
+          return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
+            (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1);
+        });
+      }
+
+      if (filtered.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = 'No materials requested';
+        mainSheet.appendChild(empty);
+        return;
+      }
+
+      var table = document.createElement('table');
+      table.className = 'production-sheet-table';
+
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      ['Client', 'Title', 'Status', 'Hours Without Contact', 'Follow Up Count', ''].forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col;
+        if (col === '') th.style.width = '40px';
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      filtered.forEach(function (item) {
+        var row = document.createElement('tr');
+        row.className = 'production-child-row';
+
+        var tdClient = document.createElement('td');
+        tdClient.style.fontWeight = '600';
+        tdClient.textContent = item.clientName || '—';
+        row.appendChild(tdClient);
+
+        var tdTitle = document.createElement('td');
+        tdTitle.textContent = item.title || '—';
+        row.appendChild(tdTitle);
+
+        var tdStatus = document.createElement('td');
+        var statusBadge = document.createElement('span');
+        statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
+        statusBadge.textContent = formatStatus(item.status);
+        tdStatus.appendChild(statusBadge);
+        row.appendChild(tdStatus);
+
+        var tdHours = document.createElement('td');
+        var hours = hoursWithoutContact(item);
+        tdHours.textContent = hours + 'h';
+        if (hours >= 48) tdHours.style.color = 'var(--color-error, #e53935)';
+        else if (hours >= 24) tdHours.style.color = 'var(--color-warning, #f59e0b)';
+        row.appendChild(tdHours);
+
+        var tdFollowUp = document.createElement('td');
+        var count = item.followUpCount || 0;
+        var countBadge = document.createElement('span');
+        countBadge.className = 'dept-sheet-count';
+        countBadge.textContent = count;
+        countBadge.style.cursor = 'pointer';
+        countBadge.title = 'Click to increment follow up count';
+        countBadge.addEventListener('click', (function (id, c) {
+          return function (e) {
+            e.stopPropagation();
+            incrementFollowUp(id, c);
+          };
+        })(item.id, count));
+        tdFollowUp.appendChild(countBadge);
+        row.appendChild(tdFollowUp);
+
+        var tdAction = document.createElement('td');
+        var btn = document.createElement('button');
+        btn.className = 'proagri-sheet-row-action-btn action-advance';
+        btn.title = 'Advance to Materials Received';
+        btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+        btn.style.opacity = '1';
+        btn.addEventListener('click', (function (id) {
+          return function (e) {
+            e.stopPropagation();
+            advanceStatus(id, 'materials_received');
+          };
+        })(item.id));
+        tdAction.appendChild(btn);
+        row.appendChild(tdAction);
+
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      mainSheet.appendChild(table);
+    }
+
+    // ── Side table: Follow Ups summary ──
+    function renderSideTable(items) {
+      while (sideSheet.firstChild) sideSheet.removeChild(sideSheet.firstChild);
+
+      if (items.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.padding = '20px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = 'No follow ups';
+        sideSheet.appendChild(empty);
+        return;
+      }
+
+      var table = document.createElement('table');
+      table.className = 'production-sheet-table';
+
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      ['Client', 'Hours', 'Follow Ups'].forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      // Sort by hours descending (most urgent first)
+      var sorted = items.slice().sort(function (a, b) {
+        return hoursWithoutContact(b) - hoursWithoutContact(a);
+      });
+
+      sorted.forEach(function (item) {
+        var row = document.createElement('tr');
+        row.className = 'production-child-row';
+
+        var tdClient = document.createElement('td');
+        tdClient.style.fontWeight = '600';
+        tdClient.style.fontSize = '12px';
+        tdClient.textContent = item.clientName || '—';
+        row.appendChild(tdClient);
+
+        var tdHours = document.createElement('td');
+        var hours = hoursWithoutContact(item);
+        tdHours.textContent = hours + 'h';
+        tdHours.style.fontSize = '12px';
+        if (hours >= 48) tdHours.style.color = 'var(--color-error, #e53935)';
+        else if (hours >= 24) tdHours.style.color = 'var(--color-warning, #f59e0b)';
+        row.appendChild(tdHours);
+
+        var tdCount = document.createElement('td');
+        tdCount.style.fontSize = '12px';
+        var sideCountBadge = document.createElement('span');
+        sideCountBadge.className = 'dept-sheet-count';
+        sideCountBadge.textContent = item.followUpCount || 0;
+        tdCount.appendChild(sideCountBadge);
+        row.appendChild(tdCount);
+
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      sideSheet.appendChild(table);
+    }
+
+    refreshData();
+  }
+
   window.renderProductionTab = renderProductionTab;
+  window.renderFollowUpsTab = renderFollowUpsTab;
 })();
