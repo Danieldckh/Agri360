@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal', 'Action Board'],
-    'production': ['Action Board', 'Follow Ups'],
+    'production': ['Client Communications', 'Follow Ups'],
     'design': ['Content Calendars', 'Magazine', 'Agri for All', 'Web Design', 'Own SM', 'Internal Tasks', 'Proposals'],
     'editorial': ['Content Calendars', 'Agri for All', 'Magazine', 'Online Articles'],
     'video': ['Dashboard', 'Calendar', 'Tasks', 'Budgets', 'Team & Freelancers'],
@@ -908,14 +908,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Route Admin > Action Board to admin action board view
-    if (page === 'admin' && viewName === 'Action Board' && window.renderAdminActionBoard) {
-      window.renderAdminActionBoard(dashboardContent);
+    // Route Admin > Action Board to production deliverables view
+    if (page === 'admin' && viewName === 'Action Board' && window.renderProductionTab) {
+      window.renderProductionTab(dashboardContent);
       return;
     }
 
-    // Route Production > Action Board to production deliverables view
-    if (page === 'production' && viewName === 'Action Board' && window.renderProductionTab) {
+    // Route Production > Client Communications to production deliverables view
+    if (page === 'production' && viewName === 'Client Communications' && window.renderProductionTab) {
       window.renderProductionTab(dashboardContent);
       return;
     }
