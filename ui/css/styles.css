@@ -378,6 +378,24 @@ html, body {
   pointer-events: none;
 }
 
+.nav-new-booking {
+  display: block;
+  margin: 4px 12px 8px;
+  padding: 8px 12px;
+  background: var(--accent, #c0392b);
+  color: #fff !important;
+  text-align: center;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.nav-new-booking:hover {
+  opacity: 0.85;
+}
+
 /* When sidebar is collapsed (icon-only), hide group headers and show all items */
 .sidebar.collapsed .nav-group-header {
   display: none;
@@ -751,6 +769,117 @@ html, body {
   color: #fff;
 }
 
+/* ===== Department Dashboard Layout ===== */
+.dept-dashboard-layout {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+}
+
+.dept-dashboard-main {
+  flex: 4;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dept-dashboard-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dept-dashboard-half {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Department Sheet Card ===== */
+.dept-sheet-card {
+  background: rgba(128, 128, 128, 0.06);
+  border: 1px solid rgba(128, 128, 128, 0.1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.dept-sheet-card-compact {
+  font-size: 13px;
+}
+
+.dept-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  flex-shrink: 0;
+}
+
+.dept-sheet-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dept-sheet-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dept-sheet-count {
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(128, 128, 128, 0.1);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.dept-sheet-search {
+  padding: 6px 12px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  background: rgba(128, 128, 128, 0.04);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 200px;
+}
+
+.dept-sheet-search::placeholder {
+  color: var(--text-muted);
+}
+
+.dept-sheet-search:focus {
+  border-color: var(--color-accent-light);
+}
+
+.dept-sheet-container {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+@media (max-width: 768px) {
+  .dept-dashboard-layout {
+    flex-direction: column;
+  }
+  .dept-sheet-search {
+    width: 100%;
+  }
+}
 
 /* ===== Responsive — 8 tiers ===== */
 

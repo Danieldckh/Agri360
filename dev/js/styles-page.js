@@ -60,36 +60,28 @@
     var settings = loadSettings();
     var root = document.documentElement;
 
-    // Font family
     var fontVal = settings['--font-family'] || DEFAULTS['--font-family'];
     root.style.setProperty('--font-family', fontVal);
     var fontOpt = FONT_OPTIONS.find(function (f) { return f.value === fontVal; });
     if (fontOpt) loadGoogleFont(fontOpt);
 
-    // Font sizes
     ['--font-size-heading', '--font-size-subtitle', '--font-size-body', '--font-size-small'].forEach(function (key) {
       var val = settings[key] || DEFAULTS[key];
       root.style.setProperty(key, val + 'px');
     });
 
-    // Accent colors
     if (settings['--color-accent-light']) root.style.setProperty('--color-accent-light', settings['--color-accent-light']);
     if (settings['--color-accent-dark']) root.style.setProperty('--color-accent-dark', settings['--color-accent-dark']);
 
-    // Text colors — fixed light theme
     root.style.setProperty('--text-primary', settings['--text-primary'] || DEFAULTS['--text-primary']);
     root.style.setProperty('--text-secondary', settings['--text-secondary'] || DEFAULTS['--text-secondary']);
     root.style.setProperty('--text-muted', settings['--text-muted'] || DEFAULTS['--text-muted']);
-
   }
 
-  // Apply on page load — run immediately for fast paint, then again after DOMContentLoaded
   applySettings();
   document.addEventListener('DOMContentLoaded', function () {
     applySettings();
   });
-
-  // --- Utility functions from the old styles page ---
 
   function getAllCssVars() {
     var vars = {};
@@ -171,9 +163,86 @@
     localStorage.removeItem(STYLE_STORAGE_KEY);
   }
 
-  // --- Render the unified Styles & Settings page ---
+  // --- Build dynamic sections that can't be static HTML ---
 
-  window.renderStylesPage = function (container) {
+  function buildColorPickerCard(label, key, cssVar, getPending, setPending) {
+    var card = document.createElement('div');
+    card.className = 'setting-card';
+
+    var labelEl = document.createElement('div');
+    labelEl.className = 'setting-card-label';
+    labelEl.textContent = label;
+    card.appendChild(labelEl);
+
+    var row = document.createElement('div');
+    row.className = 'settings-color-row';
+
+    var swatch = document.createElement('div');
+    swatch.className = 'settings-color-swatch';
+    var currentColor = getPending(key);
+    swatch.style.background = currentColor;
+
+    var picker = document.createElement('input');
+    picker.type = 'color';
+    picker.value = currentColor;
+    swatch.appendChild(picker);
+
+    var valueSpan = document.createElement('span');
+    valueSpan.className = 'settings-color-value';
+    valueSpan.textContent = currentColor;
+
+    picker.addEventListener('input', function () {
+      swatch.style.background = picker.value;
+      valueSpan.textContent = picker.value;
+      setPending(key, picker.value);
+      if (cssVar) {
+        document.documentElement.style.setProperty(cssVar, picker.value);
+      }
+    });
+
+    row.appendChild(swatch);
+    row.appendChild(valueSpan);
+    card.appendChild(row);
+    return card;
+  }
+
+  function buildSliderCard(cfg, getPending, setPending) {
+    var card = document.createElement('div');
+    card.className = 'setting-card';
+
+    var label = document.createElement('div');
+    label.className = 'setting-card-label';
+    label.textContent = cfg.label;
+    card.appendChild(label);
+
+    var row = document.createElement('div');
+    row.className = 'settings-slider-row';
+
+    var slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'settings-slider';
+    slider.min = cfg.min;
+    slider.max = cfg.max;
+    slider.step = cfg.step;
+    slider.value = getPending(cfg.key);
+
+    var valueLabel = document.createElement('span');
+    valueLabel.className = 'settings-slider-value';
+    valueLabel.textContent = slider.value + 'px';
+
+    slider.addEventListener('input', function () {
+      valueLabel.textContent = slider.value + 'px';
+      setPending(cfg.key, slider.value);
+      document.documentElement.style.setProperty(cfg.key, slider.value + 'px');
+    });
+
+    row.appendChild(slider);
+    row.appendChild(valueLabel);
+    card.appendChild(row);
+    return card;
+  }
+
+  function initStylesPage(container) {
     var settings = loadSettings();
     var pendingChanges = {};
     var allVars = getAllCssVars();
@@ -187,34 +256,15 @@
       pendingChanges[key] = value;
     }
 
-    var page = document.createElement('div');
-    page.className = 'dev-page';
-
-    // ===== (a) Header =====
-    var header = document.createElement('div');
-    header.className = 'dev-page-header';
-
-    var title = document.createElement('h1');
-    title.className = 'dev-page-title';
-    title.textContent = 'Styles & Settings';
-    header.appendChild(title);
-
-    var actions = document.createElement('div');
-    actions.className = 'dev-page-actions';
-
-    var saveBtn = document.createElement('button');
-    saveBtn.className = 'dev-btn dev-btn-primary';
-    saveBtn.textContent = 'Save';
+    // --- Save button ---
+    var saveBtn = container.querySelector('#styles-save-btn');
     saveBtn.addEventListener('click', function () {
-      // Save theme settings
       var merged = loadSettings();
       Object.keys(pendingChanges).forEach(function (key) {
         merged[key] = pendingChanges[key];
       });
       localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(merged));
       applySettings();
-
-      // Save style overrides for backwards compatibility
       saveStyleOverrides();
 
       saveBtn.textContent = 'Saved!';
@@ -225,64 +275,23 @@
       }, 1500);
     });
 
-    var resetBtn = document.createElement('button');
-    resetBtn.className = 'dev-btn dev-btn-ghost';
-    resetBtn.textContent = 'Reset to Defaults';
+    // --- Reset button ---
+    var resetBtn = container.querySelector('#styles-reset-btn');
     resetBtn.addEventListener('click', function () {
-      // Reset theme settings
       localStorage.removeItem(THEME_STORAGE_KEY);
       var root = document.documentElement;
       Object.keys(DEFAULTS).forEach(function (key) {
-        var cssKey = key.replace(/-dark$/, '').replace(/-light$/, '');
-        root.style.removeProperty(cssKey);
+        root.style.removeProperty(key);
       });
-      root.style.removeProperty('--font-family');
-      root.style.removeProperty('--font-size-heading');
-      root.style.removeProperty('--font-size-subtitle');
-      root.style.removeProperty('--font-size-body');
-      root.style.removeProperty('--font-size-small');
-      root.style.removeProperty('--text-primary');
-      root.style.removeProperty('--text-secondary');
-      root.style.removeProperty('--text-muted');
-      root.style.removeProperty('--color-accent-light');
-      root.style.removeProperty('--color-accent-dark');
-
-      // Reset style overrides
       resetStyleOverrides();
-
       pendingChanges = {};
-      container.textContent = '';
-      window.renderStylesPage(container);
+      var parent = container.parentElement || container;
+      parent.textContent = '';
+      window.renderStylesPage(parent);
     });
 
-    actions.appendChild(saveBtn);
-    actions.appendChild(resetBtn);
-    header.appendChild(actions);
-    page.appendChild(header);
-
-    // ===== (b) Font Family Section =====
-    var fontSection = document.createElement('div');
-    fontSection.className = 'settings-section';
-
-    var fontTitle = document.createElement('h2');
-    fontTitle.className = 'settings-section-title';
-    fontTitle.textContent = 'Font Family';
-    fontSection.appendChild(fontTitle);
-
-    var fontGrid = document.createElement('div');
-    fontGrid.className = 'settings-grid';
-
-    var fontCard = document.createElement('div');
-    fontCard.className = 'setting-card';
-
-    var fontLabel = document.createElement('div');
-    fontLabel.className = 'setting-card-label';
-    fontLabel.textContent = 'Primary Font';
-    fontCard.appendChild(fontLabel);
-
-    var fontSelect = document.createElement('select');
-    fontSelect.className = 'settings-select';
-
+    // --- Font select ---
+    var fontSelect = container.querySelector('#font-select');
     var currentFont = getPending('--font-family');
     FONT_OPTIONS.forEach(function (opt) {
       var option = document.createElement('option');
@@ -300,131 +309,29 @@
       document.documentElement.style.setProperty('--font-family', fontSelect.value);
     });
 
-    fontCard.appendChild(fontSelect);
-    fontGrid.appendChild(fontCard);
-    fontSection.appendChild(fontGrid);
-    page.appendChild(fontSection);
-
-    // ===== (c) Font Sizes Section =====
-    var sizeSection = document.createElement('div');
-    sizeSection.className = 'settings-section';
-
-    var sizeTitle = document.createElement('h2');
-    sizeTitle.className = 'settings-section-title';
-    sizeTitle.textContent = 'Font Sizes';
-    sizeSection.appendChild(sizeTitle);
-
-    var sizeGrid = document.createElement('div');
-    sizeGrid.className = 'settings-grid';
-
+    // --- Font size sliders ---
+    var sizeGrid = container.querySelector('#font-sizes-grid');
     var sizeConfigs = [
       { key: '--font-size-heading', label: 'Heading', min: 20, max: 48, step: 1 },
       { key: '--font-size-subtitle', label: 'Subtitle', min: 14, max: 32, step: 1 },
       { key: '--font-size-body', label: 'Body Text', min: 11, max: 20, step: 1 },
       { key: '--font-size-small', label: 'Small Text', min: 9, max: 16, step: 1 }
     ];
-
     sizeConfigs.forEach(function (cfg) {
-      var card = document.createElement('div');
-      card.className = 'setting-card';
-
-      var label = document.createElement('div');
-      label.className = 'setting-card-label';
-      label.textContent = cfg.label;
-      card.appendChild(label);
-
-      var row = document.createElement('div');
-      row.className = 'settings-slider-row';
-
-      var slider = document.createElement('input');
-      slider.type = 'range';
-      slider.className = 'settings-slider';
-      slider.min = cfg.min;
-      slider.max = cfg.max;
-      slider.step = cfg.step;
-      slider.value = getPending(cfg.key);
-
-      var valueLabel = document.createElement('span');
-      valueLabel.className = 'settings-slider-value';
-      valueLabel.textContent = slider.value + 'px';
-
-      slider.addEventListener('input', function () {
-        valueLabel.textContent = slider.value + 'px';
-        setPending(cfg.key, slider.value);
-        document.documentElement.style.setProperty(cfg.key, slider.value + 'px');
-      });
-
-      row.appendChild(slider);
-      row.appendChild(valueLabel);
-      card.appendChild(row);
-      sizeGrid.appendChild(card);
+      sizeGrid.appendChild(buildSliderCard(cfg, getPending, setPending));
     });
 
-    sizeSection.appendChild(sizeGrid);
-    page.appendChild(sizeSection);
-
-    // ===== (d) Colors Section — accent colors + all CSS color swatches =====
-    var colorSection = document.createElement('div');
-    colorSection.className = 'settings-section';
-
-    var colorTitle = document.createElement('h2');
-    colorTitle.className = 'settings-section-title';
-    colorTitle.textContent = 'Colors';
-    colorSection.appendChild(colorTitle);
-
-    // Accent color pickers from settings
-    var accentGrid = document.createElement('div');
-    accentGrid.className = 'settings-grid';
-
-    var accentConfigs = [
+    // --- Accent color pickers ---
+    var accentGrid = container.querySelector('#accent-colors-grid');
+    [
       { key: '--color-accent-light', label: 'Accent (Primary)', cssVar: '--color-accent-light' },
       { key: '--color-accent-dark', label: 'Accent (Dark)', cssVar: '--color-accent-dark' }
-    ];
-
-    accentConfigs.forEach(function (cfg) {
-      var card = document.createElement('div');
-      card.className = 'setting-card';
-
-      var label = document.createElement('div');
-      label.className = 'setting-card-label';
-      label.textContent = cfg.label;
-      card.appendChild(label);
-
-      var row = document.createElement('div');
-      row.className = 'settings-color-row';
-
-      var swatch = document.createElement('div');
-      swatch.className = 'settings-color-swatch';
-      var currentColor = getPending(cfg.key);
-      swatch.style.background = currentColor;
-
-      var picker = document.createElement('input');
-      picker.type = 'color';
-      picker.value = currentColor;
-      swatch.appendChild(picker);
-
-      var valueSpan = document.createElement('span');
-      valueSpan.className = 'settings-color-value';
-      valueSpan.textContent = currentColor;
-
-      picker.addEventListener('input', function () {
-        swatch.style.background = picker.value;
-        valueSpan.textContent = picker.value;
-        setPending(cfg.key, picker.value);
-        if (cfg.cssVar) {
-          document.documentElement.style.setProperty(cfg.cssVar, picker.value);
-        }
-      });
-
-      row.appendChild(swatch);
-      row.appendChild(valueSpan);
-      card.appendChild(row);
-      accentGrid.appendChild(card);
+    ].forEach(function (cfg) {
+      accentGrid.appendChild(buildColorPickerCard(cfg.label, cfg.key, cfg.cssVar, getPending, setPending));
     });
 
-    colorSection.appendChild(accentGrid);
-
-    // All CSS color variable swatches from the old styles page
+    // --- All CSS color swatches ---
+    var allColorsContainer = container.querySelector('#all-colors-container');
     var colorVars = varNames.filter(function (name) {
       return name.indexOf('--color') === 0;
     });
@@ -434,7 +341,7 @@
       allColorsLabel.className = 'dev-section-title';
       allColorsLabel.style.marginTop = '20px';
       allColorsLabel.textContent = 'All Color Variables';
-      colorSection.appendChild(allColorsLabel);
+      allColorsContainer.appendChild(allColorsLabel);
 
       var colorGrid = document.createElement('div');
       colorGrid.className = 'dev-color-grid';
@@ -484,133 +391,21 @@
         colorGrid.appendChild(card);
       });
 
-      colorSection.appendChild(colorGrid);
+      allColorsContainer.appendChild(colorGrid);
     }
 
-    page.appendChild(colorSection);
-
-    // ===== (e) Text Colors Section =====
-    var textColorSection = document.createElement('div');
-    textColorSection.className = 'settings-section';
-
-    var textColorTitle = document.createElement('h2');
-    textColorTitle.className = 'settings-section-title';
-    textColorTitle.textContent = 'Text Colors';
-    textColorSection.appendChild(textColorTitle);
-
-    var textColorGrid = document.createElement('div');
-    textColorGrid.className = 'settings-grid';
-
-    var textColorConfigs = [
+    // --- Text color pickers ---
+    var textColorsGrid = container.querySelector('#text-colors-grid');
+    [
       { key: '--text-primary', label: 'Text Primary', cssVar: '--text-primary' },
       { key: '--text-secondary', label: 'Text Secondary', cssVar: '--text-secondary' },
       { key: '--text-muted', label: 'Text Muted', cssVar: '--text-muted' }
-    ];
-
-    textColorConfigs.forEach(function (cfg) {
-      var card = document.createElement('div');
-      card.className = 'setting-card';
-
-      var label = document.createElement('div');
-      label.className = 'setting-card-label';
-      label.textContent = cfg.label;
-      card.appendChild(label);
-
-      var row = document.createElement('div');
-      row.className = 'settings-color-row';
-
-      var swatch = document.createElement('div');
-      swatch.className = 'settings-color-swatch';
-      var currentColor = getPending(cfg.key);
-      swatch.style.background = currentColor;
-
-      var picker = document.createElement('input');
-      picker.type = 'color';
-      picker.value = currentColor;
-      swatch.appendChild(picker);
-
-      var valueSpan = document.createElement('span');
-      valueSpan.className = 'settings-color-value';
-      valueSpan.textContent = currentColor;
-
-      picker.addEventListener('input', function () {
-        swatch.style.background = picker.value;
-        valueSpan.textContent = picker.value;
-        setPending(cfg.key, picker.value);
-
-        if (cfg.cssVar) {
-          document.documentElement.style.setProperty(cfg.cssVar, picker.value);
-        }
-      });
-
-      row.appendChild(swatch);
-      row.appendChild(valueSpan);
-      card.appendChild(row);
-      textColorGrid.appendChild(card);
+    ].forEach(function (cfg) {
+      textColorsGrid.appendChild(buildColorPickerCard(cfg.label, cfg.key, cfg.cssVar, getPending, setPending));
     });
 
-    textColorSection.appendChild(textColorGrid);
-    page.appendChild(textColorSection);
-
-    // ===== (f) Live Preview Section =====
-    var previewSection = document.createElement('div');
-    previewSection.className = 'settings-section';
-
-    var previewTitle = document.createElement('h2');
-    previewTitle.className = 'settings-section-title';
-    previewTitle.textContent = 'Live Preview';
-    previewSection.appendChild(previewTitle);
-
-    var preview = document.createElement('div');
-    preview.className = 'settings-preview';
-
-    var previewH = document.createElement('div');
-    previewH.className = 'settings-preview-heading';
-    previewH.textContent = 'Heading Text';
-    preview.appendChild(previewH);
-
-    var previewSub = document.createElement('div');
-    previewSub.className = 'settings-preview-subtitle';
-    previewSub.textContent = 'Subtitle text sample';
-    preview.appendChild(previewSub);
-
-    var previewBody = document.createElement('div');
-    previewBody.className = 'settings-preview-body';
-    previewBody.textContent = 'This is body text. It shows how your content will appear across the application with the current font and size settings.';
-    preview.appendChild(previewBody);
-
-    var previewSmall = document.createElement('div');
-    previewSmall.className = 'settings-preview-small';
-    previewSmall.textContent = 'Small text for labels, captions, and metadata.';
-    preview.appendChild(previewSmall);
-
-    previewSection.appendChild(preview);
-    page.appendChild(previewSection);
-
-    // ===== (g) All CSS Variables Table =====
-    var varsSection = document.createElement('div');
-    varsSection.className = 'dev-section';
-
-    var varsTitle = document.createElement('h2');
-    varsTitle.className = 'dev-section-title';
-    varsTitle.textContent = 'All CSS Variables';
-    varsSection.appendChild(varsTitle);
-
-    var table = document.createElement('table');
-    table.className = 'dev-var-list';
-
-    var thead = document.createElement('thead');
-    var headRow = document.createElement('tr');
-    ['Variable', 'Default', 'Override'].forEach(function (text) {
-      var th = document.createElement('th');
-      th.textContent = text;
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-
-    var tbody = document.createElement('tbody');
-
+    // --- CSS variables table ---
+    var tbody = container.querySelector('#css-vars-tbody');
     varNames.forEach(function (varName) {
       var tr = document.createElement('tr');
 
@@ -642,14 +437,11 @@
 
       tdInput.appendChild(input);
       tr.appendChild(tdInput);
-
       tbody.appendChild(tr);
     });
+  }
 
-    table.appendChild(tbody);
-    varsSection.appendChild(table);
-    page.appendChild(varsSection);
-
-    container.appendChild(page);
+  window.renderStylesPage = function (container) {
+    window.insertTemplate(container, 'pages/styles.html', initStylesPage);
   };
 })();

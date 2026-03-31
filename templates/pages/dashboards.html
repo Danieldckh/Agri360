@@ -1,0 +1,51 @@
+<div class="dev-page">
+  <div class="dev-page-header">
+    <h2 class="dev-page-title">Dashboards</h2>
+  </div>
+
+  <div class="dev-dashboards-grid" id="dashboards-grid">
+    <div class="dev-db-empty">Loading dashboards...</div>
+  </div>
+
+  <template id="dashboard-card-tmpl">
+    <div class="dev-dashboard-card">
+      <div class="dev-dashboard-card-title" data-bind="title"></div>
+      <div class="dev-dashboard-card-meta">
+        <span class="dev-dashboard-badge" data-bind="deliverableType"></span>
+        <span class="dev-dashboard-badge" data-bind="status"></span>
+      </div>
+      <div class="dev-dashboard-card-date" data-bind="createdDate"></div>
+    </div>
+  </template>
+</div>
+
+<!-- Detail view (hidden by default, shown when a card is clicked) -->
+<div id="dashboard-detail" style="display:none">
+  <div class="dev-page">
+    <div class="dev-page-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="dev-btn dev-btn-ghost" id="dashboard-back-btn">&larr; Back</button>
+        <h2 class="dev-page-title" id="dashboard-detail-title"></h2>
+      </div>
+    </div>
+    <div class="dev-dashboard-detail">
+      <div class="dev-section">
+        <div class="dev-section-title">Dashboard Info</div>
+        <table class="dev-var-list">
+          <tr><td class="dev-var-name">ID</td><td class="dev-var-value" data-bind="id"></td></tr>
+          <tr><td class="dev-var-name">Type</td><td class="dev-var-value" data-bind="deliverableType"></td></tr>
+          <tr><td class="dev-var-name">Status</td><td class="dev-var-value" data-bind="status"></td></tr>
+          <tr><td class="dev-var-name">Department ID</td><td class="dev-var-value" data-bind="departmentId"></td></tr>
+          <tr><td class="dev-var-name">Deliverable ID</td><td class="dev-var-value" data-bind="deliverableId"></td></tr>
+          <tr><td class="dev-var-name">Created</td><td class="dev-var-value" data-bind="createdDate"></td></tr>
+        </table>
+      </div>
+      <div class="dev-section">
+        <div class="dev-section-title">Template Preview</div>
+        <div class="dev-dashboard-template-placeholder">
+          <span class="page-placeholder">Dashboard template area — build your layout here</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

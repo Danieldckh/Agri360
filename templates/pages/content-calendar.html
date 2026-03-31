@@ -1,0 +1,107 @@
+<div class="content-calendar-page">
+  <!-- Client Header -->
+  <div class="cc-client-header" id="ccClientHeader">
+    <div class="cc-client-header-left">
+      <span class="cc-client-name" id="ccClientName">Client Name</span>
+    </div>
+    <div class="cc-header-right">
+      <button class="cc-group-msg-btn" id="ccGroupMsgBtn" title="Message entire team">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-left:2px"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg>
+      </button>
+      <div class="cc-avatar-stack" id="ccAvatarStack"></div>
+    </div>
+  </div>
+
+  <!-- Calendar Table -->
+  <div class="cc-table-card">
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Caption</th>
+          <th>File Upload</th>
+          <th>Change Requests</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ccTableBody"></tbody>
+    </table>
+    <div class="cc-add-row-wrap">
+      <button class="cc-add-row-btn" id="ccAddRowBtn">+ Add Row</button>
+    </div>
+  </div>
+
+  <!-- Two-column bottom row -->
+  <div class="cc-middle-row">
+    <div class="cc-middle-card cc-timeline-card">
+      <div class="cc-timeline" id="ccTimeline">
+        <div class="cc-timeline-title">Activity Timeline</div>
+        <div class="cc-timeline-list" id="ccTimelineList"></div>
+      </div>
+    </div>
+    <div class="cc-middle-card cc-chat-card">
+      <div class="cc-chat" id="ccChatPanel">
+        <div class="cc-chat-header">
+          <span class="cc-chat-title">Messages</span>
+          <span class="cc-chat-subtitle" id="ccChatSubtitle">Client - Content Calendar</span>
+        </div>
+        <div class="cc-chat-messages" id="ccChatMessages">
+          <div class="cc-chat-loading">Loading messages...</div>
+        </div>
+        <div class="cc-chat-input-area">
+          <button class="cc-chat-attach-btn" id="ccChatAttachBtn" title="Attach file">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 015 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 005 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+          </button>
+          <input type="text" class="cc-chat-input" id="ccChatInput" placeholder="Type a message...">
+          <button class="cc-chat-send-btn" id="ccChatSendBtn" title="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox template -->
+<template id="ccLightboxTemplate">
+  <div class="cc-lightbox-overlay">
+    <div class="cc-lightbox-content">
+      <div class="cc-lightbox-media"></div>
+      <button class="cc-lightbox-close">&times;</button>
+      <button class="cc-carousel-arrow cc-carousel-prev cc-lightbox-arrow">&lsaquo;</button>
+      <button class="cc-carousel-arrow cc-carousel-next cc-lightbox-arrow">&rsaquo;</button>
+      <span class="cc-lightbox-counter"></span>
+    </div>
+  </div>
+</template>
+
+<!-- Changes popup template -->
+<template id="ccChangesPopupTemplate">
+  <div class="cc-popup-overlay">
+    <div class="cc-popup">
+      <button class="cc-popup-close">&times;</button>
+      <div class="cc-popup-header">Change Requests</div>
+      <div class="cc-popup-body">
+        <div class="cc-popup-left">
+          <div class="cc-canvas-wrap">
+            <img class="cc-popup-img">
+            <canvas class="cc-draw-canvas"></canvas>
+          </div>
+          <div class="cc-draw-toolbar" id="ccDrawToolbar"></div>
+          <div class="cc-media-nav">
+            <button class="cc-media-nav-btn" id="ccMediaPrev">&larr;</button>
+            <span class="cc-media-counter" id="ccMediaCounter"></span>
+            <button class="cc-media-nav-btn" id="ccMediaNext">&rarr;</button>
+          </div>
+        </div>
+        <div class="cc-popup-right">
+          <div class="cc-popup-section-title">Change Requests</div>
+          <div class="cc-cr-toolbar" id="ccCrToolbar"></div>
+          <div class="cc-cr-editor" contenteditable="true" data-placeholder="Describe change requests here...&#10;&#10;You can format text, add lists, and insert images inline." id="ccCrEditor"></div>
+          <input type="file" multiple accept="image/*,video/*,.pdf" style="display:none" id="ccCrFileInput">
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

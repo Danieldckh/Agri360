@@ -1,0 +1,62 @@
+<div class="dev-page">
+  <!-- Header -->
+  <div class="dev-page-header">
+    <h1 class="dev-page-title">Styles &amp; Settings</h1>
+    <div class="dev-page-actions">
+      <button class="dev-btn dev-btn-primary" id="styles-save-btn">Save</button>
+      <button class="dev-btn dev-btn-ghost" id="styles-reset-btn">Reset to Defaults</button>
+    </div>
+  </div>
+
+  <!-- Font Family -->
+  <div class="settings-section">
+    <h2 class="settings-section-title">Font Family</h2>
+    <div class="settings-grid">
+      <div class="setting-card">
+        <div class="setting-card-label">Primary Font</div>
+        <select class="settings-select" id="font-select"></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Font Sizes -->
+  <div class="settings-section">
+    <h2 class="settings-section-title">Font Sizes</h2>
+    <div class="settings-grid" id="font-sizes-grid"></div>
+  </div>
+
+  <!-- Colors -->
+  <div class="settings-section" id="colors-section">
+    <h2 class="settings-section-title">Colors</h2>
+    <div class="settings-grid" id="accent-colors-grid"></div>
+    <div id="all-colors-container"></div>
+  </div>
+
+  <!-- Text Colors -->
+  <div class="settings-section">
+    <h2 class="settings-section-title">Text Colors</h2>
+    <div class="settings-grid" id="text-colors-grid"></div>
+  </div>
+
+  <!-- Live Preview -->
+  <div class="settings-section">
+    <h2 class="settings-section-title">Live Preview</h2>
+    <div class="settings-preview">
+      <div class="settings-preview-heading">Heading Text</div>
+      <div class="settings-preview-subtitle">Subtitle text sample</div>
+      <div class="settings-preview-body">This is body text. It shows how your content will appear across the application with the current font and size settings.</div>
+      <div class="settings-preview-small">Small text for labels, captions, and metadata.</div>
+    </div>
+  </div>
+
+  <!-- All CSS Variables -->
+  <div class="dev-section">
+    <h2 class="dev-section-title">All CSS Variables</h2>
+    <table class="dev-var-list">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Override</th></tr>
+      </thead>
+      <tbody id="css-vars-tbody"></tbody>
+    </table>
+  </div>
+</div>

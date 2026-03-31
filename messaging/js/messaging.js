@@ -185,7 +185,7 @@
     return result;
   }
 
-  // ========== RENDER MAIN SECTION ==========
+  // ========== RENDER MAIN SECTION (template-based) ==========
 
   function renderMessagingSection(container) {
     mainContainer = container;
@@ -204,77 +204,38 @@
       card.style.overflow = 'hidden';
     }
 
-    // Left pane: conversation list
-    convPane = document.createElement('div');
-    convPane.className = 'msg-conversations';
+    window.insertTemplate(container, 'pages/messaging.html', function () {
+      convPane = container.querySelector('#msgConvPane');
+      chatPane = container.querySelector('#msgChatPane');
 
-    // Search bar
-    var searchWrap = document.createElement('div');
-    searchWrap.className = 'msg-conv-search';
+      var searchInput = container.querySelector('#msgSearchInput');
+      var newBtn = container.querySelector('#msgNewBtn');
 
-    var searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search conversations...';
-    searchInput.autocomplete = 'off';
-    searchWrap.appendChild(searchInput);
+      // Search filtering
+      searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        var q = searchInput.value.trim().toLowerCase();
+        searchDebounceTimer = setTimeout(function () {
+          renderConversationList(q);
+        }, 150);
+      });
 
-    var newBtn = createSvgButton('M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z', 'msg-conv-new-btn', 20);
-    newBtn.title = 'New conversation';
-    newBtn.addEventListener('click', function () {
-      showNewConversationMenu(newBtn);
+      newBtn.addEventListener('click', function () {
+        showNewConversationMenu(newBtn);
+      });
+
+      loadConversationList();
+      startUnreadPolling();
     });
-    searchWrap.appendChild(newBtn);
-
-    convPane.appendChild(searchWrap);
-
-    // Conversation list container
-    var convList = document.createElement('div');
-    convList.className = 'msg-conv-list';
-    convList.id = 'msgConvList';
-    convPane.appendChild(convList);
-
-    // Right pane: chat window
-    chatPane = document.createElement('div');
-    chatPane.className = 'msg-chat';
-
-    container.appendChild(convPane);
-    container.appendChild(chatPane);
-
-    // Search filtering
-    searchInput.addEventListener('input', function () {
-      clearTimeout(searchDebounceTimer);
-      var q = searchInput.value.trim().toLowerCase();
-      searchDebounceTimer = setTimeout(function () {
-        renderConversationList(q);
-      }, 150);
-    });
-
-    renderWelcomeState();
-    loadConversationList();
-    startUnreadPolling();
   }
 
   function renderWelcomeState() {
-    clearEl(chatPane);
-
-    var welcome = document.createElement('div');
-    welcome.className = 'msg-welcome';
-
-    var icon = makeSvg('M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z', 48);
-    icon.classList.add('msg-welcome-icon');
-    welcome.appendChild(icon);
-
-    var title = document.createElement('h3');
-    title.className = 'msg-welcome-title';
-    title.textContent = 'Welcome to Messaging';
-    welcome.appendChild(title);
-
-    var desc = document.createElement('p');
-    desc.className = 'msg-welcome-desc';
-    desc.textContent = 'Select a conversation to get started.';
-    welcome.appendChild(desc);
-
-    chatPane.appendChild(welcome);
+    chatPane.innerHTML =
+      '<div class="msg-welcome">' +
+        '<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="msg-welcome-icon"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>' +
+        '<h3 class="msg-welcome-title">Welcome to Messaging</h3>' +
+        '<p class="msg-welcome-desc">Select a conversation to get started.</p>' +
+      '</div>';
   }
 
   // ========== NEW CONVERSATION MENU ==========
@@ -896,74 +857,6 @@
   }
 
   // ========== MESSAGE INPUT ==========
-
-  function renderMessageInput(channelId) {
-    var inputBar = document.createElement('div');
-    inputBar.className = 'msg-input-bar';
-
-    var attachBtn = createSvgButton('M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H9.5v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S6.5 2.79 6.5 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6H16.5z', 'msg-attach-btn', 20);
-    attachBtn.title = 'Attach file';
-    inputBar.appendChild(attachBtn);
-
-    var textarea = document.createElement('textarea');
-    textarea.className = 'msg-textarea';
-    textarea.placeholder = 'Type a message...';
-    textarea.rows = 1;
-    inputBar.appendChild(textarea);
-
-    var sendBtn = createSvgButton('M2.01 21L23 12 2.01 3 2 10l15 2-15 2z', 'msg-send-btn', 20);
-    sendBtn.title = 'Send';
-    sendBtn.disabled = true;
-    inputBar.appendChild(sendBtn);
-
-    var mentionDropdown = document.createElement('div');
-    mentionDropdown.className = 'msg-mention-dropdown';
-    mentionDropdown.style.display = 'none';
-    inputBar.appendChild(mentionDropdown);
-
-    textarea.addEventListener('input', function () {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-      sendBtn.disabled = !textarea.value.trim();
-      sendBtn.classList.toggle('active', !!textarea.value.trim());
-      handleMentionTrigger(textarea, mentionDropdown);
-    });
-
-    textarea.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (textarea.value.trim()) {
-          sendMessage(channelId, textarea, mentionDropdown);
-        }
-      }
-      if (e.key === 'Escape') {
-        mentionDropdown.style.display = 'none';
-      }
-      if (mentionDropdown.style.display !== 'none') {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-          e.preventDefault();
-          navigateMentionDropdown(mentionDropdown, e.key === 'ArrowDown' ? 1 : -1);
-        }
-        if (e.key === 'Enter' && mentionDropdown.querySelector('.msg-mention-item.active')) {
-          e.preventDefault();
-          var activeItem = mentionDropdown.querySelector('.msg-mention-item.active');
-          if (activeItem) activeItem.click();
-        }
-      }
-    });
-
-    sendBtn.addEventListener('click', function () {
-      if (textarea.value.trim()) {
-        sendMessage(channelId, textarea, mentionDropdown);
-      }
-    });
-
-    attachBtn.addEventListener('click', function () {
-      handleFileAttachment(channelId);
-    });
-
-    chatPane.appendChild(inputBar);
-  }
 
   function renderMessageInputEl(channelId) {
     var inputBar = document.createElement('div');

@@ -1,0 +1,91 @@
+<!-- Production Tab: Client Communications -->
+<template id="productionTabTemplate">
+  <div class="dept-sheet-card" style="width:100%">
+    <div class="dept-sheet-header">
+      <div class="dept-sheet-title-wrap">
+        <h3 class="dept-sheet-title">Client Communications</h3>
+        <span class="dept-sheet-count" id="prodTabCount">0</span>
+      </div>
+      <input type="text" class="dept-sheet-search" id="prodTabSearch" placeholder="Search deliverables...">
+    </div>
+    <div class="dept-sheet-container" id="prodTabSheet" style="overflow:auto;flex:1"></div>
+  </div>
+</template>
+
+<!-- Follow Ups Tab: 50/50 Layout -->
+<template id="followUpsTabTemplate">
+  <div class="dept-dashboard-layout">
+    <!-- LEFT: Materials Requested -->
+    <div class="dept-dashboard-half">
+      <div class="dept-sheet-card">
+        <div class="dept-sheet-header">
+          <div class="dept-sheet-title-wrap">
+            <h3 class="dept-sheet-title">Materials Requested</h3>
+            <span class="dept-sheet-count" id="fuLeftCount">0</span>
+          </div>
+          <input type="text" class="dept-sheet-search" id="fuLeftSearch" placeholder="Search...">
+        </div>
+        <div class="dept-sheet-container" id="fuLeftSheet" style="overflow:auto;flex:1"></div>
+      </div>
+    </div>
+    <!-- RIGHT: Sent for Approval -->
+    <div class="dept-dashboard-half">
+      <div class="dept-sheet-card">
+        <div class="dept-sheet-header">
+          <div class="dept-sheet-title-wrap">
+            <h3 class="dept-sheet-title">Sent for Approval</h3>
+            <span class="dept-sheet-count" id="fuRightCount">0</span>
+          </div>
+          <input type="text" class="dept-sheet-search" id="fuRightSearch" placeholder="Search...">
+        </div>
+        <div class="dept-sheet-container" id="fuRightSheet" style="overflow:auto;flex:1"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Approvals Tab: 50/50 Layout -->
+<template id="approvalsTabTemplate">
+  <div class="dept-dashboard-layout">
+    <!-- LEFT: Send for Approval -->
+    <div class="dept-dashboard-half">
+      <div class="dept-sheet-card">
+        <div class="dept-sheet-header">
+          <div class="dept-sheet-title-wrap">
+            <h3 class="dept-sheet-title">Send for Approval</h3>
+            <span class="dept-sheet-count" id="appLeftCount">0</span>
+          </div>
+          <input type="text" class="dept-sheet-search" id="appLeftSearch" placeholder="Search...">
+        </div>
+        <div class="dept-sheet-container" id="appLeftSheet" style="overflow:auto;flex:1"></div>
+      </div>
+    </div>
+    <!-- RIGHT: Sent for Approval -->
+    <div class="dept-dashboard-half">
+      <div class="dept-sheet-card">
+        <div class="dept-sheet-header">
+          <div class="dept-sheet-title-wrap">
+            <h3 class="dept-sheet-title">Sent for Approval</h3>
+            <span class="dept-sheet-count" id="appRightCount">0</span>
+          </div>
+          <input type="text" class="dept-sheet-search" id="appRightSearch" placeholder="Search...">
+        </div>
+        <div class="dept-sheet-container" id="appRightSheet" style="overflow:auto;flex:1"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Generic Dept Type Tab -->
+<template id="deptTypeTabTemplate">
+  <div class="dept-sheet-card" style="width:100%">
+    <div class="dept-sheet-header">
+      <div class="dept-sheet-title-wrap">
+        <h3 class="dept-sheet-title" id="deptTypeTitle"></h3>
+        <span class="dept-sheet-count" id="deptTypeCount">0</span>
+      </div>
+      <input type="text" class="dept-sheet-search" id="deptTypeSearch" placeholder="Search...">
+    </div>
+    <div class="dept-sheet-container" id="deptTypeSheet" style="overflow:auto;flex:1"></div>
+  </div>
+</template>

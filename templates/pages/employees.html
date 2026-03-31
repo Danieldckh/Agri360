@@ -1,0 +1,17 @@
+<div class="employee-section">
+  <div class="employee-header">
+    <div style="display:flex;align-items:center">
+      <h2>Employees</h2>
+      <span class="employee-count" id="employee-count">0</span>
+    </div>
+    <div class="employee-filters" id="employee-filters" style="display:none">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="pending" id="pending-filter-btn">Pending (0)</button>
+    </div>
+  </div>
+
+  <div class="employee-grid" id="employee-grid"></div>
+  <div class="employee-loading" id="employee-empty" style="display:none">No employees found.</div>
+  <div class="employee-loading" id="employee-loading">Loading employees...</div>
+  <div class="employee-loading" id="employee-error" style="display:none">Failed to load employees.</div>
+</div>

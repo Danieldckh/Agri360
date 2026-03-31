@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
-    'production': ['Client Communications', 'Follow Ups'],
+    'production': ['Client Communications', 'Follow Ups', 'Approvals'],
     'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
     'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
@@ -440,6 +440,17 @@ document.addEventListener('DOMContentLoaded', () => {
       sep.style.background = 'rgba(0,0,0,0.08)';
       sep.style.margin = '8px 12px';
       nav.appendChild(sep);
+
+      // New Booking button for Admin department
+      if (page === 'admin') {
+        var bookingLink = document.createElement('a');
+        bookingLink.href = 'http://kgso4o000o48kww4k4c8048c.148.230.100.16.sslip.io/';
+        bookingLink.target = '_blank';
+        bookingLink.rel = 'noopener';
+        bookingLink.className = 'nav-item nav-new-booking';
+        bookingLink.textContent = '+ New Booking';
+        nav.appendChild(bookingLink);
+      }
 
       items.forEach(function (viewName, idx) {
         var item = document.createElement('a');
@@ -921,6 +932,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Production > Approvals to approvals 2-sheet view
+    if (page === 'production' && viewName === 'Approvals' && window.renderApprovalsTab) {
+      window.renderApprovalsTab(dashboardContent);
+      return;
+    }
+
     // Route Design > Proposals to live design proposals view
     if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
       window.renderDesignProposalsTab(dashboardContent);
@@ -1012,8 +1029,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'styles': function () { if (window.renderStylesPage) window.renderStylesPage(dashboardContent); },
     'components': function () { if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent); },
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
-    'client-list': function () { if (window.renderClientListPage) window.renderClientListPage(dashboardContent); },
-    'dashboards': function () { if (window.renderDashboardsPage) window.renderDashboardsPage(dashboardContent); }
+    'client-list': function () { window.insertTemplate(dashboardContent, 'pages/client-list.html', window.initClientListPage); },
+    'dashboards': function () { window.insertTemplate(dashboardContent, 'pages/dashboards.html', window.initDashboardsPage); }
   };
 
   function finishPageEnter() {

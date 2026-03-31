@@ -1,0 +1,86 @@
+<!-- Left pane: conversation list -->
+<div class="msg-conversations" id="msgConvPane">
+  <div class="msg-conv-search">
+    <input type="text" placeholder="Search conversations..." autocomplete="off" id="msgSearchInput">
+    <button class="msg-conv-new-btn" id="msgNewBtn" title="New conversation">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    </button>
+  </div>
+  <div class="msg-conv-list" id="msgConvList"></div>
+</div>
+
+<!-- Right pane: chat window -->
+<div class="msg-chat" id="msgChatPane">
+  <div class="msg-welcome">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="msg-welcome-icon"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+    <h3 class="msg-welcome-title">Welcome to Messaging</h3>
+    <p class="msg-welcome-desc">Select a conversation to get started.</p>
+  </div>
+</div>
+
+<!-- New conversation dropdown menu (hidden, cloned when needed) -->
+<template id="msgNewMenuTemplate">
+  <div class="msg-new-menu">
+    <button class="msg-new-menu-item" data-action="channel">New Channel</button>
+    <button class="msg-new-menu-item" data-action="dm">New Direct Message</button>
+  </div>
+</template>
+
+<!-- Channel create modal (hidden, cloned when needed) -->
+<template id="msgChannelModalTemplate">
+  <div class="msg-modal-overlay">
+    <div class="msg-modal">
+      <h3 class="msg-modal-title">Create Channel</h3>
+      <div class="msg-modal-row">
+        <label class="msg-modal-label">Icon</label>
+        <button class="msg-emoji-trigger" id="msgEmojiBtn">#</button>
+      </div>
+      <div class="msg-modal-row">
+        <label class="msg-modal-label">Channel Name</label>
+        <input type="text" class="msg-modal-input" id="msgChannelNameInput" placeholder="e.g. general">
+      </div>
+      <div class="msg-modal-row">
+        <label class="msg-modal-label">Parent Channel (optional)</label>
+        <select class="msg-modal-input" id="msgParentSelect">
+          <option value="">None</option>
+        </select>
+      </div>
+      <div class="msg-modal-row">
+        <label class="msg-modal-label">Members</label>
+        <input type="text" class="msg-modal-input" id="msgMemberSearch" placeholder="Search employees...">
+        <div class="msg-modal-member-list" id="msgMemberList"></div>
+      </div>
+      <div class="msg-modal-btns">
+        <button class="msg-modal-btn msg-modal-btn-cancel" data-action="cancel">Cancel</button>
+        <button class="msg-modal-btn msg-modal-btn-create" data-action="create">Create</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- DM create modal (hidden, cloned when needed) -->
+<template id="msgDmModalTemplate">
+  <div class="msg-modal-overlay">
+    <div class="msg-modal">
+      <h3 class="msg-modal-title">New Direct Message</h3>
+      <input type="text" class="msg-modal-input" id="msgDmSearch" placeholder="Search people...">
+      <div class="msg-modal-member-list" id="msgDmPersonList"></div>
+      <button class="msg-modal-btn msg-modal-btn-cancel" style="margin-top:12px" data-action="cancel">Cancel</button>
+    </div>
+  </div>
+</template>
+
+<!-- Invite people modal (hidden, cloned when needed) -->
+<template id="msgInviteModalTemplate">
+  <div class="msg-modal-overlay">
+    <div class="msg-modal">
+      <h3 class="msg-modal-title">Add People</h3>
+      <input type="text" class="msg-modal-input" id="msgInviteSearch" placeholder="Search people...">
+      <div class="msg-modal-member-list" id="msgInviteMemberList"></div>
+      <div class="msg-modal-btns">
+        <button class="msg-modal-btn msg-modal-btn-cancel" data-action="cancel">Cancel</button>
+        <button class="msg-modal-btn msg-modal-btn-create" data-action="add">Add</button>
+      </div>
+    </div>
+  </div>
+</template>
