@@ -10,7 +10,8 @@
    */
   function loadTemplate(path) {
     if (cache[path]) return Promise.resolve(cache[path]);
-    return fetch('/templates/' + path)
+    var url = path.charAt(0) === '/' ? path : '/templates/' + path;
+    return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('Template not found: ' + path);
         return r.text();

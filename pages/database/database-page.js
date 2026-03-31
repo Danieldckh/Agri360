@@ -380,6 +380,6 @@
   }
 
   window.renderDatabasePage = function (container) {
-    window.insertTemplate(container, 'pages/database.html', initDatabasePage);
+    window.insertTemplate(container, '/pages/database/database.html', initDatabasePage);
   };
 })();

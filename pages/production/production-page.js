@@ -203,7 +203,7 @@
   var productionTemplateLoaded = null;
   function loadProductionTemplates() {
     if (productionTemplateLoaded) return productionTemplateLoaded;
-    productionTemplateLoaded = window.loadTemplate('pages/production.html').then(function (html) {
+    productionTemplateLoaded = window.loadTemplate('/pages/production/production.html').then(function (html) {
       var tmp = document.createElement('div');
       tmp.innerHTML = html;
       return tmp;

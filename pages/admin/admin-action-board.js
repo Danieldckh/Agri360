@@ -336,7 +336,7 @@
     container.style.gap = '';
     container.style.padding = '';
 
-    window.insertTemplate(container, 'pages/admin-action-board.html', initAdminActionBoard);
+    window.insertTemplate(container, '/pages/admin/admin-action-board.html', initAdminActionBoard);
   }
 
   window.renderAdminActionBoard = renderAdminActionBoard;

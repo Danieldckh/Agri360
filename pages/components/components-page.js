@@ -39,6 +39,6 @@
   }
 
   window.renderComponentsPage = function (container) {
-    window.insertTemplate(container, 'pages/components.html', initComponentsPage);
+    window.insertTemplate(container, '/pages/components/components.html', initComponentsPage);
   };
 })();
