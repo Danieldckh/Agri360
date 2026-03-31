@@ -803,16 +803,13 @@
     mainCol.appendChild(mainSheet.el);
     layout.appendChild(mainCol);
 
-    // Month selector header
-    var monthHeader = document.createElement('div');
-    monthHeader.className = 'dept-sheet-header';
-    monthHeader.style.marginBottom = '14px';
-    monthHeader.innerHTML = '<div class="dept-month-selector">' +
-      '<button class="dept-month-nav dept-month-prev" id="designMonthPrev" title="Previous month">&#9664;</button>' +
+    // Month selector above the sheet
+    var monthEl = document.createElement('div');
+    monthEl.className = 'dept-month-selector';
+    monthEl.innerHTML = '<button class="dept-month-nav dept-month-prev" id="designMonthPrev" title="Previous month">&#9664;</button>' +
       '<span class="dept-month-label" id="designMonthLabel">Loading...</span>' +
-      '<button class="dept-month-nav dept-month-next" id="designMonthNext" title="Next month">&#9654;</button>' +
-      '</div>';
-    container.appendChild(monthHeader);
+      '<button class="dept-month-nav dept-month-next" id="designMonthNext" title="Next month">&#9654;</button>';
+    container.appendChild(monthEl);
     container.appendChild(layout);
 
     function refreshAll(month) {
