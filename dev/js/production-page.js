@@ -213,8 +213,8 @@
   // ── Client Communications Tab (template-based) ──────────────────
   function renderProductionTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = 'flex';
-    container.style.alignItems = 'stretch';
+    container.style.display = '';
+    container.style.alignItems = '';
     container.style.justifyContent = '';
     container.style.flexDirection = '';
     container.style.height = '';
@@ -1127,8 +1127,8 @@
     var allowedTypes = typeFilters[viewName] || [];
 
     while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = 'flex';
-    container.style.alignItems = 'stretch';
+    container.style.display = '';
+    container.style.alignItems = '';
     container.style.justifyContent = '';
     container.style.flexDirection = '';
     container.style.height = '';
