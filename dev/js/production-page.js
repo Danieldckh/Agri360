@@ -8,73 +8,40 @@
     var prevBtn = container.querySelector('#' + ids.prev);
     var nextBtn = container.querySelector('#' + ids.next);
     var label = container.querySelector('#' + ids.label);
-    var months = [];
-    var currentIndex = 0;
 
     var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'];
 
-    function formatMonth(ym) {
-      var parts = ym.split('-');
-      return MONTH_NAMES[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
-    }
+    // Current month as YYYY-MM
+    var now = new Date();
+    var currentYear = now.getFullYear();
+    var currentMonth = now.getMonth() + 1; // 1-based
 
-    function currentYM() {
-      var now = new Date();
-      return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    }
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function getYM() { return currentYear + '-' + pad(currentMonth); }
+    function formatLabel() { return MONTH_NAMES[currentMonth - 1] + ' ' + currentYear; }
 
     function updateUI() {
-      if (months.length === 0) {
-        label.textContent = formatMonth(currentYM());
-        prevBtn.disabled = true;
-        nextBtn.disabled = true;
-        return;
-      }
-      label.textContent = formatMonth(months[currentIndex]);
-      prevBtn.disabled = currentIndex >= months.length - 1;
-      nextBtn.disabled = currentIndex <= 0;
+      label.textContent = formatLabel();
     }
 
-    prevBtn.addEventListener('click', function () {
-      if (currentIndex < months.length - 1) {
-        currentIndex++;
-        updateUI();
-        onMonthChange(months[currentIndex]);
-      }
-    });
+    function stepMonth(delta) {
+      currentMonth += delta;
+      if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+      if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+      updateUI();
+      onMonthChange(getYM());
+    }
 
-    nextBtn.addEventListener('click', function () {
-      if (currentIndex > 0) {
-        currentIndex--;
-        updateUI();
-        onMonthChange(months[currentIndex]);
-      }
-    });
+    prevBtn.addEventListener('click', function () { stepMonth(-1); });
+    nextBtn.addEventListener('click', function () { stepMonth(1); });
 
-    // Fetch available months and initialize
-    fetch('/api/deliverables/available-months/' + deptSlug, { headers: getHeaders() })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        months = data; // already sorted DESC from API
-        if (months.length > 0) {
-          var idx = months.indexOf(currentYM());
-          currentIndex = idx !== -1 ? idx : 0;
-          updateUI();
-          onMonthChange(months[currentIndex]);
-        } else {
-          // No months in DB — show current month, load all data unfiltered
-          updateUI();
-          onMonthChange(null);
-        }
-      })
-      .catch(function () {
-        label.textContent = formatMonth(currentYM());
-        onMonthChange(null);
-      });
+    // Initialize with current month
+    updateUI();
+    onMonthChange(getYM());
 
     return {
-      getCurrentMonth: function () { return months[currentIndex] || null; }
+      getCurrentMonth: function () { return getYM(); }
     };
   }
   window.initMonthSelector = initMonthSelector;
