@@ -9,3 +9,7 @@ api/uploads/attachments/*
 !api/uploads/attachments/.gitkeep
 .DS_Store
 Thumbs.db
+.playwright-mcp/
+.serena/
+.superpowers/
+*.png

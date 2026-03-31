@@ -873,8 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
           data: filtered,
           searchable: false,
           radialActions: opts.compact ? [] : [
-            { id: 'view', label: 'View Details', action: function(row) { console.log('View:', row); } },
-            { id: 'edit', label: 'Edit', action: function(row) { console.log('Edit:', row); } }
+            { id: 'view', label: 'View Details', action: function(row) { } },
+            { id: 'edit', label: 'Edit', action: function(row) { } }
           ],
           apiEndpoint: opts.apiEndpoint || null,
           onCellEdit: opts.onCellEdit || null

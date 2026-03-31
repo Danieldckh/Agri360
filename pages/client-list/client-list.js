@@ -10,8 +10,8 @@
   ];
 
   var ACTIONS = [
-    { id: 'dashboard', label: 'View Dashboard', action: function (row) { console.log('View client:', row); } },
-    { id: 'status', label: 'Change Status', action: function (row) { console.log('Change status:', row); } }
+    { id: 'dashboard', label: 'View Dashboard', action: function (row) { } },
+    { id: 'status', label: 'Change Status', action: function (row) { } }
   ];
 
   function initClientListPage(container) {
