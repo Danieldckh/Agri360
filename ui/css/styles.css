@@ -524,11 +524,12 @@ html, body {
   font-weight: 600;
 }
 
-/* Month selector in dept headers */
+/* Month selector above dept sheets */
 .dept-month-selector {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .dept-month-nav {
@@ -882,11 +883,12 @@ html, body {
   text-align: center;
 }
 
-/* Month selector in dept headers */
+/* Month selector above dept sheets */
 .dept-month-selector {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .dept-month-nav {
@@ -949,10 +951,7 @@ html, body {
     width: 100%;
   }
   .dept-month-selector {
-    order: -1;
-    width: 100%;
     justify-content: center;
-    margin-bottom: 8px;
   }
 }
 
