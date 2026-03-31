@@ -794,17 +794,31 @@
       ];
     }
 
+    var monthCtrl;
     var mainSheet = buildProposalSheet('Web Design Projects', webDesignColumns, {
-      onStatusChange: refreshAll,
-      rowActions: makeRowActions(function () { refreshAll(); })
+      onStatusChange: function () { refreshAll(monthCtrl ? monthCtrl.getCurrentMonth() : null); },
+      rowActions: makeRowActions(function () { refreshAll(monthCtrl ? monthCtrl.getCurrentMonth() : null); })
     });
 
     mainCol.appendChild(mainSheet.el);
     layout.appendChild(mainCol);
+
+    // Month selector header
+    var monthHeader = document.createElement('div');
+    monthHeader.className = 'dept-sheet-header';
+    monthHeader.style.marginBottom = '14px';
+    monthHeader.innerHTML = '<div class="dept-month-selector">' +
+      '<button class="dept-month-nav dept-month-prev" id="designMonthPrev" title="Previous month">&#9664;</button>' +
+      '<span class="dept-month-label" id="designMonthLabel">Loading...</span>' +
+      '<button class="dept-month-nav dept-month-next" id="designMonthNext" title="Next month">&#9654;</button>' +
+      '</div>';
+    container.appendChild(monthHeader);
     container.appendChild(layout);
 
-    function refreshAll() {
-      fetch('/api/deliverables/by-department/design', { headers: getHeaders() })
+    function refreshAll(month) {
+      var url = '/api/deliverables/by-department/design';
+      if (month) url += '?month=' + month;
+      fetch(url, { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');
           return res.json();
@@ -827,7 +841,7 @@
         });
     }
 
-    refreshAll();
+    monthCtrl = window.initMonthSelector(container, {prev: 'designMonthPrev', next: 'designMonthNext', label: 'designMonthLabel'}, 'design', function(month) { refreshAll(month); });
   }
 
   window.renderDesignWebDesignTab = renderDesignWebDesignTab;

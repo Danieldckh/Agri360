@@ -3,6 +3,75 @@
 
   var API_BASE = '/api/deliverables';
 
+  // ── Month selector helper ────────────────────────
+  function initMonthSelector(container, ids, deptSlug, onMonthChange) {
+    var prevBtn = container.querySelector('#' + ids.prev);
+    var nextBtn = container.querySelector('#' + ids.next);
+    var label = container.querySelector('#' + ids.label);
+    var months = [];
+    var currentIndex = 0;
+
+    var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+
+    function formatMonth(ym) {
+      var parts = ym.split('-');
+      return MONTH_NAMES[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+    }
+
+    function updateUI() {
+      if (months.length === 0) {
+        label.textContent = 'No data';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+      label.textContent = formatMonth(months[currentIndex]);
+      prevBtn.disabled = currentIndex >= months.length - 1;
+      nextBtn.disabled = currentIndex <= 0;
+    }
+
+    prevBtn.addEventListener('click', function () {
+      if (currentIndex < months.length - 1) {
+        currentIndex++;
+        updateUI();
+        onMonthChange(months[currentIndex]);
+      }
+    });
+
+    nextBtn.addEventListener('click', function () {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateUI();
+        onMonthChange(months[currentIndex]);
+      }
+    });
+
+    // Fetch available months and initialize
+    fetch('/api/deliverables/available-months/' + deptSlug, { headers: getHeaders() })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        months = data; // already sorted DESC from API
+        // Try to default to current month, otherwise first available
+        var now = new Date();
+        var currentYM = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        var idx = months.indexOf(currentYM);
+        currentIndex = idx !== -1 ? idx : 0;
+        updateUI();
+        if (months.length > 0) {
+          onMonthChange(months[currentIndex]);
+        }
+      })
+      .catch(function () {
+        label.textContent = 'No data';
+      });
+
+    return {
+      getCurrentMonth: function () { return months[currentIndex] || null; }
+    };
+  }
+  window.initMonthSelector = initMonthSelector;
+
   // SVG icons
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
 
@@ -168,8 +237,10 @@
         renderTable(allGroups, searchInput.value.toLowerCase());
       });
 
-      function refreshAll() {
-        fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+      function refreshAll(month) {
+        var url = API_BASE + '/by-department/production';
+        if (month) url += '?month=' + month;
+        fetch(url, { headers: getHeaders() })
           .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
@@ -187,13 +258,15 @@
           });
       }
 
+      var monthCtrl = initMonthSelector(container, {prev: 'prodMonthPrev', next: 'prodMonthNext', label: 'prodMonthLabel'}, 'production', function(month) { refreshAll(month); });
+
       function advanceStatus(itemId, nextStatus) {
         fetch(API_BASE + '/' + itemId, {
           method: 'PATCH',
           headers: getHeaders(),
           body: JSON.stringify({ status: nextStatus })
         }).then(function (res) {
-          if (res.ok) refreshAll();
+          if (res.ok) refreshAll(monthCtrl.getCurrentMonth());
         });
       }
 
@@ -371,7 +444,7 @@
         sheetContainer.appendChild(table);
       }
 
-      refreshAll();
+      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   }
 
@@ -411,8 +484,10 @@
         renderRightTable(rightItems, rightSearch.value.toLowerCase());
       });
 
-      function refreshData() {
-        fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+      function refreshData(month) {
+        var url = API_BASE + '/by-department/production';
+        if (month) url += '?month=' + month;
+        fetch(url, { headers: getHeaders() })
           .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
@@ -434,13 +509,15 @@
           });
       }
 
+      var monthCtrl = initMonthSelector(container, {prev: 'fuMonthPrev', next: 'fuMonthNext', label: 'fuMonthLabel'}, 'production', function(month) { refreshData(month); });
+
       function advanceStatus(itemId, nextStatus) {
         fetch(API_BASE + '/' + itemId, {
           method: 'PATCH',
           headers: getHeaders(),
           body: JSON.stringify({ status: nextStatus })
         }).then(function (res) {
-          if (res.ok) refreshData();
+          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
         });
       }
 
@@ -450,7 +527,7 @@
           headers: getHeaders(),
           body: JSON.stringify({ followUpCount: currentCount + 1 })
         }).then(function (res) {
-          if (res.ok) refreshData();
+          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
         });
       }
 
@@ -681,7 +758,7 @@
         rightSheet.appendChild(table);
       }
 
-      refreshData();
+      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   }
 
@@ -721,8 +798,10 @@
         renderRightTable(rightItems, rightSearch.value.toLowerCase());
       });
 
-      function refreshData() {
-        fetch(API_BASE + '/by-department/production', { headers: getHeaders() })
+      function refreshData(month) {
+        var url = API_BASE + '/by-department/production';
+        if (month) url += '?month=' + month;
+        fetch(url, { headers: getHeaders() })
           .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
@@ -744,13 +823,15 @@
           });
       }
 
+      var monthCtrl = initMonthSelector(container, {prev: 'appMonthPrev', next: 'appMonthNext', label: 'appMonthLabel'}, 'production', function(month) { refreshData(month); });
+
       function advanceStatus(itemId, nextStatus) {
         fetch(API_BASE + '/' + itemId, {
           method: 'PATCH',
           headers: getHeaders(),
           body: JSON.stringify({ status: nextStatus })
         }).then(function (res) {
-          if (res.ok) refreshData();
+          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
         });
       }
 
@@ -974,7 +1055,7 @@
         rightSheet.appendChild(table);
       }
 
-      refreshData();
+      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   }
 
@@ -1072,8 +1153,10 @@
         renderDeptTable(allGroups, searchInput.value.toLowerCase());
       });
 
-      function refreshAll() {
-        fetch(API_BASE + '/by-department/' + deptSlug, { headers: getHeaders() })
+      function refreshAll(month) {
+        var url = API_BASE + '/by-department/' + deptSlug;
+        if (month) url += '?month=' + month;
+        fetch(url, { headers: getHeaders() })
           .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
@@ -1090,6 +1173,8 @@
             console.error('Dept tab fetch error:', err);
           });
       }
+
+      var monthCtrl = initMonthSelector(container, {prev: 'deptTypeMonthPrev', next: 'deptTypeMonthNext', label: 'deptTypeMonthLabel'}, deptSlug, function(month) { refreshAll(month); });
 
       function renderDeptTable(groups, filterTerm) {
         while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
@@ -1233,7 +1318,7 @@
                     headers: getHeaders(),
                     body: JSON.stringify({ status: next })
                   }).then(function (res) {
-                    if (res.ok) refreshAll();
+                    if (res.ok) refreshAll(monthCtrl.getCurrentMonth());
                   });
                 };
               })(item.id, wf.next));
@@ -1258,7 +1343,7 @@
         sheetContainer.appendChild(table);
       }
 
-      refreshAll();
+      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   };
 
