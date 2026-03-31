@@ -809,8 +809,11 @@
       th.textContent = col.label;
       if (col.sortable) {
         var si2 = document.createElement('span');
-        si2.className = 'proagri-sheet-sort-icon' + (sortKey === col.key ? ' sort-active' : '');
-        si2.textContent = sortKey === col.key ? (sortDir === 'asc' ? '\u25B2' : '\u25BC') : '\u25B2';
+        si2.className = 'proagri-sheet-sort-arrows';
+        var isActive = sortKey === col.key;
+        var upClass = 'sort-arrow sort-up' + (isActive && sortDir === 'asc' ? ' active' : '');
+        var downClass = 'sort-arrow sort-down' + (isActive && sortDir === 'desc' ? ' active' : '');
+        si2.innerHTML = '<span class="' + upClass + '">&#9650;</span><span class="' + downClass + '">&#9660;</span>';
         th.appendChild(si2);
         th.addEventListener('click', function () {
           var nd = 'asc';

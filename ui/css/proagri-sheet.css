@@ -68,14 +68,32 @@
   color: var(--text-secondary);
 }
 
-.proagri-sheet-sort-icon {
-  font-size: 10px;
-  opacity: 0.5;
+.proagri-sheet-sort-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  margin-left: 4px;
+  line-height: 1;
+  vertical-align: middle;
 }
 
-.proagri-sheet-sort-icon.sort-active {
+.sort-arrow {
+  font-size: 8px;
+  line-height: 8px;
+  opacity: 0.3;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.sort-arrow.active {
   opacity: 1;
   color: var(--color-accent-light);
+}
+
+.proagri-sheet-header-cell.sortable:hover .sort-arrow {
+  opacity: 0.6;
+}
+
+.proagri-sheet-header-cell.sortable:hover .sort-arrow.active {
+  opacity: 1;
 }
 
 /* Column width classes */
