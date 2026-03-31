@@ -56,7 +56,6 @@
     return svg;
   }
 
-  // Fetch all deliverables across all departments
   function fetchAllDeliverables() {
     var depts = ['admin', 'production', 'design', 'editorial', 'video', 'agri4all', 'social-media'];
     return Promise.all(depts.map(function (slug) {
@@ -66,7 +65,6 @@
     })).then(function (results) {
       var all = [];
       results.forEach(function (arr) { all = all.concat(arr); });
-      // Deduplicate by id
       var seen = {};
       return all.filter(function (d) {
         if (seen[d.id]) return false;
@@ -76,87 +74,12 @@
     });
   }
 
-  function renderAdminActionBoard(container) {
-    while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = 'flex';
-    container.style.alignItems = 'stretch';
-    container.style.justifyContent = '';
-    container.style.flexDirection = '';
-    container.style.height = '';
-    container.style.gap = '';
-    container.style.padding = '';
-
-    var layout = document.createElement('div');
-    layout.className = 'dept-dashboard-layout';
-
-    // ──── Main: Action Board ────
-    var mainCol = document.createElement('div');
-    mainCol.className = 'dept-dashboard-main';
-
-    var mainCard = document.createElement('div');
-    mainCard.className = 'dept-sheet-card';
-
-    var mainHeader = document.createElement('div');
-    mainHeader.className = 'dept-sheet-header';
-
-    var mainTitleWrap = document.createElement('div');
-    mainTitleWrap.className = 'dept-sheet-title-wrap';
-    var mainH = document.createElement('h3');
-    mainH.className = 'dept-sheet-title';
-    mainH.textContent = 'Action Board';
-    mainTitleWrap.appendChild(mainH);
-    var mainCount = document.createElement('span');
-    mainCount.className = 'dept-sheet-count';
-    mainCount.textContent = '0';
-    mainTitleWrap.appendChild(mainCount);
-    mainHeader.appendChild(mainTitleWrap);
-
-    var mainSearch = document.createElement('input');
-    mainSearch.type = 'text';
-    mainSearch.className = 'dept-sheet-search';
-    mainSearch.placeholder = 'Search deliverables...';
-    mainHeader.appendChild(mainSearch);
-    mainCard.appendChild(mainHeader);
-
-    var mainSheet = document.createElement('div');
-    mainSheet.className = 'dept-sheet-container';
-    mainSheet.style.overflow = 'auto';
-    mainSheet.style.flex = '1';
-    mainCard.appendChild(mainSheet);
-    mainCol.appendChild(mainCard);
-    layout.appendChild(mainCol);
-
-    // ──── Side: Materials Requested ────
-    var sideCol = document.createElement('div');
-    sideCol.className = 'dept-dashboard-side';
-
-    var sideCard = document.createElement('div');
-    sideCard.className = 'dept-sheet-card dept-sheet-card-compact';
-
-    var sideHeader = document.createElement('div');
-    sideHeader.className = 'dept-sheet-header';
-    var sideTitleWrap = document.createElement('div');
-    sideTitleWrap.className = 'dept-sheet-title-wrap';
-    var sideH = document.createElement('h3');
-    sideH.className = 'dept-sheet-title';
-    sideH.textContent = 'Materials Requested';
-    sideTitleWrap.appendChild(sideH);
-    var sideCount = document.createElement('span');
-    sideCount.className = 'dept-sheet-count';
-    sideCount.textContent = '0';
-    sideTitleWrap.appendChild(sideCount);
-    sideHeader.appendChild(sideTitleWrap);
-    sideCard.appendChild(sideHeader);
-
-    var sideSheet = document.createElement('div');
-    sideSheet.className = 'dept-sheet-container';
-    sideSheet.style.overflow = 'auto';
-    sideSheet.style.flex = '1';
-    sideCard.appendChild(sideSheet);
-    sideCol.appendChild(sideCard);
-    layout.appendChild(sideCol);
-
-    container.appendChild(layout);
+  function initAdminActionBoard(container) {
+    var mainSheet = container.querySelector('#main-sheet');
+    var mainCount = container.querySelector('#main-count');
+    var mainSearch = container.querySelector('#main-search');
+    var sideSheet = container.querySelector('#side-sheet');
+    var sideCount = container.querySelector('#side-count');
 
     var allData = [];
 
@@ -183,9 +106,7 @@
       });
     }
 
-    // ──── Main table (grouped by client, like production) ────
     function renderMainTable(groups, filterTerm) {
-      // If groups is raw array (from search re-render), re-group
       if (groups.length > 0 && groups[0] && groups[0].id !== undefined) {
         groups = groupByClient(groups);
       }
@@ -193,9 +114,7 @@
 
       if (groups.length === 0) {
         var empty = document.createElement('div');
-        empty.style.padding = '40px';
-        empty.style.textAlign = 'center';
-        empty.style.color = 'var(--text-muted, #999)';
+        empty.style.cssText = 'padding:40px;text-align:center;color:var(--text-muted, #999)';
         empty.textContent = 'No deliverables found';
         mainSheet.appendChild(empty);
         return;
@@ -230,7 +149,6 @@
         if (items.length === 0) return;
         visibleCount += items.length;
 
-        // Client parent row
         var clientRow = document.createElement('tr');
         clientRow.className = 'production-client-row';
         clientRow.style.cursor = 'pointer';
@@ -239,9 +157,7 @@
         clientCell.colSpan = 6;
 
         var clientWrap = document.createElement('div');
-        clientWrap.style.display = 'flex';
-        clientWrap.style.alignItems = 'center';
-        clientWrap.style.gap = '8px';
+        clientWrap.style.cssText = 'display:flex;align-items:center;gap:8px';
 
         var chevron = document.createElement('span');
         chevron.className = 'production-chevron';
@@ -262,7 +178,6 @@
         clientRow.appendChild(clientCell);
         tbody.appendChild(clientRow);
 
-        // Child rows
         var childRows = [];
         items.forEach(function (item) {
           var row = document.createElement('tr');
@@ -335,7 +250,6 @@
       mainCount.textContent = visibleCount;
     }
 
-    // ──── Side panel: Materials Requested with advance arrows ────
     function renderMaterialsSide(allDeliverables) {
       while (sideSheet.firstChild) sideSheet.removeChild(sideSheet.firstChild);
 
@@ -347,10 +261,7 @@
 
       if (materialsItems.length === 0) {
         var empty = document.createElement('div');
-        empty.style.padding = '24px';
-        empty.style.textAlign = 'center';
-        empty.style.color = 'var(--text-muted, #999)';
-        empty.style.fontSize = '12px';
+        empty.style.cssText = 'padding:24px;text-align:center;color:var(--text-muted, #999);font-size:12px';
         empty.textContent = 'No pending material requests';
         sideSheet.appendChild(empty);
         return;
@@ -383,8 +294,7 @@
 
         var tdClient = document.createElement('td');
         tdClient.textContent = item.clientName || '—';
-        tdClient.style.fontSize = '12px';
-        tdClient.style.color = 'var(--text-muted, #999)';
+        tdClient.style.cssText = 'font-size:12px;color:var(--text-muted, #999)';
         row.appendChild(tdClient);
 
         var tdAction = document.createElement('td');
@@ -409,12 +319,24 @@
       sideSheet.appendChild(table);
     }
 
-    // Pre-fetch employees then load data
     if (window._fetchEmployees) {
       window._fetchEmployees().then(refreshAll);
     } else {
       refreshAll();
     }
+  }
+
+  function renderAdminActionBoard(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = 'flex';
+    container.style.alignItems = 'stretch';
+    container.style.justifyContent = '';
+    container.style.flexDirection = '';
+    container.style.height = '';
+    container.style.gap = '';
+    container.style.padding = '';
+
+    window.insertTemplate(container, 'pages/admin-action-board.html', initAdminActionBoard);
   }
 
   window.renderAdminActionBoard = renderAdminActionBoard;

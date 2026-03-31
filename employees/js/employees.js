@@ -8,7 +8,6 @@ function createEmployeeCard(emp, currentUser, onRefresh) {
   var isOwnCard = currentUser && currentUser.id === emp.id;
   var isAdmin = currentUser && currentUser.role === 'admin';
 
-  // Photo
   var photoSrc = emp.photo_url
     ? '/uploads/photos/' + emp.photo_url
     : DEFAULT_PHOTO_SVG;
@@ -76,26 +75,22 @@ function createEmployeeCard(emp, currentUser, onRefresh) {
     card.appendChild(img);
   }
 
-  // Name
   var name = document.createElement('h3');
   name.className = 'employee-name';
   name.textContent = emp.first_name + ' ' + emp.last_name;
   card.appendChild(name);
 
-  // Role badge
   var roleBadge = document.createElement('span');
   roleBadge.className = 'employee-role ' + (emp.role === 'admin' ? 'role-admin' : 'role-employee');
   roleBadge.textContent = emp.role === 'admin' ? 'Admin' : 'Employee';
   card.appendChild(roleBadge);
 
-  // Status badge
   var statusBadge = document.createElement('span');
   var statusClass = 'status-' + emp.status;
   statusBadge.className = 'employee-status ' + statusClass;
   statusBadge.textContent = emp.status.charAt(0).toUpperCase() + emp.status.slice(1);
   card.appendChild(statusBadge);
 
-  // Admin actions
   if (isAdmin && !isOwnCard) {
     var actions = document.createElement('div');
     actions.className = 'admin-actions';
@@ -145,136 +140,90 @@ function createEmployeeCard(emp, currentUser, onRefresh) {
   return card;
 }
 
+function initEmployeePage(container) {
+  var grid = container.querySelector('#employee-grid');
+  var countEl = container.querySelector('#employee-count');
+  var filtersEl = container.querySelector('#employee-filters');
+  var pendingBtn = container.querySelector('#pending-filter-btn');
+  var loadingEl = container.querySelector('#employee-loading');
+  var emptyEl = container.querySelector('#employee-empty');
+  var errorEl = container.querySelector('#employee-error');
+
+  var currentUser = getCurrentUser();
+  var allEmployees = [];
+  var filterMode = 'all';
+
+  // Show admin filters
+  if (currentUser && currentUser.role === 'admin') {
+    filtersEl.style.display = '';
+  }
+
+  // Filter button clicks
+  filtersEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    filterMode = btn.getAttribute('data-filter');
+    filtersEl.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderCards();
+  });
+
+  function renderCards() {
+    grid.innerHTML = '';
+    emptyEl.style.display = 'none';
+
+    var filtered = filterMode === 'pending'
+      ? allEmployees.filter(function (e) { return e.status === 'pending'; })
+      : allEmployees;
+
+    if (filtered.length === 0) {
+      emptyEl.textContent = filterMode === 'pending' ? 'No pending employees.' : 'No employees found.';
+      emptyEl.style.display = '';
+      return;
+    }
+
+    filtered.forEach(function (emp, index) {
+      var card = createEmployeeCard(emp, currentUser, function () {
+        renderEmployeeSection(container.parentElement || container);
+      });
+      card.style.animationDelay = (index * 0.05) + 's';
+      grid.appendChild(card);
+    });
+  }
+
+  fetch(EMPLOYEES_API_URL + '/employees', { headers: getAuthHeaders() })
+    .then(function (res) { return res.json(); })
+    .then(function (employees) {
+      loadingEl.style.display = 'none';
+
+      if (employees.error) {
+        errorEl.textContent = employees.error;
+        errorEl.style.display = '';
+        return;
+      }
+
+      allEmployees = Array.isArray(employees) ? employees : [];
+      var pendingCount = allEmployees.filter(function (e) { return e.status === 'pending'; }).length;
+      pendingBtn.textContent = 'Pending (' + pendingCount + ')';
+      countEl.textContent = allEmployees.length;
+      renderCards();
+    })
+    .catch(function () {
+      loadingEl.style.display = 'none';
+      errorEl.style.display = '';
+    });
+}
+
 async function renderEmployeeSection(container) {
   while (container.firstChild) {
     container.removeChild(container.firstChild);
   }
 
-  // Override flex centering for this section
   container.style.display = 'block';
   container.style.alignItems = '';
   container.style.justifyContent = '';
 
-  var section = document.createElement('div');
-  section.className = 'employee-section';
-
-  var currentUser = getCurrentUser();
-
-  // Loading state
-  var loading = document.createElement('div');
-  loading.className = 'employee-loading';
-  loading.textContent = 'Loading employees...';
-  section.appendChild(loading);
-  container.appendChild(section);
-
-  try {
-    var res = await fetch(EMPLOYEES_API_URL + '/employees', {
-      headers: getAuthHeaders()
-    });
-    var employees = await res.json();
-
-    section.removeChild(loading);
-
-    if (employees.error) {
-      var errorMsg = document.createElement('div');
-      errorMsg.className = 'employee-loading';
-      errorMsg.textContent = employees.error;
-      section.appendChild(errorMsg);
-      return;
-    }
-
-    var allEmployees = Array.isArray(employees) ? employees : [];
-    var pendingCount = allEmployees.filter(function (e) { return e.status === 'pending'; }).length;
-    var filterMode = 'all';
-
-    function renderContent() {
-      // Clear section
-      while (section.firstChild) {
-        section.removeChild(section.firstChild);
-      }
-
-      // Header
-      var header = document.createElement('div');
-      header.className = 'employee-header';
-
-      var titleWrap = document.createElement('div');
-      titleWrap.style.display = 'flex';
-      titleWrap.style.alignItems = 'center';
-
-      var title = document.createElement('h2');
-      title.textContent = 'Employees';
-      titleWrap.appendChild(title);
-
-      var count = document.createElement('span');
-      count.className = 'employee-count';
-      count.textContent = allEmployees.length;
-      titleWrap.appendChild(count);
-
-      header.appendChild(titleWrap);
-
-      // Filter tabs (admin only)
-      if (currentUser && currentUser.role === 'admin') {
-        var filters = document.createElement('div');
-        filters.className = 'employee-filters';
-
-        var allBtn = document.createElement('button');
-        allBtn.className = 'filter-btn' + (filterMode === 'all' ? ' active' : '');
-        allBtn.textContent = 'All';
-        allBtn.addEventListener('click', function () {
-          filterMode = 'all';
-          renderContent();
-        });
-        filters.appendChild(allBtn);
-
-        var pendingBtn = document.createElement('button');
-        pendingBtn.className = 'filter-btn' + (filterMode === 'pending' ? ' active' : '');
-        pendingBtn.textContent = 'Pending (' + pendingCount + ')';
-        pendingBtn.addEventListener('click', function () {
-          filterMode = 'pending';
-          renderContent();
-        });
-        filters.appendChild(pendingBtn);
-
-        header.appendChild(filters);
-      }
-
-      section.appendChild(header);
-
-      // Filter employees
-      var filtered = filterMode === 'pending'
-        ? allEmployees.filter(function (e) { return e.status === 'pending'; })
-        : allEmployees;
-
-      // Grid
-      var grid = document.createElement('div');
-      grid.className = 'employee-grid';
-
-      filtered.forEach(function (emp, index) {
-        var card = createEmployeeCard(emp, currentUser, function () {
-          renderEmployeeSection(container);
-        });
-        card.style.animationDelay = (index * 0.05) + 's';
-        grid.appendChild(card);
-      });
-
-      if (filtered.length === 0) {
-        var empty = document.createElement('div');
-        empty.className = 'employee-loading';
-        empty.textContent = filterMode === 'pending' ? 'No pending employees.' : 'No employees found.';
-        section.appendChild(empty);
-      } else {
-        section.appendChild(grid);
-      }
-    }
-
-    renderContent();
-  } catch (err) {
-    section.removeChild(loading);
-    var errorMsg = document.createElement('div');
-    errorMsg.className = 'employee-loading';
-    errorMsg.textContent = 'Failed to load employees.';
-    section.appendChild(errorMsg);
-  }
+  window.insertTemplate(container, 'pages/employees.html', initEmployeePage);
 }
 
 window.renderEmployeeSection = renderEmployeeSection;

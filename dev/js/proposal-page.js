@@ -3,7 +3,6 @@
 
   var API_BASE = '/api/booking-forms';
 
-  // SVG icon paths for row actions
   var ICON_DELETE = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z';
   var ICON_SKIP = 'M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16.5 6H18v12h-1.5V6z';
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
@@ -21,55 +20,35 @@
     return headers;
   }
 
-  // --- Decline Reason Modal ---
+  // --- Decline Reason Modal (template-based) ---
   function showDeclineModal(onConfirm) {
-    var overlay = document.createElement('div');
-    overlay.className = 'decline-modal-overlay';
+    window.loadTemplate('pages/decline-modal.html').then(function (html) {
+      var wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      var overlay = wrapper.firstElementChild;
 
-    var modal = document.createElement('div');
-    modal.className = 'decline-modal';
+      var textarea = overlay.querySelector('.decline-modal-textarea');
+      var cancelBtn = overlay.querySelector('.decline-modal-cancel');
+      var confirmBtn = overlay.querySelector('.decline-modal-confirm');
 
-    var title = document.createElement('h3');
-    title.textContent = 'Reason for Decline';
-    modal.appendChild(title);
+      cancelBtn.addEventListener('click', function () {
+        document.body.removeChild(overlay);
+      });
 
-    var textarea = document.createElement('textarea');
-    textarea.className = 'decline-modal-textarea';
-    textarea.placeholder = 'Enter the reason for declining this proposal...';
-    textarea.rows = 4;
-    modal.appendChild(textarea);
+      confirmBtn.addEventListener('click', function () {
+        var reason = textarea.value.trim();
+        if (!reason) {
+          textarea.style.borderColor = '#e74c3c';
+          textarea.placeholder = 'A reason is required...';
+          return;
+        }
+        document.body.removeChild(overlay);
+        onConfirm(reason);
+      });
 
-    var btnRow = document.createElement('div');
-    btnRow.className = 'decline-modal-buttons';
-
-    var cancelBtn = document.createElement('button');
-    cancelBtn.className = 'decline-modal-btn decline-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.addEventListener('click', function () {
-      document.body.removeChild(overlay);
+      document.body.appendChild(overlay);
+      setTimeout(function () { textarea.focus(); }, 50);
     });
-
-    var confirmBtn = document.createElement('button');
-    confirmBtn.className = 'decline-modal-btn decline-modal-confirm';
-    confirmBtn.textContent = 'Decline';
-    confirmBtn.addEventListener('click', function () {
-      var reason = textarea.value.trim();
-      if (!reason) {
-        textarea.style.borderColor = '#e74c3c';
-        textarea.placeholder = 'A reason is required...';
-        return;
-      }
-      document.body.removeChild(overlay);
-      onConfirm(reason);
-    });
-
-    btnRow.appendChild(cancelBtn);
-    btnRow.appendChild(confirmBtn);
-    modal.appendChild(btnRow);
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-
-    setTimeout(function () { textarea.focus(); }, 50);
   }
 
   // --- Column Configs ---
@@ -152,7 +131,6 @@
     };
   }
 
-  // Filter forms by status into the 3 proposal buckets
   function splitByStatus(forms) {
     var todo = [];
     var inDesign = [];
@@ -256,7 +234,6 @@
     return { el: card, update: function (data) { allData = data; render(); } };
   }
 
-  // Helper to reset container styles
   function resetContainer(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = 'flex';
@@ -269,7 +246,7 @@
   }
 
   // =============================================
-  // 1. PROPOSAL TAB (Admin > Proposal)
+  // 1. PROPOSAL TAB
   // =============================================
 
   function renderProposalTab(container) {
@@ -284,7 +261,6 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side proposal-side-col';
 
-    // --- To Do row actions: Delete | Skip to Booking Form | Send to Design ---
     var proposalRowActions = [
       {
         icon: ICON_DELETE,
@@ -330,7 +306,6 @@
       }
     ];
 
-    // --- Sent to Client row actions: Approve → Booking Form | Decline ---
     var sentToClientActions = [
       {
         icon: ICON_APPROVE,
@@ -409,7 +384,7 @@
   window.renderProposalTab = renderProposalTab;
 
   // =============================================
-  // 2. BOOKING FORM TAB (Admin > Booking Form)
+  // 2. BOOKING FORM TAB
   // =============================================
 
   function renderBookingFormTab(container) {
@@ -424,7 +399,6 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side';
 
-    // --- Booking Forms row actions: Advance → Sent to Client ---
     var bookingFormActions = [
       {
         icon: ICON_ADVANCE,
@@ -442,7 +416,6 @@
       }
     ];
 
-    // --- Sent to Client row actions: Approve → Onboarding | Decline ---
     var bookingSentActions = [
       {
         icon: ICON_APPROVE,
@@ -516,7 +489,7 @@
   window.renderBookingFormTab = renderBookingFormTab;
 
   // =============================================
-  // 3. ONBOARDING TAB (Onboarding left + Onboarded right)
+  // 3. ONBOARDING TAB
   // =============================================
 
   function renderOnboardingTab(container) {
@@ -531,7 +504,6 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side';
 
-    // --- Onboarding row actions: Advance → Onboarded | Delete ---
     var onboardingActions = [
       {
         icon: ICON_APPROVE,
@@ -605,7 +577,7 @@
   window.renderOnboardingTab = renderOnboardingTab;
 
   // =============================================
-  // 5. DECLINED PROPOSAL TAB (Admin > Declined)
+  // 5. DECLINED PROPOSAL TAB
   // =============================================
 
   function renderDeclinedTab(container) {
@@ -653,7 +625,7 @@
   window.renderDeclinedTab = renderDeclinedTab;
 
   // =============================================
-  // 6. DESIGN PROPOSALS TAB (Design > Proposals)
+  // 6. DESIGN PROPOSALS TAB
   // =============================================
 
   var designProposalColumns = [
@@ -685,7 +657,6 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side';
 
-    // --- Design Proposal row actions: Advance → move to Design Review ---
     var designActions = [
       {
         icon: ICON_ADVANCE,
@@ -703,7 +674,6 @@
       }
     ];
 
-    // --- Design Review row actions: Request Changes | Approve ---
     var reviewActions = [
       {
         icon: ICON_DELETE,
@@ -781,10 +751,9 @@
   window.renderDesignProposalsTab = renderDesignProposalsTab;
 
   // =============================================
-  // 7. DESIGN WEB DESIGN TAB (Design > Web Design)
+  // 7. DESIGN WEB DESIGN TAB
   // =============================================
 
-  // Unified workflow from shared definition
   var workflows = window.DELIVERABLE_WORKFLOWS;
 
   var webDesignColumns = [
@@ -804,7 +773,6 @@
     var mainCol = document.createElement('div');
     mainCol.className = 'dept-dashboard-main';
 
-    // Row actions with advance based on current status
     function makeRowActions(refreshFn) {
       return [
         {
@@ -836,7 +804,6 @@
     container.appendChild(layout);
 
     function refreshAll() {
-      // Fetch deliverables from design department with type website-design
       fetch('/api/deliverables/by-department/design', { headers: getHeaders() })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to fetch');

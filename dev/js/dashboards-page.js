@@ -51,7 +51,6 @@
         });
 
         bindList(grid, 'dashboard-card-tmpl', items, function (el, item) {
-          // Add status class to the status badge
           var badges = el.querySelectorAll('.dev-dashboard-badge');
           if (badges[1]) badges[1].className = 'dev-dashboard-badge dev-dashboard-badge--' + item.status;
 
@@ -69,7 +68,6 @@
     var listView = container.querySelector('.dev-page');
     var detailView = container.querySelector('#dashboard-detail');
 
-    // Check for content calendar dashboards
     if ((db.deliverableType === 'content-calendar' || db.deliverableType === 'agri4all-posts') && window.renderContentCalendarPage) {
       var parent = container;
       while (parent.firstChild) parent.removeChild(parent.firstChild);

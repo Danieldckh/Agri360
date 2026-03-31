@@ -75,48 +75,19 @@
     return lower.indexOf('password') !== -1 || lower.indexOf('hash') !== -1;
   }
 
-  window.renderDatabasePage = function (container) {
-    var page = document.createElement('div');
-    page.className = 'dev-page';
-
-    // Header
-    var header = document.createElement('div');
-    header.className = 'dev-page-header';
-
-    var title = document.createElement('h1');
-    title.className = 'dev-page-title';
-    title.textContent = 'Database';
-    header.appendChild(title);
-    page.appendChild(header);
-
-    // Layout
-    var layout = document.createElement('div');
-    layout.className = 'dev-db-layout';
-
-    var sidebar = document.createElement('div');
-    sidebar.className = 'dev-db-sidebar';
-
-    var detail = document.createElement('div');
-    detail.className = 'dev-db-detail';
-
-    layout.appendChild(sidebar);
-    layout.appendChild(detail);
-    page.appendChild(layout);
-    container.appendChild(page);
+  function initDatabasePage(container) {
+    var sidebar = container.querySelector('#db-sidebar');
+    var detail = container.querySelector('#db-detail');
 
     var activeTable = null;
     var currentOffset = 0;
     var totalRows = 0;
 
-    // Fetch table list
     fetch(API_BASE + '/tables', { headers: getHeaders() })
       .then(function (res) { return res.json(); })
       .then(function (tables) {
         if (!Array.isArray(tables) || tables.length === 0) {
-          var empty = document.createElement('div');
-          empty.className = 'dev-db-empty';
-          empty.textContent = 'No tables found';
-          sidebar.appendChild(empty);
+          sidebar.innerHTML = '<div class="dev-db-empty">No tables found</div>';
           return;
         }
 
@@ -202,14 +173,10 @@
           sidebar.appendChild(groupEl);
         });
 
-        // Select first table by default
         if (firstBtn) firstBtn.click();
       })
-      .catch(function (err) {
-        var errMsg = document.createElement('div');
-        errMsg.className = 'dev-db-empty';
-        errMsg.textContent = 'Failed to load tables';
-        sidebar.appendChild(errMsg);
+      .catch(function () {
+        sidebar.innerHTML = '<div class="dev-db-empty">Failed to load tables</div>';
       });
 
     function loadTableDetail(tableName) {
@@ -220,7 +187,6 @@
       nameEl.textContent = tableName;
       detail.appendChild(nameEl);
 
-      // Fetch columns
       fetch(API_BASE + '/tables/' + encodeURIComponent(tableName) + '/columns', { headers: getHeaders() })
         .then(function (res) { return res.json(); })
         .then(function (columns) {
@@ -230,7 +196,6 @@
         })
         .catch(function () {});
 
-      // Fetch rows
       loadRows(tableName, 0);
     }
 
@@ -298,10 +263,8 @@
       rowsLabel.className = 'dev-db-section-label';
       rowsLabel.textContent = 'Data';
 
-      var existingLabel = detail.querySelector('.dev-db-section-label + .dev-db-grid-wrap');
       var rowsContainer = document.createElement('div');
 
-      // Remove previous rows section if it exists
       var prevRowsSection = detail.querySelector('[data-rows-section]');
       if (prevRowsSection) prevRowsSection.remove();
 
@@ -319,10 +282,7 @@
           var rowsArr = Array.isArray(rows) ? rows : [];
 
           if (rowsArr.length === 0) {
-            var empty = document.createElement('div');
-            empty.className = 'dev-db-empty';
-            empty.textContent = 'No rows';
-            rowsContainer.appendChild(empty);
+            rowsContainer.innerHTML += '<div class="dev-db-empty">No rows</div>';
             return;
           }
 
@@ -370,7 +330,6 @@
           wrap.appendChild(table);
           rowsContainer.appendChild(wrap);
 
-          // Pagination
           var pagination = document.createElement('div');
           pagination.className = 'dev-db-pagination';
 
@@ -401,11 +360,12 @@
           rowsContainer.appendChild(pagination);
         })
         .catch(function () {
-          var errMsg = document.createElement('div');
-          errMsg.className = 'dev-db-empty';
-          errMsg.textContent = 'Failed to load rows';
-          rowsContainer.appendChild(errMsg);
+          rowsContainer.innerHTML += '<div class="dev-db-empty">Failed to load rows</div>';
         });
     }
+  }
+
+  window.renderDatabasePage = function (container) {
+    window.insertTemplate(container, 'pages/database.html', initDatabasePage);
   };
 })();
