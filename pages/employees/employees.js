@@ -223,7 +223,7 @@ async function renderEmployeeSection(container) {
   container.style.alignItems = '';
   container.style.justifyContent = '';
 
-  window.insertTemplate(container, 'pages/employees.html', initEmployeePage);
+  window.insertTemplate(container, '/pages/employees/employees.html', initEmployeePage);
 }
 
 window.renderEmployeeSection = renderEmployeeSection;

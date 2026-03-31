@@ -204,7 +204,7 @@
       card.style.overflow = 'hidden';
     }
 
-    window.insertTemplate(container, 'pages/messaging.html', function () {
+    window.insertTemplate(container, '/pages/messaging/messaging.html', function () {
       convPane = container.querySelector('#msgConvPane');
       chatPane = container.querySelector('#msgChatPane');
 

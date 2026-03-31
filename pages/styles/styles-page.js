@@ -442,6 +442,6 @@
   }
 
   window.renderStylesPage = function (container) {
-    window.insertTemplate(container, 'pages/styles.html', initStylesPage);
+    window.insertTemplate(container, '/pages/styles/styles.html', initStylesPage);
   };
 })();

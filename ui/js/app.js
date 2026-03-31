@@ -1029,8 +1029,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'styles': function () { if (window.renderStylesPage) window.renderStylesPage(dashboardContent); },
     'components': function () { if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent); },
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
-    'client-list': function () { window.insertTemplate(dashboardContent, 'pages/client-list.html', window.initClientListPage); },
-    'dashboards': function () { window.insertTemplate(dashboardContent, 'pages/dashboards.html', window.initDashboardsPage); }
+    'client-list': function () { window.insertTemplate(dashboardContent, '/pages/client-list/client-list.html', window.initClientListPage); },
+    'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); }
   };
 
   function finishPageEnter() {

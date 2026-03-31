@@ -1117,7 +1117,7 @@
       window.showContentCalendarMenu('Client Name');
     }
 
-    window.insertTemplate(container, 'pages/content-calendar.html', function () {
+    window.insertTemplate(container, '/pages/content-calendar/content-calendar.html', function () {
       // Populate avatar stack
       var avatarStack = container.querySelector('#ccAvatarStack');
       if (avatarStack) populateAvatarStack(avatarStack);
