@@ -25,20 +25,47 @@ router.get('/by-booking/:bookingFormId', async (req, res) => {
   }
 });
 
-// GET /by-department/:deptSlug - list deliverables for a department slug
-router.get('/by-department/:deptSlug', async (req, res) => {
+// GET /available-months/:deptSlug - distinct campaign months for a department's deliverables
+router.get('/available-months/:deptSlug', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT d.*, dept.name AS department_name, dept.slug AS department_slug,
+      `SELECT DISTINCT bf.campaign_month_start
+       FROM deliverables d
+       JOIN departments dept ON dept.id = d.department_id
+       JOIN booking_forms bf ON bf.id = d.booking_form_id
+       WHERE dept.slug = $1 AND bf.campaign_month_start IS NOT NULL
+       ORDER BY bf.campaign_month_start DESC`,
+      [req.params.deptSlug]
+    );
+    res.json(result.rows.map(r => r.campaign_month_start));
+  } catch (err) {
+    console.error('List available months error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /by-department/:deptSlug - list deliverables for a department slug
+// Optional query param: ?month=YYYY-MM to filter by campaign month
+router.get('/by-department/:deptSlug', async (req, res) => {
+  try {
+    const { month } = req.query;
+    let query = `SELECT d.*, dept.name AS department_name, dept.slug AS department_slug,
               bf.title AS booking_form_title, c.name AS client_name, c.id AS client_id
        FROM deliverables d
        JOIN departments dept ON dept.id = d.department_id
        JOIN booking_forms bf ON bf.id = d.booking_form_id
        JOIN clients c ON c.id = bf.client_id
-       WHERE dept.slug = $1
-       ORDER BY d.created_at DESC`,
-      [req.params.deptSlug]
-    );
+       WHERE dept.slug = $1`;
+    const params = [req.params.deptSlug];
+
+    if (month) {
+      query += ` AND bf.campaign_month_start = $2`;
+      params.push(month);
+    }
+
+    query += ` ORDER BY d.created_at DESC`;
+
+    const result = await pool.query(query, params);
     res.json(result.rows.map(toCamelCase));
   } catch (err) {
     console.error('List deliverables by department error:', err);
