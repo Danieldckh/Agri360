@@ -109,7 +109,6 @@
         img.style.margin = '4px 0';
         img.style.display = 'block';
         editor.appendChild(img);
-        // Add a line break after so user can keep typing
         var br = document.createElement('br');
         editor.appendChild(br);
         editor.focus();
@@ -134,7 +133,6 @@
       };
       reader2.readAsDataURL(file);
     } else {
-      // Non-media file: show as attachment chip
       var chip = document.createElement('span');
       chip.className = 'cc-cr-file-chip';
       chip.textContent = file.name;
@@ -147,14 +145,12 @@
   }
 
   function openChangesPopup(mediaFiles, changeRequests, changeFiles, drawings, updateCount) {
-    // Overlay
     var overlay = document.createElement('div');
     overlay.className = 'cc-popup-overlay';
 
     var popup = document.createElement('div');
     popup.className = 'cc-popup';
 
-    // Close button
     var closeBtn = document.createElement('button');
     closeBtn.className = 'cc-popup-close';
     closeBtn.innerHTML = '&times;';
@@ -163,13 +159,11 @@
     });
     popup.appendChild(closeBtn);
 
-    // Header
     var popupHeader = document.createElement('div');
     popupHeader.className = 'cc-popup-header';
     popupHeader.textContent = 'Change Requests';
     popup.appendChild(popupHeader);
 
-    // Body — left (image) + right (checklist)
     var body = document.createElement('div');
     body.className = 'cc-popup-body';
 
@@ -191,7 +185,6 @@
     canvasWrap.appendChild(imgEl);
     canvasWrap.appendChild(canvas);
 
-    // Drawing state
     var isDrawing = false;
     var drawColor = '#e74c3c';
     var drawSize = 3;
@@ -212,7 +205,6 @@
         canvas.width = imgEl.naturalWidth;
         canvas.height = imgEl.naturalHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Restore saved drawing
         if (drawings[idx]) {
           var img2 = new Image();
           img2.onload = function () { ctx.drawImage(img2, 0, 0); };
@@ -222,7 +214,6 @@
       updateMediaNav();
     }
 
-    // Save drawing before switching
     function saveDrawing() {
       if (mediaFiles && mediaFiles.length > 0) {
         drawings[currentMediaIdx] = canvas.toDataURL();
@@ -339,31 +330,31 @@
     var mediaNav = document.createElement('div');
     mediaNav.className = 'cc-media-nav';
 
-    var prevBtn = document.createElement('button');
-    prevBtn.className = 'cc-media-nav-btn';
-    prevBtn.innerHTML = '&larr;';
-    prevBtn.addEventListener('click', function () {
+    var prevMediaBtn = document.createElement('button');
+    prevMediaBtn.className = 'cc-media-nav-btn';
+    prevMediaBtn.innerHTML = '&larr;';
+    prevMediaBtn.addEventListener('click', function () {
       if (currentMediaIdx > 0) {
         saveDrawing();
         loadMedia(currentMediaIdx - 1);
       }
     });
-    mediaNav.appendChild(prevBtn);
+    mediaNav.appendChild(prevMediaBtn);
 
     var mediaCounter = document.createElement('span');
     mediaCounter.className = 'cc-media-counter';
     mediaNav.appendChild(mediaCounter);
 
-    var nextBtn = document.createElement('button');
-    nextBtn.className = 'cc-media-nav-btn';
-    nextBtn.innerHTML = '&rarr;';
-    nextBtn.addEventListener('click', function () {
+    var nextMediaBtn = document.createElement('button');
+    nextMediaBtn.className = 'cc-media-nav-btn';
+    nextMediaBtn.innerHTML = '&rarr;';
+    nextMediaBtn.addEventListener('click', function () {
       if (mediaFiles && currentMediaIdx < mediaFiles.length - 1) {
         saveDrawing();
         loadMedia(currentMediaIdx + 1);
       }
     });
-    mediaNav.appendChild(nextBtn);
+    mediaNav.appendChild(nextMediaBtn);
 
     leftPanel.appendChild(mediaNav);
 
@@ -374,8 +365,8 @@
       }
       mediaNav.style.display = 'flex';
       mediaCounter.textContent = (currentMediaIdx + 1) + ' / ' + mediaFiles.length;
-      prevBtn.disabled = currentMediaIdx === 0;
-      nextBtn.disabled = currentMediaIdx === mediaFiles.length - 1;
+      prevMediaBtn.disabled = currentMediaIdx === 0;
+      nextMediaBtn.disabled = currentMediaIdx === mediaFiles.length - 1;
     }
 
     body.appendChild(leftPanel);
@@ -423,7 +414,7 @@
       b.innerHTML = btn.label;
       b.title = btn.title;
       b.addEventListener('mousedown', function (e) {
-        e.preventDefault(); // preserve selection
+        e.preventDefault();
         if (btn.cmd === 'insertFile') {
           crFileInput.click();
         } else {
@@ -440,12 +431,10 @@
     crEditor.contentEditable = 'true';
     crEditor.setAttribute('data-placeholder', 'Describe change requests here...\n\nYou can format text, add lists, and insert images inline.');
 
-    // Restore saved content
     if (changeRequests.length > 0 && changeRequests[0].html) {
       crEditor.innerHTML = changeRequests[0].html;
     }
 
-    // Save on input
     crEditor.addEventListener('input', function () {
       if (changeRequests.length === 0) {
         changeRequests.push({ html: crEditor.innerHTML });
@@ -455,17 +444,14 @@
       updateCount();
     });
 
-    // Handle file insert
     crFileInput.addEventListener('change', function () {
       for (var i = 0; i < crFileInput.files.length; i++) {
         insertFileIntoEditor(crEditor, crFileInput.files[i]);
       }
       crFileInput.value = '';
-      // trigger save
       crEditor.dispatchEvent(new Event('input'));
     });
 
-    // Handle paste with images
     crEditor.addEventListener('paste', function (e) {
       var items = e.clipboardData && e.clipboardData.items;
       if (!items) return;
@@ -480,7 +466,6 @@
       }
     });
 
-    // Handle drag & drop files into editor
     crEditor.addEventListener('dragover', function (e) {
       e.preventDefault();
     });
@@ -501,12 +486,10 @@
     popup.appendChild(body);
     overlay.appendChild(popup);
 
-    // Close on overlay click
     overlay.addEventListener('click', function (e) {
       if (e.target === overlay) overlay.remove();
     });
 
-    // Close on Escape
     function onKey(e) {
       if (e.key === 'Escape') {
         overlay.remove();
@@ -516,52 +499,24 @@
     document.addEventListener('keydown', onKey);
 
     document.body.appendChild(overlay);
-
-    // Load first media
     loadMedia(0);
   }
 
-  function buildChatPanel(clientName, deliverableName) {
-    var wrap = document.createElement('div');
-    wrap.className = 'cc-chat';
+  function buildChatPanel(chatPanel, clientName, deliverableName) {
     var channelId = null;
     var currentUserId = null;
     var MSG_API = '/api/messaging';
 
-    // Header
-    var header = document.createElement('div');
-    header.className = 'cc-chat-header';
-    header.innerHTML = '<span class="cc-chat-title">Messages</span>' +
-      '<span class="cc-chat-subtitle">' + (clientName || 'Client') + ' - ' + (deliverableName || 'Content Calendar') + '</span>';
-    wrap.appendChild(header);
+    var subtitleEl = chatPanel.querySelector('#ccChatSubtitle');
+    if (subtitleEl) {
+      subtitleEl.textContent = (clientName || 'Client') + ' - ' + (deliverableName || 'Content Calendar');
+    }
 
-    // Messages area
-    var messagesEl = document.createElement('div');
-    messagesEl.className = 'cc-chat-messages';
-    messagesEl.innerHTML = '<div class="cc-chat-loading">Loading messages...</div>';
-    wrap.appendChild(messagesEl);
+    var messagesEl = chatPanel.querySelector('#ccChatMessages');
+    var input = chatPanel.querySelector('#ccChatInput');
+    var sendBtn = chatPanel.querySelector('#ccChatSendBtn');
 
-    // Input area
-    var inputArea = document.createElement('div');
-    inputArea.className = 'cc-chat-input-area';
-
-    var attachBtn = document.createElement('button');
-    attachBtn.className = 'cc-chat-attach-btn';
-    attachBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 015 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 005 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>';
-    attachBtn.title = 'Attach file';
-    inputArea.appendChild(attachBtn);
-
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'cc-chat-input';
-    input.placeholder = 'Type a message...';
-
-    var sendBtn = document.createElement('button');
-    sendBtn.className = 'cc-chat-send-btn';
-    sendBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
-    sendBtn.title = 'Send';
-
-    function getAuthHeaders() {
+    function getAuthHeadersLocal() {
       var headers = { 'Content-Type': 'application/json' };
       if (window.getAuthHeaders) {
         var auth = window.getAuthHeaders();
@@ -625,7 +580,7 @@
 
     function loadMessages() {
       if (!channelId) return;
-      fetch(MSG_API + '/channels/' + channelId + '/messages?limit=50', { headers: getAuthHeaders() })
+      fetch(MSG_API + '/channels/' + channelId + '/messages?limit=50', { headers: getAuthHeadersLocal() })
         .then(function (res) { return res.json(); })
         .then(function (msgs) {
           messagesEl.innerHTML = '';
@@ -633,7 +588,6 @@
             messagesEl.innerHTML = '<div class="cc-chat-empty">No messages yet. Start the conversation!</div>';
             return;
           }
-          // Messages come newest-first, reverse for display
           msgs.reverse().forEach(function (msg) {
             var isSelf = (msg.sender_employee_id || msg.senderEmployeeId) === currentUserId;
             messagesEl.appendChild(renderBubble(msg, isSelf));
@@ -649,7 +603,6 @@
       var text = input.value.trim();
       if (!text || !channelId) return;
 
-      // Optimistic UI
       var bubble = document.createElement('div');
       bubble.className = 'cc-chat-bubble cc-chat-self cc-chat-new';
       var content = document.createElement('div');
@@ -670,10 +623,9 @@
       input.value = '';
       input.focus();
 
-      // Send to API
       fetch(MSG_API + '/channels/' + channelId + '/messages', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getAuthHeadersLocal(),
         body: JSON.stringify({ content: msgText })
       }).catch(function () {
         bubble.style.opacity = '0.5';
@@ -685,22 +637,12 @@
       if (e.key === 'Enter') sendMessage();
     });
 
-    inputArea.appendChild(input);
-    inputArea.appendChild(sendBtn);
-    wrap.appendChild(inputArea);
-
     // Find or create the client channel for this deliverable
     var channelName = (clientName || 'Client') + ' - ' + (deliverableName || 'Content Calendar');
 
-    fetch(MSG_API + '/channels', { headers: getAuthHeaders() })
+    fetch(MSG_API + '/channels', { headers: getAuthHeadersLocal() })
       .then(function (res) { return res.json(); })
       .then(function (channels) {
-        // Try to get current user ID from the response
-        if (channels.length > 0 && channels[0].members) {
-          // Not available here, we'll get it from a message
-        }
-
-        // Find existing client channel with this name
         var existing = channels.find(function (c) {
           return c.type === 'client' && c.name === channelName;
         });
@@ -709,10 +651,9 @@
           channelId = existing.id;
           loadMessages();
         } else {
-          // Create the client channel
           fetch(MSG_API + '/channels', {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: getAuthHeadersLocal(),
             body: JSON.stringify({
               name: channelName,
               type: 'client',
@@ -733,155 +674,10 @@
         messagesEl.innerHTML = '<div class="cc-chat-empty">Could not connect to messaging</div>';
       });
 
-    // Try to get current user ID
-    fetch('/api/employees/me', { headers: getAuthHeaders() })
+    fetch('/api/employees/me', { headers: getAuthHeadersLocal() })
       .then(function (res) { return res.json(); })
       .then(function (user) { currentUserId = user.id; })
       .catch(function () {});
-
-    return wrap;
-  }
-
-  function buildActivityTimeline() {
-    var wrap = document.createElement('div');
-    wrap.className = 'cc-timeline';
-
-    var title = document.createElement('div');
-    title.className = 'cc-timeline-title';
-    title.textContent = 'Activity Timeline';
-    wrap.appendChild(title);
-
-    var sampleEvents = [
-      {
-        initials: 'JS', color: '#4285f4',
-        dot: '#2ecc71',
-        category: 'Content Calendar', client: 'ProAgri (Pty) Ltd',
-        action: 'Caption updated',
-        tags: [{ text: 'Draft', color: '#e67e22' }, { text: 'Review', color: '#3498db' }],
-        user: 'Jane Smith', date: 'Mar 4, 2026, 12:30 PM'
-      },
-      {
-        initials: 'SF', color: '#9b59b6',
-        dot: '#3498db',
-        category: 'Content Calendar', client: 'Veld & Vlei Co.',
-        action: 'Sandra Fourie assigned Mark van der Berg',
-        user: 'Sandra Fourie', date: 'Mar 3, 2026, 04:00 PM'
-      },
-      {
-        initials: 'PL', color: '#1abc9c',
-        dot: '#9b59b6',
-        category: 'Content Calendar', client: 'Graan SA',
-        action: 'New images uploaded (3 files)',
-        user: 'Pieter Louw', date: 'Mar 3, 2026, 01:20 PM'
-      },
-      {
-        initials: 'JS', color: '#4285f4',
-        dot: '#e74c3c',
-        category: 'Content Calendar', client: 'Boerdery Direct',
-        action: 'Change request added',
-        user: 'Jane Smith', date: 'Mar 2, 2026, 06:45 PM'
-      },
-      {
-        initials: 'MV', color: '#e67e22',
-        dot: '#2ecc71',
-        category: 'Content Calendar', client: 'AgriMark',
-        action: 'Row approved',
-        user: 'Mark van der Berg', date: 'Mar 2, 2026, 03:10 PM'
-      }
-    ];
-
-    var list = document.createElement('div');
-    list.className = 'cc-timeline-list';
-
-    sampleEvents.forEach(function (evt, idx) {
-      var item = document.createElement('div');
-      item.className = 'cc-timeline-item';
-      item.style.animationDelay = (idx * 0.08) + 's';
-
-      // Dot + line
-      var dotCol = document.createElement('div');
-      dotCol.className = 'cc-timeline-dot-col';
-
-      var dot = document.createElement('span');
-      dot.className = 'cc-timeline-dot';
-      dot.style.background = evt.dot;
-      dotCol.appendChild(dot);
-
-      if (idx < sampleEvents.length - 1) {
-        var line = document.createElement('span');
-        line.className = 'cc-timeline-line';
-        dotCol.appendChild(line);
-      }
-
-      item.appendChild(dotCol);
-
-      // Avatar
-      var avatar = document.createElement('span');
-      avatar.className = 'cc-timeline-avatar';
-      avatar.style.background = evt.color;
-      avatar.textContent = evt.initials;
-      item.appendChild(avatar);
-
-      // Content
-      var content = document.createElement('div');
-      content.className = 'cc-timeline-content';
-
-      // Top row: category + client
-      var topRow = document.createElement('div');
-      topRow.className = 'cc-timeline-top';
-      var cat = document.createElement('span');
-      cat.className = 'cc-timeline-category';
-      cat.textContent = evt.category;
-      topRow.appendChild(cat);
-      var client = document.createElement('span');
-      client.className = 'cc-timeline-client';
-      client.textContent = evt.client;
-      topRow.appendChild(client);
-      content.appendChild(topRow);
-
-      // Action
-      var actionRow = document.createElement('div');
-      actionRow.className = 'cc-timeline-action';
-
-      if (evt.tags) {
-        evt.tags.forEach(function (tag, i) {
-          var tagEl = document.createElement('span');
-          tagEl.className = 'cc-timeline-tag';
-          tagEl.style.color = tag.color;
-          tagEl.style.border = '1px solid ' + tag.color;
-          tagEl.textContent = tag.text;
-          actionRow.appendChild(tagEl);
-          if (i < evt.tags.length - 1) {
-            var arrow = document.createElement('span');
-            arrow.className = 'cc-timeline-arrow';
-            arrow.textContent = '\u2192';
-            actionRow.appendChild(arrow);
-          }
-        });
-      } else {
-        actionRow.textContent = evt.action;
-      }
-      content.appendChild(actionRow);
-
-      // Footer: user + date
-      var footer = document.createElement('div');
-      footer.className = 'cc-timeline-footer';
-      var userName = document.createElement('span');
-      userName.className = 'cc-timeline-user';
-      userName.textContent = evt.user;
-      footer.appendChild(userName);
-      var dateEl = document.createElement('span');
-      dateEl.className = 'cc-timeline-date';
-      dateEl.textContent = evt.date;
-      footer.appendChild(dateEl);
-      content.appendChild(footer);
-
-      item.appendChild(content);
-      list.appendChild(item);
-    });
-
-    wrap.appendChild(list);
-    return wrap;
   }
 
   var teamMembers = [
@@ -891,37 +687,7 @@
     { name: 'Mark van der Berg', initials: 'MV', color: '#e67e22', role: 'Account Manager', email: 'mark@proagri.co.za', phone: '+27 85 456 7890' }
   ];
 
-  function buildClientHeader() {
-    var header = document.createElement('div');
-    header.className = 'cc-client-header';
-
-    // Left side: client name
-    var left = document.createElement('div');
-    left.className = 'cc-client-header-left';
-
-    var clientName = document.createElement('span');
-    clientName.className = 'cc-client-name';
-    clientName.textContent = 'Client Name';
-    left.appendChild(clientName);
-
-    header.appendChild(left);
-
-    // Right side: team avatars + group message
-    var right = document.createElement('div');
-    right.className = 'cc-header-right';
-
-    // Group message button
-    var groupBtn = document.createElement('button');
-    groupBtn.className = 'cc-group-msg-btn';
-    groupBtn.title = 'Message entire team';
-    groupBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>' +
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-left:2px"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg>';
-    right.appendChild(groupBtn);
-
-    // Avatar stack
-    var avatarStack = document.createElement('div');
-    avatarStack.className = 'cc-avatar-stack';
-
+  function populateAvatarStack(avatarStack) {
     teamMembers.forEach(function (member) {
       var avatarWrap = document.createElement('div');
       avatarWrap.className = 'cc-avatar-wrap';
@@ -932,7 +698,6 @@
       avatar.textContent = member.initials;
       avatarWrap.appendChild(avatar);
 
-      // Popup
       var popup = document.createElement('div');
       popup.className = 'cc-avatar-popup';
 
@@ -972,53 +737,128 @@
       avatarWrap.appendChild(popup);
       avatarStack.appendChild(avatarWrap);
     });
-
-    right.appendChild(avatarStack);
-    header.appendChild(right);
-
-    return header;
   }
 
-  function buildCalendarTable() {
-    var card = document.createElement('div');
-    card.className = 'cc-table-card';
+  function populateTimeline(timelineList) {
+    var sampleEvents = [
+      {
+        initials: 'JS', color: '#4285f4',
+        dot: '#2ecc71',
+        category: 'Content Calendar', client: 'ProAgri (Pty) Ltd',
+        action: 'Caption updated',
+        tags: [{ text: 'Draft', color: '#e67e22' }, { text: 'Review', color: '#3498db' }],
+        user: 'Jane Smith', date: 'Mar 4, 2026, 12:30 PM'
+      },
+      {
+        initials: 'SF', color: '#9b59b6',
+        dot: '#3498db',
+        category: 'Content Calendar', client: 'Veld & Vlei Co.',
+        action: 'Sandra Fourie assigned Mark van der Berg',
+        user: 'Sandra Fourie', date: 'Mar 3, 2026, 04:00 PM'
+      },
+      {
+        initials: 'PL', color: '#1abc9c',
+        dot: '#9b59b6',
+        category: 'Content Calendar', client: 'Graan SA',
+        action: 'New images uploaded (3 files)',
+        user: 'Pieter Louw', date: 'Mar 3, 2026, 01:20 PM'
+      },
+      {
+        initials: 'JS', color: '#4285f4',
+        dot: '#e74c3c',
+        category: 'Content Calendar', client: 'Boerdery Direct',
+        action: 'Change request added',
+        user: 'Jane Smith', date: 'Mar 2, 2026, 06:45 PM'
+      },
+      {
+        initials: 'MV', color: '#e67e22',
+        dot: '#2ecc71',
+        category: 'Content Calendar', client: 'AgriMark',
+        action: 'Row approved',
+        user: 'Mark van der Berg', date: 'Mar 2, 2026, 03:10 PM'
+      }
+    ];
 
-    var table = document.createElement('table');
-    table.className = 'cc-table';
+    sampleEvents.forEach(function (evt, idx) {
+      var item = document.createElement('div');
+      item.className = 'cc-timeline-item';
+      item.style.animationDelay = (idx * 0.08) + 's';
 
-    // Table header
-    var thead = document.createElement('thead');
-    var headerRow = document.createElement('tr');
-    ['Date', 'Caption', 'File Upload', 'Change Requests', ''].forEach(function (col) {
-      var th = document.createElement('th');
-      th.textContent = col;
-      headerRow.appendChild(th);
+      var dotCol = document.createElement('div');
+      dotCol.className = 'cc-timeline-dot-col';
+
+      var dot = document.createElement('span');
+      dot.className = 'cc-timeline-dot';
+      dot.style.background = evt.dot;
+      dotCol.appendChild(dot);
+
+      if (idx < sampleEvents.length - 1) {
+        var line = document.createElement('span');
+        line.className = 'cc-timeline-line';
+        dotCol.appendChild(line);
+      }
+
+      item.appendChild(dotCol);
+
+      var avatar = document.createElement('span');
+      avatar.className = 'cc-timeline-avatar';
+      avatar.style.background = evt.color;
+      avatar.textContent = evt.initials;
+      item.appendChild(avatar);
+
+      var content = document.createElement('div');
+      content.className = 'cc-timeline-content';
+
+      var topRow = document.createElement('div');
+      topRow.className = 'cc-timeline-top';
+      var cat = document.createElement('span');
+      cat.className = 'cc-timeline-category';
+      cat.textContent = evt.category;
+      topRow.appendChild(cat);
+      var client = document.createElement('span');
+      client.className = 'cc-timeline-client';
+      client.textContent = evt.client;
+      topRow.appendChild(client);
+      content.appendChild(topRow);
+
+      var actionRow = document.createElement('div');
+      actionRow.className = 'cc-timeline-action';
+
+      if (evt.tags) {
+        evt.tags.forEach(function (tag, i) {
+          var tagEl = document.createElement('span');
+          tagEl.className = 'cc-timeline-tag';
+          tagEl.style.color = tag.color;
+          tagEl.style.border = '1px solid ' + tag.color;
+          tagEl.textContent = tag.text;
+          actionRow.appendChild(tagEl);
+          if (i < evt.tags.length - 1) {
+            var arrow = document.createElement('span');
+            arrow.className = 'cc-timeline-arrow';
+            arrow.textContent = '\u2192';
+            actionRow.appendChild(arrow);
+          }
+        });
+      } else {
+        actionRow.textContent = evt.action;
+      }
+      content.appendChild(actionRow);
+
+      var footer = document.createElement('div');
+      footer.className = 'cc-timeline-footer';
+      var userName = document.createElement('span');
+      userName.className = 'cc-timeline-user';
+      userName.textContent = evt.user;
+      footer.appendChild(userName);
+      var dateEl = document.createElement('span');
+      dateEl.className = 'cc-timeline-date';
+      dateEl.textContent = evt.date;
+      footer.appendChild(dateEl);
+      content.appendChild(footer);
+
+      item.appendChild(content);
+      timelineList.appendChild(item);
     });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    // Table body with sample rows
-    var tbody = document.createElement('tbody');
-    for (var i = 0; i < 5; i++) {
-      tbody.appendChild(buildTableRow());
-    }
-    table.appendChild(tbody);
-
-    card.appendChild(table);
-
-    // Add row button
-    var addRowWrap = document.createElement('div');
-    addRowWrap.className = 'cc-add-row-wrap';
-    var addBtn = document.createElement('button');
-    addBtn.className = 'cc-add-row-btn';
-    addBtn.textContent = '+ Add Row';
-    addBtn.addEventListener('click', function () {
-      tbody.appendChild(buildTableRow());
-    });
-    addRowWrap.appendChild(addBtn);
-    card.appendChild(addRowWrap);
-
-    return card;
   }
 
   function buildTableRow() {
@@ -1043,7 +883,7 @@
       { label: 'B', cmd: 'bold', title: 'Bold' },
       { label: 'I', cmd: 'italic', title: 'Italic' },
       { label: 'U', cmd: 'underline', title: 'Underline' },
-      { label: '🔗', cmd: 'createLink', title: 'Link' }
+      { label: '\uD83D\uDD17', cmd: 'createLink', title: 'Link' }
     ];
     buttons.forEach(function (btn) {
       var b = document.createElement('button');
@@ -1077,7 +917,6 @@
     var fileWrap = document.createElement('div');
     fileWrap.className = 'cc-file-wrap';
 
-    // Drop zone
     var dropZone = document.createElement('div');
     dropZone.className = 'cc-drop-zone';
 
@@ -1095,7 +934,6 @@
     dropZone.appendChild(dropLabel);
     fileWrap.appendChild(dropZone);
 
-    // Thumbnail grid
     var thumbGrid = document.createElement('div');
     thumbGrid.className = 'cc-thumb-grid';
     fileWrap.appendChild(thumbGrid);
@@ -1160,7 +998,6 @@
         orderLabel.textContent = idx + 1;
         thumb.appendChild(orderLabel);
 
-        // Drag to reorder
         thumb.addEventListener('dragstart', function (e) {
           isInternalDrag = true;
           e.dataTransfer.setData('text/plain', idx);
@@ -1223,7 +1060,7 @@
     tdFile.appendChild(fileWrap);
     tr.appendChild(tdFile);
 
-    // Change requests cell — button that opens popup
+    // Change requests cell
     var tdChanges = document.createElement('td');
     var changeRequests = [];
     var changeFiles = [];
@@ -1276,34 +1113,35 @@
     container.style.justifyContent = '';
     container.style.gap = '';
 
-    // Show content calendar sub-menu in sidebar
     if (window.showContentCalendarMenu) {
       window.showContentCalendarMenu('Client Name');
     }
 
-    var page = document.createElement('div');
-    page.className = 'content-calendar-page';
+    window.insertTemplate(container, 'pages/content-calendar.html', function () {
+      // Populate avatar stack
+      var avatarStack = container.querySelector('#ccAvatarStack');
+      if (avatarStack) populateAvatarStack(avatarStack);
 
-    page.appendChild(buildClientHeader());
-    page.appendChild(buildCalendarTable());
+      // Populate initial table rows
+      var tbody = container.querySelector('#ccTableBody');
+      for (var i = 0; i < 5; i++) {
+        tbody.appendChild(buildTableRow());
+      }
 
-    // Two-column bottom row
-    var bottomRow = document.createElement('div');
-    bottomRow.className = 'cc-middle-row';
+      // Add row button
+      var addBtn = container.querySelector('#ccAddRowBtn');
+      addBtn.addEventListener('click', function () {
+        tbody.appendChild(buildTableRow());
+      });
 
-    var leftCard = document.createElement('div');
-    leftCard.className = 'cc-middle-card cc-timeline-card';
-    leftCard.appendChild(buildActivityTimeline());
-    bottomRow.appendChild(leftCard);
+      // Populate timeline
+      var timelineList = container.querySelector('#ccTimelineList');
+      if (timelineList) populateTimeline(timelineList);
 
-    var rightCard = document.createElement('div');
-    rightCard.className = 'cc-middle-card cc-chat-card';
-    rightCard.appendChild(buildChatPanel('Client Name', title));
-    bottomRow.appendChild(rightCard);
-
-    page.appendChild(bottomRow);
-
-    container.appendChild(page);
+      // Initialize chat panel
+      var chatPanel = container.querySelector('#ccChatPanel');
+      if (chatPanel) buildChatPanel(chatPanel, 'Client Name', title);
+    });
   }
 
   window.renderContentCalendarPage = renderContentCalendarPage;
