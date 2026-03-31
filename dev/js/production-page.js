@@ -19,9 +19,14 @@
       return MONTH_NAMES[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
     }
 
+    function currentYM() {
+      var now = new Date();
+      return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+
     function updateUI() {
       if (months.length === 0) {
-        label.textContent = 'No data';
+        label.textContent = formatMonth(currentYM());
         prevBtn.disabled = true;
         nextBtn.disabled = true;
         return;
@@ -52,18 +57,20 @@
       .then(function (res) { return res.json(); })
       .then(function (data) {
         months = data; // already sorted DESC from API
-        // Try to default to current month, otherwise first available
-        var now = new Date();
-        var currentYM = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-        var idx = months.indexOf(currentYM);
-        currentIndex = idx !== -1 ? idx : 0;
-        updateUI();
         if (months.length > 0) {
+          var idx = months.indexOf(currentYM());
+          currentIndex = idx !== -1 ? idx : 0;
+          updateUI();
           onMonthChange(months[currentIndex]);
+        } else {
+          // No months in DB — show current month, load all data unfiltered
+          updateUI();
+          onMonthChange(null);
         }
       })
       .catch(function () {
-        label.textContent = 'No data';
+        label.textContent = formatMonth(currentYM());
+        onMonthChange(null);
       });
 
     return {
