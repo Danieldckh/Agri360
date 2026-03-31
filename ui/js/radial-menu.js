@@ -66,12 +66,18 @@
     var totalItems = actions.length;
 
     // Create buttons — they stack vertically via CSS
+    var tmpl = document.getElementById('radial-stack-btn-tmpl');
     actions.forEach(function(action, index) {
-      var btn = document.createElement('button');
-      btn.className = 'radial-stack-btn';
+      var btn;
+      if (tmpl) {
+        btn = tmpl.content.cloneNode(true).firstElementChild;
+      } else {
+        btn = document.createElement('button');
+        btn.className = 'radial-stack-btn';
+        btn.type = 'button';
+      }
       if (action.highlight) btn.classList.add('radial-stack-btn-highlight');
       btn.textContent = action.label;
-      btn.type = 'button';
 
       // Stagger animation
       btn.style.animationDelay = (index * 40) + 'ms';
