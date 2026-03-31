@@ -803,14 +803,17 @@
     mainCol.appendChild(mainSheet.el);
     layout.appendChild(mainCol);
 
-    // Month selector above the sheet
+    // Wrap in dept-tab-wrap so month selector stacks above the sheet
+    var wrap = document.createElement('div');
+    wrap.className = 'dept-tab-wrap';
     var monthEl = document.createElement('div');
     monthEl.className = 'dept-month-selector';
     monthEl.innerHTML = '<button class="dept-month-nav dept-month-prev" id="designMonthPrev" title="Previous month">&#9664;</button>' +
       '<span class="dept-month-label" id="designMonthLabel">Loading...</span>' +
       '<button class="dept-month-nav dept-month-next" id="designMonthNext" title="Next month">&#9654;</button>';
-    container.appendChild(monthEl);
-    container.appendChild(layout);
+    wrap.appendChild(monthEl);
+    wrap.appendChild(layout);
+    container.appendChild(wrap);
 
     function refreshAll(month) {
       var url = '/api/deliverables/by-department/design';
