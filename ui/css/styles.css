@@ -381,23 +381,6 @@ html, body {
   pointer-events: none;
 }
 
-.nav-new-booking {
-  display: block;
-  margin: 4px 12px 8px;
-  padding: 8px 12px;
-  background: var(--accent, #c0392b);
-  color: #fff !important;
-  text-align: center;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.nav-new-booking:hover {
-  opacity: 0.85;
-}
 
 /* When sidebar is collapsed (icon-only), hide group headers and show all items */
 .sidebar.collapsed .nav-group-header {
