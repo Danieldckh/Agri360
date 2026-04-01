@@ -18,6 +18,13 @@
     'Declined Proposal': ['declined']
   };
 
+  // Sub-sheets within the Proposal tab
+  var PROPOSAL_SUB_SHEETS = [
+    { label: 'Proposal',       statuses: ['outline_proposal', 'proposal_ready'] },
+    { label: 'In Design',      statuses: ['design_proposal', 'design_review', 'design_changes'] },
+    { label: 'Sent to Client', statuses: ['sent_to_client'] }
+  ];
+
   // Icons
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
   var ICON_UNDO = 'M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z';
@@ -217,8 +224,94 @@
     refreshAll();
   }
 
+  // --- Proposal tab with sub-sheets ---
+  function renderProposalTabWithSubSheets(container) {
+    resetContainer(container);
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'dept-dashboard-layout';
+    wrapper.style.width = '100%';
+
+    var mainCol = document.createElement('div');
+    mainCol.className = 'dept-dashboard-main';
+    mainCol.style.width = '100%';
+
+    // Sub-tab bar
+    var tabBar = document.createElement('div');
+    tabBar.className = 'proposal-sub-tabs';
+
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'proposal-sub-sheet-content';
+
+    var sheets = [];
+    var activeIndex = 0;
+
+    PROPOSAL_SUB_SHEETS.forEach(function (sub, idx) {
+      // Create tab button
+      var btn = document.createElement('button');
+      btn.className = 'proposal-sub-tab' + (idx === 0 ? ' active' : '');
+      btn.textContent = sub.label;
+
+      var badge = document.createElement('span');
+      badge.className = 'proposal-sub-tab-count';
+      badge.textContent = '0';
+      btn.appendChild(badge);
+
+      btn.addEventListener('click', function () {
+        activateSubTab(idx);
+      });
+      tabBar.appendChild(btn);
+
+      // Create sheet for this sub-tab
+      var sheet = buildSheet(sub.label, refreshAll);
+      sheet.el.style.display = idx === 0 ? '' : 'none';
+      sheet.badge = badge;
+      sheetContainer.appendChild(sheet.el);
+      sheets.push(sheet);
+    });
+
+    mainCol.appendChild(tabBar);
+    mainCol.appendChild(sheetContainer);
+    wrapper.appendChild(mainCol);
+    container.appendChild(wrapper);
+
+    function activateSubTab(idx) {
+      activeIndex = idx;
+      var buttons = tabBar.querySelectorAll('.proposal-sub-tab');
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.toggle('active', i === idx);
+      }
+      sheets.forEach(function (s, i) {
+        s.el.style.display = i === idx ? '' : 'none';
+      });
+    }
+
+    function refreshAll() {
+      fetch(API_BASE, { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          PROPOSAL_SUB_SHEETS.forEach(function (sub, idx) {
+            var filtered = forms.filter(function (f) {
+              return sub.statuses.indexOf(f.status) !== -1;
+            });
+            var rows = filtered.map(mapFormToRow);
+            sheets[idx].update(rows);
+            sheets[idx].badge.textContent = rows.length;
+          });
+        })
+        .catch(function (err) {
+          console.error('Proposal sub-sheet fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  }
+
   // --- Expose tab renderers (same signature as before) ---
-  window.renderProposalTab = function (container) { renderAdminTab(container, 'Proposal'); };
+  window.renderProposalTab = function (container) { renderProposalTabWithSubSheets(container); };
   window.renderBookingFormTab = function (container) { renderAdminTab(container, 'Booking Form'); };
   window.renderOnboardingTab = function (container) { renderAdminTab(container, 'Onboarding'); };
   window.renderDeclinedTab = function (container) { renderAdminTab(container, 'Declined Proposal'); };

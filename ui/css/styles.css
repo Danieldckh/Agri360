@@ -949,6 +949,61 @@ html, body {
   min-height: 0;
 }
 
+/* Proposal sub-tabs */
+.proposal-sub-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  margin-bottom: 16px;
+}
+
+.proposal-sub-tab {
+  padding: 8px 18px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary, #666);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proposal-sub-tab:hover {
+  color: var(--color-text-primary, #222);
+  background: var(--color-bg-hover, rgba(0,0,0,0.04));
+}
+
+.proposal-sub-tab.active {
+  color: var(--color-accent, #2e7d32);
+  border-bottom-color: var(--color-accent, #2e7d32);
+}
+
+.proposal-sub-tab-count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-bg-tertiary, #eee);
+  color: var(--color-text-secondary, #666);
+  padding: 1px 7px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.proposal-sub-tab.active .proposal-sub-tab-count {
+  background: var(--color-accent, #2e7d32);
+  color: #fff;
+}
+
+.proposal-sub-sheet-content {
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .dept-dashboard-layout {
     flex-direction: column;
