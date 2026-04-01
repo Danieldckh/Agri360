@@ -1,0 +1,141 @@
+%%{init: {"flowchart": {"curve": "linear"}}}%%
+flowchart LR
+    A["Clients"] --> B["Proposals"] --> C["Outline Proposal"]
+
+    subgraph ADMIN["Admin"]
+        direction LR
+        F["Proposal Ready"]
+        G["Sent to Client"]
+        H["Booking Form Ready"]
+        I["Sent to Client"]
+        N["Onboarding"]
+        O["Onboarded"]
+        L1["Declined"]
+        L2["Declined"]
+    end
+
+    subgraph DESIGN["Design"]
+        direction LR
+        D["Design Proposal"]
+        DC["Design Changes"]
+        E["Design Review"]
+        D2["Debrief Meeting"]
+        D5["Sitemap"]
+        D6["Wireframe"]
+        D7["Prototype"]
+        D3["Banner Design"]
+        D4["Product Upload Design"]
+        DA["Approved"]
+        D11["Development"]
+        D12["Hosting and SEO"]
+    end
+
+    subgraph PRODUCTION["Production"]
+        direction TB
+        R1["Request Materials"]
+        R2["Materials Requested"]
+        R3["Materials Received"]
+        R4["Request Materials"]
+        R5["Materials Requested"]
+        R6["Materials Received"]
+        R7["Request Materials"]
+        R8["Materials Requested"]
+        R9["Materials Received"]
+        R10["Request Materials"]
+        R11["Materials Requested"]
+        R12["Materials Received"]
+        R13["Request Materials"]
+        R14["Materials Requested"]
+        R15["Materials Received"]
+        R16["Request Materials"]
+        R17["Materials Requested"]
+        R18["Materials Received"]
+        R19["Request Materials"]
+        R20["Materials Requested"]
+        R21["Materials Received"]
+        R22["Request Materials"]
+        R23["Materials Requested"]
+        R24["Materials Received"]
+        F1["Request Focus Points"]
+        F2["Focus Points Requested"]
+        F3["Focus Points Received"]
+        W1["Ready for Approval"]
+        W2["Sent for Approval"]
+        W3["Final Approval"]
+    end
+
+    subgraph SOCIAL_MEDIA["Social Media"]
+        direction LR
+        S1["Google Ads Setup"]
+    end
+
+    subgraph VIDEO["Video"]
+        direction LR
+        V1["Video Request Form"]
+    end
+
+    P1["SM Management - Posts"]
+    P2["SM Management - Videos"]
+    P3["Google Ads"]
+    P4["SM Management - LinkedIn"]
+    P5["SM Management - Twitter/X"]
+    P6["Content Calendar"]
+    P7["Agri4All - Posts"]
+    P8["Agri4All - Videos"]
+    P9["Agri4All - Product Uploads"]
+    P11["Agri4All - Banners"]
+    P13["Online Articles"]
+    P14["Magazine"]
+    P15["Video"]
+    P16["Website Design"]
+
+    C --> D
+    D --> E
+    E -->|Design Changes| DC
+    DC --> D
+    E -->|Approved| F
+    C --> H
+    H --> I
+    I -->|Approved| N
+    I -->|Declined| L2
+    F --> G
+    G -->|Approved| H
+    G -->|Declined| L1
+    N --> O
+
+    O --> P15
+    O --> P3
+    O --> P1
+    O --> P2
+    O --> P4
+    O --> P5
+    O --> P7
+    O --> P8
+    O --> P13
+    O --> P14
+    O --> P6
+    O --> P16
+    O --> P11
+    O --> P9
+
+    P15 --> V1
+    P3 --> S1
+    P1 --> R1 --> R2 --> R3
+    P2 --> R4 --> R5 --> R6
+    P4 --> R7 --> R8 --> R9
+    P5 --> R10 --> R11 --> R12
+    P7 --> R13 --> R14 --> R15
+    P8 --> R16 --> R17 --> R18
+    P13 --> R19 --> R20 --> R21
+    P14 --> R22 --> R23 --> R24
+    P6 --> F1 --> F2 --> F3
+    P16 --> D2 --> D5 --> D6 --> D7 --> W1 --> W2
+    W2 -->|Approved| DA --> D11 --> D12 --> W3
+    P11 --> D3
+    P9 --> D4
+
+    style ADMIN fill:transparent,stroke:#999999,stroke-width:2px,color:#111111
+    style DESIGN fill:transparent,stroke:#999999,stroke-width:2px,color:#111111
+    style PRODUCTION fill:transparent,stroke:#999999,stroke-width:2px,color:#111111
+    style SOCIAL_MEDIA fill:transparent,stroke:#999999,stroke-width:2px,color:#111111
+    style VIDEO fill:transparent,stroke:#999999,stroke-width:2px,color:#111111

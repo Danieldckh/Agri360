@@ -127,7 +127,7 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update booking form
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason'];
+  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason', 'editable_url', 'esign_url', 'checklist_url', 'assigned_admin'];
   const updates = [];
   const values = [];
   let idx = 1;
@@ -178,6 +178,136 @@ router.delete('/:id', async (req, res) => {
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Delete booking form error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:id/send-to-editor - Send checklist data to editable booking form service
+router.post('/:id/send-to-editor', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT bf.*, c.name as client_name, c.trading_name, c.primary_contact, c.material_contact, c.accounts_contact
+       FROM booking_forms bf
+       LEFT JOIN clients c ON bf.client_id = c.id
+       WHERE bf.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+    const form = toCamelCase(result.rows[0]);
+    const formData = form.formData || {};
+    const slug = (form.clientName || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + form.id;
+
+    // Build payload matching what the editable booking form service expects
+    const payload = {
+      slug: slug,
+      client_information: {
+        company_name: formData.companyName || form.clientName || '',
+        trading_name: formData.tradingName || '',
+        campaign_start: formData.campaignMonthStart || form.campaignMonthStart || '',
+        campaign_end: formData.campaignMonthEnd || form.campaignMonthEnd || ''
+      },
+      form_data: formData,
+      booking_form_id: form.id
+    };
+
+    // Send to editable booking form service via n8n webhook
+    const EDITOR_WEBHOOK = process.env.N8N_BOOKING_FORM_WEBHOOK || 'https://n8n.proagrihub.com/webhook/BookingForm';
+    const editorRes = await fetch(EDITOR_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const editorResult = await editorRes.text();
+
+    // Store the editable URL
+    const editableUrl = `https://bookingformeditor.proagrihub.com/pages/${slug}.html`;
+    await pool.query(
+      'UPDATE booking_forms SET editable_url = $1, updated_at = NOW() WHERE id = $2',
+      [editableUrl, req.params.id]
+    );
+
+    res.json({ success: true, editableUrl, slug, webhookResponse: editorResult });
+  } catch (err) {
+    console.error('Send to editor error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:id/send-to-esign - Send edited booking form to e-sign service
+router.post('/:id/send-to-esign', async (req, res) => {
+  try {
+    const { html, slug } = req.body || {};
+    const result = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+    const form = toCamelCase(result.rows[0]);
+    const finalSlug = slug || ('esign-' + form.id);
+
+    // Send to e-sign service
+    const ESIGN_SERVICE = process.env.ESIGN_SERVICE_URL || 'https://esign.proagrihub.com';
+    const esignRes = await fetch(ESIGN_SERVICE + '/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug: finalSlug,
+        html: html || '',
+        bookingFormId: form.id,
+        readOnly: true
+      })
+    });
+    const esignResult = await esignRes.json();
+
+    // Store the e-sign URL
+    const esignUrl = esignResult.url || `${ESIGN_SERVICE}/pages/${finalSlug}.html`;
+    await pool.query(
+      'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
+      [esignUrl, req.params.id]
+    );
+
+    res.json({ success: true, esignUrl, slug: finalSlug });
+  } catch (err) {
+    console.error('Send to esign error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:id/sign - Handle e-sign completion (signed or change request)
+router.post('/:id/sign', async (req, res) => {
+  try {
+    const { action, pdfData, signatureData, changeNotes } = req.body || {};
+    const result = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+
+    if (action === 'signed') {
+      // Save signed PDF and advance to onboarding
+      await pool.query(
+        `UPDATE booking_forms SET
+          signed_pdf = $1, signature_data = $2, signed_at = NOW(),
+          status = 'onboarding', department = 'admin-onboarding', updated_at = NOW()
+        WHERE id = $3`,
+        [pdfData || null, JSON.stringify(signatureData) || null, req.params.id]
+      );
+      res.json({ success: true, status: 'onboarding' });
+    } else if (action === 'change_request') {
+      // Save change request PDF
+      await pool.query(
+        `UPDATE booking_forms SET
+          change_request_pdf = $1, change_notes = $2,
+          status = 'change_requested', updated_at = NOW()
+        WHERE id = $3`,
+        [pdfData || null, changeNotes || null, req.params.id]
+      );
+      res.json({ success: true, status: 'change_requested' });
+    } else {
+      res.status(400).json({ error: 'Invalid action. Use "signed" or "change_request"' });
+    }
+  } catch (err) {
+    console.error('Sign booking form error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

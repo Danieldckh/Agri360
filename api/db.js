@@ -159,12 +159,33 @@ async function runMigrations() {
     // Decline reason for proposals/booking forms
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS decline_reason TEXT`);
 
+    // Admin assignment for proposals
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS assigned_admin INT REFERENCES employees(id)`);
+
+    // Editable and e-sign URLs
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS editable_url TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS esign_url TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS checklist_url TEXT`);
+
+    // E-sign data
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_pdf TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signature_data JSONB`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_at TIMESTAMPTZ`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS change_request_pdf TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS change_notes TEXT`);
+
     // Make dashboard foreign keys nullable
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE dashboards ALTER COLUMN department_id DROP NOT NULL`).catch(() => {});
 
+    // Deliverables: delivery month for per-month grouping
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS delivery_month VARCHAR(7)`);
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS client_id INT REFERENCES clients(id)`);
+
     // Deliverables columns for follow-up tracking
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS follow_up_count INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ`);
+    await client.query(`UPDATE deliverables SET status_changed_at = updated_at WHERE status_changed_at IS NULL`);
 
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);

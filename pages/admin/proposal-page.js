@@ -8,6 +8,7 @@
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
   var ICON_DECLINE = 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z';
   var ICON_APPROVE = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
+  var ICON_VIEW = 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z';
 
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
@@ -51,33 +52,38 @@
     });
   }
 
+  // --- Month name helper ---
+  var MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function formatCampaignRange(start, end) {
+    if (!start || !end) return '—';
+    var sp = start.split('-'), ep = end.split('-');
+    var sm = MONTH_NAMES[parseInt(sp[1], 10) - 1] || '';
+    var em = MONTH_NAMES[parseInt(ep[1], 10) - 1] || '';
+    return sm + ' ' + sp[0] + ' — ' + em + ' ' + ep[0];
+  }
+
   // --- Column Configs ---
 
   var todoColumns = [
+    { key: 'assignedAdmin', label: 'Admin', sortable: true, type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
-    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
-    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'bookingForm', label: 'Booking Form', sortable: true, type: 'text' },
+    { key: 'checklistUrl', label: 'Checklist', sortable: true, type: 'link' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var sideColumns = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
+    { key: 'bookingForm', label: 'Booking Form', sortable: true, type: 'text' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['outline_proposal', 'proposal_ready', 'sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var bookingColumns = [
+    { key: 'assignedAdmin', label: 'Admin', sortable: true, type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'representative', label: 'Representative', sortable: true, type: 'text' },
-    { key: 'campaignStart', label: 'Campaign Start', sortable: true, type: 'date' },
-    { key: 'campaignEnd', label: 'Campaign End', sortable: true, type: 'date' },
-    { key: 'createdAt', label: 'Created', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['client_approved', 'sent_to_client', 'declined'] }
+    { key: 'esignUrl', label: 'E-Sign Form', sortable: false, type: 'link' },
+    { key: 'checklistUrl', label: 'Checklist', sortable: false, type: 'link' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ['sent_to_client', 'client_approved', 'declined'] }
   ];
 
   var bookingSideColumns = [
@@ -120,11 +126,15 @@
   function mapFormToRow(form) {
     return {
       id: form.id,
+      assignedAdmin: form.assignedAdmin || form.createdBy || null,
       client: form.clientName || form.title || 'Untitled',
       title: form.title || '—',
+      bookingForm: formatCampaignRange(form.campaignMonthStart, form.campaignMonthEnd),
       representative: form.representative || '—',
       campaignStart: form.campaignMonthStart || null,
       campaignEnd: form.campaignMonthEnd || null,
+      checklistUrl: form.checklistUrl || '',
+      esignUrl: form.esignUrl || '',
       createdAt: form.createdAt || null,
       status: form.status || 'draft',
       declineReason: form.declineReason || ''
@@ -252,6 +262,32 @@
   function renderProposalTab(container) {
     resetContainer(container);
 
+    // New Booking button
+    var topBar = document.createElement('div');
+    topBar.style.display = 'flex';
+    topBar.style.justifyContent = 'flex-end';
+    topBar.style.marginBottom = '12px';
+
+    var newBookingBtn = document.createElement('button');
+    newBookingBtn.className = 'checklist-btn-primary';
+    newBookingBtn.textContent = 'New Booking';
+    newBookingBtn.style.padding = '8px 20px';
+    newBookingBtn.style.borderRadius = '6px';
+    newBookingBtn.style.border = 'none';
+    newBookingBtn.style.cursor = 'pointer';
+    newBookingBtn.style.fontWeight = '600';
+    newBookingBtn.style.color = '#fff';
+    newBookingBtn.style.background = 'var(--accent-gradient, linear-gradient(to top, #f5a623, #d4791a))';
+    newBookingBtn.addEventListener('click', function () {
+      if (window.openChecklistForClient) {
+        window.openChecklistForClient();
+      } else {
+        alert('Checklist wizard not loaded');
+      }
+    });
+    topBar.appendChild(newBookingBtn);
+    container.appendChild(topBar);
+
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
 
@@ -261,7 +297,18 @@
     var sideCol = document.createElement('div');
     sideCol.className = 'dept-dashboard-side proposal-side-col';
 
+    // --- To Do row actions: View | Delete | Skip to Booking Form | Send to Design ---
     var proposalRowActions = [
+      {
+        icon: ICON_VIEW,
+        tooltip: 'View checklist JSON',
+        className: 'action-view',
+        onClick: function (rowData) {
+          if (window.viewChecklistJson) {
+            window.viewChecklistJson(rowData.id);
+          }
+        }
+      },
       {
         icon: ICON_DELETE,
         tooltip: 'Delete proposal',
@@ -390,33 +437,16 @@
   function renderBookingFormTab(container) {
     resetContainer(container);
 
+    // Single-column layout: "Sent to Client" only
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout';
 
     var mainCol = document.createElement('div');
     mainCol.className = 'dept-dashboard-main';
+    mainCol.style.width = '100%';
 
-    var sideCol = document.createElement('div');
-    sideCol.className = 'dept-dashboard-side';
-
-    var bookingFormActions = [
-      {
-        icon: ICON_ADVANCE,
-        tooltip: 'Send to client',
-        className: 'action-advance',
-        onClick: function (rowData) {
-          fetch(API_BASE + '/' + rowData.id, {
-            method: 'PATCH',
-            headers: getHeaders(),
-            body: JSON.stringify({ status: 'sent_to_client' })
-          }).then(function (res) {
-            if (res.ok) refreshAll();
-          });
-        }
-      }
-    ];
-
-    var bookingSentActions = [
+    // --- Row actions: Approve → Onboarding | Decline ---
+    var bookingActions = [
       {
         icon: ICON_APPROVE,
         tooltip: 'Approve — move to onboarding',
@@ -449,20 +479,13 @@
       }
     ];
 
-    var mainSheet = buildProposalSheet('Booking Forms', bookingColumns, {
+    var mainSheet = buildProposalSheet('Sent to Client', bookingColumns, {
       onStatusChange: refreshAll,
-      rowActions: bookingFormActions
-    });
-    var sideSheet = buildProposalSheet('Sent to Client', bookingSideColumns, {
-      compact: true,
-      onStatusChange: refreshAll,
-      rowActions: bookingSentActions
+      rowActions: bookingActions
     });
 
     mainCol.appendChild(mainSheet.el);
-    sideCol.appendChild(sideSheet.el);
     layout.appendChild(mainCol);
-    layout.appendChild(sideCol);
     container.appendChild(layout);
 
     function refreshAll() {
@@ -473,10 +496,7 @@
         })
         .then(function (forms) {
           var all = forms.map(mapFormToRow);
-          var clientApproved = all.filter(function (r) { return r.status === 'client_approved'; });
-          var sentToClient = all.filter(function (r) { return r.status === 'sent_to_client'; });
-          mainSheet.update(clientApproved);
-          sideSheet.update(sentToClient);
+          mainSheet.update(all);
         })
         .catch(function (err) {
           console.error('Booking form fetch error:', err);

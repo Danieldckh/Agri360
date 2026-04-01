@@ -25,9 +25,27 @@ router.get('/by-booking/:bookingFormId', async (req, res) => {
   }
 });
 
-// GET /available-months/:deptSlug - distinct campaign months for a department's deliverables
-router.get('/available-months/:deptSlug', async (req, res) => {
+// GET /by-department/:deptSlug - list deliverables for a department slug
+// Optional query params: ?month=2026-02 OR ?monthStart=2026-02&monthEnd=2026-06
+// Default: current month if no month params provided
+router.get('/by-department/:deptSlug', async (req, res) => {
   try {
+    const params = [req.params.deptSlug];
+    let monthClause = '';
+
+    if (req.query.month) {
+      params.push(req.query.month);
+      monthClause = ` AND d.delivery_month = $${params.length}`;
+    } else if (req.query.monthStart && req.query.monthEnd) {
+      params.push(req.query.monthStart);
+      params.push(req.query.monthEnd);
+      monthClause = ` AND d.delivery_month BETWEEN $${params.length - 1} AND $${params.length}`;
+    } else {
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      params.push(currentMonth);
+      monthClause = ` AND d.delivery_month = $${params.length}`;
+    }
+
     const result = await pool.query(
       `SELECT DISTINCT bf.campaign_month_start
        FROM deliverables d
@@ -55,17 +73,10 @@ router.get('/by-department/:deptSlug', async (req, res) => {
        JOIN departments dept ON dept.id = d.department_id
        JOIN booking_forms bf ON bf.id = d.booking_form_id
        JOIN clients c ON c.id = bf.client_id
-       WHERE dept.slug = $1`;
-    const params = [req.params.deptSlug];
-
-    if (month) {
-      query += ` AND bf.campaign_month_start = $2`;
-      params.push(month);
-    }
-
-    query += ` ORDER BY d.created_at DESC`;
-
-    const result = await pool.query(query, params);
+       WHERE dept.slug = $1${monthClause}
+       ORDER BY d.delivery_month ASC, d.created_at DESC`,
+      params
+    );
     res.json(result.rows.map(toCamelCase));
   } catch (err) {
     console.error('List deliverables by department error:', err);
@@ -102,7 +113,7 @@ const DEFAULT_DELIVERABLES = [
   { type: 'sm-google-ads', title: 'SM Management - Google Ads', initialStatus: 'request_client_materials' },
   { type: 'sm-linkedin', title: 'SM Management - LinkedIn', initialStatus: 'request_client_materials' },
   { type: 'sm-twitter', title: 'SM Management - Twitter/X', initialStatus: 'request_client_materials' },
-  { type: 'sm-content-calendar', title: 'SM Management - Content Calendar', initialStatus: 'request_client_materials' },
+  { type: 'sm-content-calendar', title: 'Content Calendar', initialStatus: 'request_focus_points' },
   { type: 'agri4all-posts', title: 'Agri4All - Posts', initialStatus: 'request_client_materials' },
   { type: 'agri4all-videos', title: 'Agri4All - Videos', initialStatus: 'request_client_materials' },
   { type: 'agri4all-product-uploads', title: 'Agri4All - Product Uploads', initialStatus: 'request_client_materials' },
@@ -125,11 +136,10 @@ const DEPT_MAPS = {
     'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
   },
   'sm-content-calendar': {
-    'request_client_materials': 'production', 'upload_materials': 'production',
-    'artwork_design': 'design', 'design_changes': 'design',
-    'create_captions': 'editorial', 'editorial_review': 'editorial',
-    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'production',
-    'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
+    'request_focus_points': 'production', 'focus_points_requested': 'production', 'focus_points_received': 'production',
+    'design': 'design', 'design_review': 'design', 'design_changes': 'design',
+    'proofread': 'editorial', 'client_changes': 'production',
+    'approved': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
   },
   'agri4all-posts': {
     'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
@@ -182,7 +192,27 @@ function getDeptMapForType(type) {
   return DEPT_MAPS[key] || null;
 }
 
-// POST /bulk - create all production deliverables for a booking form
+// Helper: generate month array from start/end YYYY-MM strings
+function getMonthRange(start, end) {
+  if (!start || !end) return [];
+  const months = [];
+  const d = new Date(start + '-01');
+  const endD = new Date(end + '-01');
+  while (d <= endD) {
+    months.push(d.toISOString().substring(0, 7));
+    d.setMonth(d.getMonth() + 1);
+  }
+  return months;
+}
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatMonth(m) {
+  if (!m) return '';
+  const parts = m.split('-');
+  return MONTH_NAMES[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+}
+
+// POST /bulk - create deliverables from booking form checklist data (data-driven)
 router.post('/bulk', async (req, res) => {
   const { booking_form_id } = toSnakeBody(req.body);
 
@@ -200,6 +230,19 @@ router.post('/bulk', async (req, res) => {
       return res.json(existing.rows.map(toCamelCase));
     }
 
+    // Fetch the booking form with form_data
+    const bfResult = await pool.query(
+      'SELECT bf.*, c.id AS c_id FROM booking_forms bf LEFT JOIN clients c ON c.id = bf.client_id WHERE bf.id = $1',
+      [booking_form_id]
+    );
+    if (bfResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+    const bf = bfResult.rows[0];
+    const fd = bf.form_data || {};
+    const clientId = bf.client_id;
+    const allMonths = getMonthRange(bf.campaign_month_start, bf.campaign_month_end);
+
     // Look up all department IDs
     const deptResult = await pool.query("SELECT id, slug FROM departments");
     const deptBySlug = {};
@@ -209,26 +252,105 @@ router.post('/bulk', async (req, res) => {
       return res.status(500).json({ error: 'Production department not found' });
     }
 
-    // Insert all 16 deliverables in a transaction, routing to correct department
+    // Build list of deliverables to create based on enabled services in form_data
+    const toCreate = [];
+
+    function addType(type, title, initialStatus, activeMonths) {
+      const months = (activeMonths && activeMonths.length) ? activeMonths : allMonths;
+      months.forEach(m => {
+        toCreate.push({
+          type, title: title + ' \u2014 ' + formatMonth(m),
+          initialStatus, deliveryMonth: m
+        });
+      });
+    }
+
+    // Social Media Management
+    if (fd.socialMediaManagement && fd.socialMediaManagement.enabled) {
+      const smMonths = fd.page2ActiveMonths && fd.page2ActiveMonths.length ? fd.page2ActiveMonths : allMonths;
+      addType('sm-posts', 'SM Posts', 'request_client_materials', smMonths);
+      if (fd.socialMediaManagement.contentCalendar) {
+        addType('sm-content-calendar', 'Content Calendar', 'request_focus_points', smMonths);
+      }
+      if (fd.socialMediaManagement.googleAds) {
+        addType('sm-google-ads', 'Google Ads', 'request_client_materials', smMonths);
+      }
+    }
+
+    // Own Page Social Media
+    if (fd.ownPageSocialMedia && fd.ownPageSocialMedia.enabled) {
+      const smMonths = fd.page2ActiveMonths && fd.page2ActiveMonths.length ? fd.page2ActiveMonths : allMonths;
+      addType('sm-posts', 'Own Page SM', 'request_client_materials', smMonths);
+    }
+
+    // Agri4All
+    if (fd.agri4all && fd.agri4all.enabled) {
+      const a4Months = fd.page3ActiveMonths && fd.page3ActiveMonths.length ? fd.page3ActiveMonths : allMonths;
+      addType('agri4all-posts', 'Agri4All Posts', 'request_client_materials', a4Months);
+    }
+
+    // Online Articles
+    if (fd.onlineArticles && fd.onlineArticles.enabled) {
+      const oaMonths = fd.page4ActiveMonths && fd.page4ActiveMonths.length ? fd.page4ActiveMonths : allMonths;
+      addType('online-articles', 'Online Articles', 'request_client_materials', oaMonths);
+    }
+
+    // Banners
+    if (fd.banners && fd.banners.enabled) {
+      const bnMonths = fd.page5ActiveMonths && fd.page5ActiveMonths.length ? fd.page5ActiveMonths : allMonths;
+      addType('agri4all-banners', 'Banners', 'design', bnMonths);
+    }
+
+    // Magazine
+    if (fd.magazine && fd.magazine.enabled) {
+      const mgMonths = fd.page6ActiveMonths && fd.page6ActiveMonths.length ? fd.page6ActiveMonths : allMonths;
+      addType('magazine', 'Magazine', 'request_client_materials', mgMonths);
+    }
+
+    // Video
+    if (fd.video && fd.video.enabled) {
+      const vdMonths = fd.page7ActiveMonths && fd.page7ActiveMonths.length ? fd.page7ActiveMonths : allMonths;
+      addType('video', 'Video', 'send_request_form', vdMonths);
+    }
+
+    // Website Design
+    if (fd.websiteDesign && fd.websiteDesign.enabled) {
+      const wdMonths = fd.page8ActiveMonths && fd.page8ActiveMonths.length ? fd.page8ActiveMonths : allMonths;
+      addType('website-design', 'Website Design', 'request_client_materials', wdMonths);
+    }
+
+    // Fallback: if no services enabled, create content calendars for all months
+    if (toCreate.length === 0) {
+      allMonths.forEach(m => {
+        toCreate.push({
+          type: 'sm-content-calendar', title: 'Content Calendar \u2014 ' + formatMonth(m),
+          initialStatus: 'request_focus_points', deliveryMonth: m
+        });
+      });
+    }
+
+    // Insert all deliverables in a transaction
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       const created = [];
-      for (const d of DEFAULT_DELIVERABLES) {
+      const byType = {};
+      for (const d of toCreate) {
         const status = d.initialStatus || 'pending';
         const deptMap = getDeptMapForType(d.type);
         const targetSlug = deptMap && deptMap[status] ? deptMap[status] : 'production';
         const departmentId = deptBySlug[targetSlug] || defaultDeptId;
         const result = await client.query(
-          `INSERT INTO deliverables (booking_form_id, department_id, type, title, status)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO deliverables (booking_form_id, client_id, department_id, type, title, status, delivery_month)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING *`,
-          [booking_form_id, departmentId, d.type, d.title, status]
+          [booking_form_id, clientId, departmentId, d.type, d.title, status, d.deliveryMonth]
         );
         created.push(result.rows[0]);
+        byType[d.type] = (byType[d.type] || 0) + 1;
       }
       await client.query('COMMIT');
-      res.status(201).json(created.map(toCamelCase));
+      res.status(201).json({ totalCreated: created.length, byType, deliverables: created.map(toCamelCase) });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -285,7 +407,7 @@ router.patch('/:id', async (req, res) => {
 
   const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id', 'follow_up_count',
     'assigned_admin', 'assigned_production', 'assigned_design', 'assigned_editorial',
-    'assigned_video', 'assigned_agri4all', 'assigned_social_media'];
+    'assigned_video', 'assigned_agri4all', 'assigned_social_media', 'delivery_month', 'client_id'];
   const updates = [];
   const values = [];
   let idx = 1;
@@ -296,6 +418,11 @@ router.patch('/:id', async (req, res) => {
       values.push(body[field]);
       idx++;
     }
+  }
+
+  // Auto-set status_changed_at when status changes
+  if (body.status !== undefined) {
+    updates.push('status_changed_at = NOW()');
   }
 
   if (updates.length === 0) {
