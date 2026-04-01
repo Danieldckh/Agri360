@@ -262,32 +262,6 @@
   function renderProposalTab(container) {
     resetContainer(container);
 
-    // New Booking button
-    var topBar = document.createElement('div');
-    topBar.style.display = 'flex';
-    topBar.style.justifyContent = 'flex-end';
-    topBar.style.marginBottom = '12px';
-
-    var newBookingBtn = document.createElement('button');
-    newBookingBtn.className = 'checklist-btn-primary';
-    newBookingBtn.textContent = 'New Booking';
-    newBookingBtn.style.padding = '8px 20px';
-    newBookingBtn.style.borderRadius = '6px';
-    newBookingBtn.style.border = 'none';
-    newBookingBtn.style.cursor = 'pointer';
-    newBookingBtn.style.fontWeight = '600';
-    newBookingBtn.style.color = '#fff';
-    newBookingBtn.style.background = 'var(--accent-gradient, linear-gradient(to top, #f5a623, #d4791a))';
-    newBookingBtn.addEventListener('click', function () {
-      if (window.openChecklistForClient) {
-        window.openChecklistForClient();
-      } else {
-        alert('Checklist wizard not loaded');
-      }
-    });
-    topBar.appendChild(newBookingBtn);
-    container.appendChild(topBar);
-
     var layout = document.createElement('div');
     layout.className = 'dept-dashboard-layout proposal-dashboard-layout';
 
