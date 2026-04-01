@@ -15,9 +15,9 @@
   var CHAINS = {
     // Content Calendar (sm-content-calendar)
     'sm-content-calendar': [
-      'request_client_materials', 'upload_materials', 'artwork_design',
-      'create_captions', 'editorial_review', 'ready_for_approval',
-      'sent_for_approval', 'approved', 'ready_for_scheduling', 'scheduled'
+      'request_focus_points', 'focus_points_requested', 'focus_points_received',
+      'design', 'design_review', 'proofread',
+      'approved', 'scheduled', 'posted'
     ],
 
     // Agri4All types share the same chain
@@ -87,18 +87,17 @@
 
   var DEPT_MAPS = {
     'sm-content-calendar': {
-      'request_client_materials': 'production',
-      'upload_materials': 'production',
-      'artwork_design': 'design',
+      'request_focus_points': 'production',
+      'focus_points_requested': 'production',
+      'focus_points_received': 'production',
+      'design': 'design',
+      'design_review': 'design',
       'design_changes': 'design',
-      'create_captions': 'editorial',
-      'editorial_review': 'editorial',
-      'ready_for_approval': 'production',
-      'sent_for_approval': 'production',
-      'client_changes': 'production',
+      'proofread': 'editorial',
       'approved': 'social-media',
-      'ready_for_scheduling': 'social-media',
-      'scheduled': 'social-media'
+      'client_changes': 'production',
+      'scheduled': 'social-media',
+      'posted': 'social-media'
     },
 
     'agri4all-posts': {
@@ -222,7 +221,7 @@
 
   var BRANCH_STATUSES = {
     'website-design': { 'design_changes': 'prototype' },
-    'sm-content-calendar': { 'design_changes': 'artwork_design', 'client_changes': 'ready_for_approval' },
+    'sm-content-calendar': { 'design_changes': 'design', 'client_changes': 'design' },
     'sm-posts': { 'design_changes': 'artwork_design', 'client_changes': 'ready_for_approval' },
     'agri4all-posts': { 'design_changes': 'design' },
     'magazine': { 'design_changes': 'design', 'editorial_changes': 'design', 'client_changes': 'design' },

@@ -13,6 +13,12 @@
   margin-bottom: 28px;
 }
 
+.dev-page-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .dev-page-title {
   font-size: var(--font-size-subtitle);
   font-weight: 600;
