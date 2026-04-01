@@ -11,7 +11,7 @@ This project supports multiple concurrent Claude Code sessions. To prevent sessi
    - If running `/runteam`, the command handles this automatically — do NOT enter a worktree yourself
 2. All your edits happen in the isolated worktree — completely separate from other sessions
 3. **Commit your work before finishing** with a descriptive commit message
-4. Tell the user the **branch name** so they can merge it later
+4. **Automatically merge and clean up** when done — do NOT ask the user to merge later. Exit the worktree, checkout master, run `git merge --no-ff <branch>`, then delete the worktree and branch (`git worktree remove` + `git branch -d`)
 
 ### Do NOT skip this step. If you edit files without entering a worktree first, you risk overwriting another session's work.
 
