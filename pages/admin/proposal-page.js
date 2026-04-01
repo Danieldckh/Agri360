@@ -224,67 +224,37 @@
     refreshAll();
   }
 
-  // --- Proposal tab with sub-sheets ---
+  // --- Proposal tab with grid layout ---
   function renderProposalTabWithSubSheets(container) {
     resetContainer(container);
 
-    var wrapper = document.createElement('div');
-    wrapper.className = 'dept-dashboard-layout';
-    wrapper.style.width = '100%';
+    var grid = document.createElement('div');
+    grid.className = 'proposal-grid';
 
-    var mainCol = document.createElement('div');
-    mainCol.className = 'dept-dashboard-main';
-    mainCol.style.width = '100%';
+    // Left column — Proposal (main, wider)
+    var leftCol = document.createElement('div');
+    leftCol.className = 'proposal-grid-left';
 
-    // Sub-tab bar
-    var tabBar = document.createElement('div');
-    tabBar.className = 'proposal-sub-tabs';
-
-    var sheetContainer = document.createElement('div');
-    sheetContainer.className = 'proposal-sub-sheet-content';
+    // Right column — In Design + Sent to Client (narrower, stacked)
+    var rightCol = document.createElement('div');
+    rightCol.className = 'proposal-grid-right';
 
     var sheets = [];
-    var activeIndex = 0;
 
     PROPOSAL_SUB_SHEETS.forEach(function (sub, idx) {
-      // Create tab button
-      var btn = document.createElement('button');
-      btn.className = 'proposal-sub-tab' + (idx === 0 ? ' active' : '');
-      btn.textContent = sub.label;
-
-      var badge = document.createElement('span');
-      badge.className = 'proposal-sub-tab-count';
-      badge.textContent = '0';
-      btn.appendChild(badge);
-
-      btn.addEventListener('click', function () {
-        activateSubTab(idx);
-      });
-      tabBar.appendChild(btn);
-
-      // Create sheet for this sub-tab
       var sheet = buildSheet(sub.label, refreshAll);
-      sheet.el.style.display = idx === 0 ? '' : 'none';
-      sheet.badge = badge;
-      sheetContainer.appendChild(sheet.el);
       sheets.push(sheet);
+
+      if (idx === 0) {
+        leftCol.appendChild(sheet.el);
+      } else {
+        rightCol.appendChild(sheet.el);
+      }
     });
 
-    mainCol.appendChild(tabBar);
-    mainCol.appendChild(sheetContainer);
-    wrapper.appendChild(mainCol);
-    container.appendChild(wrapper);
-
-    function activateSubTab(idx) {
-      activeIndex = idx;
-      var buttons = tabBar.querySelectorAll('.proposal-sub-tab');
-      for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.toggle('active', i === idx);
-      }
-      sheets.forEach(function (s, i) {
-        s.el.style.display = i === idx ? '' : 'none';
-      });
-    }
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    container.appendChild(grid);
 
     function refreshAll() {
       fetch(API_BASE, { headers: getHeaders() })
@@ -299,11 +269,10 @@
             });
             var rows = filtered.map(mapFormToRow);
             sheets[idx].update(rows);
-            sheets[idx].badge.textContent = rows.length;
           });
         })
         .catch(function (err) {
-          console.error('Proposal sub-sheet fetch error:', err);
+          console.error('Proposal grid fetch error:', err);
         });
     }
 
