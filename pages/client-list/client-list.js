@@ -37,7 +37,11 @@
       }
     }
 
-    searchEl.addEventListener('input', renderSheet);
+    var debounceTimer;
+    searchEl.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(renderSheet, 200);
+    });
 
     var headers = window.getAuthHeaders ? window.getAuthHeaders() : {};
     fetch('/api/clients', { headers: headers })

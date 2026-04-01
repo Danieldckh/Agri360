@@ -1,3 +1,6 @@
+/* ===== Utilities ===== */
+.hidden { display: none !important; }
+
 /* ===== Style Guide ===== */
 :root {
   --color-primary: #dce1e8;

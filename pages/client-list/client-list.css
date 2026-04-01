@@ -19,6 +19,11 @@
   font-weight: 600;
 }
 
+.client-title-wrap {
+  display: flex;
+  align-items: center;
+}
+
 .client-count {
   background: rgba(0, 0, 0, 0.08);
   color: #666;
