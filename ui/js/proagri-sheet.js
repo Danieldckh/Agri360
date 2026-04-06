@@ -744,6 +744,7 @@
     var data = config.data;
     var radialActions = config.radialActions || [];
     var rowActions = config.rowActions || [];
+    var leadingActions = config.leadingActions || [];
     var searchable = config.searchable || false;
     var onCellEdit = config.onCellEdit || null;
     var apiEndpoint = config.apiEndpoint || null;
@@ -811,6 +812,12 @@
     // Header
     var hr = document.createElement('div');
     hr.className = 'proagri-sheet-header';
+    if (leadingActions.length > 0) {
+      var lh = document.createElement('div');
+      lh.className = 'proagri-sheet-header-cell proagri-sheet-leading-col';
+      lh.style.flex = '0 0 ' + (leadingActions.length * 28 + 8) + 'px';
+      hr.appendChild(lh);
+    }
     columns.forEach(function (col) {
       var th = document.createElement('div');
       var cls = 'proagri-sheet-header-cell';
@@ -890,6 +897,30 @@
       var row = document.createElement('div');
       row.className = 'proagri-sheet-row';
       row.style.animationDelay = (index * 0.03) + 's';
+
+      if (leadingActions.length > 0) {
+        var leadCell = document.createElement('div');
+        leadCell.className = 'proagri-sheet-cell proagri-sheet-leading-col';
+        leadCell.style.flex = '0 0 ' + (leadingActions.length * 28 + 8) + 'px';
+        var leadWrap = document.createElement('div');
+        leadWrap.className = 'proagri-sheet-row-actions';
+        leadingActions.forEach(function (action) {
+          var btn = document.createElement('button');
+          btn.className = 'proagri-sheet-row-action-btn' + (action.className ? ' ' + action.className : '');
+          btn.title = action.tooltip || '';
+          btn.type = 'button';
+          if (action.icon) {
+            btn.appendChild(makeSvgEl(action.icon, 14));
+          }
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (action.onClick) action.onClick(rowData);
+          });
+          leadWrap.appendChild(btn);
+        });
+        leadCell.appendChild(leadWrap);
+        row.appendChild(leadCell);
+      }
 
       columns.forEach(function (col) {
         var cell = document.createElement('div');
