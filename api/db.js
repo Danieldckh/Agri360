@@ -190,6 +190,10 @@ async function runMigrations() {
     // Deliverables: JSONB metadata for type-specific data (platforms, posts count, etc.)
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`);
 
+    // Widen status columns — many statuses exceed VARCHAR(20)
+    await client.query(`ALTER TABLE deliverables ALTER COLUMN status TYPE VARCHAR(50)`);
+    await client.query(`ALTER TABLE booking_forms ALTER COLUMN status TYPE VARCHAR(50)`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {
