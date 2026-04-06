@@ -928,17 +928,37 @@
     // Website
     buildArrayCard('Website', formData.website, cardsGrid);
 
-    // Financial
-    buildArrayCard('Financial', formData.financial, cardsGrid);
+    // Financial — full breakdown per month
+    var currency = formData.financial_currency || '';
+    var fin = formData.financial;
+    if (Array.isArray(fin) && fin.length > 0) {
+      fin.forEach(function (entry) {
+        if (!entry || typeof entry !== 'object') return;
+        var label = 'Financial' + (entry.month_label ? ' — ' + entry.month_label : (entry.months_display ? ' — ' + entry.months_display : ''));
+        var fields = [];
+        if (entry.months_display) fields.push({ label: 'Period', value: entry.months_display });
+        if (entry.base_price) fields.push({ label: 'Base Price', value: currency + entry.base_price });
+        if (entry.discount) fields.push({ label: 'Discount', value: entry.discount + '%' });
+        if (entry.subtotal) fields.push({ label: 'Subtotal', value: currency + entry.subtotal });
+        // Include any other fields in this entry
+        Object.keys(entry).forEach(function (k) {
+          if (['month_label', 'months_display', 'base_price', 'discount', 'subtotal'].indexOf(k) !== -1) return;
+          if (entry[k] === null || entry[k] === undefined || entry[k] === '') return;
+          fields.push({ label: prettifyKey(k), value: String(entry[k]) });
+        });
+        if (fields.length > 0) cardsGrid.appendChild(makeCard(label, fields));
+      });
+    }
 
     // Financial totals
     var ft = formData.financial_totals;
     if (ft && (ft.subtotal || ft.tax || ft.total)) {
-      cardsGrid.appendChild(makeCard('Financial Totals', [
-        { label: 'Subtotal', value: ft.subtotal },
-        { label: 'Tax', value: ft.tax },
-        { label: 'Total', value: ft.total }
-      ]));
+      var totalsFields = [];
+      if (ft.subtotal) totalsFields.push({ label: 'Subtotal', value: ft.subtotal });
+      if (ft.tax) totalsFields.push({ label: 'VAT (15%)', value: ft.tax });
+      if (ft.total) totalsFields.push({ label: 'Total', value: ft.total });
+      if (currency) totalsFields.unshift({ label: 'Currency', value: currency });
+      cardsGrid.appendChild(makeCard('Financial Totals', totalsFields));
     }
 
     // Sign off
@@ -953,7 +973,7 @@
     // Any remaining top-level keys not handled above
     var handled = ['client_information', 'social_media_management', 'agri4all',
       'online_articles', 'banners', 'magazine', 'video', 'website',
-      'financial', 'financial_totals', 'sign_off'];
+      'financial', 'financial_totals', 'financial_currency', 'sign_off'];
     Object.keys(formData).forEach(function (k) {
       if (handled.indexOf(k) !== -1) return;
       var val = formData[k];
