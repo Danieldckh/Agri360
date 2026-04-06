@@ -187,6 +187,9 @@ async function runMigrations() {
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ`);
     await client.query(`UPDATE deliverables SET status_changed_at = updated_at WHERE status_changed_at IS NULL`);
 
+    // Deliverables: JSONB metadata for type-specific data (platforms, posts count, etc.)
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {

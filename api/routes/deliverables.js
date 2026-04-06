@@ -118,8 +118,9 @@ const DEPT_MAPS = {
   'sm-content-calendar': {
     'request_focus_points': 'production', 'focus_points_requested': 'production', 'focus_points_received': 'production',
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
-    'proofread': 'editorial', 'client_changes': 'production',
-    'approved': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
+    'editorial': 'editorial', 'editorial_review': 'editorial',
+    'ready_for_approval': 'production', 'client_changes': 'production',
+    'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
   },
   'agri4all-posts': {
     'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
@@ -343,6 +344,94 @@ router.post('/bulk', async (req, res) => {
   }
 });
 
+// POST /create-content-calendars - create sm-content-calendar deliverables from booking form
+router.post('/create-content-calendars', async (req, res) => {
+  const b = toSnakeBody(req.body);
+  const bookingFormId = b.booking_form_id;
+
+  if (!bookingFormId) {
+    return res.status(400).json({ error: 'booking_form_id is required' });
+  }
+
+  try {
+    // Check idempotency — skip if already created
+    const existing = await pool.query(
+      `SELECT id FROM deliverables WHERE booking_form_id = $1 AND type = 'sm-content-calendar'`,
+      [bookingFormId]
+    );
+    if (existing.rows.length > 0) {
+      return res.json({ message: 'Content calendars already exist', ids: existing.rows.map(r => r.id) });
+    }
+
+    // Fetch booking form with client info
+    const bfResult = await pool.query(
+      `SELECT bf.*, c.name AS client_name FROM booking_forms bf LEFT JOIN clients c ON c.id = bf.client_id WHERE bf.id = $1`,
+      [bookingFormId]
+    );
+    if (bfResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+    const bf = toCamelCase(bfResult.rows[0]);
+    const clientName = bf.clientName || bf.title || 'Unknown Client';
+    const clientId = bf.clientId;
+
+    // Parse formData
+    let formData = bf.formData || {};
+    if (typeof formData === 'string') {
+      try { formData = JSON.parse(formData); } catch (e) { formData = {}; }
+    }
+
+    const smEntries = formData.social_media_management || [];
+    const qualifying = smEntries.filter(e => e && e.content_calendar === true);
+
+    if (qualifying.length === 0) {
+      return res.json({ message: 'No content calendar entries found', ids: [] });
+    }
+
+    // Look up production department
+    const deptResult = await pool.query(`SELECT id FROM departments WHERE slug = 'production'`);
+    const prodDeptId = deptResult.rows.length > 0 ? deptResult.rows[0].id : null;
+
+    // Parse month label to YYYY-MM
+    const MONTH_MAP = {
+      'january': '01', 'february': '02', 'march': '03', 'april': '04',
+      'may': '05', 'june': '06', 'july': '07', 'august': '08',
+      'september': '09', 'october': '10', 'november': '11', 'december': '12'
+    };
+    function parseMonthLabel(label) {
+      if (!label) return null;
+      const match = label.match(/(\w+)\D*(\d{4})/);
+      if (!match) return null;
+      const monthNum = MONTH_MAP[match[1].toLowerCase()];
+      return monthNum ? match[2] + '-' + monthNum : null;
+    }
+
+    // Create deliverables
+    const created = [];
+    for (const entry of qualifying) {
+      const deliveryMonth = parseMonthLabel(entry.month_label || entry.months_display);
+      const metadata = {
+        platforms: (entry.platforms || []).map(p => ({ platform: p.platform, key: p.key, link: p.link })),
+        monthly_posts: entry.monthly_posts || entry.posts_per_month || null
+      };
+      const title = clientName + ' - Content Calendar - ' + (entry.month_label || entry.months_display || 'Unknown');
+
+      const result = await pool.query(
+        `INSERT INTO deliverables (booking_form_id, client_id, department_id, type, title, status, delivery_month, metadata, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+         RETURNING *`,
+        [bookingFormId, clientId, prodDeptId, 'sm-content-calendar', title, 'request_focus_points', deliveryMonth, JSON.stringify(metadata)]
+      );
+      created.push(toCamelCase(result.rows[0]));
+    }
+
+    res.status(201).json({ message: 'Content calendars created', deliverables: created });
+  } catch (err) {
+    console.error('Create content calendars error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST / - create deliverable
 router.post('/', async (req, res) => {
   const b = toSnakeBody(req.body);
@@ -385,9 +474,14 @@ router.patch('/:id', async (req, res) => {
     }
   }
 
+  // Handle metadata JSONB
+  if (body.metadata !== undefined && typeof body.metadata === 'object' && body.metadata !== null) {
+    body.metadata = JSON.stringify(body.metadata);
+  }
+
   const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id', 'follow_up_count',
     'assigned_admin', 'assigned_production', 'assigned_design', 'assigned_editorial',
-    'assigned_video', 'assigned_agri4all', 'assigned_social_media', 'delivery_month', 'client_id'];
+    'assigned_video', 'assigned_agri4all', 'assigned_social_media', 'delivery_month', 'client_id', 'metadata'];
   const updates = [];
   const values = [];
   let idx = 1;

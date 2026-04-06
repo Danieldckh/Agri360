@@ -150,7 +150,17 @@
             headers: getHeaders(),
             body: JSON.stringify({ status: next })
           }).then(function (res) {
-            if (res.ok) refreshFn();
+            if (!res.ok) return;
+            // When advancing from onboarding to onboarded, create content calendar deliverables
+            if (rowData.status === 'onboarding' && next === 'onboarded') {
+              fetch('/api/deliverables/create-content-calendars', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ bookingFormId: rowData.id })
+              }).finally(function () { refreshFn(); });
+            } else {
+              refreshFn();
+            }
           });
         }
       }

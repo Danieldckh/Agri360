@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
-    'production': ['Client Communications', 'Follow Ups', 'Approvals'],
+    'production': ['Deliverables'],
     'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
     'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
@@ -949,21 +949,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Route Production > Client Communications to production deliverables view
-    if (page === 'production' && viewName === 'Client Communications' && window.renderProductionTab) {
-      window.renderProductionTab(dashboardContent);
-      return;
-    }
-
-    // Route Production > Follow Ups to follow-ups 2-sheet view
-    if (page === 'production' && viewName === 'Follow Ups' && window.renderFollowUpsTab) {
-      window.renderFollowUpsTab(dashboardContent);
-      return;
-    }
-
-    // Route Production > Approvals to approvals 2-sheet view
-    if (page === 'production' && viewName === 'Approvals' && window.renderApprovalsTab) {
-      window.renderApprovalsTab(dashboardContent);
+    // Route Production > Deliverables to unified deliverables view
+    if (page === 'production' && viewName === 'Deliverables' && window.renderProductionDeliverablesTab) {
+      window.renderProductionDeliverablesTab(dashboardContent);
       return;
     }
 
