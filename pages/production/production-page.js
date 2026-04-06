@@ -1432,10 +1432,8 @@
       var headerCols = [
         { label: '', cls: 'prod-deliv-cell prod-deliv-act' },
         { label: 'Title', cls: 'prod-deliv-cell prod-deliv-title' },
-        { label: 'Status', cls: 'prod-deliv-cell' },
-        { label: 'Platforms', cls: 'prod-deliv-cell prod-deliv-platforms' },
-        { label: 'Posts', cls: 'prod-deliv-cell prod-deliv-posts' },
-        { label: 'Month', cls: 'prod-deliv-cell' }
+        { label: 'Type', cls: 'prod-deliv-cell prod-deliv-type' },
+        { label: 'Status', cls: 'prod-deliv-cell' }
       ];
       headerCols.forEach(function (col) {
         var cell = document.createElement('div');
@@ -1479,19 +1477,24 @@
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
 
-          // Eye icon — open content calendar dashboard
+          // Eye icon — open deliverable dashboard
           var eyeCell = document.createElement('div');
           eyeCell.className = 'prod-deliv-cell prod-deliv-act';
-          if (item.type === 'sm-content-calendar') {
+          var dashboardTypes = ['sm-content-calendar', 'website-design', 'online-articles'];
+          if (dashboardTypes.indexOf(item.type) !== -1) {
             var eyeBtn = document.createElement('button');
             eyeBtn.className = 'proagri-sheet-row-action-btn action-view';
             eyeBtn.type = 'button';
-            eyeBtn.title = 'View content calendar';
+            eyeBtn.title = 'View dashboard';
             eyeBtn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
-            eyeBtn.addEventListener('click', function (e) {
-              e.stopPropagation();
-              openContentCalendarDashboard(container, item);
-            });
+            (function (it) {
+              eyeBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (it.type === 'sm-content-calendar') openContentCalendarDashboard(container, it);
+                else if (it.type === 'website-design') openWebsiteDesignDashboard(container, it);
+                else if (it.type === 'online-articles') openOnlineArticlesDashboard(container, it);
+              });
+            })(item);
             eyeCell.appendChild(eyeBtn);
           }
           row.appendChild(eyeCell);
@@ -1501,6 +1504,12 @@
           titleCell.className = 'prod-deliv-cell prod-deliv-title';
           titleCell.textContent = item.title || '';
           row.appendChild(titleCell);
+
+          // Type
+          var typeCell = document.createElement('div');
+          typeCell.className = 'prod-deliv-cell prod-deliv-type';
+          typeCell.textContent = formatStatus(item.type || '');
+          row.appendChild(typeCell);
 
           // Status — clickable dropdown
           var statusCell = document.createElement('div');
@@ -1560,33 +1569,6 @@
           })(statusCell, item);
 
           row.appendChild(statusCell);
-
-          // Platforms (from metadata)
-          var platCell = document.createElement('div');
-          platCell.className = 'prod-deliv-cell prod-deliv-platforms';
-          var meta = item.metadata || {};
-          if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
-          var platforms = meta.platforms || [];
-          platforms.forEach(function (p) {
-            var tag = document.createElement('span');
-            tag.className = 'prod-deliv-platform-tag';
-            tag.textContent = (p.platform || p.key || '').substring(0, 2).toUpperCase();
-            tag.title = p.platform || p.key || '';
-            platCell.appendChild(tag);
-          });
-          row.appendChild(platCell);
-
-          // Posts
-          var postsCell = document.createElement('div');
-          postsCell.className = 'prod-deliv-cell prod-deliv-posts';
-          postsCell.textContent = meta.monthly_posts || meta.posts_per_month || '\u2014';
-          row.appendChild(postsCell);
-
-          // Delivery month
-          var monthCell = document.createElement('div');
-          monthCell.className = 'prod-deliv-cell';
-          monthCell.textContent = item.deliveryMonth || '\u2014';
-          row.appendChild(monthCell);
 
           // Advance button
           var actCol = document.createElement('div');
@@ -2035,6 +2017,417 @@
     overlay.appendChild(closeBtn);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
+  }
+
+  // Shared: fetch booking form data for dashboards
+  function fetchBookingFormData(bookingFormId, callback) {
+    fetch('/api/booking-forms/' + bookingFormId, { headers: getHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (bf) {
+        var fd = bf.formData || {};
+        if (typeof fd === 'string') try { fd = JSON.parse(fd); } catch (e) { fd = {}; }
+        callback(fd, bf);
+      })
+      .catch(function () { callback({}, {}); });
+  }
+
+  // Shared: build sidebar back button + details
+  function setupDashboardSidebar(deliverable, buildContent) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+    _savedProdSidebar = document.createDocumentFragment();
+    while (nav.firstChild) _savedProdSidebar.appendChild(nav.firstChild);
+    nav.style.overflowY = 'auto';
+
+    var backItem = document.createElement('a');
+    backItem.className = 'nav-item';
+    backItem.tabIndex = 0;
+    backItem.style.cursor = 'pointer';
+    var backIcon = document.createElement('span');
+    backIcon.className = 'nav-icon';
+    backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+    backItem.appendChild(backIcon);
+    var backLabel = document.createElement('span');
+    backLabel.className = 'nav-label';
+    backLabel.textContent = 'Back';
+    backItem.appendChild(backLabel);
+    backItem.addEventListener('click', function () {
+      nav.style.overflowY = '';
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      nav.appendChild(_savedProdSidebar);
+      _savedProdSidebar = null;
+      if (_ccContainer) renderProductionDeliverablesTab(_ccContainer);
+    });
+    nav.appendChild(backItem);
+
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep);
+
+    // Client + status
+    var sec = document.createElement('div');
+    sec.style.padding = '4px 16px';
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:14px;font-weight:700;color:var(--text-primary,#1e293b);margin-bottom:2px;';
+    nameEl.textContent = deliverable.clientName || deliverable.title || '';
+    sec.appendChild(nameEl);
+    var monthEl = document.createElement('div');
+    monthEl.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);margin-bottom:6px;';
+    monthEl.textContent = deliverable.deliveryMonth || '';
+    sec.appendChild(monthEl);
+    var badge = document.createElement('span');
+    badge.className = 'proagri-sheet-status ' + statusClass(deliverable.status);
+    badge.textContent = formatStatus(deliverable.status);
+    sec.appendChild(badge);
+    nav.appendChild(sec);
+
+    buildContent(nav);
+  }
+
+  function addSidebarSection(nav, title) {
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep);
+    var h = document.createElement('div');
+    h.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+    h.textContent = title;
+    nav.appendChild(h);
+  }
+
+  function addSidebarField(parent, label, value) {
+    if (!value) return;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-size:11px;';
+    var lbl = document.createElement('span');
+    lbl.style.color = 'var(--text-secondary,#64748b)';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    var val = document.createElement('span');
+    val.style.cssText = 'color:var(--text-primary,#1e293b);font-weight:500;text-align:right;word-break:break-word;';
+    val.textContent = value;
+    row.appendChild(val);
+    parent.appendChild(row);
+  }
+
+  // Shared: file upload area builder
+  function buildUploadArea(deliverableId, files, onUpdate, label) {
+    var wrap = document.createElement('div');
+    wrap.className = 'wd-upload-area';
+
+    var grid = document.createElement('div');
+    grid.className = 'cc-img-grid';
+
+    function render() {
+      while (grid.firstChild) grid.removeChild(grid.firstChild);
+      (files || []).forEach(function (url, i) {
+        var thumb = document.createElement('div');
+        thumb.className = 'wd-file-thumb';
+        var isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
+        if (isImage) {
+          var img = document.createElement('img');
+          img.src = url;
+          img.addEventListener('click', function () { openLightbox(url); });
+          thumb.appendChild(img);
+        } else {
+          var link = document.createElement('a');
+          link.href = url;
+          link.target = '_blank';
+          link.textContent = url.split('/').pop();
+          link.className = 'wd-file-link';
+          thumb.appendChild(link);
+        }
+        var rm = document.createElement('button');
+        rm.className = 'cc-img-remove';
+        rm.textContent = '\u00D7';
+        rm.addEventListener('click', function (e) {
+          e.stopPropagation();
+          files.splice(i, 1);
+          render();
+          onUpdate();
+        });
+        thumb.appendChild(rm);
+        grid.appendChild(thumb);
+      });
+
+      var uploadBtn = document.createElement('label');
+      uploadBtn.className = 'cc-img-upload';
+      uploadBtn.textContent = '+';
+      uploadBtn.title = label || 'Upload files';
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*,.pdf,.doc,.docx,.xd,.fig,.sketch';
+      fileInput.multiple = true;
+      fileInput.style.display = 'none';
+      fileInput.addEventListener('change', function () {
+        var fList = Array.from(fileInput.files);
+        if (fList.length === 0) return;
+        var fd = new FormData();
+        fList.forEach(function (f) { fd.append('images', f); });
+        fetch('/api/deliverables/' + deliverableId + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.urls) {
+              result.urls.forEach(function (u) { files.push(u); });
+              render();
+              onUpdate();
+            }
+          });
+      });
+      uploadBtn.appendChild(fileInput);
+      grid.appendChild(uploadBtn);
+    }
+    render();
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  // ══════ WEBSITE DESIGN DASHBOARD ══════════════════════════
+  function openWebsiteDesignDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.steps) {
+      meta.steps = [
+        { name: 'Meeting Notes / Brief', description: '', files: [] },
+        { name: 'Sitemap', description: '', files: [] },
+        { name: 'Wireframe', description: '', files: [] },
+        { name: 'Prototype / Design', description: '', files: [] },
+        { name: 'Development', description: '', files: [] },
+        { name: 'Hosting & SEO', description: '', files: [] }
+      ];
+    }
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { steps: meta.steps } })
+      });
+    }
+
+    // Sidebar
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Website Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      addSidebarField(wrap, 'Type', meta.website_type);
+      addSidebarField(wrap, 'Pages', meta.number_of_pages);
+      nav.appendChild(wrap);
+
+      // Fetch booking form for extra client info
+      if (deliverable.bookingFormId) {
+        fetchBookingFormData(deliverable.bookingFormId, function (fd) {
+          var ci = fd.client_information || {};
+          if (ci.website) {
+            addSidebarSection(nav, 'Client Website');
+            var wWrap = document.createElement('div');
+            wWrap.style.padding = '0 16px';
+            var link = document.createElement('a');
+            link.href = ci.website;
+            link.target = '_blank';
+            link.textContent = ci.website;
+            link.style.cssText = 'font-size:11px;color:var(--accent-color,#3b82f6);word-break:break-all;';
+            wWrap.appendChild(link);
+            nav.appendChild(wWrap);
+          }
+          // Social links
+          var sm = (fd.social_media_management || [])[0];
+          if (sm && sm.platforms && sm.platforms.length > 0) {
+            addSidebarSection(nav, 'Social Media');
+            var sWrap = document.createElement('div');
+            sWrap.style.padding = '0 16px';
+            sm.platforms.forEach(function (p) {
+              if (!p.link) return;
+              var a = document.createElement('a');
+              a.href = p.link;
+              a.target = '_blank';
+              a.style.cssText = 'display:block;font-size:11px;color:var(--accent-color,#3b82f6);margin:2px 0;word-break:break-all;';
+              a.textContent = p.platform + ': ' + p.link;
+              sWrap.appendChild(a);
+            });
+            nav.appendChild(sWrap);
+          }
+          // Project description
+          if (ci.project_description) {
+            addSidebarSection(nav, 'Project Brief');
+            var bWrap = document.createElement('div');
+            bWrap.style.cssText = 'padding:0 16px;font-size:11px;color:var(--text-primary,#1e293b);line-height:1.4;';
+            bWrap.textContent = ci.project_description;
+            nav.appendChild(bWrap);
+          }
+        });
+      }
+    });
+
+    // Main content
+    var wrapper = document.createElement('div');
+    wrapper.className = 'wd-dashboard';
+
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Website Design';
+    title.style.marginBottom = '16px';
+    wrapper.appendChild(title);
+
+    var stepsWrap = document.createElement('div');
+    stepsWrap.className = 'wd-steps';
+
+    meta.steps.forEach(function (step, idx) {
+      var stepEl = document.createElement('div');
+      stepEl.className = 'wd-step';
+
+      var stepHeader = document.createElement('div');
+      stepHeader.className = 'wd-step-header';
+      var stepNum = document.createElement('span');
+      stepNum.className = 'wd-step-num';
+      stepNum.textContent = idx + 1;
+      stepHeader.appendChild(stepNum);
+      var stepTitle = document.createElement('span');
+      stepTitle.className = 'wd-step-title';
+      stepTitle.textContent = step.name;
+      stepHeader.appendChild(stepTitle);
+      stepEl.appendChild(stepHeader);
+
+      var descEditor = document.createElement('div');
+      descEditor.className = 'cc-caption-editor';
+      descEditor.contentEditable = 'true';
+      descEditor.innerHTML = step.description || '';
+      descEditor.setAttribute('placeholder', 'Add notes...');
+      descEditor.addEventListener('blur', function () {
+        step.description = descEditor.innerHTML;
+        save();
+      });
+      stepEl.appendChild(descEditor);
+
+      stepEl.appendChild(buildUploadArea(deliverable.id, step.files, save, 'Upload ' + step.name + ' files'));
+
+      stepsWrap.appendChild(stepEl);
+    });
+
+    wrapper.appendChild(stepsWrap);
+    container.appendChild(wrapper);
+  }
+
+  // ══════ ONLINE ARTICLES DASHBOARD ═════════════════════════
+  function openOnlineArticlesDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.article_text) meta.article_text = '';
+    if (!meta.article_images) meta.article_images = [];
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { article_text: meta.article_text, article_images: meta.article_images } })
+      });
+    }
+
+    // Sidebar
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Article Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      addSidebarField(wrap, 'Articles', meta.amount);
+      addSidebarField(wrap, 'Curated', meta.curated_amount);
+      nav.appendChild(wrap);
+
+      // Publishing platforms
+      if (meta.platforms && meta.platforms.length) {
+        addSidebarSection(nav, 'Publish To');
+        var pWrap = document.createElement('div');
+        pWrap.style.padding = '0 16px';
+        meta.platforms.forEach(function (p) {
+          var tag = document.createElement('div');
+          tag.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px 4px 2px 0;border-radius:12px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.1);color:#3b82f6;';
+          tag.textContent = p;
+          pWrap.appendChild(tag);
+        });
+        nav.appendChild(pWrap);
+      }
+
+      // Social links from booking form
+      if (deliverable.bookingFormId) {
+        fetchBookingFormData(deliverable.bookingFormId, function (fd) {
+          var ci = fd.client_information || {};
+          if (ci.website) {
+            addSidebarSection(nav, 'Client Website');
+            var wWrap = document.createElement('div');
+            wWrap.style.padding = '0 16px';
+            var link = document.createElement('a');
+            link.href = ci.website;
+            link.target = '_blank';
+            link.textContent = ci.website;
+            link.style.cssText = 'font-size:11px;color:var(--accent-color,#3b82f6);word-break:break-all;';
+            wWrap.appendChild(link);
+            nav.appendChild(wWrap);
+          }
+          var sm = (fd.social_media_management || [])[0];
+          if (sm && sm.platforms && sm.platforms.length > 0) {
+            addSidebarSection(nav, 'Social Media');
+            var sWrap = document.createElement('div');
+            sWrap.style.padding = '0 16px';
+            sm.platforms.forEach(function (p) {
+              if (!p.link) return;
+              var a = document.createElement('a');
+              a.href = p.link;
+              a.target = '_blank';
+              a.style.cssText = 'display:block;font-size:11px;color:var(--accent-color,#3b82f6);margin:2px 0;word-break:break-all;';
+              a.textContent = p.platform;
+              sWrap.appendChild(a);
+            });
+            nav.appendChild(sWrap);
+          }
+        });
+      }
+    });
+
+    // Main content
+    var wrapper = document.createElement('div');
+    wrapper.className = 'oa-dashboard';
+
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Online Article';
+    title.style.marginBottom = '16px';
+    wrapper.appendChild(title);
+
+    // Article text editor
+    var editorCard = document.createElement('div');
+    editorCard.className = 'oa-editor-card';
+    var editorTitle = document.createElement('h3');
+    editorTitle.className = 'oa-card-title';
+    editorTitle.textContent = 'Article Text';
+    editorCard.appendChild(editorTitle);
+    var editor = document.createElement('div');
+    editor.className = 'oa-article-editor';
+    editor.contentEditable = 'true';
+    editor.innerHTML = meta.article_text || '';
+    editor.setAttribute('placeholder', 'Paste or write the article text here...');
+    editor.addEventListener('blur', function () {
+      meta.article_text = editor.innerHTML;
+      save();
+    });
+    editorCard.appendChild(editor);
+    wrapper.appendChild(editorCard);
+
+    // Image dump
+    var imgCard = document.createElement('div');
+    imgCard.className = 'oa-editor-card';
+    var imgTitle = document.createElement('h3');
+    imgTitle.className = 'oa-card-title';
+    imgTitle.textContent = 'Images';
+    imgCard.appendChild(imgTitle);
+    imgCard.appendChild(buildUploadArea(deliverable.id, meta.article_images, save, 'Upload images'));
+    wrapper.appendChild(imgCard);
+
+    container.appendChild(wrapper);
   }
 
 })();
