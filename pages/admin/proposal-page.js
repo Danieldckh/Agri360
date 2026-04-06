@@ -19,12 +19,10 @@
   };
 
   // Sub-sheets within the Proposal tab
-  // pos: 'left' = full-height left column, 'right-top-left'/'right-top-right' = side by side, 'right-bottom' = below
   var PROPOSAL_SUB_SHEETS = [
-    { label: 'Proposal',        statuses: ['outline_proposal', 'proposal_ready'], pos: 'left' },
-    { label: 'In Design',       statuses: ['design_proposal'], pos: 'right-top-left' },
-    { label: 'Design Review',   statuses: ['design_review', 'design_changes'], pos: 'right-top-right' },
-    { label: 'Sent to Client',  statuses: ['sent_to_client'], pos: 'right-bottom' }
+    { label: 'Proposal',       statuses: ['outline_proposal', 'proposal_ready'] },
+    { label: 'In Design',      statuses: ['design_proposal', 'design_review', 'design_changes'] },
+    { label: 'Sent to Client', statuses: ['sent_to_client'] }
   ];
 
   // Icons
@@ -260,29 +258,23 @@
     var leftCol = document.createElement('div');
     leftCol.className = 'proposal-grid-left';
 
-    // Right column — top row (side by side) + bottom
+    // Right column — In Design + Sent to Client (narrower, stacked)
     var rightCol = document.createElement('div');
     rightCol.className = 'proposal-grid-right';
 
-    var rightTopRow = document.createElement('div');
-    rightTopRow.className = 'proposal-grid-right-top';
-
     var sheets = [];
 
-    PROPOSAL_SUB_SHEETS.forEach(function (sub) {
+    PROPOSAL_SUB_SHEETS.forEach(function (sub, idx) {
       var sheet = buildSheet(sub.label, refreshAll);
       sheets.push(sheet);
 
-      if (sub.pos === 'left') {
+      if (idx === 0) {
         leftCol.appendChild(sheet.el);
-      } else if (sub.pos === 'right-top-left' || sub.pos === 'right-top-right') {
-        rightTopRow.appendChild(sheet.el);
       } else {
         rightCol.appendChild(sheet.el);
       }
     });
 
-    rightCol.insertBefore(rightTopRow, rightCol.firstChild);
     grid.appendChild(leftCol);
     grid.appendChild(rightCol);
     container.appendChild(grid);
