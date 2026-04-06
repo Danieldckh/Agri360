@@ -793,7 +793,15 @@
 
         showDashboardSidebar(data);
 
-        // Full Checklist JSON
+        var formData = data.formData || {};
+        if (typeof formData === 'string') {
+          try { formData = JSON.parse(formData); } catch (e) { formData = {}; }
+        }
+
+        // --- Readable cards from formData ---
+        buildFormDataCards(cardsGrid, formData, data);
+
+        // Full Checklist JSON (below the cards)
         var jsonCard = document.createElement('div');
         jsonCard.className = 'client-dashboard-card client-dashboard-card-wide';
         var jsonTitle = document.createElement('h3');
@@ -802,10 +810,6 @@
         jsonCard.appendChild(jsonTitle);
         var pre = document.createElement('pre');
         pre.className = 'client-dashboard-json';
-        var formData = data.formData || {};
-        if (typeof formData === 'string') {
-          try { formData = JSON.parse(formData); } catch (e) { /* keep as string */ }
-        }
         pre.textContent = JSON.stringify(formData, null, 2);
         _jsonPre = pre;
         jsonCard.appendChild(pre);
@@ -842,6 +846,127 @@
     });
     card.appendChild(list);
     return card;
+  }
+
+  // --- Build readable cards from checklist formData ---
+  function prettifyKey(key) {
+    return key.replace(/[_-]/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
+  function flattenObject(obj, prefix) {
+    var fields = [];
+    if (!obj || typeof obj !== 'object') return fields;
+    Object.keys(obj).forEach(function (k) {
+      var val = obj[k];
+      var label = prefix ? prefix + ' > ' + prettifyKey(k) : prettifyKey(k);
+      if (val === null || val === undefined || val === '') return;
+      if (typeof val === 'boolean') {
+        if (val) fields.push({ label: prettifyKey(k), value: 'Yes' });
+      } else if (typeof val === 'object' && !Array.isArray(val)) {
+        fields = fields.concat(flattenObject(val, ''));
+      } else if (Array.isArray(val)) {
+        var stringItems = val.filter(function (v) { return typeof v === 'string'; });
+        if (stringItems.length === val.length && val.length > 0) {
+          fields.push({ label: prettifyKey(k), value: val.join(', ') });
+        }
+      } else {
+        fields.push({ label: prettifyKey(k), value: String(val) });
+      }
+    });
+    return fields;
+  }
+
+  function buildArrayCard(title, arr, cardsGrid) {
+    if (!Array.isArray(arr) || arr.length === 0) return;
+    arr.forEach(function (entry, idx) {
+      if (!entry || typeof entry !== 'object') return;
+      var fields = flattenObject(entry, '');
+      if (fields.length === 0) return;
+      var label = arr.length > 1 ? title + ' — ' + (entry.month || entry.platform || entry.name || '#' + (idx + 1)) : title;
+      cardsGrid.appendChild(makeCard(label, fields));
+    });
+  }
+
+  function buildFormDataCards(cardsGrid, formData, bookingData) {
+    if (!formData || typeof formData !== 'object') return;
+
+    // Client information
+    var ci = formData.client_information;
+    if (ci) {
+      var ciFields = [];
+      var ciSimple = {};
+      var contacts = {};
+      Object.keys(ci).forEach(function (k) {
+        if (typeof ci[k] === 'object' && ci[k] !== null && !Array.isArray(ci[k])) {
+          contacts[k] = ci[k];
+        } else if (ci[k]) {
+          ciSimple[k] = ci[k];
+        }
+      });
+      ciFields = flattenObject(ciSimple, '');
+      if (ciFields.length > 0) cardsGrid.appendChild(makeCard('Client Information', ciFields));
+    }
+
+    // Social media management
+    buildArrayCard('Social Media', formData.social_media_management, cardsGrid);
+
+    // Agri4All
+    buildArrayCard('Agri4All', formData.agri4all, cardsGrid);
+
+    // Online articles
+    buildArrayCard('Online Articles', formData.online_articles, cardsGrid);
+
+    // Banners
+    buildArrayCard('Banners', formData.banners, cardsGrid);
+
+    // Magazine
+    buildArrayCard('Magazine', formData.magazine, cardsGrid);
+
+    // Video
+    buildArrayCard('Video', formData.video, cardsGrid);
+
+    // Website
+    buildArrayCard('Website', formData.website, cardsGrid);
+
+    // Financial
+    buildArrayCard('Financial', formData.financial, cardsGrid);
+
+    // Financial totals
+    var ft = formData.financial_totals;
+    if (ft && (ft.subtotal || ft.tax || ft.total)) {
+      cardsGrid.appendChild(makeCard('Financial Totals', [
+        { label: 'Subtotal', value: ft.subtotal },
+        { label: 'Tax', value: ft.tax },
+        { label: 'Total', value: ft.total }
+      ]));
+    }
+
+    // Sign off
+    var so = formData.sign_off;
+    if (so && (so.date || so.representative)) {
+      cardsGrid.appendChild(makeCard('Sign Off', [
+        { label: 'Date', value: so.date },
+        { label: 'Representative', value: so.representative }
+      ]));
+    }
+
+    // Any remaining top-level keys not handled above
+    var handled = ['client_information', 'social_media_management', 'agri4all',
+      'online_articles', 'banners', 'magazine', 'video', 'website',
+      'financial', 'financial_totals', 'sign_off'];
+    Object.keys(formData).forEach(function (k) {
+      if (handled.indexOf(k) !== -1) return;
+      var val = formData[k];
+      if (!val) return;
+      if (Array.isArray(val)) {
+        buildArrayCard(prettifyKey(k), val, cardsGrid);
+      } else if (typeof val === 'object') {
+        var fields = flattenObject(val, '');
+        if (fields.length > 0) cardsGrid.appendChild(makeCard(prettifyKey(k), fields));
+      } else {
+        cardsGrid.appendChild(makeCard(prettifyKey(k), [{ label: k, value: String(val) }]));
+      }
+    });
   }
 
   // --- Expose tab renderers (same signature as before) ---
@@ -894,7 +1019,51 @@
 
     refreshAll();
   };
-  window.renderOnboardingTab = function (container) { renderAdminTab(container, 'Onboarding'); };
+  window.renderOnboardingTab = function (container) {
+    _activeContainer = container;
+    _activeTabRenderer = function () { window.renderOnboardingTab(container); };
+    resetContainer(container);
+
+    var grid = document.createElement('div');
+    grid.className = 'proposal-grid';
+
+    var leftCol = document.createElement('div');
+    leftCol.className = 'proposal-grid-left';
+
+    var rightCol = document.createElement('div');
+    rightCol.className = 'proposal-grid-right';
+
+    var onboardingSheet = buildSheet('Onboarding', refreshAll);
+    leftCol.appendChild(onboardingSheet.el);
+
+    var onboardedSheet = buildSheet('Onboarded', refreshAll);
+    rightCol.appendChild(onboardedSheet.el);
+
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    container.appendChild(grid);
+
+    function refreshAll() {
+      fetch(API_BASE, { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          onboardingSheet.update(forms.filter(function (f) {
+            return f.status === 'onboarding';
+          }).map(mapFormToRow));
+          onboardedSheet.update(forms.filter(function (f) {
+            return f.status === 'onboarded';
+          }).map(mapFormToRow));
+        })
+        .catch(function (err) {
+          console.error('Onboarding tab fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  };
   window.renderDeclinedTab = function (container) { renderAdminTab(container, 'Declined Proposal'); };
 
   // Design > Proposals — two-sheet layout (Design Proposals left, Design Review right)
