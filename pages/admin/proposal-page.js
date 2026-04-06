@@ -888,26 +888,31 @@
     return fields;
   }
 
+  // Shorten month label: "February, 2026" -> "Feb", "May 2026" -> "May"
+  function shortMonth(label) {
+    if (!label) return '?';
+    var m = label.replace(/,?\s*\d{4}/, '').trim();
+    return m.substring(0, 3) || label;
+  }
+
   // Tabbed card — shows month tabs at top, content switches per tab
   function makeTabbedCard(title, entries) {
     if (!Array.isArray(entries) || entries.length === 0) return null;
 
     var card = document.createElement('div');
-    card.className = 'client-dashboard-card client-dashboard-card-wide';
+    card.className = 'client-dashboard-card';
     var h = document.createElement('h3');
     h.className = 'client-dashboard-card-title';
     h.textContent = title;
     card.appendChild(h);
 
     if (entries.length === 1) {
-      // Single entry — no tabs needed
-      var fields = flattenObject(entries[0]);
+      var fields = flattenClean(entries[0]);
       var list = buildFieldList(fields);
       card.appendChild(list);
       return card;
     }
 
-    // Month tabs
     var tabBar = document.createElement('div');
     tabBar.className = 'dashboard-tab-bar';
     var contentArea = document.createElement('div');
@@ -918,18 +923,18 @@
       var tab = document.createElement('button');
       tab.className = 'dashboard-tab' + (idx === 0 ? ' active' : '');
       tab.type = 'button';
-      tab.textContent = tabLabel.replace(/\s*\d{4}$/, '').replace(/^\w+\s*/, function (m) { return m.trim().substring(0, 3) + ' '; }).trim() || tabLabel;
+      tab.textContent = shortMonth(tabLabel);
       tab.addEventListener('click', function () {
         tabBar.querySelectorAll('.dashboard-tab').forEach(function (t) { t.classList.remove('active'); });
         tab.classList.add('active');
         while (contentArea.firstChild) contentArea.removeChild(contentArea.firstChild);
-        contentArea.appendChild(buildFieldList(flattenObject(entry)));
+        contentArea.appendChild(buildFieldList(flattenClean(entry)));
       });
       tabBar.appendChild(tab);
     });
 
     card.appendChild(tabBar);
-    contentArea.appendChild(buildFieldList(flattenObject(entries[0])));
+    contentArea.appendChild(buildFieldList(flattenClean(entries[0])));
     card.appendChild(contentArea);
     return card;
   }
@@ -954,19 +959,42 @@
     return list;
   }
 
+  // Smarter flatten — skips zero amounts, false booleans, empty nested objects
+  function flattenClean(obj) {
+    var fields = [];
+    if (!obj || typeof obj !== 'object') return fields;
+    var skip = ['month_label', 'months_display'];
+    Object.keys(obj).forEach(function (k) {
+      if (skip.indexOf(k) !== -1) return;
+      var val = obj[k];
+      if (val === null || val === undefined || val === '' || val === false || val === 0 || val === '0') return;
+      if (val === true) { fields.push({ label: prettifyKey(k), value: 'Yes' }); return; }
+      if (Array.isArray(val)) {
+        var strings = val.filter(function (v) { return typeof v === 'string' && v; });
+        if (strings.length === val.length && val.length > 0) {
+          fields.push({ label: prettifyKey(k), value: val.join(', ') });
+        } else {
+          val.forEach(function (item) {
+            if (typeof item === 'object' && item !== null) {
+              flattenClean(item).forEach(function (s) { fields.push(s); });
+            } else if (item) {
+              fields.push({ label: prettifyKey(k), value: String(item) });
+            }
+          });
+        }
+      } else if (typeof val === 'object') {
+        flattenClean(val).forEach(function (s) { fields.push(s); });
+      } else {
+        fields.push({ label: prettifyKey(k), value: String(val) });
+      }
+    });
+    return fields;
+  }
+
   function buildFormDataCards(cardsGrid, formData, bookingData) {
     if (!formData || typeof formData !== 'object') return;
 
-    // Client information (skip nested contact objects — already in sidebar)
-    var ci = formData.client_information;
-    if (ci) {
-      var ciSimple = {};
-      Object.keys(ci).forEach(function (k) {
-        if (typeof ci[k] !== 'object' && ci[k]) ciSimple[k] = ci[k];
-      });
-      var ciFields = flattenObject(ciSimple);
-      if (ciFields.length > 0) cardsGrid.appendChild(makeCard('Client Information', ciFields));
-    }
+    // Client info already in sidebar — skip it
 
     // Tabbed sections — monthly arrays
     var tabbedSections = [
@@ -1037,7 +1065,7 @@
         var card = makeTabbedCard(prettifyKey(k), val);
         if (card) cardsGrid.appendChild(card);
       } else if (typeof val === 'object') {
-        var fields = flattenObject(val);
+        var fields = flattenClean(val);
         if (fields.length > 0) cardsGrid.appendChild(makeCard(prettifyKey(k), fields));
       } else {
         cardsGrid.appendChild(makeCard(prettifyKey(k), [{ label: prettifyKey(k), value: String(val) }]));
