@@ -850,7 +850,55 @@
   window.renderOnboardingTab = function (container) { renderAdminTab(container, 'Onboarding'); };
   window.renderDeclinedTab = function (container) { renderAdminTab(container, 'Declined Proposal'); };
 
-  // Design tabs — keep as stubs if still needed
-  window.renderDesignProposalsTab = function (container) { renderAdminTab(container, 'Proposal'); };
+  // Design > Proposals — two-sheet layout (Design Proposals left, Design Review right)
+  window.renderDesignProposalsTab = function (container) {
+    _activeContainer = container;
+    _activeTabRenderer = function () { window.renderDesignProposalsTab(container); };
+    resetContainer(container);
+
+    var grid = document.createElement('div');
+    grid.className = 'proposal-grid';
+
+    var leftCol = document.createElement('div');
+    leftCol.className = 'proposal-grid-left';
+
+    var rightCol = document.createElement('div');
+    rightCol.className = 'proposal-grid-right';
+
+    var designSheet = buildSheet('Design Proposals', refreshAll);
+    leftCol.appendChild(designSheet.el);
+
+    var reviewSheet = buildSheet('Design Review', refreshAll);
+    rightCol.appendChild(reviewSheet.el);
+
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    container.appendChild(grid);
+
+    var designStatuses = ['design_proposal'];
+    var reviewStatuses = ['design_review', 'design_changes'];
+
+    function refreshAll() {
+      fetch(API_BASE, { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          designSheet.update(forms.filter(function (f) {
+            return designStatuses.indexOf(f.status) !== -1;
+          }).map(mapFormToRow));
+          reviewSheet.update(forms.filter(function (f) {
+            return reviewStatuses.indexOf(f.status) !== -1;
+          }).map(mapFormToRow));
+        })
+        .catch(function (err) {
+          console.error('Design proposals fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  };
+
   window.renderDesignWebDesignTab = function (container) {};
 })();
