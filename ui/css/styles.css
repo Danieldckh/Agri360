@@ -1072,11 +1072,37 @@ html, body {
   padding: 2px 0;
 }
 
+.client-dashboard-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
 .client-dashboard-title {
   font-size: 20px;
   font-weight: 600;
   color: var(--text-primary, #222);
-  margin: 0 0 20px 0;
+  margin: 0;
+}
+
+.client-dashboard-trash-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.client-dashboard-trash-btn:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+  border-color: rgba(231, 76, 60, 0.2);
 }
 
 .client-dashboard-grid {

@@ -624,13 +624,52 @@
   function renderClientDashboard(container, bookingFormId) {
     resetContainer(container);
 
+    var ICON_TRASH = 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z';
+
     var wrapper = document.createElement('div');
     wrapper.className = 'client-dashboard';
 
+    // Title row with trash icon
+    var titleRow = document.createElement('div');
+    titleRow.className = 'client-dashboard-title-row';
     var titleEl = document.createElement('h2');
     titleEl.className = 'client-dashboard-title';
     titleEl.textContent = 'Loading...';
-    wrapper.appendChild(titleEl);
+    titleRow.appendChild(titleEl);
+
+    var trashBtn = document.createElement('button');
+    trashBtn.className = 'client-dashboard-trash-btn';
+    trashBtn.type = 'button';
+    trashBtn.title = 'Delete booking form';
+    var trashSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    trashSvg.setAttribute('width', '18');
+    trashSvg.setAttribute('height', '18');
+    trashSvg.setAttribute('viewBox', '0 0 24 24');
+    trashSvg.setAttribute('fill', 'currentColor');
+    var trashPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    trashPath.setAttribute('d', ICON_TRASH);
+    trashSvg.appendChild(trashPath);
+    trashBtn.appendChild(trashSvg);
+    trashBtn.addEventListener('click', function () {
+      var clientName = titleEl.textContent || 'this booking form';
+      showConfirmModal(
+        'Delete Booking Form?',
+        'This will permanently delete the booking form for "' + clientName + '". This action cannot be undone.',
+        function () {
+          fetch(API_BASE + '/' + bookingFormId, {
+            method: 'DELETE',
+            headers: getHeaders()
+          }).then(function (res) {
+            if (res.ok) {
+              restoreDashboardSidebar();
+              if (_activeTabRenderer) _activeTabRenderer();
+            }
+          });
+        }
+      );
+    });
+    titleRow.appendChild(trashBtn);
+    wrapper.appendChild(titleRow);
 
     var cardsGrid = document.createElement('div');
     cardsGrid.className = 'client-dashboard-grid';
