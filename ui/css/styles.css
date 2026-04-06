@@ -1025,23 +1025,51 @@ html, body {
   padding: 0 4px;
 }
 
-.client-dashboard-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 1px solid var(--border-color, #ddd);
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 13px;
-  color: var(--text-primary, #333);
-  cursor: pointer;
-  margin-bottom: 16px;
-  transition: background 0.15s;
+/* Sidebar dashboard (shown when viewing a client) */
+.sidebar-dashboard-section {
+  padding: 8px 16px;
 }
 
-.client-dashboard-back:hover {
-  background: var(--hover-bg, rgba(0,0,0,0.04));
+.sidebar-dashboard-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+
+.sidebar-dashboard-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 8px;
+}
+
+.sidebar-dashboard-field {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sidebar-dashboard-label {
+  color: var(--text-secondary, #64748b);
+  flex-shrink: 0;
+}
+
+.sidebar-dashboard-value {
+  color: var(--text-primary, #1e293b);
+  text-align: right;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.sidebar-dashboard-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  text-transform: capitalize;
+  padding: 2px 0;
 }
 
 .client-dashboard-title {
@@ -1096,12 +1124,6 @@ html, body {
 }
 
 .client-dashboard-field:last-child {
-  border-bottom: none;
-}
-
-.client-dashboard-field-header {
-  margin-top: 8px;
-  font-weight: 600;
   border-bottom: none;
 }
 

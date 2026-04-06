@@ -303,30 +303,143 @@
   }
 
   // --- Client Dashboard ---
+  var _savedSidebarHTML = null;
+
+  function showDashboardSidebar(data) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+
+    // Save current sidebar content
+    _savedSidebarHTML = nav.cloneNode(true);
+
+    while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+    // Back button
+    var backItem = document.createElement('a');
+    backItem.className = 'nav-item';
+    backItem.tabIndex = 0;
+    backItem.style.cursor = 'pointer';
+    var backIcon = document.createElement('span');
+    backIcon.className = 'nav-icon';
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'currentColor');
+    var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', ICON_UNDO);
+    svg.appendChild(p);
+    backIcon.appendChild(svg);
+    backItem.appendChild(backIcon);
+    var backLabel = document.createElement('span');
+    backLabel.className = 'nav-label';
+    backLabel.textContent = 'Back';
+    backItem.appendChild(backLabel);
+    backItem.addEventListener('click', function () {
+      restoreDashboardSidebar();
+      if (_activeTabRenderer) _activeTabRenderer();
+    });
+    nav.appendChild(backItem);
+
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(0,0,0,0.08);margin:8px 12px';
+    nav.appendChild(sep);
+
+    // Company info section
+    var companySection = document.createElement('div');
+    companySection.className = 'sidebar-dashboard-section';
+
+    var companyTitle = document.createElement('div');
+    companyTitle.className = 'sidebar-dashboard-title';
+    companyTitle.textContent = data.clientName || data.title || 'Client';
+    companySection.appendChild(companyTitle);
+
+    if (data.clientTradingName) {
+      var trading = document.createElement('div');
+      trading.className = 'sidebar-dashboard-subtitle';
+      trading.textContent = data.clientTradingName;
+      companySection.appendChild(trading);
+    }
+
+    var fields = [
+      { label: 'Reg No', value: data.clientCompanyRegNo },
+      { label: 'VAT', value: data.clientVatNumber },
+      { label: 'Website', value: data.clientWebsite },
+      { label: 'Industry', value: data.clientIndustryExpertise },
+      { label: 'Email', value: data.clientEmail },
+      { label: 'Phone', value: data.clientPhone },
+      { label: 'Address', value: data.clientPhysicalAddress },
+      { label: 'Postal', value: data.clientPostalAddress }
+    ];
+
+    fields.forEach(function (f) {
+      if (!f.value) return;
+      var row = document.createElement('div');
+      row.className = 'sidebar-dashboard-field';
+      var lbl = document.createElement('span');
+      lbl.className = 'sidebar-dashboard-label';
+      lbl.textContent = f.label;
+      row.appendChild(lbl);
+      var val = document.createElement('span');
+      val.className = 'sidebar-dashboard-value';
+      val.textContent = f.value;
+      row.appendChild(val);
+      companySection.appendChild(row);
+    });
+
+    nav.appendChild(companySection);
+
+    // Status & campaign
+    var sep2 = document.createElement('div');
+    sep2.style.cssText = 'height:1px;background:rgba(0,0,0,0.08);margin:8px 12px';
+    nav.appendChild(sep2);
+
+    var statusSection = document.createElement('div');
+    statusSection.className = 'sidebar-dashboard-section';
+    var statusLabel = document.createElement('div');
+    statusLabel.className = 'sidebar-dashboard-meta';
+    statusLabel.textContent = (data.status || '').replace(/_/g, ' ');
+    statusSection.appendChild(statusLabel);
+    if (data.campaignMonthStart || data.campaignMonthEnd) {
+      var campaign = document.createElement('div');
+      campaign.className = 'sidebar-dashboard-meta';
+      campaign.textContent = (data.campaignMonthStart || '?') + ' → ' + (data.campaignMonthEnd || '?');
+      statusSection.appendChild(campaign);
+    }
+    nav.appendChild(statusSection);
+  }
+
+  function restoreDashboardSidebar() {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav || !_savedSidebarHTML) return;
+    while (nav.firstChild) nav.removeChild(nav.firstChild);
+    while (_savedSidebarHTML.firstChild) {
+      nav.appendChild(_savedSidebarHTML.firstChild);
+    }
+    _savedSidebarHTML = null;
+  }
+
+  function parseContact(raw) {
+    if (!raw) return {};
+    if (typeof raw === 'string') try { return JSON.parse(raw); } catch (e) { return {}; }
+    return raw;
+  }
+
+  function makeContactCard(title, contact) {
+    var fields = [];
+    if (contact.name) fields.push({ label: 'Name', value: contact.name });
+    if (contact.email) fields.push({ label: 'Email', value: contact.email });
+    if (contact.cell) fields.push({ label: 'Cell', value: contact.cell });
+    if (contact.tel) fields.push({ label: 'Tel', value: contact.tel });
+    if (fields.length === 0) return null;
+    return makeCard(title, fields);
+  }
+
   function renderClientDashboard(container, bookingFormId) {
     resetContainer(container);
 
     var wrapper = document.createElement('div');
     wrapper.className = 'client-dashboard';
-
-    // Back button
-    var backBtn = document.createElement('button');
-    backBtn.className = 'client-dashboard-back';
-    backBtn.type = 'button';
-    var backArrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    backArrow.setAttribute('width', '16');
-    backArrow.setAttribute('height', '16');
-    backArrow.setAttribute('viewBox', '0 0 24 24');
-    backArrow.setAttribute('fill', 'currentColor');
-    var backPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    backPath.setAttribute('d', ICON_UNDO);
-    backArrow.appendChild(backPath);
-    backBtn.appendChild(backArrow);
-    backBtn.appendChild(document.createTextNode(' Back'));
-    backBtn.addEventListener('click', function () {
-      if (_activeTabRenderer) _activeTabRenderer();
-    });
-    wrapper.appendChild(backBtn);
 
     // Title (placeholder until data loads)
     var titleEl = document.createElement('h2');
@@ -350,59 +463,25 @@
       .then(function (data) {
         titleEl.textContent = data.clientName || data.title || 'Client Dashboard';
 
-        // Card 1: Company Information
-        var companyCard = makeCard('Company Information', [
-          { label: 'Company Name', value: data.clientName },
-          { label: 'Trading Name', value: data.clientTradingName },
-          { label: 'Reg No', value: data.clientCompanyRegNo },
-          { label: 'VAT Number', value: data.clientVatNumber },
-          { label: 'Website', value: data.clientWebsite },
-          { label: 'Industry', value: data.clientIndustryExpertise },
-          { label: 'Physical Address', value: data.clientPhysicalAddress },
-          { label: 'Physical Postal Code', value: data.clientPhysicalPostalCode },
-          { label: 'Postal Address', value: data.clientPostalAddress },
-          { label: 'Postal Code', value: data.clientPostalCode },
-          { label: 'Email', value: data.clientEmail },
-          { label: 'Phone', value: data.clientPhone }
-        ]);
-        cardsGrid.appendChild(companyCard);
+        // Replace sidebar with company info
+        showDashboardSidebar(data);
 
-        // Card 2: Contact Details
-        var contacts = [];
-        var pc = data.clientPrimaryContact || {};
-        if (typeof pc === 'string') try { pc = JSON.parse(pc); } catch (e) { pc = {}; }
-        if (pc.name || pc.email || pc.cell || pc.tel) {
-          contacts.push({ label: 'Primary Contact', value: '' });
-          if (pc.name) contacts.push({ label: '  Name', value: pc.name });
-          if (pc.email) contacts.push({ label: '  Email', value: pc.email });
-          if (pc.cell) contacts.push({ label: '  Cell', value: pc.cell });
-          if (pc.tel) contacts.push({ label: '  Tel', value: pc.tel });
-        }
-        var mc = data.clientMaterialContact || {};
-        if (typeof mc === 'string') try { mc = JSON.parse(mc); } catch (e) { mc = {}; }
-        if (mc.name || mc.email || mc.cell || mc.tel) {
-          contacts.push({ label: 'Material Contact', value: '' });
-          if (mc.name) contacts.push({ label: '  Name', value: mc.name });
-          if (mc.email) contacts.push({ label: '  Email', value: mc.email });
-          if (mc.cell) contacts.push({ label: '  Cell', value: mc.cell });
-          if (mc.tel) contacts.push({ label: '  Tel', value: mc.tel });
-        }
-        var ac = data.clientAccountsContact || {};
-        if (typeof ac === 'string') try { ac = JSON.parse(ac); } catch (e) { ac = {}; }
-        if (ac.name || ac.email || ac.cell || ac.tel) {
-          contacts.push({ label: 'Accounts Contact', value: '' });
-          if (ac.name) contacts.push({ label: '  Name', value: ac.name });
-          if (ac.email) contacts.push({ label: '  Email', value: ac.email });
-          if (ac.cell) contacts.push({ label: '  Cell', value: ac.cell });
-          if (ac.tel) contacts.push({ label: '  Tel', value: ac.tel });
-        }
-        if (contacts.length === 0) {
-          contacts.push({ label: 'Contact Person', value: data.clientContactPerson || 'N/A' });
-        }
-        var contactCard = makeCard('Contact Details', contacts);
-        cardsGrid.appendChild(contactCard);
+        // Card 1: Primary Contact
+        var pc = parseContact(data.clientPrimaryContact);
+        var pcCard = makeContactCard('Primary Contact', pc);
+        if (pcCard) cardsGrid.appendChild(pcCard);
 
-        // Card 3: Booking Info
+        // Card 2: Material Contact
+        var mc = parseContact(data.clientMaterialContact);
+        var mcCard = makeContactCard('Material Contact', mc);
+        if (mcCard) cardsGrid.appendChild(mcCard);
+
+        // Card 3: Accounts Contact
+        var ac = parseContact(data.clientAccountsContact);
+        var acCard = makeContactCard('Accounts Contact', ac);
+        if (acCard) cardsGrid.appendChild(acCard);
+
+        // Card 4: Booking Info
         var bookingCard = makeCard('Booking Information', [
           { label: 'Status', value: data.status },
           { label: 'Campaign Start', value: data.campaignMonthStart },
@@ -414,7 +493,7 @@
         ]);
         cardsGrid.appendChild(bookingCard);
 
-        // Card 4: Raw JSON (formData)
+        // Card 5: Full Checklist JSON
         var jsonCard = document.createElement('div');
         jsonCard.className = 'client-dashboard-card client-dashboard-card-wide';
         var jsonTitle = document.createElement('h3');
@@ -427,6 +506,7 @@
         if (typeof formData === 'string') {
           try { formData = JSON.parse(formData); } catch (e) { /* keep as string */ }
         }
+        // Full JSON — includes all checklist sections
         pre.textContent = JSON.stringify(formData, null, 2);
         jsonCard.appendChild(pre);
         cardsGrid.appendChild(jsonCard);
@@ -450,23 +530,14 @@
       if (!f.value && f.value !== 0) return;
       var row = document.createElement('div');
       row.className = 'client-dashboard-field';
-      if (f.label.startsWith('  ')) {
-        row.style.paddingLeft = '12px';
-        f.label = f.label.trim();
-      } else if (!f.value && f.label) {
-        // Section header (e.g. "Primary Contact")
-        row.className = 'client-dashboard-field client-dashboard-field-header';
-      }
       var lbl = document.createElement('span');
       lbl.className = 'client-dashboard-label';
       lbl.textContent = f.label;
       row.appendChild(lbl);
-      if (f.value) {
-        var val = document.createElement('span');
-        val.className = 'client-dashboard-value';
-        val.textContent = f.value;
-        row.appendChild(val);
-      }
+      var val = document.createElement('span');
+      val.className = 'client-dashboard-value';
+      val.textContent = f.value;
+      row.appendChild(val);
       list.appendChild(row);
     });
     card.appendChild(list);
