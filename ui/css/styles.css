@@ -949,6 +949,32 @@ html, body {
   min-height: 0;
 }
 
+/* Proposal grid layout */
+.proposal-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 16px;
+  width: 100%;
+  align-items: start;
+}
+
+.proposal-grid-left {
+  min-width: 0;
+}
+
+.proposal-grid-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .proposal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .dept-dashboard-layout {
     flex-direction: column;

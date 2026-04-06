@@ -231,6 +231,18 @@ User clicks department (e.g. Admin)
 
 ---
 
+## Checklist (Separate Repo)
+
+The **New Client Booking Form Builder** (checklist wizard) lives in a separate repo:
+- **Repo**: `https://github.com/Danieldckh/checklist-Agri360`
+- **Tech**: Standalone HTML/CSS/JS (no framework, no build step — same as the CRM)
+- **Relationship**: The checklist submits to the CRM API to create clients and booking forms
+- **CRM API URL**: Hardcoded in `app.js` as `CRM_API` constant — points to the Coolify deployment
+- **Upsert logic**: Booking forms are upserted by `checklistId`, which is a hash of `clientName + campaignStart + campaignEnd`. Same client + same campaign date range = update existing, different dates = new booking form.
+- **Status**: Checklist submissions create booking forms with status `outline_proposal` (the first stage in the admin proposal pipeline)
+
+---
+
 ## Deployment
 
 - **Platform**: Coolify (Docker-based)
