@@ -377,8 +377,8 @@
     if (!nav) return;
     var clientId = data.clientId;
 
-    _savedSidebarHTML = nav.cloneNode(true);
-    while (nav.firstChild) nav.removeChild(nav.firstChild);
+    _savedSidebarHTML = document.createDocumentFragment();
+    while (nav.firstChild) _savedSidebarHTML.appendChild(nav.firstChild);
     nav.style.overflowY = 'auto';
 
     // Back button
@@ -520,9 +520,7 @@
     if (!nav || !_savedSidebarHTML) return;
     nav.style.overflowY = '';
     while (nav.firstChild) nav.removeChild(nav.firstChild);
-    while (_savedSidebarHTML.firstChild) {
-      nav.appendChild(_savedSidebarHTML.firstChild);
-    }
+    nav.appendChild(_savedSidebarHTML);
     _savedSidebarHTML = null;
   }
 
