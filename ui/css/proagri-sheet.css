@@ -307,6 +307,11 @@
   color: #16a085;
 }
 
+.proagri-sheet-status-booking_form_sent {
+  background: rgba(0, 172, 193, 0.15);
+  color: #00acc1;
+}
+
 .proagri-sheet-status-onboarding {
   background: rgba(52, 152, 219, 0.15);
   color: #3498db;

@@ -246,7 +246,7 @@ The **New Client Booking Form Builder** (checklist wizard) lives in a separate r
 ## Deployment
 
 - **Platform**: Coolify (Docker-based)
-- **Branch**: `worktree-remove-messaging-folders`
+- **Branch**: `master`
 - **Dockerfile**: Node 20-alpine, `npm ci --production`, serves on port 3001
 - Coolify API credentials in `.env` (COOLIFY_API_TOKEN, COOLIFY_BASE_URL)
 - App UUID: `tows08oogko8k4wk84g40oo4`
