@@ -957,7 +957,7 @@ html, body {
   gap: 16px;
   width: 100%;
   height: calc(100vh - 80px);
-  min-height: 500px;
+  overflow: hidden;
 }
 
 .proposal-grid-left {
@@ -965,11 +965,13 @@ html, body {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .proposal-grid-left .dept-sheet-card {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .proposal-grid-left .dept-sheet-container {
@@ -984,12 +986,13 @@ html, body {
   gap: 16px;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .proposal-grid-right .dept-sheet-card {
   flex: 1;
   min-height: 0;
-  max-height: 50%;
+  overflow: hidden;
 }
 
 .proposal-grid-right .dept-sheet-container {
