@@ -1646,19 +1646,16 @@
     if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
     var posts = meta.posts || [];
     var monthlyPostsCount = meta.monthly_posts || meta.posts_per_month || 0;
-    var changeRequests = meta.change_requests || [];
 
     // Auto-populate posts if empty
     if (posts.length === 0 && monthlyPostsCount > 0) {
       for (var i = 0; i < monthlyPostsCount; i++) {
-        posts.push({ date: '', caption: '', images: [], platforms: { facebook: true, instagram: true, stories: true } });
+        posts.push({ date: '', caption: '', images: [], change_requests: [] });
       }
     }
 
-    // Setup sidebar
     setupCCSidebar(deliverable, meta);
 
-    // Main wrapper
     var wrapper = document.createElement('div');
     wrapper.className = 'cc-dashboard';
 
@@ -1669,13 +1666,18 @@
     title.className = 'cc-dashboard-title';
     title.textContent = deliverable.title || 'Content Calendar';
     titleRow.appendChild(title);
+    var addRowBtn = document.createElement('button');
+    addRowBtn.className = 'cc-add-row-btn';
+    addRowBtn.textContent = '+ Add Post';
+    addRowBtn.addEventListener('click', function () {
+      posts.push({ date: '', caption: '', images: [], change_requests: [] });
+      renderAllRows();
+      savePostData(deliverable.id, posts);
+    });
+    titleRow.appendChild(addRowBtn);
     wrapper.appendChild(titleRow);
 
-    // Two-column layout: posts table (left) + change requests (right)
-    var layout = document.createElement('div');
-    layout.className = 'cc-dashboard-layout';
-
-    // === Posts Table ===
+    // Table
     var tableWrap = document.createElement('div');
     tableWrap.className = 'cc-posts-table-wrap';
 
@@ -1685,140 +1687,144 @@
     // Header
     var thead = document.createElement('div');
     thead.className = 'cc-posts-header';
-    ['#', 'Date', 'Caption', 'Images'].forEach(function (h) {
+    [
+      { label: '#', cls: 'cc-posts-th-num' },
+      { label: 'Date', cls: 'cc-posts-th-date' },
+      { label: 'Caption', cls: 'cc-posts-th-caption' },
+      { label: 'Images', cls: 'cc-posts-th-images' },
+      { label: 'Changes', cls: 'cc-posts-th-changes' },
+      { label: '', cls: 'cc-posts-th-act' }
+    ].forEach(function (h) {
       var th = document.createElement('div');
-      th.className = 'cc-posts-th cc-posts-th-' + h.toLowerCase().replace('#', 'num');
-      th.textContent = h;
+      th.className = 'cc-posts-th ' + h.cls;
+      th.textContent = h.label;
       thead.appendChild(th);
     });
     table.appendChild(thead);
 
-    // Rows
     var tbody = document.createElement('div');
     tbody.className = 'cc-posts-body';
-
-    posts.forEach(function (post, idx) {
-      var row = document.createElement('div');
-      row.className = 'cc-posts-row';
-
-      // Row number
-      var numCell = document.createElement('div');
-      numCell.className = 'cc-posts-cell cc-posts-num';
-      numCell.textContent = idx + 1;
-      row.appendChild(numCell);
-
-      // Date
-      var dateCell = document.createElement('div');
-      dateCell.className = 'cc-posts-cell cc-posts-date';
-      var dateInput = document.createElement('input');
-      dateInput.type = 'date';
-      dateInput.className = 'cc-input';
-      dateInput.value = post.date || '';
-      dateInput.addEventListener('change', function () {
-        post.date = dateInput.value;
-        savePosts(deliverable.id, posts, changeRequests);
-      });
-      dateCell.appendChild(dateInput);
-      row.appendChild(dateCell);
-
-      // Caption (contenteditable rich text)
-      var captionCell = document.createElement('div');
-      captionCell.className = 'cc-posts-cell cc-posts-caption';
-      var captionEditor = document.createElement('div');
-      captionEditor.className = 'cc-caption-editor';
-      captionEditor.contentEditable = 'true';
-      captionEditor.innerHTML = post.caption || '';
-      captionEditor.setAttribute('placeholder', 'Write caption...');
-      captionEditor.addEventListener('blur', function () {
-        post.caption = captionEditor.innerHTML;
-        savePosts(deliverable.id, posts, changeRequests);
-      });
-      captionCell.appendChild(captionEditor);
-      row.appendChild(captionCell);
-
-      // Images
-      var imgCell = document.createElement('div');
-      imgCell.className = 'cc-posts-cell cc-posts-images';
-      var imgGrid = document.createElement('div');
-      imgGrid.className = 'cc-img-grid';
-
-      function renderImages() {
-        while (imgGrid.firstChild) imgGrid.removeChild(imgGrid.firstChild);
-        (post.images || []).forEach(function (url, imgIdx) {
-          var thumb = document.createElement('div');
-          thumb.className = 'cc-img-thumb';
-          var img = document.createElement('img');
-          img.src = url;
-          img.addEventListener('click', function () { openLightbox(url); });
-          thumb.appendChild(img);
-          var removeBtn = document.createElement('button');
-          removeBtn.className = 'cc-img-remove';
-          removeBtn.textContent = '\u00D7';
-          removeBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            post.images.splice(imgIdx, 1);
-            renderImages();
-            savePosts(deliverable.id, posts, changeRequests);
-          });
-          thumb.appendChild(removeBtn);
-          imgGrid.appendChild(thumb);
-        });
-
-        // Upload button
-        var uploadBtn = document.createElement('label');
-        uploadBtn.className = 'cc-img-upload';
-        uploadBtn.textContent = '+';
-        var fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'image/*';
-        fileInput.multiple = true;
-        fileInput.style.display = 'none';
-        fileInput.addEventListener('change', function () {
-          var files = Array.from(fileInput.files);
-          if (files.length === 0) return;
-          var formDataObj = new FormData();
-          files.forEach(function (f) { formDataObj.append('images', f); });
-          fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
-            method: 'POST',
-            headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
-            body: formDataObj
-          }).then(function (res) { return res.json(); })
-            .then(function (result) {
-              if (result.urls) {
-                post.images = (post.images || []).concat(result.urls);
-                renderImages();
-                savePosts(deliverable.id, posts, changeRequests);
-              }
-            }).catch(function (err) { console.error('Upload error:', err); });
-        });
-        uploadBtn.appendChild(fileInput);
-        imgGrid.appendChild(uploadBtn);
-      }
-      renderImages();
-      imgCell.appendChild(imgGrid);
-      row.appendChild(imgCell);
-
-      tbody.appendChild(row);
-    });
-
     table.appendChild(tbody);
     tableWrap.appendChild(table);
-    layout.appendChild(tableWrap);
+    wrapper.appendChild(tableWrap);
+    container.appendChild(wrapper);
 
-    // === Change Requests Panel ===
-    var crPanel = document.createElement('div');
-    crPanel.className = 'cc-change-requests';
-    var crTitle = document.createElement('h3');
-    crTitle.className = 'cc-cr-title';
-    crTitle.textContent = 'Change Requests';
-    crPanel.appendChild(crTitle);
+    function renderAllRows() {
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      posts.forEach(function (post, idx) {
+        tbody.appendChild(buildPostRow(post, idx, deliverable, posts));
+      });
+    }
+    renderAllRows();
+  }
 
-    var crList = document.createElement('div');
-    crList.className = 'cc-cr-list';
+  function buildPostRow(post, idx, deliverable, posts) {
+    var row = document.createElement('div');
+    row.className = 'cc-posts-row';
 
-    function renderChangeRequests() {
-      while (crList.firstChild) crList.removeChild(crList.firstChild);
-      changeRequests.forEach(function (cr, idx) {
+    // #
+    var numCell = document.createElement('div');
+    numCell.className = 'cc-posts-cell cc-posts-num';
+    numCell.textContent = idx + 1;
+    row.appendChild(numCell);
+
+    // Date
+    var dateCell = document.createElement('div');
+    dateCell.className = 'cc-posts-cell cc-posts-date';
+    var dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'cc-input';
+    dateInput.value = post.date || '';
+    dateInput.addEventListener('change', function () {
+      post.date = dateInput.value;
+      savePostData(deliverable.id, posts);
+    });
+    dateCell.appendChild(dateInput);
+    row.appendChild(dateCell);
+
+    // Caption
+    var captionCell = document.createElement('div');
+    captionCell.className = 'cc-posts-cell cc-posts-caption';
+    var captionEditor = document.createElement('div');
+    captionEditor.className = 'cc-caption-editor';
+    captionEditor.contentEditable = 'true';
+    captionEditor.innerHTML = post.caption || '';
+    captionEditor.setAttribute('placeholder', 'Write caption...');
+    captionEditor.addEventListener('blur', function () {
+      post.caption = captionEditor.innerHTML;
+      savePostData(deliverable.id, posts);
+    });
+    captionCell.appendChild(captionEditor);
+    row.appendChild(captionCell);
+
+    // Images
+    var imgCell = document.createElement('div');
+    imgCell.className = 'cc-posts-cell cc-posts-images';
+    var imgGrid = document.createElement('div');
+    imgGrid.className = 'cc-img-grid';
+
+    function renderImages() {
+      while (imgGrid.firstChild) imgGrid.removeChild(imgGrid.firstChild);
+      (post.images || []).forEach(function (url, imgIdx) {
+        var thumb = document.createElement('div');
+        thumb.className = 'cc-img-thumb';
+        var img = document.createElement('img');
+        img.src = url;
+        img.addEventListener('click', function () { openLightbox(url); });
+        thumb.appendChild(img);
+        var removeBtn = document.createElement('button');
+        removeBtn.className = 'cc-img-remove';
+        removeBtn.textContent = '\u00D7';
+        removeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          post.images.splice(imgIdx, 1);
+          renderImages();
+          savePostData(deliverable.id, posts);
+        });
+        thumb.appendChild(removeBtn);
+        imgGrid.appendChild(thumb);
+      });
+      var uploadBtn = document.createElement('label');
+      uploadBtn.className = 'cc-img-upload';
+      uploadBtn.textContent = '+';
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.multiple = true;
+      fileInput.style.display = 'none';
+      fileInput.addEventListener('change', function () {
+        var files = Array.from(fileInput.files);
+        if (files.length === 0) return;
+        var fd = new FormData();
+        files.forEach(function (f) { fd.append('images', f); });
+        fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.urls) {
+              post.images = (post.images || []).concat(result.urls);
+              renderImages();
+              savePostData(deliverable.id, posts);
+            }
+          });
+      });
+      uploadBtn.appendChild(fileInput);
+      imgGrid.appendChild(uploadBtn);
+    }
+    renderImages();
+    imgCell.appendChild(imgGrid);
+    row.appendChild(imgCell);
+
+    // Change Requests (per row)
+    if (!post.change_requests) post.change_requests = [];
+    var crCell = document.createElement('div');
+    crCell.className = 'cc-posts-cell cc-posts-changes';
+
+    function renderCR() {
+      while (crCell.firstChild) crCell.removeChild(crCell.firstChild);
+      post.change_requests.forEach(function (cr, crIdx) {
         var item = document.createElement('div');
         item.className = 'cc-cr-item';
         var cb = document.createElement('input');
@@ -1826,7 +1832,8 @@
         cb.checked = !!cr.done;
         cb.addEventListener('change', function () {
           cr.done = cb.checked;
-          savePosts(deliverable.id, posts, changeRequests);
+          text.className = 'cc-cr-text' + (cr.done ? ' done' : '');
+          savePostData(deliverable.id, posts);
         });
         item.appendChild(cb);
         var text = document.createElement('span');
@@ -1835,45 +1842,63 @@
         text.textContent = cr.text || '';
         text.addEventListener('blur', function () {
           cr.text = text.textContent;
-          savePosts(deliverable.id, posts, changeRequests);
+          savePostData(deliverable.id, posts);
         });
         item.appendChild(text);
         var del = document.createElement('button');
         del.className = 'cc-cr-delete';
         del.textContent = '\u00D7';
         del.addEventListener('click', function () {
-          changeRequests.splice(idx, 1);
-          renderChangeRequests();
-          savePosts(deliverable.id, posts, changeRequests);
+          post.change_requests.splice(crIdx, 1);
+          renderCR();
+          savePostData(deliverable.id, posts);
         });
         item.appendChild(del);
-        crList.appendChild(item);
+        crCell.appendChild(item);
       });
+      var addBtn = document.createElement('button');
+      addBtn.className = 'cc-cr-add-inline';
+      addBtn.textContent = '+';
+      addBtn.title = 'Add change request';
+      addBtn.addEventListener('click', function () {
+        post.change_requests.push({ text: '', done: false });
+        renderCR();
+        var lastText = crCell.querySelector('.cc-cr-item:last-child .cc-cr-text');
+        if (lastText) lastText.focus();
+      });
+      crCell.appendChild(addBtn);
     }
-    renderChangeRequests();
-    crPanel.appendChild(crList);
+    renderCR();
+    row.appendChild(crCell);
 
-    var addCrBtn = document.createElement('button');
-    addCrBtn.className = 'cc-cr-add';
-    addCrBtn.textContent = '+ New Item';
-    addCrBtn.addEventListener('click', function () {
-      changeRequests.push({ text: '', done: false });
-      renderChangeRequests();
-      var lastText = crList.querySelector('.cc-cr-item:last-child .cc-cr-text');
-      if (lastText) lastText.focus();
+    // Delete row button
+    var actCell = document.createElement('div');
+    actCell.className = 'cc-posts-cell cc-posts-act';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'cc-row-delete';
+    delBtn.title = 'Remove post';
+    delBtn.textContent = '\u00D7';
+    delBtn.addEventListener('click', function () {
+      posts.splice(idx, 1);
+      // Re-render all rows (re-indexes)
+      var tbody = row.parentNode;
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      posts.forEach(function (p, i) {
+        tbody.appendChild(buildPostRow(p, i, deliverable, posts));
+      });
+      savePostData(deliverable.id, posts);
     });
-    crPanel.appendChild(addCrBtn);
+    actCell.appendChild(delBtn);
+    row.appendChild(actCell);
 
-    layout.appendChild(crPanel);
-    wrapper.appendChild(layout);
-    container.appendChild(wrapper);
+    return row;
   }
 
-  function savePosts(deliverableId, posts, changeRequests) {
+  function savePostData(deliverableId, posts) {
     fetch(API_BASE + '/' + deliverableId, {
       method: 'PATCH',
       headers: getHeaders(),
-      body: JSON.stringify({ metadata: { posts: posts, change_requests: changeRequests } })
+      body: JSON.stringify({ metadata: { posts: posts } })
     });
   }
 
