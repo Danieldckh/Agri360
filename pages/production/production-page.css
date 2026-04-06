@@ -41,6 +41,12 @@
   color: var(--text-primary, #1e293b);
 }
 
+.prod-deliv-status-cell {
+  overflow: visible;
+  cursor: pointer;
+  white-space: normal;
+}
+
 .prod-deliv-platforms {
   display: flex;
   gap: 3px;

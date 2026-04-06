@@ -1486,18 +1486,15 @@
 
           // Status — clickable dropdown
           var statusCell = document.createElement('div');
-          statusCell.className = 'prod-deliv-cell';
-          statusCell.style.position = 'relative';
+          statusCell.className = 'prod-deliv-cell prod-deliv-status-cell';
           var badge = document.createElement('span');
           badge.className = 'proagri-sheet-status ' + statusClass(item.status);
           badge.textContent = formatStatus(item.status);
-          badge.style.cursor = 'pointer';
           statusCell.appendChild(badge);
 
-          (function (cellEl, badgeEl, itemRef) {
-            badgeEl.addEventListener('click', function (e) {
+          (function (cellEl, itemRef) {
+            cellEl.addEventListener('click', function (e) {
               e.stopPropagation();
-              // Close any existing dropdown
               var existing = document.querySelector('.prod-deliv-status-dropdown');
               if (existing) existing.remove();
 
@@ -1529,7 +1526,12 @@
                 dropdown.appendChild(opt);
               });
 
-              cellEl.appendChild(dropdown);
+              document.body.appendChild(dropdown);
+              var rect = cellEl.getBoundingClientRect();
+              dropdown.style.position = 'fixed';
+              dropdown.style.top = rect.bottom + 4 + 'px';
+              dropdown.style.left = rect.left + 'px';
+
               setTimeout(function () {
                 document.addEventListener('click', function closeDD() {
                   dropdown.remove();
@@ -1537,7 +1539,7 @@
                 });
               }, 0);
             });
-          })(statusCell, badge, item);
+          })(statusCell, item);
 
           row.appendChild(statusCell);
 
