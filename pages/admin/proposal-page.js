@@ -8,7 +8,7 @@
     'outline_proposal', 'design_proposal', 'design_review', 'proposal_ready',
     'sent_to_client', 'booking_form_ready', 'booking_form_sent', 'onboarding', 'onboarded'
   ];
-  var ALL_STATUSES = STATUS_CHAIN.concat(['design_changes', 'client_changes', 'declined']);
+  var ALL_STATUSES = STATUS_CHAIN.concat(['design_changes', 'client_changes', 'declined', 'approved']);
 
   // Tab → which statuses it shows
   var TAB_FILTERS = {
