@@ -986,18 +986,20 @@
       if (card) cardsGrid.appendChild(card);
     });
 
-    // Financial — with currency prefix on amounts
+    // Financial — show all fields per month, handle both formats
     var currency = formData.financial_currency || '';
     var fin = formData.financial;
     if (Array.isArray(fin) && fin.length > 0) {
       var finEntries = fin.map(function (entry) {
-        return {
-          month_label: entry.month_label,
-          months_display: entry.months_display,
-          'Base Price': entry.base_price ? currency + entry.base_price : '',
-          'Discount': entry.discount ? entry.discount + '%' : '',
-          'Subtotal': entry.subtotal ? currency + entry.subtotal : ''
-        };
+        var mapped = { month_label: entry.month_label, months_display: entry.months_display };
+        // Show every field in the entry except month identifiers
+        Object.keys(entry).forEach(function (k) {
+          if (k === 'month_label' || k === 'months_display') return;
+          var val = entry[k];
+          if (val === null || val === undefined || val === '') return;
+          mapped[prettifyKey(k)] = String(val);
+        });
+        return mapped;
       });
       var finCard = makeTabbedCard('Financials', finEntries);
       if (finCard) cardsGrid.appendChild(finCard);
