@@ -1324,4 +1324,237 @@
   window.renderProductionTab = renderProductionTab;
   window.renderFollowUpsTab = renderFollowUpsTab;
   window.renderApprovalsTab = renderApprovalsTab;
+
+  // ── Unified Production Deliverables Tab ─────────────────────
+  function renderProductionDeliverablesTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;';
+
+    // Month selector
+    var monthBar = document.createElement('div');
+    monthBar.className = 'dept-month-selector';
+    var prevBtn = document.createElement('button');
+    prevBtn.id = 'prodDelivPrev';
+    prevBtn.className = 'month-nav-btn';
+    prevBtn.textContent = '\u25C0';
+    var monthLabel = document.createElement('span');
+    monthLabel.id = 'prodDelivLabel';
+    monthLabel.className = 'month-label';
+    var nextBtn = document.createElement('button');
+    nextBtn.id = 'prodDelivNext';
+    nextBtn.className = 'month-nav-btn';
+    nextBtn.textContent = '\u25B6';
+    monthBar.appendChild(prevBtn);
+    monthBar.appendChild(monthLabel);
+    monthBar.appendChild(nextBtn);
+    wrapper.appendChild(monthBar);
+
+    // Sheet card
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card';
+    card.style.flex = '1';
+    card.style.minHeight = '0';
+    card.style.overflow = 'hidden';
+
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = 'Deliverables';
+    titleWrap.appendChild(h);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+    header.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search deliverables...';
+    header.appendChild(searchInput);
+    card.appendChild(header);
+
+    var sheetBody = document.createElement('div');
+    sheetBody.style.cssText = 'flex:1;overflow-y:auto;min-height:0;';
+    card.appendChild(sheetBody);
+    wrapper.appendChild(card);
+    container.appendChild(wrapper);
+
+    var allData = [];
+    var collapsedClients = {};
+
+    function advanceStatus(itemId, type, currentStatus) {
+      if (!workflows) return;
+      var next = workflows.getNextStatus(type, currentStatus);
+      if (!next || !next.next) return;
+      fetch(API_BASE + '/' + itemId, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: next.next })
+      }).then(function (res) {
+        if (res.ok) monthSelector.getCurrentMonth && fetchData(monthSelector.getCurrentMonth());
+      });
+    }
+
+    function renderTable() {
+      while (sheetBody.firstChild) sheetBody.removeChild(sheetBody.firstChild);
+
+      var term = searchInput.value.toLowerCase();
+      var filtered = allData;
+      if (term) {
+        filtered = allData.filter(function (d) {
+          return (d.title || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.clientName || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.status || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.type || '').toLowerCase().indexOf(term) !== -1;
+        });
+      }
+
+      countBadge.textContent = filtered.length;
+      var groups = groupByClient(filtered);
+
+      if (groups.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'proagri-sheet-empty';
+        empty.textContent = 'No deliverables to display';
+        sheetBody.appendChild(empty);
+        return;
+      }
+
+      // Column header
+      var headerRow = document.createElement('div');
+      headerRow.className = 'prod-deliv-row prod-deliv-header';
+      ['Title', 'Status', 'Platforms', 'Posts', 'Month'].forEach(function (col) {
+        var cell = document.createElement('div');
+        cell.className = 'prod-deliv-cell';
+        cell.textContent = col;
+        headerRow.appendChild(cell);
+      });
+      var actCell = document.createElement('div');
+      actCell.className = 'prod-deliv-cell prod-deliv-act';
+      headerRow.appendChild(actCell);
+      sheetBody.appendChild(headerRow);
+
+      groups.forEach(function (group) {
+        var isCollapsed = !!collapsedClients[group.clientName];
+
+        // Client header row
+        var clientRow = document.createElement('div');
+        clientRow.className = 'prod-deliv-client-row';
+        var chevron = document.createElement('span');
+        chevron.className = 'prod-deliv-chevron' + (isCollapsed ? ' collapsed' : '');
+        chevron.textContent = isCollapsed ? '\u25B6' : '\u25BC';
+        clientRow.appendChild(chevron);
+        var clientLabel = document.createElement('span');
+        clientLabel.className = 'prod-deliv-client-name';
+        clientLabel.textContent = group.clientName;
+        clientRow.appendChild(clientLabel);
+        var clientCount = document.createElement('span');
+        clientCount.className = 'prod-deliv-client-count';
+        clientCount.textContent = group.items.length;
+        clientRow.appendChild(clientCount);
+
+        clientRow.addEventListener('click', function () {
+          collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+          renderTable();
+        });
+        sheetBody.appendChild(clientRow);
+
+        if (isCollapsed) return;
+
+        group.items.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'prod-deliv-row';
+
+          // Title
+          var titleCell = document.createElement('div');
+          titleCell.className = 'prod-deliv-cell prod-deliv-title';
+          titleCell.textContent = item.title || '';
+          row.appendChild(titleCell);
+
+          // Status
+          var statusCell = document.createElement('div');
+          statusCell.className = 'prod-deliv-cell';
+          var badge = document.createElement('span');
+          badge.className = 'proagri-sheet-status ' + statusClass(item.status);
+          badge.textContent = formatStatus(item.status);
+          statusCell.appendChild(badge);
+          row.appendChild(statusCell);
+
+          // Platforms (from metadata)
+          var platCell = document.createElement('div');
+          platCell.className = 'prod-deliv-cell prod-deliv-platforms';
+          var meta = item.metadata || {};
+          if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+          var platforms = meta.platforms || [];
+          platforms.forEach(function (p) {
+            var tag = document.createElement('span');
+            tag.className = 'prod-deliv-platform-tag';
+            tag.textContent = (p.platform || p.key || '').substring(0, 2).toUpperCase();
+            tag.title = p.platform || p.key || '';
+            platCell.appendChild(tag);
+          });
+          row.appendChild(platCell);
+
+          // Posts
+          var postsCell = document.createElement('div');
+          postsCell.className = 'prod-deliv-cell prod-deliv-posts';
+          postsCell.textContent = meta.monthly_posts || meta.posts_per_month || '\u2014';
+          row.appendChild(postsCell);
+
+          // Delivery month
+          var monthCell = document.createElement('div');
+          monthCell.className = 'prod-deliv-cell';
+          monthCell.textContent = item.deliveryMonth || '\u2014';
+          row.appendChild(monthCell);
+
+          // Advance button
+          var actCol = document.createElement('div');
+          actCol.className = 'prod-deliv-cell prod-deliv-act';
+          var advBtn = document.createElement('button');
+          advBtn.className = 'proagri-sheet-row-action-btn action-advance';
+          advBtn.type = 'button';
+          advBtn.title = 'Advance status';
+          advBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
+          advBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            advanceStatus(item.id, item.type, item.status);
+          });
+          actCol.appendChild(advBtn);
+          row.appendChild(actCol);
+
+          sheetBody.appendChild(row);
+        });
+      });
+    }
+
+    searchInput.addEventListener('input', renderTable);
+
+    var currentYM = '';
+    function fetchData(ym) {
+      currentYM = ym;
+      fetch(API_BASE + '/by-department/production?month=' + ym, { headers: getHeaders() })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          allData = data;
+          renderTable();
+        })
+        .catch(function (err) {
+          console.error('Production deliverables fetch error:', err);
+        });
+    }
+
+    var monthSelector = initMonthSelector(wrapper, {
+      prev: 'prodDelivPrev',
+      next: 'prodDelivNext',
+      label: 'prodDelivLabel'
+    }, 'production', fetchData);
+  }
+
+  window.renderProductionDeliverablesTab = renderProductionDeliverablesTab;
 })();

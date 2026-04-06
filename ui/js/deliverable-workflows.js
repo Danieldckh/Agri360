@@ -16,8 +16,10 @@
     // Content Calendar (sm-content-calendar)
     'sm-content-calendar': [
       'request_focus_points', 'focus_points_requested', 'focus_points_received',
-      'design', 'design_review', 'proofread',
-      'approved', 'scheduled', 'posted'
+      'design', 'design_review',
+      'editorial', 'editorial_review',
+      'ready_for_approval', 'approved',
+      'ready_for_scheduling', 'scheduled', 'posted'
     ],
 
     // Agri4All types share the same chain
@@ -93,9 +95,12 @@
       'design': 'design',
       'design_review': 'design',
       'design_changes': 'design',
-      'proofread': 'editorial',
+      'editorial': 'editorial',
+      'editorial_review': 'editorial',
+      'ready_for_approval': 'production',
       'approved': 'social-media',
       'client_changes': 'production',
+      'ready_for_scheduling': 'social-media',
       'scheduled': 'social-media',
       'posted': 'social-media'
     },

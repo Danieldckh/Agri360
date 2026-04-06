@@ -393,6 +393,37 @@
   color: #27ae60;
 }
 
+/* Content calendar pipeline statuses */
+.proagri-sheet-status-request_focus_points {
+  background: rgba(142, 68, 173, 0.15);
+  color: #8e44ad;
+}
+
+.proagri-sheet-status-focus_points_requested {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-focus_points_received {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-editorial {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-editorial_review {
+  background: rgba(211, 84, 0, 0.15);
+  color: #d35400;
+}
+
+.proagri-sheet-status-ready_for_scheduling {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
 /* === Multi-Select Tags (in cell) === */
 
 .proagri-sheet-tags {
