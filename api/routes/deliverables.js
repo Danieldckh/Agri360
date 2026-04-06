@@ -474,9 +474,19 @@ router.patch('/:id', async (req, res) => {
     }
   }
 
-  // Handle metadata JSONB
+  // Handle metadata JSONB — merge with existing instead of replacing
   if (body.metadata !== undefined && typeof body.metadata === 'object' && body.metadata !== null) {
-    body.metadata = JSON.stringify(body.metadata);
+    try {
+      const existing = await pool.query('SELECT metadata FROM deliverables WHERE id = $1', [req.params.id]);
+      if (existing.rows.length > 0) {
+        const current = existing.rows[0].metadata || {};
+        body.metadata = JSON.stringify(Object.assign({}, current, body.metadata));
+      } else {
+        body.metadata = JSON.stringify(body.metadata);
+      }
+    } catch (e) {
+      body.metadata = JSON.stringify(body.metadata);
+    }
   }
 
   const fields = ['title', 'description', 'type', 'status', 'assigned_to', 'due_date', 'department_id', 'booking_form_id', 'follow_up_count',
@@ -534,6 +544,33 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('Delete deliverable error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:id/upload-images - upload images for a deliverable
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const imgUploadDir = path.join(__dirname, '../uploads/deliverable-images');
+if (!fs.existsSync(imgUploadDir)) fs.mkdirSync(imgUploadDir, { recursive: true });
+
+const imgStorage = multer.diskStorage({
+  destination: function (req, file, cb) { cb(null, imgUploadDir); },
+  filename: function (req, file, cb) {
+    var ext = path.extname(file.originalname) || '.jpg';
+    cb(null, 'deliv-' + req.params.id + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6) + ext);
+  }
+});
+const imgUpload = multer({ storage: imgStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+router.post('/:id/upload-images', imgUpload.array('images', 10), async (req, res) => {
+  try {
+    var urls = (req.files || []).map(f => '/uploads/deliverable-images/' + f.filename);
+    res.json({ urls: urls });
+  } catch (err) {
+    console.error('Image upload error:', err);
+    res.status(500).json({ error: 'Upload failed' });
   }
 });
 
