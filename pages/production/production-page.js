@@ -1430,6 +1430,7 @@
       var headerRow = document.createElement('div');
       headerRow.className = 'prod-deliv-row prod-deliv-header';
       var headerCols = [
+        { label: '', cls: 'prod-deliv-cell prod-deliv-act' },
         { label: 'Title', cls: 'prod-deliv-cell prod-deliv-title' },
         { label: 'Status', cls: 'prod-deliv-cell' },
         { label: 'Platforms', cls: 'prod-deliv-cell prod-deliv-platforms' },
@@ -1477,6 +1478,23 @@
         group.items.forEach(function (item) {
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
+
+          // Eye icon — open content calendar dashboard
+          var eyeCell = document.createElement('div');
+          eyeCell.className = 'prod-deliv-cell prod-deliv-act';
+          if (item.type === 'sm-content-calendar') {
+            var eyeBtn = document.createElement('button');
+            eyeBtn.className = 'proagri-sheet-row-action-btn action-view';
+            eyeBtn.type = 'button';
+            eyeBtn.title = 'View content calendar';
+            eyeBtn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+            eyeBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              openContentCalendarDashboard(container, item);
+            });
+            eyeCell.appendChild(eyeBtn);
+          }
+          row.appendChild(eyeCell);
 
           // Title
           var titleCell = document.createElement('div');
@@ -1614,4 +1632,384 @@
   }
 
   window.renderProductionDeliverablesTab = renderProductionDeliverablesTab;
+
+  // ── Content Calendar Dashboard ─────────────────────────
+  var _savedProdSidebar = null;
+  var _ccContainer = null;
+  var _ccRefreshFn = null;
+
+  function openContentCalendarDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    var posts = meta.posts || [];
+    var monthlyPostsCount = meta.monthly_posts || meta.posts_per_month || 0;
+    var changeRequests = meta.change_requests || [];
+
+    // Auto-populate posts if empty
+    if (posts.length === 0 && monthlyPostsCount > 0) {
+      for (var i = 0; i < monthlyPostsCount; i++) {
+        posts.push({ date: '', caption: '', images: [], platforms: { facebook: true, instagram: true, stories: true } });
+      }
+    }
+
+    // Setup sidebar
+    setupCCSidebar(deliverable, meta);
+
+    // Main wrapper
+    var wrapper = document.createElement('div');
+    wrapper.className = 'cc-dashboard';
+
+    // Title row
+    var titleRow = document.createElement('div');
+    titleRow.className = 'cc-dashboard-title-row';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Content Calendar';
+    titleRow.appendChild(title);
+    wrapper.appendChild(titleRow);
+
+    // Two-column layout: posts table (left) + change requests (right)
+    var layout = document.createElement('div');
+    layout.className = 'cc-dashboard-layout';
+
+    // === Posts Table ===
+    var tableWrap = document.createElement('div');
+    tableWrap.className = 'cc-posts-table-wrap';
+
+    var table = document.createElement('div');
+    table.className = 'cc-posts-table';
+
+    // Header
+    var thead = document.createElement('div');
+    thead.className = 'cc-posts-header';
+    ['#', 'Date', 'Caption', 'Images'].forEach(function (h) {
+      var th = document.createElement('div');
+      th.className = 'cc-posts-th cc-posts-th-' + h.toLowerCase().replace('#', 'num');
+      th.textContent = h;
+      thead.appendChild(th);
+    });
+    table.appendChild(thead);
+
+    // Rows
+    var tbody = document.createElement('div');
+    tbody.className = 'cc-posts-body';
+
+    posts.forEach(function (post, idx) {
+      var row = document.createElement('div');
+      row.className = 'cc-posts-row';
+
+      // Row number
+      var numCell = document.createElement('div');
+      numCell.className = 'cc-posts-cell cc-posts-num';
+      numCell.textContent = idx + 1;
+      row.appendChild(numCell);
+
+      // Date
+      var dateCell = document.createElement('div');
+      dateCell.className = 'cc-posts-cell cc-posts-date';
+      var dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'cc-input';
+      dateInput.value = post.date || '';
+      dateInput.addEventListener('change', function () {
+        post.date = dateInput.value;
+        savePosts(deliverable.id, posts, changeRequests);
+      });
+      dateCell.appendChild(dateInput);
+      row.appendChild(dateCell);
+
+      // Caption (contenteditable rich text)
+      var captionCell = document.createElement('div');
+      captionCell.className = 'cc-posts-cell cc-posts-caption';
+      var captionEditor = document.createElement('div');
+      captionEditor.className = 'cc-caption-editor';
+      captionEditor.contentEditable = 'true';
+      captionEditor.innerHTML = post.caption || '';
+      captionEditor.setAttribute('placeholder', 'Write caption...');
+      captionEditor.addEventListener('blur', function () {
+        post.caption = captionEditor.innerHTML;
+        savePosts(deliverable.id, posts, changeRequests);
+      });
+      captionCell.appendChild(captionEditor);
+      row.appendChild(captionCell);
+
+      // Images
+      var imgCell = document.createElement('div');
+      imgCell.className = 'cc-posts-cell cc-posts-images';
+      var imgGrid = document.createElement('div');
+      imgGrid.className = 'cc-img-grid';
+
+      function renderImages() {
+        while (imgGrid.firstChild) imgGrid.removeChild(imgGrid.firstChild);
+        (post.images || []).forEach(function (url, imgIdx) {
+          var thumb = document.createElement('div');
+          thumb.className = 'cc-img-thumb';
+          var img = document.createElement('img');
+          img.src = url;
+          img.addEventListener('click', function () { openLightbox(url); });
+          thumb.appendChild(img);
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'cc-img-remove';
+          removeBtn.textContent = '\u00D7';
+          removeBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            post.images.splice(imgIdx, 1);
+            renderImages();
+            savePosts(deliverable.id, posts, changeRequests);
+          });
+          thumb.appendChild(removeBtn);
+          imgGrid.appendChild(thumb);
+        });
+
+        // Upload button
+        var uploadBtn = document.createElement('label');
+        uploadBtn.className = 'cc-img-upload';
+        uploadBtn.textContent = '+';
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.multiple = true;
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', function () {
+          var files = Array.from(fileInput.files);
+          if (files.length === 0) return;
+          var formDataObj = new FormData();
+          files.forEach(function (f) { formDataObj.append('images', f); });
+          fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+            method: 'POST',
+            headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+            body: formDataObj
+          }).then(function (res) { return res.json(); })
+            .then(function (result) {
+              if (result.urls) {
+                post.images = (post.images || []).concat(result.urls);
+                renderImages();
+                savePosts(deliverable.id, posts, changeRequests);
+              }
+            }).catch(function (err) { console.error('Upload error:', err); });
+        });
+        uploadBtn.appendChild(fileInput);
+        imgGrid.appendChild(uploadBtn);
+      }
+      renderImages();
+      imgCell.appendChild(imgGrid);
+      row.appendChild(imgCell);
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    layout.appendChild(tableWrap);
+
+    // === Change Requests Panel ===
+    var crPanel = document.createElement('div');
+    crPanel.className = 'cc-change-requests';
+    var crTitle = document.createElement('h3');
+    crTitle.className = 'cc-cr-title';
+    crTitle.textContent = 'Change Requests';
+    crPanel.appendChild(crTitle);
+
+    var crList = document.createElement('div');
+    crList.className = 'cc-cr-list';
+
+    function renderChangeRequests() {
+      while (crList.firstChild) crList.removeChild(crList.firstChild);
+      changeRequests.forEach(function (cr, idx) {
+        var item = document.createElement('div');
+        item.className = 'cc-cr-item';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!cr.done;
+        cb.addEventListener('change', function () {
+          cr.done = cb.checked;
+          savePosts(deliverable.id, posts, changeRequests);
+        });
+        item.appendChild(cb);
+        var text = document.createElement('span');
+        text.className = 'cc-cr-text' + (cr.done ? ' done' : '');
+        text.contentEditable = 'true';
+        text.textContent = cr.text || '';
+        text.addEventListener('blur', function () {
+          cr.text = text.textContent;
+          savePosts(deliverable.id, posts, changeRequests);
+        });
+        item.appendChild(text);
+        var del = document.createElement('button');
+        del.className = 'cc-cr-delete';
+        del.textContent = '\u00D7';
+        del.addEventListener('click', function () {
+          changeRequests.splice(idx, 1);
+          renderChangeRequests();
+          savePosts(deliverable.id, posts, changeRequests);
+        });
+        item.appendChild(del);
+        crList.appendChild(item);
+      });
+    }
+    renderChangeRequests();
+    crPanel.appendChild(crList);
+
+    var addCrBtn = document.createElement('button');
+    addCrBtn.className = 'cc-cr-add';
+    addCrBtn.textContent = '+ New Item';
+    addCrBtn.addEventListener('click', function () {
+      changeRequests.push({ text: '', done: false });
+      renderChangeRequests();
+      var lastText = crList.querySelector('.cc-cr-item:last-child .cc-cr-text');
+      if (lastText) lastText.focus();
+    });
+    crPanel.appendChild(addCrBtn);
+
+    layout.appendChild(crPanel);
+    wrapper.appendChild(layout);
+    container.appendChild(wrapper);
+  }
+
+  function savePosts(deliverableId, posts, changeRequests) {
+    fetch(API_BASE + '/' + deliverableId, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ metadata: { posts: posts, change_requests: changeRequests } })
+    });
+  }
+
+  function setupCCSidebar(deliverable, meta) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+    _savedProdSidebar = document.createDocumentFragment();
+    while (nav.firstChild) _savedProdSidebar.appendChild(nav.firstChild);
+    nav.style.overflowY = 'auto';
+
+    // Back button
+    var backItem = document.createElement('a');
+    backItem.className = 'nav-item';
+    backItem.tabIndex = 0;
+    backItem.style.cursor = 'pointer';
+    var backIcon = document.createElement('span');
+    backIcon.className = 'nav-icon';
+    backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+    backItem.appendChild(backIcon);
+    var backLabel = document.createElement('span');
+    backLabel.className = 'nav-label';
+    backLabel.textContent = 'Back';
+    backItem.appendChild(backLabel);
+    backItem.addEventListener('click', function () {
+      nav.style.overflowY = '';
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      nav.appendChild(_savedProdSidebar);
+      _savedProdSidebar = null;
+      if (_ccContainer) renderProductionDeliverablesTab(_ccContainer);
+    });
+    nav.appendChild(backItem);
+
+    // Separator
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep);
+
+    // Client & title
+    var section = document.createElement('div');
+    section.style.padding = '4px 16px';
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:14px;font-weight:700;color:var(--text-primary,#1e293b);margin-bottom:2px;';
+    nameEl.textContent = deliverable.clientName || deliverable.title || '';
+    section.appendChild(nameEl);
+    var monthEl = document.createElement('div');
+    monthEl.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);margin-bottom:8px;';
+    monthEl.textContent = deliverable.deliveryMonth || '';
+    section.appendChild(monthEl);
+    nav.appendChild(section);
+
+    // Status
+    var sep2 = document.createElement('div');
+    sep2.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep2);
+    var statusWrap = document.createElement('div');
+    statusWrap.style.padding = '4px 16px';
+    var statusBadge = document.createElement('span');
+    statusBadge.className = 'proagri-sheet-status ' + statusClass(deliverable.status);
+    statusBadge.textContent = formatStatus(deliverable.status);
+    statusWrap.appendChild(statusBadge);
+    nav.appendChild(statusWrap);
+
+    // Posts count
+    var sep3 = document.createElement('div');
+    sep3.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep3);
+    var headerEl = document.createElement('div');
+    headerEl.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+    headerEl.textContent = 'Details';
+    nav.appendChild(headerEl);
+
+    var detailsWrap = document.createElement('div');
+    detailsWrap.style.padding = '0 16px';
+
+    function addDetail(label, value) {
+      if (!value) return;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-size:11px;';
+      var lbl = document.createElement('span');
+      lbl.style.color = 'var(--text-secondary,#64748b)';
+      lbl.textContent = label;
+      row.appendChild(lbl);
+      var val = document.createElement('span');
+      val.style.cssText = 'color:var(--text-primary,#1e293b);font-weight:500;text-align:right;';
+      val.textContent = value;
+      row.appendChild(val);
+      detailsWrap.appendChild(row);
+    }
+
+    addDetail('Monthly Posts', meta.monthly_posts || meta.posts_per_month || '');
+    addDetail('Type', 'Content Calendar');
+
+    nav.appendChild(detailsWrap);
+
+    // Platforms — Facebook, Instagram, Stories
+    var sep4 = document.createElement('div');
+    sep4.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep4);
+    var platHeader = document.createElement('div');
+    platHeader.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+    platHeader.textContent = 'Platforms';
+    nav.appendChild(platHeader);
+
+    var platWrap = document.createElement('div');
+    platWrap.style.padding = '0 16px';
+    var platforms = meta.platforms || [];
+    var hasFb = platforms.some(function (p) { return p.key === 'facebook'; });
+    var hasIg = platforms.some(function (p) { return p.key === 'instagram'; });
+    // Stories is derived from Instagram being present
+    var hasStories = hasIg;
+
+    [{ name: 'Facebook', active: hasFb }, { name: 'Instagram', active: hasIg }, { name: 'Stories', active: hasStories }].forEach(function (pl) {
+      if (!pl.active) return;
+      var tag = document.createElement('div');
+      tag.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px 4px 2px 0;border-radius:12px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.1);color:#3b82f6;';
+      tag.textContent = pl.name;
+      platWrap.appendChild(tag);
+    });
+    nav.appendChild(platWrap);
+  }
+
+  // Lightbox
+  function openLightbox(url) {
+    var overlay = document.createElement('div');
+    overlay.className = 'cc-lightbox';
+    var img = document.createElement('img');
+    img.src = url;
+    img.className = 'cc-lightbox-img';
+    overlay.appendChild(img);
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'cc-lightbox-close';
+    closeBtn.textContent = '\u00D7';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    overlay.appendChild(closeBtn);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
 })();
