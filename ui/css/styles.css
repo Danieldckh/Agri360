@@ -1027,28 +1027,48 @@ html, body {
 
 /* Sidebar dashboard (shown when viewing a client) */
 .sidebar-dashboard-section {
-  padding: 8px 16px;
+  padding: 4px 16px;
+}
+
+.sidebar-dashboard-sep {
+  height: 1px;
+  background: rgba(128, 128, 128, 0.12);
+  margin: 6px 16px;
+}
+
+.sidebar-dashboard-section-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #94a3b8);
+  padding: 4px 16px 4px;
 }
 
 .sidebar-dashboard-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary, #1e293b);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   word-break: break-word;
+  line-height: 1.3;
 }
 
 .sidebar-dashboard-subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary, #64748b);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.sidebar-dashboard-fields-wrap {
+  padding: 0 16px;
 }
 
 .sidebar-dashboard-field {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  padding: 3px 0;
+  gap: 6px;
+  padding: 2px 0;
   font-size: 11px;
   line-height: 1.4;
 }
@@ -1065,11 +1085,39 @@ html, body {
   font-weight: 500;
 }
 
-.sidebar-dashboard-meta {
+.sidebar-dashboard-contact {
+  padding: 4px 16px 6px;
+}
+
+.sidebar-dashboard-contact-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 2px;
+}
+
+.sidebar-dashboard-contact-name {
   font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.sidebar-dashboard-contact-detail {
+  font-size: 11px;
   color: var(--text-secondary, #64748b);
-  text-transform: capitalize;
-  padding: 2px 0;
+  line-height: 1.4;
+}
+
+.sidebar-dashboard-status {
+  padding: 4px 16px 2px;
+}
+
+.sidebar-dashboard-meta {
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  padding: 1px 16px;
 }
 
 .client-dashboard-title-row {

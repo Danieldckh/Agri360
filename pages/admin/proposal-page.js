@@ -309,10 +309,11 @@
     var nav = document.querySelector('#sidebar nav');
     if (!nav) return;
 
-    // Save current sidebar content
     _savedSidebarHTML = nav.cloneNode(true);
-
     while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+    // Make sidebar scrollable for this view
+    nav.style.overflowY = 'auto';
 
     // Back button
     var backItem = document.createElement('a');
@@ -341,27 +342,68 @@
     });
     nav.appendChild(backItem);
 
-    var sep = document.createElement('div');
-    sep.style.cssText = 'height:1px;background:rgba(0,0,0,0.08);margin:8px 12px';
-    nav.appendChild(sep);
+    function addSep() {
+      var s = document.createElement('div');
+      s.className = 'sidebar-dashboard-sep';
+      nav.appendChild(s);
+    }
 
-    // Company info section
+    function addSectionHeader(text) {
+      var h = document.createElement('div');
+      h.className = 'sidebar-dashboard-section-header';
+      h.textContent = text;
+      nav.appendChild(h);
+    }
+
+    function addFieldRow(label, value) {
+      if (!value) return;
+      var row = document.createElement('div');
+      row.className = 'sidebar-dashboard-field';
+      var lbl = document.createElement('span');
+      lbl.className = 'sidebar-dashboard-label';
+      lbl.textContent = label;
+      row.appendChild(lbl);
+      var val = document.createElement('span');
+      val.className = 'sidebar-dashboard-value';
+      val.textContent = value;
+      row.appendChild(val);
+      nav.appendChild(row);
+    }
+
+    function addContactBlock(title, contact) {
+      if (!contact) return;
+      var c = parseContact(contact);
+      if (!c.name && !c.email && !c.cell && !c.tel) return;
+      var block = document.createElement('div');
+      block.className = 'sidebar-dashboard-contact';
+      var label = document.createElement('div');
+      label.className = 'sidebar-dashboard-contact-title';
+      label.textContent = title;
+      block.appendChild(label);
+      if (c.name) { var n = document.createElement('div'); n.className = 'sidebar-dashboard-contact-name'; n.textContent = c.name; block.appendChild(n); }
+      if (c.email) { var e = document.createElement('div'); e.className = 'sidebar-dashboard-contact-detail'; e.textContent = c.email; block.appendChild(e); }
+      if (c.cell) { var cl = document.createElement('div'); cl.className = 'sidebar-dashboard-contact-detail'; cl.textContent = c.cell; block.appendChild(cl); }
+      if (c.tel) { var t = document.createElement('div'); t.className = 'sidebar-dashboard-contact-detail'; t.textContent = c.tel; block.appendChild(t); }
+      nav.appendChild(block);
+    }
+
+    // === Company Info ===
+    addSep();
     var companySection = document.createElement('div');
     companySection.className = 'sidebar-dashboard-section';
-
     var companyTitle = document.createElement('div');
     companyTitle.className = 'sidebar-dashboard-title';
     companyTitle.textContent = data.clientName || data.title || 'Client';
     companySection.appendChild(companyTitle);
-
     if (data.clientTradingName) {
       var trading = document.createElement('div');
       trading.className = 'sidebar-dashboard-subtitle';
       trading.textContent = data.clientTradingName;
       companySection.appendChild(trading);
     }
+    nav.appendChild(companySection);
 
-    var fields = [
+    var companyFields = [
       { label: 'Reg No', value: data.clientCompanyRegNo },
       { label: 'VAT', value: data.clientVatNumber },
       { label: 'Website', value: data.clientWebsite },
@@ -371,8 +413,9 @@
       { label: 'Address', value: data.clientPhysicalAddress },
       { label: 'Postal', value: data.clientPostalAddress }
     ];
-
-    fields.forEach(function (f) {
+    var cfWrap = document.createElement('div');
+    cfWrap.className = 'sidebar-dashboard-fields-wrap';
+    companyFields.forEach(function (f) {
       if (!f.value) return;
       var row = document.createElement('div');
       row.className = 'sidebar-dashboard-field';
@@ -384,34 +427,59 @@
       val.className = 'sidebar-dashboard-value';
       val.textContent = f.value;
       row.appendChild(val);
-      companySection.appendChild(row);
+      cfWrap.appendChild(row);
     });
+    nav.appendChild(cfWrap);
 
-    nav.appendChild(companySection);
+    // === Contacts ===
+    addSep();
+    addSectionHeader('Contacts');
+    addContactBlock('Primary', data.clientPrimaryContact);
+    addContactBlock('Material', data.clientMaterialContact);
+    addContactBlock('Accounts', data.clientAccountsContact);
 
-    // Status & campaign
-    var sep2 = document.createElement('div');
-    sep2.style.cssText = 'height:1px;background:rgba(0,0,0,0.08);margin:8px 12px';
-    nav.appendChild(sep2);
+    // === Booking Info ===
+    addSep();
+    addSectionHeader('Booking');
+    var statusBadge = document.createElement('div');
+    statusBadge.className = 'sidebar-dashboard-status';
+    var badge = document.createElement('span');
+    badge.className = 'proagri-sheet-status proagri-sheet-status-' + (data.status || '').replace(/\s/g, '_');
+    badge.textContent = (data.status || '').replace(/_/g, ' ');
+    badge.style.textTransform = 'capitalize';
+    statusBadge.appendChild(badge);
+    nav.appendChild(statusBadge);
 
-    var statusSection = document.createElement('div');
-    statusSection.className = 'sidebar-dashboard-section';
-    var statusLabel = document.createElement('div');
-    statusLabel.className = 'sidebar-dashboard-meta';
-    statusLabel.textContent = (data.status || '').replace(/_/g, ' ');
-    statusSection.appendChild(statusLabel);
-    if (data.campaignMonthStart || data.campaignMonthEnd) {
-      var campaign = document.createElement('div');
-      campaign.className = 'sidebar-dashboard-meta';
-      campaign.textContent = (data.campaignMonthStart || '?') + ' → ' + (data.campaignMonthEnd || '?');
-      statusSection.appendChild(campaign);
-    }
-    nav.appendChild(statusSection);
+    var bfWrap = document.createElement('div');
+    bfWrap.className = 'sidebar-dashboard-fields-wrap';
+    var bookingFields = [
+      { label: 'Campaign', value: (data.campaignMonthStart && data.campaignMonthEnd) ? data.campaignMonthStart + ' → ' + data.campaignMonthEnd : (data.campaignMonthStart || data.campaignMonthEnd || null) },
+      { label: 'Booked', value: data.bookedDate },
+      { label: 'Due', value: data.dueDate },
+      { label: 'Rep', value: data.representative },
+      { label: 'Checklist', value: data.checklistId }
+    ];
+    bookingFields.forEach(function (f) {
+      if (!f.value) return;
+      var row = document.createElement('div');
+      row.className = 'sidebar-dashboard-field';
+      var lbl = document.createElement('span');
+      lbl.className = 'sidebar-dashboard-label';
+      lbl.textContent = f.label;
+      row.appendChild(lbl);
+      var val = document.createElement('span');
+      val.className = 'sidebar-dashboard-value';
+      val.textContent = f.value;
+      row.appendChild(val);
+      bfWrap.appendChild(row);
+    });
+    nav.appendChild(bfWrap);
   }
 
   function restoreDashboardSidebar() {
     var nav = document.querySelector('#sidebar nav');
     if (!nav || !_savedSidebarHTML) return;
+    nav.style.overflowY = '';
     while (nav.firstChild) nav.removeChild(nav.firstChild);
     while (_savedSidebarHTML.firstChild) {
       nav.appendChild(_savedSidebarHTML.firstChild);
@@ -688,16 +756,15 @@
 
         showDashboardSidebar(data);
 
-        // Contact cards — show existing, add button for missing
+        // Contact edit cards — show existing, add button for missing
         var contactTypes = [
           { key: 'primaryContact', title: 'Primary Contact', data: data.clientPrimaryContact },
           { key: 'materialContact', title: 'Material Contact', data: data.clientMaterialContact },
           { key: 'accountsContact', title: 'Accounts Contact', data: data.clientAccountsContact }
         ];
 
-        // Bookmark where booking card will go, so add-contact buttons insert before it
-        var bookingAnchor = document.createElement('div');
-        bookingAnchor.style.display = 'contents';
+        var jsonAnchor = document.createElement('div');
+        jsonAnchor.style.display = 'contents';
 
         contactTypes.forEach(function (ct) {
           var contact = parseContact(ct.data);
@@ -706,41 +773,12 @@
             var card = makeContactCard(ct.title, contact, ct.key, clientId, cardsGrid);
             cardsGrid.appendChild(card);
           } else {
-            var addBtn = makeAddContactBtn(cardsGrid, clientId, ct.key, ct.title, bookingAnchor);
+            var addBtn = makeAddContactBtn(cardsGrid, clientId, ct.key, ct.title, jsonAnchor);
             cardsGrid.appendChild(addBtn);
           }
         });
 
-        cardsGrid.appendChild(bookingAnchor);
-
-        // Booking Info — editable
-        var bookingCard = document.createElement('div');
-        bookingCard.className = 'client-dashboard-card';
-        var bh = document.createElement('h3');
-        bh.className = 'client-dashboard-card-title';
-        bh.textContent = 'Booking Information';
-        bookingCard.appendChild(bh);
-        var bl = document.createElement('div');
-        bl.className = 'client-dashboard-fields';
-        bl.appendChild(makeEditableField('Status', data.status, function (v) { return saveBookingField(data.id, 'status', v); }));
-        bl.appendChild(makeEditableField('Campaign Start', data.campaignMonthStart, function (v) { return saveBookingField(data.id, 'campaignMonthStart', v); }));
-        bl.appendChild(makeEditableField('Campaign End', data.campaignMonthEnd, function (v) { return saveBookingField(data.id, 'campaignMonthEnd', v); }));
-        bl.appendChild(makeEditableField('Booked Date', data.bookedDate, function (v) { return saveBookingField(data.id, 'bookedDate', v); }));
-        bl.appendChild(makeEditableField('Due Date', data.dueDate, function (v) { return saveBookingField(data.id, 'dueDate', v); }));
-        bl.appendChild(makeEditableField('Representative', data.representative, function (v) { return saveBookingField(data.id, 'representative', v); }));
-        var cidRow = document.createElement('div');
-        cidRow.className = 'client-dashboard-field';
-        var cidLbl = document.createElement('span');
-        cidLbl.className = 'client-dashboard-label';
-        cidLbl.textContent = 'Checklist ID';
-        cidRow.appendChild(cidLbl);
-        var cidVal = document.createElement('span');
-        cidVal.className = 'client-dashboard-value';
-        cidVal.textContent = data.checklistId || '—';
-        cidRow.appendChild(cidVal);
-        bl.appendChild(cidRow);
-        bookingCard.appendChild(bl);
-        cardsGrid.appendChild(bookingCard);
+        cardsGrid.appendChild(jsonAnchor);
 
         // Full Checklist JSON
         var jsonCard = document.createElement('div');
