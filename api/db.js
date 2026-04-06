@@ -93,7 +93,7 @@ async function runMigrations() {
     await client.query(`CREATE TABLE IF NOT EXISTS deliverables (
       id SERIAL PRIMARY KEY, booking_form_id INT REFERENCES booking_forms(id) ON DELETE CASCADE,
       department_id INT REFERENCES departments(id), type VARCHAR(100), title VARCHAR(255),
-      description TEXT, status VARCHAR(20) DEFAULT 'pending', assigned_to INT REFERENCES employees(id),
+      description TEXT, status VARCHAR(50) DEFAULT 'pending', assigned_to INT REFERENCES employees(id),
       due_date DATE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
     )`);
     await client.query(`CREATE TABLE IF NOT EXISTS dashboards (
