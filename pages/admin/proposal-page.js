@@ -853,22 +853,34 @@
     return key.replace(/[_-]/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
-  function flattenObject(obj, prefix) {
+  function flattenObject(obj) {
     var fields = [];
     if (!obj || typeof obj !== 'object') return fields;
+    var skip = ['month_label', 'months_display'];
     Object.keys(obj).forEach(function (k) {
+      if (skip.indexOf(k) !== -1) return;
       var val = obj[k];
-      var label = prefix ? prefix + ' > ' + prettifyKey(k) : prettifyKey(k);
-      if (val === null || val === undefined || val === '') return;
-      if (typeof val === 'boolean') {
-        if (val) fields.push({ label: prettifyKey(k), value: 'Yes' });
-      } else if (typeof val === 'object' && !Array.isArray(val)) {
-        fields = fields.concat(flattenObject(val, ''));
-      } else if (Array.isArray(val)) {
-        var stringItems = val.filter(function (v) { return typeof v === 'string'; });
-        if (stringItems.length === val.length && val.length > 0) {
+      if (val === null || val === undefined || val === '' || val === false) return;
+      if (val === true) { fields.push({ label: prettifyKey(k), value: 'Yes' }); return; }
+      if (Array.isArray(val)) {
+        // Array of strings
+        var strings = val.filter(function (v) { return typeof v === 'string'; });
+        if (strings.length === val.length && val.length > 0) {
           fields.push({ label: prettifyKey(k), value: val.join(', ') });
+        } else {
+          // Array of objects — flatten each
+          val.forEach(function (item, i) {
+            if (typeof item === 'object' && item !== null) {
+              var sub = flattenObject(item);
+              sub.forEach(function (s) { fields.push(s); });
+            } else if (item) {
+              fields.push({ label: prettifyKey(k) + ' ' + (i + 1), value: String(item) });
+            }
+          });
         }
+      } else if (typeof val === 'object') {
+        var sub = flattenObject(val);
+        sub.forEach(function (s) { fields.push(s); });
       } else {
         fields.push({ label: prettifyKey(k), value: String(val) });
       }
@@ -876,88 +888,129 @@
     return fields;
   }
 
-  function buildArrayCard(title, arr, cardsGrid) {
-    if (!Array.isArray(arr) || arr.length === 0) return;
-    arr.forEach(function (entry, idx) {
-      if (!entry || typeof entry !== 'object') return;
-      var fields = flattenObject(entry, '');
-      if (fields.length === 0) return;
-      var label = arr.length > 1 ? title + ' — ' + (entry.month || entry.platform || entry.name || '#' + (idx + 1)) : title;
-      cardsGrid.appendChild(makeCard(label, fields));
+  // Tabbed card — shows month tabs at top, content switches per tab
+  function makeTabbedCard(title, entries) {
+    if (!Array.isArray(entries) || entries.length === 0) return null;
+
+    var card = document.createElement('div');
+    card.className = 'client-dashboard-card client-dashboard-card-wide';
+    var h = document.createElement('h3');
+    h.className = 'client-dashboard-card-title';
+    h.textContent = title;
+    card.appendChild(h);
+
+    if (entries.length === 1) {
+      // Single entry — no tabs needed
+      var fields = flattenObject(entries[0]);
+      var list = buildFieldList(fields);
+      card.appendChild(list);
+      return card;
+    }
+
+    // Month tabs
+    var tabBar = document.createElement('div');
+    tabBar.className = 'dashboard-tab-bar';
+    var contentArea = document.createElement('div');
+    contentArea.className = 'dashboard-tab-content';
+
+    entries.forEach(function (entry, idx) {
+      var tabLabel = entry.month_label || entry.months_display || '#' + (idx + 1);
+      var tab = document.createElement('button');
+      tab.className = 'dashboard-tab' + (idx === 0 ? ' active' : '');
+      tab.type = 'button';
+      tab.textContent = tabLabel.replace(/\s*\d{4}$/, '').replace(/^\w+\s*/, function (m) { return m.trim().substring(0, 3) + ' '; }).trim() || tabLabel;
+      tab.addEventListener('click', function () {
+        tabBar.querySelectorAll('.dashboard-tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        while (contentArea.firstChild) contentArea.removeChild(contentArea.firstChild);
+        contentArea.appendChild(buildFieldList(flattenObject(entry)));
+      });
+      tabBar.appendChild(tab);
     });
+
+    card.appendChild(tabBar);
+    contentArea.appendChild(buildFieldList(flattenObject(entries[0])));
+    card.appendChild(contentArea);
+    return card;
+  }
+
+  function buildFieldList(fields) {
+    var list = document.createElement('div');
+    list.className = 'client-dashboard-fields';
+    fields.forEach(function (f) {
+      if (!f.value && f.value !== 0) return;
+      var row = document.createElement('div');
+      row.className = 'client-dashboard-field';
+      var lbl = document.createElement('span');
+      lbl.className = 'client-dashboard-label';
+      lbl.textContent = f.label;
+      row.appendChild(lbl);
+      var val = document.createElement('span');
+      val.className = 'client-dashboard-value';
+      val.textContent = f.value;
+      row.appendChild(val);
+      list.appendChild(row);
+    });
+    return list;
   }
 
   function buildFormDataCards(cardsGrid, formData, bookingData) {
     if (!formData || typeof formData !== 'object') return;
 
-    // Client information
+    // Client information (skip nested contact objects — already in sidebar)
     var ci = formData.client_information;
     if (ci) {
-      var ciFields = [];
       var ciSimple = {};
-      var contacts = {};
       Object.keys(ci).forEach(function (k) {
-        if (typeof ci[k] === 'object' && ci[k] !== null && !Array.isArray(ci[k])) {
-          contacts[k] = ci[k];
-        } else if (ci[k]) {
-          ciSimple[k] = ci[k];
-        }
+        if (typeof ci[k] !== 'object' && ci[k]) ciSimple[k] = ci[k];
       });
-      ciFields = flattenObject(ciSimple, '');
+      var ciFields = flattenObject(ciSimple);
       if (ciFields.length > 0) cardsGrid.appendChild(makeCard('Client Information', ciFields));
     }
 
-    // Social media management
-    buildArrayCard('Social Media', formData.social_media_management, cardsGrid);
+    // Tabbed sections — monthly arrays
+    var tabbedSections = [
+      { key: 'social_media_management', title: 'Social Media Management' },
+      { key: 'agri4all', title: 'Agri4All' },
+      { key: 'online_articles', title: 'Online Articles' },
+      { key: 'banners', title: 'Banners' },
+      { key: 'magazine', title: 'Magazine / Print' },
+      { key: 'video', title: 'Video' },
+      { key: 'website', title: 'Website' }
+    ];
 
-    // Agri4All
-    buildArrayCard('Agri4All', formData.agri4all, cardsGrid);
+    tabbedSections.forEach(function (sec) {
+      var arr = formData[sec.key];
+      if (!Array.isArray(arr) || arr.length === 0) return;
+      var card = makeTabbedCard(sec.title, arr);
+      if (card) cardsGrid.appendChild(card);
+    });
 
-    // Online articles
-    buildArrayCard('Online Articles', formData.online_articles, cardsGrid);
-
-    // Banners
-    buildArrayCard('Banners', formData.banners, cardsGrid);
-
-    // Magazine
-    buildArrayCard('Magazine', formData.magazine, cardsGrid);
-
-    // Video
-    buildArrayCard('Video', formData.video, cardsGrid);
-
-    // Website
-    buildArrayCard('Website', formData.website, cardsGrid);
-
-    // Financial — full breakdown per month
+    // Financial — with currency prefix on amounts
     var currency = formData.financial_currency || '';
     var fin = formData.financial;
     if (Array.isArray(fin) && fin.length > 0) {
-      fin.forEach(function (entry) {
-        if (!entry || typeof entry !== 'object') return;
-        var label = 'Financial' + (entry.month_label ? ' — ' + entry.month_label : (entry.months_display ? ' — ' + entry.months_display : ''));
-        var fields = [];
-        if (entry.months_display) fields.push({ label: 'Period', value: entry.months_display });
-        if (entry.base_price) fields.push({ label: 'Base Price', value: currency + entry.base_price });
-        if (entry.discount) fields.push({ label: 'Discount', value: entry.discount + '%' });
-        if (entry.subtotal) fields.push({ label: 'Subtotal', value: currency + entry.subtotal });
-        // Include any other fields in this entry
-        Object.keys(entry).forEach(function (k) {
-          if (['month_label', 'months_display', 'base_price', 'discount', 'subtotal'].indexOf(k) !== -1) return;
-          if (entry[k] === null || entry[k] === undefined || entry[k] === '') return;
-          fields.push({ label: prettifyKey(k), value: String(entry[k]) });
-        });
-        if (fields.length > 0) cardsGrid.appendChild(makeCard(label, fields));
+      var finEntries = fin.map(function (entry) {
+        return {
+          month_label: entry.month_label,
+          months_display: entry.months_display,
+          'Base Price': entry.base_price ? currency + entry.base_price : '',
+          'Discount': entry.discount ? entry.discount + '%' : '',
+          'Subtotal': entry.subtotal ? currency + entry.subtotal : ''
+        };
       });
+      var finCard = makeTabbedCard('Financials', finEntries);
+      if (finCard) cardsGrid.appendChild(finCard);
     }
 
     // Financial totals
     var ft = formData.financial_totals;
     if (ft && (ft.subtotal || ft.tax || ft.total)) {
       var totalsFields = [];
+      if (currency) totalsFields.push({ label: 'Currency', value: currency.trim() });
       if (ft.subtotal) totalsFields.push({ label: 'Subtotal', value: ft.subtotal });
       if (ft.tax) totalsFields.push({ label: 'VAT (15%)', value: ft.tax });
       if (ft.total) totalsFields.push({ label: 'Total', value: ft.total });
-      if (currency) totalsFields.unshift({ label: 'Currency', value: currency });
       cardsGrid.appendChild(makeCard('Financial Totals', totalsFields));
     }
 
@@ -970,7 +1023,7 @@
       ]));
     }
 
-    // Any remaining top-level keys not handled above
+    // Any remaining top-level keys
     var handled = ['client_information', 'social_media_management', 'agri4all',
       'online_articles', 'banners', 'magazine', 'video', 'website',
       'financial', 'financial_totals', 'financial_currency', 'sign_off'];
@@ -978,13 +1031,14 @@
       if (handled.indexOf(k) !== -1) return;
       var val = formData[k];
       if (!val) return;
-      if (Array.isArray(val)) {
-        buildArrayCard(prettifyKey(k), val, cardsGrid);
+      if (Array.isArray(val) && val.length > 0) {
+        var card = makeTabbedCard(prettifyKey(k), val);
+        if (card) cardsGrid.appendChild(card);
       } else if (typeof val === 'object') {
-        var fields = flattenObject(val, '');
+        var fields = flattenObject(val);
         if (fields.length > 0) cardsGrid.appendChild(makeCard(prettifyKey(k), fields));
       } else {
-        cardsGrid.appendChild(makeCard(prettifyKey(k), [{ label: k, value: String(val) }]));
+        cardsGrid.appendChild(makeCard(prettifyKey(k), [{ label: prettifyKey(k), value: String(val) }]));
       }
     });
   }
