@@ -521,37 +521,45 @@ html, body {
 
 /* Month selector above dept sheets */
 .dept-month-selector {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   margin-bottom: 12px;
   flex-shrink: 0;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .dept-month-nav {
   background: none;
-  border: 1px solid rgba(128, 128, 128, 0.15);
-  border-radius: 6px;
-  color: var(--text-primary);
+  border: none;
+  color: var(--text-secondary, #64748b);
   cursor: pointer;
-  font-size: 10px;
-  padding: 4px 8px;
-  transition: background 0.15s, border-color 0.15s;
+  font-size: 11px;
+  padding: 8px 12px;
+  transition: background 0.15s, color 0.15s;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 .dept-month-nav:hover {
-  background: rgba(128, 128, 128, 0.08);
-  border-color: var(--color-accent-light);
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--accent-color, #3b82f6);
 }
 
 .dept-month-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
-  min-width: 110px;
+  color: var(--text-primary, #1e293b);
+  min-width: 130px;
   text-align: center;
   white-space: nowrap;
+  padding: 6px 4px;
+  border-left: 1px solid rgba(128, 128, 128, 0.12);
+  border-right: 1px solid rgba(128, 128, 128, 0.12);
 }
 
 .dept-sheet-search {
@@ -893,37 +901,45 @@ html, body {
 
 /* Month selector above dept sheets */
 .dept-month-selector {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   margin-bottom: 12px;
   flex-shrink: 0;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .dept-month-nav {
   background: none;
-  border: 1px solid rgba(128, 128, 128, 0.15);
-  border-radius: 6px;
-  color: var(--text-primary);
+  border: none;
+  color: var(--text-secondary, #64748b);
   cursor: pointer;
-  font-size: 10px;
-  padding: 4px 8px;
-  transition: background 0.15s, border-color 0.15s;
+  font-size: 11px;
+  padding: 8px 12px;
+  transition: background 0.15s, color 0.15s;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 .dept-month-nav:hover {
-  background: rgba(128, 128, 128, 0.08);
-  border-color: var(--color-accent-light);
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--accent-color, #3b82f6);
 }
 
 .dept-month-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
-  min-width: 110px;
+  color: var(--text-primary, #1e293b);
+  min-width: 130px;
   text-align: center;
   white-space: nowrap;
+  padding: 6px 4px;
+  border-left: 1px solid rgba(128, 128, 128, 0.12);
+  border-right: 1px solid rgba(128, 128, 128, 0.12);
 }
 
 .dept-sheet-search {

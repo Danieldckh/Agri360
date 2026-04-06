@@ -1337,14 +1337,14 @@
     monthBar.className = 'dept-month-selector';
     var prevBtn = document.createElement('button');
     prevBtn.id = 'prodDelivPrev';
-    prevBtn.className = 'month-nav-btn';
+    prevBtn.className = 'dept-month-nav';
     prevBtn.textContent = '\u25C0';
     var monthLabel = document.createElement('span');
     monthLabel.id = 'prodDelivLabel';
-    monthLabel.className = 'month-label';
+    monthLabel.className = 'dept-month-label';
     var nextBtn = document.createElement('button');
     nextBtn.id = 'prodDelivNext';
-    nextBtn.className = 'month-nav-btn';
+    nextBtn.className = 'dept-month-nav';
     nextBtn.textContent = '\u25B6';
     monthBar.appendChild(prevBtn);
     monthBar.appendChild(monthLabel);
