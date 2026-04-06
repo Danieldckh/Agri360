@@ -1104,6 +1104,15 @@
   color: #e74c3c;
 }
 
+.proagri-sheet-row-action-btn.action-view {
+  color: #3b82f6;
+}
+
+.proagri-sheet-row-action-btn.action-view:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
 .proagri-sheet-row-action-btn svg {
   width: 14px;
   height: 14px;
