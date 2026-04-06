@@ -1120,6 +1120,31 @@ html, body {
   padding: 1px 16px;
 }
 
+.sidebar-editable {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 3px;
+  transition: background 0.15s;
+}
+
+.sidebar-editable:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.sidebar-inline-input {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+  text-align: right;
+  border: 1px solid var(--accent-color, #3b82f6);
+  border-radius: 3px;
+  padding: 0 3px;
+  width: 100%;
+  outline: none;
+  background: var(--card-bg, #fff);
+}
+
 .client-dashboard-title-row {
   display: flex;
   align-items: center;

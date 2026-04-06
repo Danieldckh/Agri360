@@ -304,15 +304,81 @@
 
   // --- Client Dashboard ---
   var _savedSidebarHTML = null;
+  var _jsonPre = null;
+  var _dashboardData = null;
+
+  function refreshJsonView() {
+    if (!_jsonPre || !_dashboardData) return;
+    fetch(API_BASE + '/' + _dashboardData.id, { headers: getHeaders() })
+      .then(function (res) { return res.json(); })
+      .then(function (fresh) {
+        _dashboardData = fresh;
+        var fd = fresh.formData || {};
+        if (typeof fd === 'string') try { fd = JSON.parse(fd); } catch (e) {}
+        _jsonPre.textContent = JSON.stringify(fd, null, 2);
+        _jsonPre.classList.add('cell-saved');
+        setTimeout(function () { _jsonPre.classList.remove('cell-saved'); }, 600);
+      });
+  }
+
+  function makeSidebarEditable(label, value, onSave) {
+    var row = document.createElement('div');
+    row.className = 'sidebar-dashboard-field';
+    var lbl = document.createElement('span');
+    lbl.className = 'sidebar-dashboard-label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    var val = document.createElement('span');
+    val.className = 'sidebar-dashboard-value sidebar-editable';
+    val.textContent = value || '—';
+    val.title = 'Click to edit';
+    row.appendChild(val);
+
+    val.addEventListener('click', function () {
+      if (val.querySelector('input')) return;
+      var current = val.textContent === '—' ? '' : val.textContent;
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'sidebar-inline-input';
+      input.value = current;
+      val.textContent = '';
+      val.appendChild(input);
+      input.focus();
+      input.select();
+
+      function commit() {
+        var newVal = input.value.trim();
+        val.textContent = newVal || '—';
+        if (newVal !== current && onSave) {
+          onSave(newVal).then(function (res) {
+            if (res && res.ok) {
+              val.classList.add('cell-saved');
+              setTimeout(function () { val.classList.remove('cell-saved'); }, 600);
+              refreshJsonView();
+            } else {
+              val.textContent = current || '—';
+              val.classList.add('cell-error');
+              setTimeout(function () { val.classList.remove('cell-error'); }, 600);
+            }
+          }).catch(function () { val.textContent = current || '—'; });
+        }
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { val.textContent = current || '—'; }
+      });
+    });
+    return row;
+  }
 
   function showDashboardSidebar(data) {
     var nav = document.querySelector('#sidebar nav');
     if (!nav) return;
+    var clientId = data.clientId;
 
     _savedSidebarHTML = nav.cloneNode(true);
     while (nav.firstChild) nav.removeChild(nav.firstChild);
-
-    // Make sidebar scrollable for this view
     nav.style.overflowY = 'auto';
 
     // Back button
@@ -355,39 +421,7 @@
       nav.appendChild(h);
     }
 
-    function addFieldRow(label, value) {
-      if (!value) return;
-      var row = document.createElement('div');
-      row.className = 'sidebar-dashboard-field';
-      var lbl = document.createElement('span');
-      lbl.className = 'sidebar-dashboard-label';
-      lbl.textContent = label;
-      row.appendChild(lbl);
-      var val = document.createElement('span');
-      val.className = 'sidebar-dashboard-value';
-      val.textContent = value;
-      row.appendChild(val);
-      nav.appendChild(row);
-    }
-
-    function addContactBlock(title, contact) {
-      if (!contact) return;
-      var c = parseContact(contact);
-      if (!c.name && !c.email && !c.cell && !c.tel) return;
-      var block = document.createElement('div');
-      block.className = 'sidebar-dashboard-contact';
-      var label = document.createElement('div');
-      label.className = 'sidebar-dashboard-contact-title';
-      label.textContent = title;
-      block.appendChild(label);
-      if (c.name) { var n = document.createElement('div'); n.className = 'sidebar-dashboard-contact-name'; n.textContent = c.name; block.appendChild(n); }
-      if (c.email) { var e = document.createElement('div'); e.className = 'sidebar-dashboard-contact-detail'; e.textContent = c.email; block.appendChild(e); }
-      if (c.cell) { var cl = document.createElement('div'); cl.className = 'sidebar-dashboard-contact-detail'; cl.textContent = c.cell; block.appendChild(cl); }
-      if (c.tel) { var t = document.createElement('div'); t.className = 'sidebar-dashboard-contact-detail'; t.textContent = c.tel; block.appendChild(t); }
-      nav.appendChild(block);
-    }
-
-    // === Company Info ===
+    // === Company Info (editable) ===
     addSep();
     var companySection = document.createElement('div');
     companySection.className = 'sidebar-dashboard-section';
@@ -403,42 +437,62 @@
     }
     nav.appendChild(companySection);
 
-    var companyFields = [
-      { label: 'Reg No', value: data.clientCompanyRegNo },
-      { label: 'VAT', value: data.clientVatNumber },
-      { label: 'Website', value: data.clientWebsite },
-      { label: 'Industry', value: data.clientIndustryExpertise },
-      { label: 'Email', value: data.clientEmail },
-      { label: 'Phone', value: data.clientPhone },
-      { label: 'Address', value: data.clientPhysicalAddress },
-      { label: 'Postal', value: data.clientPostalAddress }
-    ];
     var cfWrap = document.createElement('div');
     cfWrap.className = 'sidebar-dashboard-fields-wrap';
+    var companyFields = [
+      { label: 'Name', value: data.clientName, key: 'name' },
+      { label: 'Trading', value: data.clientTradingName, key: 'tradingName' },
+      { label: 'Reg No', value: data.clientCompanyRegNo, key: 'companyRegNo' },
+      { label: 'VAT', value: data.clientVatNumber, key: 'vatNumber' },
+      { label: 'Website', value: data.clientWebsite, key: 'website' },
+      { label: 'Industry', value: data.clientIndustryExpertise, key: 'industryExpertise' },
+      { label: 'Email', value: data.clientEmail, key: 'email' },
+      { label: 'Phone', value: data.clientPhone, key: 'phone' },
+      { label: 'Address', value: data.clientPhysicalAddress, key: 'physicalAddress' },
+      { label: 'Postal', value: data.clientPostalAddress, key: 'postalAddress' }
+    ];
     companyFields.forEach(function (f) {
-      if (!f.value) return;
-      var row = document.createElement('div');
-      row.className = 'sidebar-dashboard-field';
-      var lbl = document.createElement('span');
-      lbl.className = 'sidebar-dashboard-label';
-      lbl.textContent = f.label;
-      row.appendChild(lbl);
-      var val = document.createElement('span');
-      val.className = 'sidebar-dashboard-value';
-      val.textContent = f.value;
-      row.appendChild(val);
-      cfWrap.appendChild(row);
+      cfWrap.appendChild(makeSidebarEditable(f.label, f.value, function (v) {
+        return saveClientField(clientId, f.key, v);
+      }));
     });
     nav.appendChild(cfWrap);
 
-    // === Contacts ===
+    // === Contacts (editable) ===
+    function addEditableContactBlock(title, rawContact, contactKey) {
+      var c = parseContact(rawContact);
+      var contactData = { name: c.name || '', email: c.email || '', cell: c.cell || '', tel: c.tel || '' };
+
+      var block = document.createElement('div');
+      block.className = 'sidebar-dashboard-contact';
+      var header = document.createElement('div');
+      header.className = 'sidebar-dashboard-contact-title';
+      header.textContent = title;
+      block.appendChild(header);
+
+      var fields = [
+        { label: 'Name', field: 'name' },
+        { label: 'Email', field: 'email' },
+        { label: 'Cell', field: 'cell' },
+        { label: 'Tel', field: 'tel' }
+      ];
+      fields.forEach(function (f) {
+        block.appendChild(makeSidebarEditable(f.label, contactData[f.field], function (v) {
+          contactData[f.field] = v;
+          return saveClientField(clientId, contactKey, contactData);
+        }));
+      });
+
+      nav.appendChild(block);
+    }
+
     addSep();
     addSectionHeader('Contacts');
-    addContactBlock('Primary', data.clientPrimaryContact);
-    addContactBlock('Material', data.clientMaterialContact);
-    addContactBlock('Accounts', data.clientAccountsContact);
+    addEditableContactBlock('Primary', data.clientPrimaryContact, 'primaryContact');
+    addEditableContactBlock('Material', data.clientMaterialContact, 'materialContact');
+    addEditableContactBlock('Accounts', data.clientAccountsContact, 'accountsContact');
 
-    // === Booking Info ===
+    // === Booking Info (editable) ===
     addSep();
     addSectionHeader('Booking');
     var statusBadge = document.createElement('div');
@@ -452,27 +506,12 @@
 
     var bfWrap = document.createElement('div');
     bfWrap.className = 'sidebar-dashboard-fields-wrap';
-    var bookingFields = [
-      { label: 'Campaign', value: (data.campaignMonthStart && data.campaignMonthEnd) ? data.campaignMonthStart + ' → ' + data.campaignMonthEnd : (data.campaignMonthStart || data.campaignMonthEnd || null) },
-      { label: 'Booked', value: data.bookedDate },
-      { label: 'Due', value: data.dueDate },
-      { label: 'Rep', value: data.representative },
-      { label: 'Checklist', value: data.checklistId }
-    ];
-    bookingFields.forEach(function (f) {
-      if (!f.value) return;
-      var row = document.createElement('div');
-      row.className = 'sidebar-dashboard-field';
-      var lbl = document.createElement('span');
-      lbl.className = 'sidebar-dashboard-label';
-      lbl.textContent = f.label;
-      row.appendChild(lbl);
-      var val = document.createElement('span');
-      val.className = 'sidebar-dashboard-value';
-      val.textContent = f.value;
-      row.appendChild(val);
-      bfWrap.appendChild(row);
-    });
+    bfWrap.appendChild(makeSidebarEditable('Status', data.status, function (v) { return saveBookingField(data.id, 'status', v); }));
+    bfWrap.appendChild(makeSidebarEditable('Start', data.campaignMonthStart, function (v) { return saveBookingField(data.id, 'campaignMonthStart', v); }));
+    bfWrap.appendChild(makeSidebarEditable('End', data.campaignMonthEnd, function (v) { return saveBookingField(data.id, 'campaignMonthEnd', v); }));
+    bfWrap.appendChild(makeSidebarEditable('Booked', data.bookedDate, function (v) { return saveBookingField(data.id, 'bookedDate', v); }));
+    bfWrap.appendChild(makeSidebarEditable('Due', data.dueDate, function (v) { return saveBookingField(data.id, 'dueDate', v); }));
+    bfWrap.appendChild(makeSidebarEditable('Rep', data.representative, function (v) { return saveBookingField(data.id, 'representative', v); }));
     nav.appendChild(bfWrap);
   }
 
@@ -751,34 +790,10 @@
         return res.json();
       })
       .then(function (data) {
-        var clientId = data.clientId;
+        _dashboardData = data;
         titleEl.textContent = data.clientName || data.title || 'Client Dashboard';
 
         showDashboardSidebar(data);
-
-        // Contact edit cards — show existing, add button for missing
-        var contactTypes = [
-          { key: 'primaryContact', title: 'Primary Contact', data: data.clientPrimaryContact },
-          { key: 'materialContact', title: 'Material Contact', data: data.clientMaterialContact },
-          { key: 'accountsContact', title: 'Accounts Contact', data: data.clientAccountsContact }
-        ];
-
-        var jsonAnchor = document.createElement('div');
-        jsonAnchor.style.display = 'contents';
-
-        contactTypes.forEach(function (ct) {
-          var contact = parseContact(ct.data);
-          var hasData = contact.name || contact.email || contact.cell || contact.tel;
-          if (hasData) {
-            var card = makeContactCard(ct.title, contact, ct.key, clientId, cardsGrid);
-            cardsGrid.appendChild(card);
-          } else {
-            var addBtn = makeAddContactBtn(cardsGrid, clientId, ct.key, ct.title, jsonAnchor);
-            cardsGrid.appendChild(addBtn);
-          }
-        });
-
-        cardsGrid.appendChild(jsonAnchor);
 
         // Full Checklist JSON
         var jsonCard = document.createElement('div');
@@ -794,6 +809,7 @@
           try { formData = JSON.parse(formData); } catch (e) { /* keep as string */ }
         }
         pre.textContent = JSON.stringify(formData, null, 2);
+        _jsonPre = pre;
         jsonCard.appendChild(pre);
         cardsGrid.appendChild(jsonCard);
       })
