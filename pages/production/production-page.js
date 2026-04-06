@@ -1426,13 +1426,20 @@
         return;
       }
 
-      // Column header
+      // Column header — classes must match data row cells
       var headerRow = document.createElement('div');
       headerRow.className = 'prod-deliv-row prod-deliv-header';
-      ['Title', 'Status', 'Platforms', 'Posts', 'Month'].forEach(function (col) {
+      var headerCols = [
+        { label: 'Title', cls: 'prod-deliv-cell prod-deliv-title' },
+        { label: 'Status', cls: 'prod-deliv-cell' },
+        { label: 'Platforms', cls: 'prod-deliv-cell prod-deliv-platforms' },
+        { label: 'Posts', cls: 'prod-deliv-cell prod-deliv-posts' },
+        { label: 'Month', cls: 'prod-deliv-cell' }
+      ];
+      headerCols.forEach(function (col) {
         var cell = document.createElement('div');
-        cell.className = 'prod-deliv-cell';
-        cell.textContent = col;
+        cell.className = col.cls;
+        cell.textContent = col.label;
         headerRow.appendChild(cell);
       });
       var actCell = document.createElement('div');
@@ -1477,13 +1484,61 @@
           titleCell.textContent = item.title || '';
           row.appendChild(titleCell);
 
-          // Status
+          // Status — clickable dropdown
           var statusCell = document.createElement('div');
           statusCell.className = 'prod-deliv-cell';
+          statusCell.style.position = 'relative';
           var badge = document.createElement('span');
           badge.className = 'proagri-sheet-status ' + statusClass(item.status);
           badge.textContent = formatStatus(item.status);
+          badge.style.cursor = 'pointer';
           statusCell.appendChild(badge);
+
+          (function (cellEl, badgeEl, itemRef) {
+            badgeEl.addEventListener('click', function (e) {
+              e.stopPropagation();
+              // Close any existing dropdown
+              var existing = document.querySelector('.prod-deliv-status-dropdown');
+              if (existing) existing.remove();
+
+              var chain = workflows ? workflows.getStatusChain(itemRef.type) : [];
+              if (chain.length === 0) return;
+
+              var dropdown = document.createElement('div');
+              dropdown.className = 'prod-deliv-status-dropdown';
+
+              chain.forEach(function (st) {
+                var opt = document.createElement('div');
+                opt.className = 'prod-deliv-status-opt' + (st === itemRef.status ? ' active' : '');
+                var optBadge = document.createElement('span');
+                optBadge.className = 'proagri-sheet-status ' + statusClass(st);
+                optBadge.textContent = formatStatus(st);
+                opt.appendChild(optBadge);
+                opt.addEventListener('click', function (ev) {
+                  ev.stopPropagation();
+                  dropdown.remove();
+                  if (st === itemRef.status) return;
+                  fetch(API_BASE + '/' + itemRef.id, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ status: st })
+                  }).then(function (res) {
+                    if (res.ok) fetchData(currentYM);
+                  });
+                });
+                dropdown.appendChild(opt);
+              });
+
+              cellEl.appendChild(dropdown);
+              setTimeout(function () {
+                document.addEventListener('click', function closeDD() {
+                  dropdown.remove();
+                  document.removeEventListener('click', closeDD);
+                });
+              }, 0);
+            });
+          })(statusCell, badge, item);
+
           row.appendChild(statusCell);
 
           // Platforms (from metadata)
