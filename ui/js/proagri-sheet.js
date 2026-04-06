@@ -32,7 +32,7 @@
     'sitemap': 1, 'wireframe': 1, 'prototype': 1,
     'ready_for_approval': 2, 'sent_for_approval': 2,
     'proposal_ready': 2, 'client_approved': 2, 'booking_form_ready': 2,
-    'sent_to_client': 2, 'approved': 2, 'design_changes': 1,
+    'sent_to_client': 2, 'approved': 2, 'design_changes': 1, 'client_changes': 1,
     'development': 2, 'site_developed': 2, 'hosting_seo': 2,
     'completed': 2, 'done': 2, 'complete': 2, 'onboarding': 2, 'onboarded': 3,
     'overdue': 3, 'inactive': 4, 'declined': 4,

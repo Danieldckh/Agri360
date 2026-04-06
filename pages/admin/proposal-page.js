@@ -6,14 +6,14 @@
   // Full status chain — single source of truth
   var STATUS_CHAIN = [
     'outline_proposal', 'design_proposal', 'design_review', 'proposal_ready',
-    'sent_to_client', 'approved', 'booking_form_sent', 'onboarding', 'onboarded'
+    'sent_to_client', 'booking_form_ready', 'booking_form_sent', 'onboarding', 'onboarded'
   ];
-  var ALL_STATUSES = STATUS_CHAIN.concat(['design_changes', 'declined']);
+  var ALL_STATUSES = STATUS_CHAIN.concat(['design_changes', 'client_changes', 'declined']);
 
   // Tab → which statuses it shows
   var TAB_FILTERS = {
     'Proposal':         ['outline_proposal', 'design_proposal', 'design_review', 'proposal_ready', 'design_changes'],
-    'Booking Form':     ['sent_to_client', 'approved', 'booking_form_sent'],
+    'Booking Form':     ['booking_form_ready', 'client_changes', 'booking_form_sent'],
     'Onboarding':       ['onboarding', 'onboarded'],
     'Declined Proposal': ['declined']
   };
@@ -846,7 +846,54 @@
 
   // --- Expose tab renderers (same signature as before) ---
   window.renderProposalTab = function (container) { renderProposalTabWithSubSheets(container); };
-  window.renderBookingFormTab = function (container) { renderAdminTab(container, 'Booking Form'); };
+  window.renderBookingFormTab = function (container) {
+    _activeContainer = container;
+    _activeTabRenderer = function () { window.renderBookingFormTab(container); };
+    resetContainer(container);
+
+    var grid = document.createElement('div');
+    grid.className = 'proposal-grid';
+
+    var leftCol = document.createElement('div');
+    leftCol.className = 'proposal-grid-left';
+
+    var rightCol = document.createElement('div');
+    rightCol.className = 'proposal-grid-right';
+
+    var bfSheet = buildSheet('Booking Form', refreshAll);
+    leftCol.appendChild(bfSheet.el);
+
+    var sentSheet = buildSheet('Sent to Client', refreshAll);
+    rightCol.appendChild(sentSheet.el);
+
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    container.appendChild(grid);
+
+    var bfStatuses = ['booking_form_ready', 'client_changes'];
+    var sentStatuses = ['booking_form_sent'];
+
+    function refreshAll() {
+      fetch(API_BASE, { headers: getHeaders() })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then(function (forms) {
+          bfSheet.update(forms.filter(function (f) {
+            return bfStatuses.indexOf(f.status) !== -1;
+          }).map(mapFormToRow));
+          sentSheet.update(forms.filter(function (f) {
+            return sentStatuses.indexOf(f.status) !== -1;
+          }).map(mapFormToRow));
+        })
+        .catch(function (err) {
+          console.error('Booking form tab fetch error:', err);
+        });
+    }
+
+    refreshAll();
+  };
   window.renderOnboardingTab = function (container) { renderAdminTab(container, 'Onboarding'); };
   window.renderDeclinedTab = function (container) { renderAdminTab(container, 'Declined Proposal'); };
 
