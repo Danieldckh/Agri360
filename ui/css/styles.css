@@ -989,13 +989,34 @@ html, body {
   overflow: hidden;
 }
 
-.proposal-grid-right .dept-sheet-card {
+.proposal-grid-right-top {
+  display: flex;
+  gap: 16px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.proposal-grid-right .dept-sheet-container {
+.proposal-grid-right-top .dept-sheet-card {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.proposal-grid-right-top .dept-sheet-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.proposal-grid-right > .dept-sheet-card {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.proposal-grid-right > .dept-sheet-card > .dept-sheet-container {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
