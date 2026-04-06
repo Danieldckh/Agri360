@@ -344,7 +344,7 @@ router.post('/bulk', async (req, res) => {
   }
 });
 
-// POST /create-content-calendars - create sm-content-calendar deliverables from booking form
+// POST /create-content-calendars - create all deliverables from booking form
 router.post('/create-content-calendars', async (req, res) => {
   const b = toSnakeBody(req.body);
   const bookingFormId = b.booking_form_id;
@@ -354,13 +354,13 @@ router.post('/create-content-calendars', async (req, res) => {
   }
 
   try {
-    // Check idempotency — skip if already created
+    // Idempotency — skip if any deliverables already exist for this booking form
     const existing = await pool.query(
-      `SELECT id FROM deliverables WHERE booking_form_id = $1 AND type = 'sm-content-calendar'`,
+      `SELECT id FROM deliverables WHERE booking_form_id = $1`,
       [bookingFormId]
     );
     if (existing.rows.length > 0) {
-      return res.json({ message: 'Content calendars already exist', ids: existing.rows.map(r => r.id) });
+      return res.json({ message: 'Deliverables already exist', ids: existing.rows.map(r => r.id) });
     }
 
     // Fetch booking form with client info
@@ -375,24 +375,16 @@ router.post('/create-content-calendars', async (req, res) => {
     const clientName = bf.clientName || bf.title || 'Unknown Client';
     const clientId = bf.clientId;
 
-    // Parse formData
     let formData = bf.formData || {};
     if (typeof formData === 'string') {
       try { formData = JSON.parse(formData); } catch (e) { formData = {}; }
     }
 
-    const smEntries = formData.social_media_management || [];
-    const qualifying = smEntries.filter(e => e && e.content_calendar === true);
+    // Look up department IDs
+    const deptRows = await pool.query(`SELECT id, slug FROM departments`);
+    const deptBySlug = {};
+    deptRows.rows.forEach(r => { deptBySlug[r.slug] = r.id; });
 
-    if (qualifying.length === 0) {
-      return res.json({ message: 'No content calendar entries found', ids: [] });
-    }
-
-    // Look up production department
-    const deptResult = await pool.query(`SELECT id FROM departments WHERE slug = 'production'`);
-    const prodDeptId = deptResult.rows.length > 0 ? deptResult.rows[0].id : null;
-
-    // Parse month label to YYYY-MM
     const MONTH_MAP = {
       'january': '01', 'february': '02', 'march': '03', 'april': '04',
       'may': '05', 'june': '06', 'july': '07', 'august': '08',
@@ -406,28 +398,107 @@ router.post('/create-content-calendars', async (req, res) => {
       return monthNum ? match[2] + '-' + monthNum : null;
     }
 
-    // Create deliverables
-    const created = [];
-    for (const entry of qualifying) {
-      const deliveryMonth = parseMonthLabel(entry.month_label || entry.months_display);
-      const metadata = {
-        platforms: (entry.platforms || []).map(p => ({ platform: p.platform, key: p.key, link: p.link })),
-        monthly_posts: entry.monthly_posts || entry.posts_per_month || null
-      };
-      const title = clientName + ' - Content Calendar - ' + (entry.month_label || entry.months_display || 'Unknown');
-
+    async function createDeliv(type, title, status, deptSlug, deliveryMonth, metadata) {
+      const deptId = deptBySlug[deptSlug] || null;
       const result = await pool.query(
         `INSERT INTO deliverables (booking_form_id, client_id, department_id, type, title, status, delivery_month, metadata, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-         RETURNING *`,
-        [bookingFormId, clientId, prodDeptId, 'sm-content-calendar', title, 'request_focus_points', deliveryMonth, JSON.stringify(metadata)]
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING *`,
+        [bookingFormId, clientId, deptId, type, title, status, deliveryMonth, JSON.stringify(metadata || {})]
       );
-      created.push(toCamelCase(result.rows[0]));
+      return toCamelCase(result.rows[0]);
     }
 
-    res.status(201).json({ message: 'Content calendars created', deliverables: created });
+    const created = [];
+
+    // === Content Calendars ===
+    const smEntries = formData.social_media_management || [];
+    for (const entry of smEntries) {
+      if (!entry.content_calendar) continue;
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      created.push(await createDeliv(
+        'sm-content-calendar',
+        clientName + ' - Content Calendar - ' + ml,
+        'request_focus_points', 'production', dm,
+        {
+          platforms: (entry.platforms || []).map(p => ({ platform: p.platform, key: p.key, link: p.link })),
+          monthly_posts: entry.monthly_posts || entry.posts_per_month || null
+        }
+      ));
+    }
+
+    // === Google Ads ===
+    for (const entry of smEntries) {
+      if (!entry.google_ads || !entry.google_ads.enabled) continue;
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      created.push(await createDeliv(
+        'sm-google-ads',
+        clientName + ' - Google Ads - ' + ml,
+        'request_client_materials', 'production', dm,
+        {
+          initial_setup: entry.google_ads.initial_setup_text || '',
+          monthly_ongoing: entry.google_ads.monthly_ongoing_text || '',
+          ad_spend: entry.google_ads.ad_spend || ''
+        }
+      ));
+    }
+
+    // === Website Design ===
+    const webEntries = formData.website || [];
+    for (const entry of webEntries) {
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      created.push(await createDeliv(
+        'website-design',
+        clientName + ' - Website Design - ' + ml,
+        'request_client_materials', 'production', dm,
+        {
+          website_type: entry.website_type || '',
+          number_of_pages: entry.number_of_pages || ''
+        }
+      ));
+    }
+
+    // === Magazine ===
+    const magEntries = formData.magazine || [];
+    for (const entry of magEntries) {
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      created.push(await createDeliv(
+        'magazine',
+        clientName + ' - Magazine - ' + (entry.magazine_display || entry.magazine || ml),
+        'request_client_materials', 'production', dm,
+        {
+          publication: entry.magazine_display || entry.magazine || '',
+          page_size: entry.page_size || '',
+          type: entry.type || '',
+          positions: entry.positions || [],
+          line_item: entry.line_item_text || entry.line_item || ''
+        }
+      ));
+    }
+
+    // === Online Articles ===
+    const oaEntries = formData.online_articles || [];
+    for (const entry of oaEntries) {
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      created.push(await createDeliv(
+        'online-articles',
+        clientName + ' - Online Articles - ' + ml,
+        'request_client_materials', 'production', dm,
+        {
+          platforms: entry.platforms || [],
+          amount: entry.amount || 0,
+          curated_amount: entry.curated_amount || 0
+        }
+      ));
+    }
+
+    res.status(201).json({ message: 'Deliverables created', count: created.length, deliverables: created });
   } catch (err) {
-    console.error('Create content calendars error:', err);
+    console.error('Create deliverables from booking error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
