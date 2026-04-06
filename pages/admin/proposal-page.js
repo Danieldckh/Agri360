@@ -425,14 +425,200 @@
     return raw;
   }
 
-  function makeContactCard(title, contact) {
-    var fields = [];
-    if (contact.name) fields.push({ label: 'Name', value: contact.name });
-    if (contact.email) fields.push({ label: 'Email', value: contact.email });
-    if (contact.cell) fields.push({ label: 'Cell', value: contact.cell });
-    if (contact.tel) fields.push({ label: 'Tel', value: contact.tel });
-    if (fields.length === 0) return null;
-    return makeCard(title, fields);
+  // Save a field to the client record
+  function saveClientField(clientId, fieldName, value) {
+    var body = {};
+    body[fieldName] = value;
+    return fetch('/api/clients/' + clientId, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(body)
+    });
+  }
+
+  // Save a field to the booking form record
+  function saveBookingField(bookingId, fieldName, value) {
+    var body = {};
+    body[fieldName] = value;
+    return fetch(API_BASE + '/' + bookingId, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(body)
+    });
+  }
+
+  // Editable field row — click value to edit inline
+  function makeEditableField(label, value, onSave) {
+    var row = document.createElement('div');
+    row.className = 'client-dashboard-field';
+    var lbl = document.createElement('span');
+    lbl.className = 'client-dashboard-label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    var val = document.createElement('span');
+    val.className = 'client-dashboard-value client-dashboard-editable';
+    val.textContent = value || '—';
+    val.title = 'Click to edit';
+    row.appendChild(val);
+
+    val.addEventListener('click', function () {
+      if (val.querySelector('input')) return;
+      var current = val.textContent === '—' ? '' : val.textContent;
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'client-dashboard-inline-input';
+      input.value = current;
+      val.textContent = '';
+      val.appendChild(input);
+      input.focus();
+      input.select();
+
+      function commit() {
+        var newVal = input.value.trim();
+        val.textContent = newVal || '—';
+        if (newVal !== current) {
+          val.classList.add('cell-saving');
+          onSave(newVal).then(function (res) {
+            val.classList.remove('cell-saving');
+            if (res && res.ok) {
+              val.classList.add('cell-saved');
+              setTimeout(function () { val.classList.remove('cell-saved'); }, 600);
+            } else {
+              val.textContent = current || '—';
+              val.classList.add('cell-error');
+              setTimeout(function () { val.classList.remove('cell-error'); }, 600);
+            }
+          }).catch(function () {
+            val.classList.remove('cell-saving');
+            val.textContent = current || '—';
+          });
+        }
+      }
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { val.textContent = current || '—'; }
+      });
+    });
+
+    return row;
+  }
+
+  // Contact card with edit + delete
+  function makeContactCard(title, contact, contactKey, clientId, cardsGrid) {
+    var card = document.createElement('div');
+    card.className = 'client-dashboard-card';
+
+    var headerRow = document.createElement('div');
+    headerRow.className = 'client-dashboard-card-header';
+    var h = document.createElement('h3');
+    h.className = 'client-dashboard-card-title';
+    h.textContent = title;
+    headerRow.appendChild(h);
+
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'client-dashboard-delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.title = 'Delete contact';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.addEventListener('click', function () {
+      showConfirmModal('Delete ' + title + '?', 'This will remove all ' + title.toLowerCase() + ' information.', function () {
+        saveClientField(clientId, contactKey, null).then(function (res) {
+          if (res.ok) {
+            card.style.transition = 'opacity 0.2s, transform 0.2s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
+            setTimeout(function () { card.remove(); }, 200);
+          }
+        });
+      });
+    });
+    headerRow.appendChild(deleteBtn);
+    card.appendChild(headerRow);
+
+    var list = document.createElement('div');
+    list.className = 'client-dashboard-fields';
+
+    var contactData = { name: contact.name || '', email: contact.email || '', cell: contact.cell || '', tel: contact.tel || '' };
+
+    function saveContact(field, newVal) {
+      contactData[field] = newVal;
+      return saveClientField(clientId, contactKey, contactData);
+    }
+
+    list.appendChild(makeEditableField('Name', contact.name, function (v) { return saveContact('name', v); }));
+    list.appendChild(makeEditableField('Email', contact.email, function (v) { return saveContact('email', v); }));
+    list.appendChild(makeEditableField('Cell', contact.cell, function (v) { return saveContact('cell', v); }));
+    list.appendChild(makeEditableField('Tel', contact.tel, function (v) { return saveContact('tel', v); }));
+
+    card.appendChild(list);
+    return card;
+  }
+
+  // Add contact card button
+  function makeAddContactBtn(cardsGrid, clientId, contactKey, title, insertBefore) {
+    var btn = document.createElement('button');
+    btn.className = 'client-dashboard-add-contact-btn';
+    btn.type = 'button';
+    btn.textContent = '+ Add ' + title;
+    btn.addEventListener('click', function () {
+      var emptyContact = { name: '', email: '', cell: '', tel: '' };
+      saveClientField(clientId, contactKey, emptyContact).then(function (res) {
+        if (res.ok) {
+          var newCard = makeContactCard(title, emptyContact, contactKey, clientId, cardsGrid);
+          cardsGrid.insertBefore(newCard, insertBefore || btn);
+          btn.remove();
+        }
+      });
+    });
+    return btn;
+  }
+
+  // Confirmation modal
+  function showConfirmModal(title, message, onConfirm) {
+    var overlay = document.createElement('div');
+    overlay.className = 'confirm-modal-overlay';
+
+    var modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+
+    var h = document.createElement('h3');
+    h.className = 'confirm-modal-title';
+    h.textContent = title;
+    modal.appendChild(h);
+
+    var msg = document.createElement('p');
+    msg.className = 'confirm-modal-message';
+    msg.textContent = message;
+    modal.appendChild(msg);
+
+    var actions = document.createElement('div');
+    actions.className = 'confirm-modal-actions';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'confirm-modal-btn confirm-modal-cancel';
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () { overlay.remove(); });
+    actions.appendChild(cancelBtn);
+
+    var confirmBtn = document.createElement('button');
+    confirmBtn.className = 'confirm-modal-btn confirm-modal-confirm';
+    confirmBtn.type = 'button';
+    confirmBtn.textContent = 'Delete';
+    confirmBtn.addEventListener('click', function () {
+      overlay.remove();
+      onConfirm();
+    });
+    actions.appendChild(confirmBtn);
+
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
   }
 
   function renderClientDashboard(container, bookingFormId) {
@@ -441,59 +627,83 @@
     var wrapper = document.createElement('div');
     wrapper.className = 'client-dashboard';
 
-    // Title (placeholder until data loads)
     var titleEl = document.createElement('h2');
     titleEl.className = 'client-dashboard-title';
     titleEl.textContent = 'Loading...';
     wrapper.appendChild(titleEl);
 
-    // Cards container
     var cardsGrid = document.createElement('div');
     cardsGrid.className = 'client-dashboard-grid';
     wrapper.appendChild(cardsGrid);
 
     container.appendChild(wrapper);
 
-    // Fetch booking form with full client details
     fetch(API_BASE + '/' + bookingFormId, { headers: getHeaders() })
       .then(function (res) {
         if (!res.ok) throw new Error('Failed to fetch booking form');
         return res.json();
       })
       .then(function (data) {
+        var clientId = data.clientId;
         titleEl.textContent = data.clientName || data.title || 'Client Dashboard';
 
-        // Replace sidebar with company info
         showDashboardSidebar(data);
 
-        // Card 1: Primary Contact
-        var pc = parseContact(data.clientPrimaryContact);
-        var pcCard = makeContactCard('Primary Contact', pc);
-        if (pcCard) cardsGrid.appendChild(pcCard);
+        // Contact cards — show existing, add button for missing
+        var contactTypes = [
+          { key: 'primaryContact', title: 'Primary Contact', data: data.clientPrimaryContact },
+          { key: 'materialContact', title: 'Material Contact', data: data.clientMaterialContact },
+          { key: 'accountsContact', title: 'Accounts Contact', data: data.clientAccountsContact }
+        ];
 
-        // Card 2: Material Contact
-        var mc = parseContact(data.clientMaterialContact);
-        var mcCard = makeContactCard('Material Contact', mc);
-        if (mcCard) cardsGrid.appendChild(mcCard);
+        // Bookmark where booking card will go, so add-contact buttons insert before it
+        var bookingAnchor = document.createElement('div');
+        bookingAnchor.style.display = 'contents';
 
-        // Card 3: Accounts Contact
-        var ac = parseContact(data.clientAccountsContact);
-        var acCard = makeContactCard('Accounts Contact', ac);
-        if (acCard) cardsGrid.appendChild(acCard);
+        contactTypes.forEach(function (ct) {
+          var contact = parseContact(ct.data);
+          var hasData = contact.name || contact.email || contact.cell || contact.tel;
+          if (hasData) {
+            var card = makeContactCard(ct.title, contact, ct.key, clientId, cardsGrid);
+            cardsGrid.appendChild(card);
+          } else {
+            var addBtn = makeAddContactBtn(cardsGrid, clientId, ct.key, ct.title, bookingAnchor);
+            cardsGrid.appendChild(addBtn);
+          }
+        });
 
-        // Card 4: Booking Info
-        var bookingCard = makeCard('Booking Information', [
-          { label: 'Status', value: data.status },
-          { label: 'Campaign Start', value: data.campaignMonthStart },
-          { label: 'Campaign End', value: data.campaignMonthEnd },
-          { label: 'Booked Date', value: data.bookedDate },
-          { label: 'Due Date', value: data.dueDate },
-          { label: 'Checklist ID', value: data.checklistId },
-          { label: 'Representative', value: data.representative }
-        ]);
+        cardsGrid.appendChild(bookingAnchor);
+
+        // Booking Info — editable
+        var bookingCard = document.createElement('div');
+        bookingCard.className = 'client-dashboard-card';
+        var bh = document.createElement('h3');
+        bh.className = 'client-dashboard-card-title';
+        bh.textContent = 'Booking Information';
+        bookingCard.appendChild(bh);
+        var bl = document.createElement('div');
+        bl.className = 'client-dashboard-fields';
+        bl.appendChild(makeEditableField('Status', data.status, function (v) { return saveBookingField(data.id, 'status', v); }));
+        bl.appendChild(makeEditableField('Campaign Start', data.campaignMonthStart, function (v) { return saveBookingField(data.id, 'campaignMonthStart', v); }));
+        bl.appendChild(makeEditableField('Campaign End', data.campaignMonthEnd, function (v) { return saveBookingField(data.id, 'campaignMonthEnd', v); }));
+        bl.appendChild(makeEditableField('Booked Date', data.bookedDate, function (v) { return saveBookingField(data.id, 'bookedDate', v); }));
+        bl.appendChild(makeEditableField('Due Date', data.dueDate, function (v) { return saveBookingField(data.id, 'dueDate', v); }));
+        bl.appendChild(makeEditableField('Representative', data.representative, function (v) { return saveBookingField(data.id, 'representative', v); }));
+        var cidRow = document.createElement('div');
+        cidRow.className = 'client-dashboard-field';
+        var cidLbl = document.createElement('span');
+        cidLbl.className = 'client-dashboard-label';
+        cidLbl.textContent = 'Checklist ID';
+        cidRow.appendChild(cidLbl);
+        var cidVal = document.createElement('span');
+        cidVal.className = 'client-dashboard-value';
+        cidVal.textContent = data.checklistId || '—';
+        cidRow.appendChild(cidVal);
+        bl.appendChild(cidRow);
+        bookingCard.appendChild(bl);
         cardsGrid.appendChild(bookingCard);
 
-        // Card 5: Full Checklist JSON
+        // Full Checklist JSON
         var jsonCard = document.createElement('div');
         jsonCard.className = 'client-dashboard-card client-dashboard-card-wide';
         var jsonTitle = document.createElement('h3');
@@ -506,7 +716,6 @@
         if (typeof formData === 'string') {
           try { formData = JSON.parse(formData); } catch (e) { /* keep as string */ }
         }
-        // Full JSON — includes all checklist sections
         pre.textContent = JSON.stringify(formData, null, 2);
         jsonCard.appendChild(pre);
         cardsGrid.appendChild(jsonCard);

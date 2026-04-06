@@ -1140,6 +1140,163 @@ html, body {
   word-break: break-word;
 }
 
+.client-dashboard-editable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 4px;
+  transition: background 0.15s;
+}
+
+.client-dashboard-editable:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.client-dashboard-inline-input {
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+  text-align: right;
+  border: 1px solid var(--accent-color, #3b82f6);
+  border-radius: 4px;
+  padding: 1px 4px;
+  width: 100%;
+  outline: none;
+  background: var(--card-bg, #fff);
+}
+
+.cell-saving {
+  opacity: 0.6;
+}
+
+.client-dashboard-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.client-dashboard-card-header .client-dashboard-card-title {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.client-dashboard-card-header + .client-dashboard-fields {
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+  margin-top: 10px;
+}
+
+.client-dashboard-delete-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.client-dashboard-delete-btn:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.client-dashboard-add-contact-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg, #fff);
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  padding: 24px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  min-height: 100px;
+}
+
+.client-dashboard-add-contact-btn:hover {
+  border-color: var(--accent-color, #3b82f6);
+  color: var(--accent-color, #3b82f6);
+  background: rgba(59, 130, 246, 0.04);
+}
+
+/* Confirm modal */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.confirm-modal {
+  background: var(--card-bg, #fff);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.confirm-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  margin: 0 0 8px 0;
+}
+
+.confirm-modal-message {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.confirm-modal-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.confirm-modal-cancel {
+  background: var(--hover-bg, #f1f5f9);
+  color: var(--text-primary, #334155);
+}
+
+.confirm-modal-cancel:hover {
+  background: #e2e8f0;
+}
+
+.confirm-modal-confirm {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.confirm-modal-confirm:hover {
+  background: #c0392b;
+}
+
 .client-dashboard-json {
   background: var(--code-bg, #f8fafc);
   border: 1px solid var(--border-color, #e2e8f0);
