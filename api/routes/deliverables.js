@@ -313,16 +313,6 @@ router.post('/bulk', async (req, res) => {
       addType('website-design', 'Website Design', 'request_client_materials', wdMonths);
     }
 
-    // Fallback: if no services enabled, create content calendars for all months
-    if (toCreate.length === 0) {
-      allMonths.forEach(m => {
-        toCreate.push({
-          type: 'sm-content-calendar', title: 'Content Calendar \u2014 ' + formatMonth(m),
-          initialStatus: 'request_focus_points', deliveryMonth: m
-        });
-      });
-    }
-
     // Insert all deliverables in a transaction
     const client = await pool.connect();
     try {
