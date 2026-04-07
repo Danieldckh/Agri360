@@ -109,7 +109,8 @@ const DEFAULT_DELIVERABLES = [
 // Comprehensive status → department slug routing for all types
 const DEPT_MAPS = {
   'sm-posts': {
-    'request_client_materials': 'production', 'upload_materials': 'production',
+    'request_client_materials': 'production', 'materials_requested': 'production',
+    'upload_materials': 'production', // legacy alias — stuck items still route
     'artwork_design': 'design', 'design_changes': 'design',
     'create_captions': 'editorial', 'editorial_review': 'editorial',
     'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'production',
@@ -123,7 +124,9 @@ const DEPT_MAPS = {
     'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
   },
   'agri4all-posts': {
-    'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
+    'request_client_materials': 'production', 'materials_requested': 'production',
+    'waiting_for_materials': 'production', // legacy alias
+    'materials_received': 'production',
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
     'ready_for_approval': 'production', 'sent_for_approval': 'production',
     'approved': 'agri4all', 'create_links': 'agri4all',
@@ -136,14 +139,18 @@ const DEPT_MAPS = {
     'create_stat_sheet': 'agri4all'
   },
   'magazine': {
-    'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
+    'request_client_materials': 'production', 'materials_requested': 'production',
+    'waiting_for_materials': 'production', // legacy alias
+    'materials_received': 'production',
     'editing': 'editorial', 'design': 'design', 'design_review': 'design', 'design_changes': 'design',
     'editorial_review': 'editorial', 'editorial_changes': 'editorial',
     'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'design',
     'approved': 'production'
   },
   'online-articles': {
-    'request_client_materials': 'production', 'waiting_for_materials': 'production', 'materials_received': 'production',
+    'request_client_materials': 'production', 'materials_requested': 'production',
+    'waiting_for_materials': 'production', // legacy alias
+    'materials_received': 'production',
     'editing': 'editorial', 'editorial_changes': 'editorial',
     'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'editorial',
     'approved': 'editorial', 'translating': 'editorial', 'ready_to_upload': 'editorial', 'posted': 'editorial'

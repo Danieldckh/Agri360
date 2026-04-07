@@ -227,6 +227,95 @@ router.post('/:token/approvals/:deliverableId/request-changes', async (req, res)
   }
 });
 
+// ─── Portal Chat Messages ────────────────────────────────
+// A lightweight chat thread per client, stored in portal_messages.
+// The portal side (public, token-based) and the CRM side (authenticated)
+// read/write the same rows for a given client_id.
+
+// GET /:token/messages — public: fetch chat history for this client.
+// Includes the sender's employee name (for CRM replies) so the portal
+// can render "Sarah — 2h ago" style entries without extra joins on the
+// client side. Ordered oldest-first for natural chat flow.
+router.get('/:token/messages', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+    const result = await pool.query(
+      `SELECT pm.*, e.first_name AS sender_first_name, e.last_name AS sender_last_name, e.photo_url AS sender_photo_url
+       FROM portal_messages pm
+       LEFT JOIN employees e ON e.id = pm.sender_employee_id
+       WHERE pm.client_id = $1
+       ORDER BY pm.created_at ASC`,
+      [client.id]
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('Portal messages list error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:token/messages — public: client sends a message.
+// Sender is recorded as 'client' with NULL employee id.
+router.post('/:token/messages', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+    const { content } = req.body;
+    if (!content || !String(content).trim()) {
+      return res.status(400).json({ error: 'Message content required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO portal_messages (client_id, sender_type, content)
+       VALUES ($1, 'client', $2) RETURNING *`,
+      [client.id, String(content).trim()]
+    );
+    res.status(201).json(toCamelCase(result.rows[0]));
+  } catch (err) {
+    console.error('Portal message send error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /messages/by-client/:clientId — authenticated: list messages for a client
+// (for the CRM-side chat UI).
+router.get('/messages/by-client/:clientId', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT pm.*, e.first_name AS sender_first_name, e.last_name AS sender_last_name, e.photo_url AS sender_photo_url
+       FROM portal_messages pm
+       LEFT JOIN employees e ON e.id = pm.sender_employee_id
+       WHERE pm.client_id = $1
+       ORDER BY pm.created_at ASC`,
+      [req.params.clientId]
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('CRM portal messages list error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /messages/by-client/:clientId — authenticated: CRM employee replies
+// to the portal chat. Sender is recorded as the current employee.
+router.post('/messages/by-client/:clientId', requireAuth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !String(content).trim()) {
+      return res.status(400).json({ error: 'Message content required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO portal_messages (client_id, sender_type, sender_employee_id, content)
+       VALUES ($1, 'employee', $2, $3) RETURNING *`,
+      [req.params.clientId, req.user.id, String(content).trim()]
+    );
+    res.status(201).json(toCamelCase(result.rows[0]));
+  } catch (err) {
+    console.error('CRM portal message send error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ─── Request Forms (CRM side, authenticated) ─────────────
 
 // GET /forms/templates — list templates
@@ -278,6 +367,18 @@ router.post('/forms', requireAuth, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, 'active', $6) RETURNING *`,
       [token, client_id, deliverable_id || null, name, JSON.stringify(fields || []), req.user.id]
     );
+
+    // Auto-advance linked deliverable from request_client_materials → materials_requested
+    // The form publish IS the "date requested" — stamp statusChangedAt = NOW().
+    if (deliverable_id) {
+      await pool.query(
+        `UPDATE deliverables
+         SET status = 'materials_requested', status_changed_at = NOW(), updated_at = NOW()
+         WHERE id = $1 AND status = 'request_client_materials'`,
+        [deliverable_id]
+      );
+    }
+
     res.status(201).json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Form create error:', err);
