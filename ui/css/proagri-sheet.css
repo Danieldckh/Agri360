@@ -434,6 +434,114 @@
   color: #16a085;
 }
 
+/* Social Media pipeline statuses */
+.proagri-sheet-status-upload_materials {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-waiting_for_materials {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-artwork_design {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-create_captions {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-create_links {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-create_stat_sheet {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+.proagri-sheet-status-scheduled {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+.proagri-sheet-status-posted {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+/* Editorial/Online Articles statuses */
+.proagri-sheet-status-editing {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-editorial_changes {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-translating {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-ready_to_upload {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+/* Video pipeline statuses */
+.proagri-sheet-status-send_request_form {
+  background: rgba(142, 68, 173, 0.15);
+  color: #8e44ad;
+}
+
+.proagri-sheet-status-request_form_sent {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-request_form_received {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-populating_video_dept {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-brief_received {
+  background: rgba(41, 128, 185, 0.15);
+  color: #2980b9;
+}
+
+.proagri-sheet-status-assign_and_schedule {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-review {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-changes_requested {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-final_delivery {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
 /* === Multi-Select Tags (in cell) === */
 
 .proagri-sheet-tags {
