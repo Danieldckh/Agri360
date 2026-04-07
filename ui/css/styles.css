@@ -1041,7 +1041,14 @@ html, body {
 /* ===== Client Dashboard ===== */
 
 .client-dashboard {
-  padding: 0 4px;
+  padding: 0 4px 24px;
+  /* Client dashboard is the only admin view that should scroll internally.
+     Tab sheets scroll inside their own .dept-sheet-container; the page shell
+     (.dashboard-content) keeps overflow: hidden. This rule gives the client
+     dashboard its own scroll so long content (form data cards + JSON block)
+     doesn't get clipped. */
+  height: 100%;
+  overflow-y: auto;
 }
 
 /* Sidebar dashboard (shown when viewing a client) */
