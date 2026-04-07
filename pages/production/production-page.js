@@ -1325,6 +1325,174 @@
   window.renderFollowUpsTab = renderFollowUpsTab;
   window.renderApprovalsTab = renderApprovalsTab;
 
+  // ── Department person assignment config ────────────────
+  var DEPT_SLOTS = [
+    { field: 'assignedAdmin',       api: 'assigned_admin',        label: 'Admin',        color: '#3b82f6' },
+    { field: 'assignedProduction',  api: 'assigned_production',   label: 'Production',   color: '#8b5cf6' },
+    { field: 'assignedDesign',      api: 'assigned_design',       label: 'Design',       color: '#ec4899' },
+    { field: 'assignedEditorial',   api: 'assigned_editorial',    label: 'Editorial',    color: '#f59e0b' },
+    { field: 'assignedVideo',       api: 'assigned_video',        label: 'Video',        color: '#ef4444' },
+    { field: 'assignedAgri4all',    api: 'assigned_agri4all',     label: 'Agri4All',     color: '#10b981' },
+    { field: 'assignedSocialMedia', api: 'assigned_social_media', label: 'Social Media', color: '#06b6d4' }
+  ];
+
+  // Avatar: photo if available, otherwise colored initials circle
+  function buildAvatar(employee, size, deptColor) {
+    var el = document.createElement('div');
+    el.className = 'dept-avatar';
+    var px = (size || 22) + 'px';
+    el.style.cssText = 'width:' + px + ';height:' + px + ';';
+    if (employee && employee.photoUrl) {
+      var img = document.createElement('img');
+      img.src = employee.photoUrl;
+      img.alt = (employee.firstName || '') + ' ' + (employee.lastName || '');
+      el.appendChild(img);
+    } else if (employee) {
+      var initials = ((employee.firstName || '')[0] || '') + ((employee.lastName || '')[0] || '');
+      el.textContent = initials.toUpperCase() || '?';
+      el.style.background = deptColor || '#64748b';
+      el.style.color = '#fff';
+    } else {
+      // Empty slot — show plus or blank
+      el.className += ' dept-avatar-empty';
+      el.textContent = '+';
+      el.style.borderColor = deptColor || '#cbd5e1';
+      el.style.color = deptColor || '#94a3b8';
+    }
+    if (employee) {
+      el.title = ((employee.firstName || '') + ' ' + (employee.lastName || '')).trim() + (deptColor ? '' : '');
+    }
+    return el;
+  }
+
+  // Employee picker modal — searchable list with current user first
+  function openEmployeePicker(deptLabel, currentId, onSelect) {
+    var existing = document.querySelector('.emp-picker-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'emp-picker-overlay';
+    var modal = document.createElement('div');
+    modal.className = 'emp-picker-modal';
+
+    var title = document.createElement('h3');
+    title.className = 'emp-picker-title';
+    title.textContent = 'Assign ' + deptLabel;
+    modal.appendChild(title);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'emp-picker-search';
+    searchInput.placeholder = 'Search employees...';
+    modal.appendChild(searchInput);
+
+    var listEl = document.createElement('div');
+    listEl.className = 'emp-picker-list';
+    modal.appendChild(listEl);
+
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    (window._fetchEmployees ? window._fetchEmployees() : fetch('/api/employees', { headers: getHeaders() }).then(function (r) { return r.json(); }))
+      .then(function (employees) {
+        var currentUser = null;
+        if (window.getCurrentUser) currentUser = window.getCurrentUser();
+        // Sort: current user first, then alphabetically
+        var sorted = employees.slice().sort(function (a, b) {
+          if (currentUser) {
+            if (a.id === currentUser.id) return -1;
+            if (b.id === currentUser.id) return 1;
+          }
+          var an = (a.firstName || '') + ' ' + (a.lastName || '');
+          var bn = (b.firstName || '') + ' ' + (b.lastName || '');
+          return an.localeCompare(bn);
+        });
+
+        function renderList(filter) {
+          while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+          var filtered = sorted;
+          if (filter) {
+            var f = filter.toLowerCase();
+            filtered = sorted.filter(function (e) {
+              var name = ((e.firstName || '') + ' ' + (e.lastName || '') + ' ' + (e.username || '') + ' ' + (e.role || '')).toLowerCase();
+              return name.indexOf(f) !== -1;
+            });
+          }
+
+          // "Unassign" option
+          var clearRow = document.createElement('div');
+          clearRow.className = 'emp-picker-item emp-picker-clear';
+          clearRow.textContent = '\u2715  Unassign';
+          clearRow.addEventListener('click', function () {
+            onSelect(null);
+            overlay.remove();
+          });
+          listEl.appendChild(clearRow);
+
+          filtered.forEach(function (emp) {
+            var row = document.createElement('div');
+            row.className = 'emp-picker-item' + (emp.id === currentId ? ' active' : '');
+            row.appendChild(buildAvatar(emp, 28, '#64748b'));
+            var info = document.createElement('div');
+            info.className = 'emp-picker-info';
+            var name = document.createElement('div');
+            name.className = 'emp-picker-name';
+            name.textContent = ((emp.firstName || '') + ' ' + (emp.lastName || '')).trim() || emp.username;
+            info.appendChild(name);
+            var role = document.createElement('div');
+            role.className = 'emp-picker-role';
+            role.textContent = emp.role || '';
+            info.appendChild(role);
+            row.appendChild(info);
+            if (currentUser && emp.id === currentUser.id) {
+              var you = document.createElement('span');
+              you.className = 'emp-picker-you';
+              you.textContent = 'You';
+              row.appendChild(you);
+            }
+            row.addEventListener('click', function () {
+              onSelect(emp.id);
+              overlay.remove();
+            });
+            listEl.appendChild(row);
+          });
+        }
+        renderList('');
+        searchInput.addEventListener('input', function () { renderList(searchInput.value); });
+        searchInput.focus();
+      });
+  }
+
+  // Build the 7-avatar cell for a deliverable row
+  function buildDeptAvatarRow(deliverable, onUpdate) {
+    var wrap = document.createElement('div');
+    wrap.className = 'dept-avatar-row';
+    DEPT_SLOTS.forEach(function (slot) {
+      var assignedId = deliverable[slot.field];
+      var emp = assignedId && window._employeeCacheLookup ? window._employeeCacheLookup(assignedId) : null;
+      var avatar = buildAvatar(emp, 22, slot.color);
+      avatar.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openEmployeePicker(slot.label, assignedId, function (newId) {
+          var body = {};
+          body[slot.api] = newId;
+          fetch(API_BASE + '/' + deliverable.id, {
+            method: 'PATCH', headers: getHeaders(),
+            body: JSON.stringify(body)
+          }).then(function (res) {
+            if (res.ok) {
+              deliverable[slot.field] = newId;
+              if (onUpdate) onUpdate();
+            }
+          });
+        });
+      });
+      wrap.appendChild(avatar);
+    });
+    return wrap;
+  }
+
   // ── Unified Production Deliverables Tab ─────────────────────
   function renderProductionDeliverablesTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
@@ -1431,6 +1599,7 @@
       headerRow.className = 'prod-deliv-row prod-deliv-header';
       var headerCols = [
         { label: '', cls: 'prod-deliv-cell prod-deliv-act' },
+        { label: 'Team', cls: 'prod-deliv-cell prod-deliv-team' },
         { label: 'Title', cls: 'prod-deliv-cell prod-deliv-title' },
         { label: 'Type', cls: 'prod-deliv-cell prod-deliv-type' },
         { label: 'Status', cls: 'prod-deliv-cell' }
@@ -1515,6 +1684,14 @@
             eyeCell.appendChild(eyeBtn);
           }
           row.appendChild(eyeCell);
+
+          // Team avatars (7 dept slots)
+          var teamCell = document.createElement('div');
+          teamCell.className = 'prod-deliv-cell prod-deliv-team';
+          teamCell.appendChild(buildDeptAvatarRow(item, function () {
+            fetchData(currentYM);
+          }));
+          row.appendChild(teamCell);
 
           // Title
           var titleCell = document.createElement('div');
@@ -1612,15 +1789,17 @@
     var currentYM = '';
     function fetchData(ym) {
       currentYM = ym;
-      fetch(API_BASE + '/by-department/production?month=' + ym, { headers: getHeaders() })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-          allData = data;
-          renderTable();
-        })
-        .catch(function (err) {
-          console.error('Production deliverables fetch error:', err);
-        });
+      // Ensure employee cache is populated before rendering
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch(API_BASE + '/by-department/production?month=' + ym, { headers: getHeaders() }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        allData = results[1];
+        renderTable();
+      }).catch(function (err) {
+        console.error('Production deliverables fetch error:', err);
+      });
     }
 
     var monthSelector = initMonthSelector(wrapper, {
@@ -2097,6 +2276,97 @@
     badge.textContent = formatStatus(deliverable.status);
     sec.appendChild(badge);
     nav.appendChild(sec);
+
+    // Assigned Team section — show only assigned slots
+    var teamSlots = DEPT_SLOTS.filter(function (s) { return deliverable[s.field]; });
+    if (teamSlots.length > 0) {
+      addSidebarSection(nav, 'Assigned Team');
+      var teamWrap = document.createElement('div');
+      teamWrap.style.padding = '0 16px 4px';
+      teamSlots.forEach(function (slot) {
+        var emp = window._employeeCacheLookup ? window._employeeCacheLookup(deliverable[slot.field]) : null;
+        if (!emp) return;
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;';
+        row.appendChild(buildAvatar(emp, 22, slot.color));
+        var info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        var name = document.createElement('div');
+        name.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-primary,#1e293b);';
+        name.textContent = ((emp.firstName || '') + ' ' + (emp.lastName || '')).trim() || emp.username;
+        info.appendChild(name);
+        var role = document.createElement('div');
+        role.style.cssText = 'font-size:10px;color:var(--text-secondary,#64748b);';
+        role.textContent = slot.label;
+        info.appendChild(role);
+        row.appendChild(info);
+        teamWrap.appendChild(row);
+      });
+      nav.appendChild(teamWrap);
+    }
+
+    // Fetch client details and show
+    if (deliverable.clientId) {
+      fetch('/api/clients/' + deliverable.clientId, { headers: getHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (client) {
+          if (!client || client.error) return;
+          addSidebarSection(nav, 'Client Info');
+          var wrap = document.createElement('div');
+          wrap.style.padding = '0 16px 4px';
+          addSidebarField(wrap, 'Name', client.name);
+          addSidebarField(wrap, 'Trading', client.tradingName);
+          addSidebarField(wrap, 'Email', client.email);
+          addSidebarField(wrap, 'Phone', client.phone);
+          addSidebarField(wrap, 'Website', client.website);
+          nav.appendChild(wrap);
+
+          // Contact details
+          var contacts = [
+            { label: 'Primary', data: client.primaryContact },
+            { label: 'Material', data: client.materialContact },
+            { label: 'Accounts', data: client.accountsContact }
+          ];
+          var hasAnyContact = contacts.some(function (c) {
+            var d = c.data;
+            if (typeof d === 'string') try { d = JSON.parse(d); } catch (e) { d = {}; }
+            return d && (d.name || d.email || d.cell || d.tel);
+          });
+          if (hasAnyContact) {
+            addSidebarSection(nav, 'Contacts');
+            contacts.forEach(function (c) {
+              var d = c.data;
+              if (typeof d === 'string') try { d = JSON.parse(d); } catch (e) { d = {}; }
+              if (!d || (!d.name && !d.email && !d.cell)) return;
+              var block = document.createElement('div');
+              block.style.cssText = 'padding:4px 16px 6px;';
+              var lbl = document.createElement('div');
+              lbl.style.cssText = 'font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-secondary,#94a3b8);margin-bottom:2px;';
+              lbl.textContent = c.label;
+              block.appendChild(lbl);
+              if (d.name) {
+                var n = document.createElement('div');
+                n.style.cssText = 'font-size:12px;font-weight:600;color:var(--text-primary,#1e293b);';
+                n.textContent = d.name;
+                block.appendChild(n);
+              }
+              if (d.email) {
+                var e2 = document.createElement('div');
+                e2.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);';
+                e2.textContent = d.email;
+                block.appendChild(e2);
+              }
+              if (d.cell) {
+                var cell2 = document.createElement('div');
+                cell2.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);';
+                cell2.textContent = d.cell;
+                block.appendChild(cell2);
+              }
+              nav.appendChild(block);
+            });
+          }
+        });
+    }
 
     buildContent(nav);
   }
