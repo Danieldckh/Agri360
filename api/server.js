@@ -22,6 +22,7 @@ const dashboardRoutes = require('./routes/dashboards');
 const financialRoutes = require('./routes/financials');
 const departmentRoutes = require('./routes/departments');
 const devRoutes = require('./routes/dev');
+const portalRoutes = require('./routes/portal');
 
 // Ensure uploads directories exist
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -52,6 +53,7 @@ app.use('/api/dashboards', dashboardRoutes);
 app.use('/api/financials', financialRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/dev', devRoutes);
+app.use('/api/portal', portalRoutes);
 
 // Serve static frontend files
 var ROOT_DIR = path.join(__dirname, '..');

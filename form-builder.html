@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Builder — ProAgri CRM</title>
+<link rel="stylesheet" href="ui/css/styles.css">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; margin: 0; padding: 0; }
+  .fb-container { max-width: 900px; margin: 0 auto; padding: 24px; }
+  .fb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .fb-header h1 { font-size: 22px; margin: 0; color: #1e293b; }
+  .fb-client-name { font-size: 13px; color: #64748b; }
+  .fb-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .fb-btn { padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.15s; }
+  .fb-btn:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.04); }
+  .fb-btn-primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .fb-btn-primary:hover { background: #2563eb; color: #fff; }
+  .fb-name-input { width: 100%; padding: 10px 14px; font-size: 16px; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px; outline: none; background: #fff; }
+  .fb-name-input:focus { border-color: #3b82f6; }
+  .fb-cards { display: flex; flex-direction: column; gap: 16px; }
+  .fb-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; position: relative; }
+  .fb-card-num { position: absolute; top: -10px; left: -10px; width: 26px; height: 26px; border-radius: 50%; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .fb-card-delete { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px; }
+  .fb-card-delete:hover { color: #e74c3c; }
+  .fb-question { width: 100%; padding: 8px 10px; font-size: 14px; font-weight: 600; border: 1px solid transparent; border-bottom: 1px solid #e2e8f0; outline: none; background: transparent; margin-bottom: 10px; }
+  .fb-question:focus { border-color: #3b82f6; background: #fff; border-radius: 4px; }
+  .fb-field-type { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; margin-bottom: 6px; }
+  .fb-field-type select { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; background: #fff; }
+  .fb-field-preview { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 10px; font-size: 12px; color: #94a3b8; text-align: center; }
+  .fb-add-card { padding: 20px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #fff; color: #94a3b8; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s; }
+  .fb-add-card:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.04); }
+  .fb-templates-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .fb-templates-modal-inner { background: #fff; border-radius: 12px; padding: 20px; width: 400px; max-height: 70vh; overflow-y: auto; }
+  .fb-templates-modal h2 { margin: 0 0 12px; font-size: 16px; }
+  .fb-template-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
+  .fb-template-item:hover { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
+  .fb-template-item .tmpl-name { font-weight: 600; font-size: 13px; color: #1e293b; }
+  .fb-template-item .tmpl-del { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 16px; }
+  .fb-template-item .tmpl-del:hover { color: #e74c3c; }
+  .fb-success { padding: 12px 16px; background: rgba(46,204,113,0.1); color: #27ae60; border-radius: 6px; margin-bottom: 16px; font-size: 13px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="fb-container">
+  <div class="fb-header">
+    <div>
+      <h1>Form Builder</h1>
+      <div class="fb-client-name" id="clientName"></div>
+    </div>
+  </div>
+
+  <div id="successMsg"></div>
+
+  <input type="text" class="fb-name-input" id="formName" placeholder="Form Name (e.g. 'Logo Brief Questionnaire')">
+
+  <div class="fb-toolbar">
+    <button class="fb-btn" id="loadTemplateBtn">Load Template</button>
+    <button class="fb-btn" id="saveTemplateBtn">Save as Template</button>
+    <button class="fb-btn fb-btn-primary" id="publishBtn">Publish to Client Portal</button>
+  </div>
+
+  <div class="fb-cards" id="cardsWrap"></div>
+  <div class="fb-add-card" id="addCardBtn">+ Add Card</div>
+</div>
+
+<script src="ui/js/authGuard.js"></script>
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(window.location.search);
+  var clientId = parseInt(params.get('clientId'), 10);
+  var deliverableId = params.get('deliverableId') || null;
+
+  var cards = [];
+  var formName = '';
+
+  var clientNameEl = document.getElementById('clientName');
+  var formNameInput = document.getElementById('formName');
+  var cardsWrap = document.getElementById('cardsWrap');
+  var successMsg = document.getElementById('successMsg');
+
+  formNameInput.addEventListener('input', function () { formName = formNameInput.value; });
+
+  function getHeaders() {
+    var headers = { 'Content-Type': 'application/json' };
+    if (window.getAuthHeaders) {
+      var auth = window.getAuthHeaders();
+      for (var key in auth) if (auth.hasOwnProperty(key)) headers[key] = auth[key];
+    }
+    return headers;
+  }
+
+  // Load client name
+  fetch('/api/clients/' + clientId, { headers: getHeaders() })
+    .then(function (r) { return r.json(); })
+    .then(function (client) {
+      clientNameEl.textContent = 'Client: ' + (client.name || 'Unknown');
+      document.title = 'Form Builder — ' + (client.name || '');
+    });
+
+  function renderCards() {
+    while (cardsWrap.firstChild) cardsWrap.removeChild(cardsWrap.firstChild);
+    cards.forEach(function (card, idx) {
+      var el = document.createElement('div');
+      el.className = 'fb-card';
+
+      var num = document.createElement('div');
+      num.className = 'fb-card-num';
+      num.textContent = idx + 1;
+      el.appendChild(num);
+
+      var del = document.createElement('button');
+      del.className = 'fb-card-delete';
+      del.textContent = '×';
+      del.addEventListener('click', function () { cards.splice(idx, 1); renderCards(); });
+      el.appendChild(del);
+
+      var q = document.createElement('input');
+      q.type = 'text';
+      q.className = 'fb-question';
+      q.placeholder = 'Question...';
+      q.value = card.question || '';
+      q.addEventListener('input', function () { card.question = q.value; });
+      el.appendChild(q);
+
+      var typeRow = document.createElement('div');
+      typeRow.className = 'fb-field-type';
+      typeRow.appendChild(document.createTextNode('Field type:'));
+      var typeSelect = document.createElement('select');
+      [
+        { v: 'text', l: 'Short Text' },
+        { v: 'textarea', l: 'Long Text' },
+        { v: 'file', l: 'File Upload' },
+        { v: 'date', l: 'Date' },
+        { v: 'number', l: 'Number' }
+      ].forEach(function (opt) {
+        var o = document.createElement('option');
+        o.value = opt.v;
+        o.textContent = opt.l;
+        if (card.fieldType === opt.v) o.selected = true;
+        typeSelect.appendChild(o);
+      });
+      typeSelect.addEventListener('change', function () {
+        card.fieldType = typeSelect.value;
+        renderPreview(preview, card.fieldType);
+      });
+      typeRow.appendChild(typeSelect);
+      el.appendChild(typeRow);
+
+      var preview = document.createElement('div');
+      preview.className = 'fb-field-preview';
+      renderPreview(preview, card.fieldType || 'text');
+      el.appendChild(preview);
+
+      cardsWrap.appendChild(el);
+    });
+  }
+
+  function renderPreview(el, type) {
+    var labels = {
+      text: '[ Short text input ]',
+      textarea: '[ Multi-line text area ]',
+      file: '[ File upload area ]',
+      date: '[ Date picker ]',
+      number: '[ Number input ]'
+    };
+    el.textContent = labels[type] || '[ Preview ]';
+  }
+
+  document.getElementById('addCardBtn').addEventListener('click', function () {
+    cards.push({ question: '', fieldType: 'text' });
+    renderCards();
+  });
+
+  document.getElementById('saveTemplateBtn').addEventListener('click', function () {
+    var name = prompt('Template name:', formName || 'My Template');
+    if (!name) return;
+    fetch('/api/portal/forms/templates', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ name: name, fields: cards })
+    }).then(function (r) { return r.json(); })
+      .then(function () {
+        showSuccess('Template saved: ' + name);
+      });
+  });
+
+  document.getElementById('loadTemplateBtn').addEventListener('click', function () {
+    fetch('/api/portal/forms/templates', { headers: getHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (templates) {
+        showTemplateModal(templates);
+      });
+  });
+
+  function showTemplateModal(templates) {
+    var overlay = document.createElement('div');
+    overlay.className = 'fb-templates-modal';
+    var inner = document.createElement('div');
+    inner.className = 'fb-templates-modal-inner';
+    var h = document.createElement('h2');
+    h.textContent = 'Load Template';
+    inner.appendChild(h);
+    if (templates.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'padding:20px;text-align:center;color:#94a3b8;';
+      empty.textContent = 'No templates saved yet.';
+      inner.appendChild(empty);
+    }
+    templates.forEach(function (tmpl) {
+      var item = document.createElement('div');
+      item.className = 'fb-template-item';
+      var name = document.createElement('span');
+      name.className = 'tmpl-name';
+      name.textContent = tmpl.name;
+      item.appendChild(name);
+      var delBtn = document.createElement('button');
+      delBtn.className = 'tmpl-del';
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!confirm('Delete template "' + tmpl.name + '"?')) return;
+        fetch('/api/portal/forms/templates/' + tmpl.id, { method: 'DELETE', headers: getHeaders() })
+          .then(function () { overlay.remove(); });
+      });
+      item.appendChild(delBtn);
+      item.addEventListener('click', function () {
+        cards = JSON.parse(JSON.stringify(tmpl.fields || []));
+        formName = tmpl.name;
+        formNameInput.value = tmpl.name;
+        renderCards();
+        overlay.remove();
+      });
+      inner.appendChild(item);
+    });
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'fb-btn';
+    closeBtn.textContent = 'Cancel';
+    closeBtn.style.marginTop = '10px';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    inner.appendChild(closeBtn);
+    overlay.appendChild(inner);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  document.getElementById('publishBtn').addEventListener('click', function () {
+    if (!formName) { alert('Please enter a form name'); return; }
+    if (cards.length === 0) { alert('Please add at least one card'); return; }
+    fetch('/api/portal/forms', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        clientId: clientId,
+        deliverableId: deliverableId,
+        name: formName,
+        fields: cards
+      })
+    }).then(function (r) { return r.json(); })
+      .then(function (form) {
+        showSuccess('Form published! It\'s now visible in the client portal.');
+      });
+  });
+
+  function showSuccess(msg) {
+    successMsg.innerHTML = '';
+    var d = document.createElement('div');
+    d.className = 'fb-success';
+    d.textContent = msg;
+    successMsg.appendChild(d);
+    setTimeout(function () { successMsg.innerHTML = ''; }, 4000);
+  }
+
+  renderCards();
+})();
+</script>
+</body>
+</html>
