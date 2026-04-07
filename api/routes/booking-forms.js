@@ -7,6 +7,51 @@ const router = Router();
 
 router.use(requireAuth);
 
+// Internal helper: create the unsigned booking form (an esign URL the
+// client can click to view + sign). Used by the explicit
+// POST /:id/send-to-esign route AND as a side effect of PATCH /:id when
+// status reaches `booking_form_ready` for the first time.
+//
+// The Booking Form Esign service (separate app, shares this Postgres
+// instance) renders the booking form from `bookingFormId`, so the html
+// payload may be empty when triggered automatically.
+//
+// On success: writes esign_url onto the booking_forms row and returns
+// { esignUrl, slug }. On failure: throws — callers decide whether to
+// swallow (PATCH side effect) or surface (explicit POST route).
+async function createUnsignedBookingForm(formId, opts) {
+  opts = opts || {};
+  const formResult = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [formId]);
+  if (formResult.rows.length === 0) {
+    const err = new Error('Booking form not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  const form = toCamelCase(formResult.rows[0]);
+  const finalSlug = opts.slug || ('esign-' + form.id);
+
+  const ESIGN_SERVICE = process.env.ESIGN_SERVICE_URL || 'https://esign.proagrihub.com';
+  const esignRes = await fetch(ESIGN_SERVICE + '/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      slug: finalSlug,
+      html: opts.html || '',
+      bookingFormId: form.id,
+      readOnly: true
+    })
+  });
+  const esignResult = await esignRes.json().catch(() => ({}));
+
+  const esignUrl = esignResult.url || `${ESIGN_SERVICE}/pages/${finalSlug}.html`;
+  await pool.query(
+    'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
+    [esignUrl, formId]
+  );
+
+  return { esignUrl, slug: finalSlug };
+}
+
 // GET / - list all booking forms with client info
 router.get('/', async (req, res) => {
   try {
@@ -176,7 +221,31 @@ router.patch('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Booking form not found' });
     }
-    res.json(toCamelCase(result.rows[0]));
+    let updatedRow = result.rows[0];
+
+    // Side effect: when a booking form first reaches `booking_form_ready`,
+    // automatically generate the unsigned booking form (esign URL) so the
+    // "Unsigned Booking Form" link in the admin Booking Form tab is
+    // populated. Idempotent: if esign_url already exists, we leave it
+    // alone — re-saving status doesn't orphan an existing token.
+    //
+    // Best-effort: a failure of the esign service should NOT roll back
+    // the status change (the PATCH is the primary operation). The error
+    // is logged so it can be retried later via POST /:id/send-to-esign.
+    if (updatedRow.status === 'booking_form_ready' && !updatedRow.esign_url) {
+      try {
+        await createUnsignedBookingForm(req.params.id);
+        // Re-read so the response reflects the freshly written esign_url.
+        const refreshed = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [req.params.id]);
+        if (refreshed.rows.length > 0) {
+          updatedRow = refreshed.rows[0];
+        }
+      } catch (esignErr) {
+        console.error('Auto-generate unsigned booking form failed for id ' + req.params.id + ':', esignErr);
+      }
+    }
+
+    res.json(toCamelCase(updatedRow));
   } catch (err) {
     console.error('Update booking form error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -253,40 +322,19 @@ router.post('/:id/send-to-editor', async (req, res) => {
   }
 });
 
-// POST /:id/send-to-esign - Send edited booking form to e-sign service
+// POST /:id/send-to-esign - Send edited booking form to e-sign service.
+// Used by the explicit "send to esign" UI action AND as a manual retry
+// path when the auto-generation in PATCH /:id failed (e.g. esign service
+// down at the moment status was advanced).
 router.post('/:id/send-to-esign', async (req, res) => {
   try {
     const { html, slug } = req.body || {};
-    const result = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Booking form not found' });
-    }
-    const form = toCamelCase(result.rows[0]);
-    const finalSlug = slug || ('esign-' + form.id);
-
-    // Send to e-sign service
-    const ESIGN_SERVICE = process.env.ESIGN_SERVICE_URL || 'https://esign.proagrihub.com';
-    const esignRes = await fetch(ESIGN_SERVICE + '/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        slug: finalSlug,
-        html: html || '',
-        bookingFormId: form.id,
-        readOnly: true
-      })
-    });
-    const esignResult = await esignRes.json();
-
-    // Store the e-sign URL
-    const esignUrl = esignResult.url || `${ESIGN_SERVICE}/pages/${finalSlug}.html`;
-    await pool.query(
-      'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
-      [esignUrl, req.params.id]
-    );
-
+    const { esignUrl, slug: finalSlug } = await createUnsignedBookingForm(req.params.id, { html, slug });
     res.json({ success: true, esignUrl, slug: finalSlug });
   } catch (err) {
+    if (err && err.code === 'NOT_FOUND') {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
     console.error('Send to esign error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
