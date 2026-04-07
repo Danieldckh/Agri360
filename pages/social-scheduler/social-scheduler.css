@@ -208,6 +208,20 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  margin: 0 8px 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sch-unscheduled-list.drop-target {
+  background: #fff4e0;
+  border-color: var(--color-accent-dark, #d4791a);
+}
+
+[data-theme="dark"] .sch-unscheduled-list.drop-target {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: var(--color-accent-light, #f5a623);
 }
 
 .sch-unscheduled-list::-webkit-scrollbar {

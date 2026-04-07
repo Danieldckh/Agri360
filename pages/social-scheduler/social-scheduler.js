@@ -226,6 +226,18 @@
     }).then(loadAll);
   }
 
+  function unschedulePost(post) {
+    if (!post.scheduledAt) return; // already unscheduled — drop is a no-op
+    if (post.status === 'posted') return; // can't unschedule something already posted
+    return api('/posts/' + post.id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        scheduledAt: null,
+        status: 'draft'
+      })
+    }).then(loadAll);
+  }
+
   // ---------------- rendering ----------------
   function render() {
     var c = state.container;
@@ -323,12 +335,14 @@
 
     var list = el('div', 'sch-unscheduled-list');
     if (unsched.length === 0) {
-      list.appendChild(el('div', 'sch-empty', 'No unscheduled posts. Create one to get started.'));
+      list.appendChild(el('div', 'sch-empty', 'No unscheduled posts. Drop a scheduled post here to unschedule it, or create a new one.'));
     } else {
       unsched.forEach(function (p) {
         list.appendChild(buildPostCard(p));
       });
     }
+    // Allow scheduled posts to be dragged back here to unschedule them
+    makeDropTarget(list, function (post) { unschedulePost(post); });
     left.appendChild(list);
 
     return left;

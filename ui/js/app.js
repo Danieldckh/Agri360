@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
     'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
-    'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media']
+    'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media', 'Google Ads']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
@@ -1001,7 +1001,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Route department tabs to generic type-filtered view
     var deptTypeViews = ['Content Calendars', 'Agri for All', 'Magazine', 'Banners', 'Online Articles',
-      'Briefs', 'Production', 'Editing', 'Review', 'Posts', 'Newsletters', 'Links', 'Stats', 'Scheduling'];
+      'Briefs', 'Production', 'Editing', 'Review', 'Posts', 'Newsletters', 'Links', 'Stats', 'Scheduling',
+      'Google Ads'];
     if (deptTypeViews.indexOf(viewName) !== -1 && window.renderDeptTypeTab) {
       window.renderDeptTypeTab(dashboardContent, page, viewName);
       return;
