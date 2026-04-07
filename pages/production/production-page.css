@@ -234,6 +234,15 @@
 .oa-article-editor:focus { border-color:var(--accent-color,#3b82f6); background:var(--card-bg,#fff); }
 .oa-article-editor:empty::before { content:attr(placeholder); color:var(--text-muted,#94a3b8); }
 
+/* ===== Agri4All Dashboards ===== */
+.a4a-items { display:flex; flex-direction:column; gap:16px; padding-bottom:24px; }
+.a4a-item-card { position:relative; background:var(--card-bg,#fff); border:1px solid var(--border-color,#e2e8f0); border-radius:10px; padding:16px; }
+
+.a4a-rt-toolbar { display:flex; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--border-color,#e2e8f0); margin-bottom:10px; }
+.a4a-rt-btn { padding:4px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-secondary,#64748b); cursor:pointer; transition:all 0.15s; }
+.a4a-rt-btn:hover { border-color:var(--accent-color,#3b82f6); color:var(--accent-color,#3b82f6); background:rgba(59,130,246,0.04); }
+.oa-article-editor img { max-width:100%; margin:8px 0; border-radius:6px; }
+
 .prod-deliv-status-opt.active {
   background: rgba(59, 130, 246, 0.08);
 }

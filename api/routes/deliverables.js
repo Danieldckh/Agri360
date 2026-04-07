@@ -165,7 +165,9 @@ const DEPT_MAPS = {
 const DEPT_MAP_ALIASES = {
   'sm-videos': 'sm-posts', 'sm-google-ads': 'sm-posts', 'sm-linkedin': 'sm-posts', 'sm-twitter': 'sm-posts',
   'agri4all-videos': 'agri4all-posts', 'agri4all-product-uploads': 'agri4all-posts',
-  'agri4all-newsletters': 'agri4all-posts', 'agri4all-linkedin': 'agri4all-posts'
+  'agri4all-newsletters': 'agri4all-posts',
+  'agri4all-newsletter-feature': 'agri4all-posts', 'agri4all-newsletter-banner': 'agri4all-posts',
+  'agri4all-linkedin': 'agri4all-posts'
 };
 
 function getDeptMapForType(type) {
@@ -494,6 +496,143 @@ router.post('/create-content-calendars', async (req, res) => {
           curated_amount: entry.curated_amount || 0
         }
       ));
+    }
+
+    // === Agri4All ===
+    // Group agri4all entries by month_label and combine countries
+    const a4aEntries = formData.agri4all || [];
+    const a4aByMonth = {};
+    a4aEntries.forEach(e => {
+      const key = e.month_label || e.months_display || 'Unknown';
+      if (!a4aByMonth[key]) a4aByMonth[key] = { month_label: key, countries: [], states: [] };
+      const country = e.country && e.country !== 'ALL' ? e.country : 'ALL';
+      if (a4aByMonth[key].countries.indexOf(country) === -1) a4aByMonth[key].countries.push(country);
+      a4aByMonth[key].states.push(e.state || {});
+    });
+
+    // Helper: merge any-state (check if any state has the field true)
+    function anyHas(states, field) {
+      return states.some(s => s && s[field] === true);
+    }
+    // Helper: max amount from any state
+    function maxAmt(states, field) {
+      let m = 0;
+      states.forEach(s => {
+        if (s && s[field]) {
+          const n = parseInt(s[field], 10);
+          if (!isNaN(n) && n > m) m = n;
+        }
+      });
+      return m || '';
+    }
+
+    for (const ml in a4aByMonth) {
+      const group = a4aByMonth[ml];
+      const dm = parseMonthLabel(ml);
+      const states = group.states;
+      const countries = group.countries;
+
+      // 1. Agri4All Posts (FB + IG posts)
+      if (anyHas(states, 'facebook_posts') || anyHas(states, 'instagram_posts')) {
+        created.push(await createDeliv(
+          'agri4all-posts',
+          clientName + ' - Agri4All Posts - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            countries: countries,
+            facebook_posts: anyHas(states, 'facebook_posts'),
+            facebook_posts_amount: maxAmt(states, 'facebook_posts_amount'),
+            facebook_posts_curated_amount: maxAmt(states, 'facebook_posts_curated_amount'),
+            instagram_posts: anyHas(states, 'instagram_posts'),
+            instagram_posts_amount: maxAmt(states, 'instagram_posts_amount'),
+            instagram_posts_curated_amount: maxAmt(states, 'instagram_posts_curated_amount')
+          }
+        ));
+      }
+
+      // 2. Agri4All Product Uploads
+      if (anyHas(states, 'agri4all_product_uploads') || anyHas(states, 'unlimited_product_uploads')) {
+        created.push(await createDeliv(
+          'agri4all-product-uploads',
+          clientName + ' - Agri4All Product Uploads - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            countries: countries,
+            product_uploads: anyHas(states, 'agri4all_product_uploads'),
+            product_uploads_amount: maxAmt(states, 'agri4all_product_uploads_amount'),
+            unlimited_product_uploads: anyHas(states, 'unlimited_product_uploads')
+          }
+        ));
+      }
+
+      // 3. Agri4All Videos (stories + video posts + TikTok + YouTube)
+      const hasAnyVideo = anyHas(states, 'facebook_stories') || anyHas(states, 'instagram_stories') ||
+        anyHas(states, 'facebook_video_posts') || anyHas(states, 'tiktok_shorts') ||
+        anyHas(states, 'youtube_shorts') || anyHas(states, 'youtube_video');
+      if (hasAnyVideo) {
+        created.push(await createDeliv(
+          'agri4all-videos',
+          clientName + ' - Agri4All Videos - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            countries: countries,
+            facebook_stories: anyHas(states, 'facebook_stories'),
+            facebook_stories_amount: maxAmt(states, 'facebook_stories_amount'),
+            instagram_stories: anyHas(states, 'instagram_stories'),
+            instagram_stories_amount: maxAmt(states, 'instagram_stories_amount'),
+            facebook_video_posts: anyHas(states, 'facebook_video_posts'),
+            facebook_video_posts_amount: maxAmt(states, 'facebook_video_posts_amount'),
+            facebook_video_posts_curated_amount: maxAmt(states, 'facebook_video_posts_curated_amount'),
+            tiktok_shorts: anyHas(states, 'tiktok_shorts'),
+            tiktok_amount: maxAmt(states, 'tiktok_amount'),
+            youtube_shorts: anyHas(states, 'youtube_shorts'),
+            youtube_shorts_amount: maxAmt(states, 'youtube_shorts_amount'),
+            youtube_video: anyHas(states, 'youtube_video'),
+            youtube_video_amount: maxAmt(states, 'youtube_video_amount')
+          }
+        ));
+      }
+
+      // 4. Newsletter Feature
+      if (anyHas(states, 'newsletter_feature')) {
+        created.push(await createDeliv(
+          'agri4all-newsletter-feature',
+          clientName + ' - Newsletter Feature - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            countries: countries,
+            amount: maxAmt(states, 'newsletter_feature_amount')
+          }
+        ));
+      }
+
+      // 5. Newsletter Banner
+      if (anyHas(states, 'newsletter_banner')) {
+        created.push(await createDeliv(
+          'agri4all-newsletter-banner',
+          clientName + ' - Newsletter Banner - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            countries: countries,
+            amount: maxAmt(states, 'newsletter_banner_amount')
+          }
+        ));
+      }
+
+      // 6. LinkedIn (article + company campaign)
+      if (anyHas(states, 'linkedin_article') || anyHas(states, 'linkedin_company_campaign')) {
+        created.push(await createDeliv(
+          'agri4all-linkedin',
+          clientName + ' - Agri4All LinkedIn - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            countries: countries,
+            article: anyHas(states, 'linkedin_article'),
+            company_campaign: anyHas(states, 'linkedin_company_campaign'),
+            amount: maxAmt(states, 'linkedin_amount')
+          }
+        ));
+      }
     }
 
     res.status(201).json({ message: 'Deliverables created', count: created.length, deliverables: created });

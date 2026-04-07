@@ -82,6 +82,8 @@
     'agri4all-videos': 'agri4all-posts',
     'agri4all-product-uploads': 'agri4all-posts',
     'agri4all-newsletters': 'agri4all-posts',
+    'agri4all-newsletter-feature': 'agri4all-posts',
+    'agri4all-newsletter-banner': 'agri4all-posts',
     'agri4all-linkedin': 'agri4all-posts'
   };
 
@@ -219,6 +221,8 @@
     'agri4all-videos': 'agri4all-posts',
     'agri4all-product-uploads': 'agri4all-posts',
     'agri4all-newsletters': 'agri4all-posts',
+    'agri4all-newsletter-feature': 'agri4all-posts',
+    'agri4all-newsletter-banner': 'agri4all-posts',
     'agri4all-linkedin': 'agri4all-posts'
   };
 
