@@ -279,6 +279,8 @@ async function runMigrations() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_status ON scheduled_posts(status)`);
 
     // Social credentials — per-platform account credentials used by the scheduler
+    // client_id is nullable: NULL means agency-owned, otherwise the account
+    // belongs to that specific client.
     await client.query(`CREATE TABLE IF NOT EXISTS social_credentials (
       id SERIAL PRIMARY KEY,
       platform VARCHAR(30) NOT NULL,
@@ -287,11 +289,15 @@ async function runMigrations() {
       credentials JSONB DEFAULT '{}',
       is_active BOOLEAN DEFAULT TRUE,
       last_verified_at TIMESTAMPTZ,
+      client_id INT REFERENCES clients(id) ON DELETE SET NULL,
       created_by INT REFERENCES employees(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`);
+    // Idempotent ALTER for existing installs that pre-date the client_id column
+    await client.query(`ALTER TABLE social_credentials ADD COLUMN IF NOT EXISTS client_id INT REFERENCES clients(id) ON DELETE SET NULL`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_social_credentials_platform ON social_credentials(platform)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_social_credentials_client_id ON social_credentials(client_id)`);
 
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);

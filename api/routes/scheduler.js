@@ -190,10 +190,30 @@ function sanitizeCred(row) {
   return camel;
 }
 
-// GET /credentials - list all credentials (masked)
+// GET /credentials - list all credentials (masked).
+// Optional filter:
+//   ?clientId=NN  → only credentials for that client
+//   ?clientId=agency → only agency-owned (client_id IS NULL)
+// Joins clients so the response carries the client name for display.
 router.get('/credentials', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM social_credentials ORDER BY platform, account_name');
+    const { clientId } = req.query;
+    const where = [];
+    const values = [];
+    if (clientId === 'agency') {
+      where.push(`sc.client_id IS NULL`);
+    } else if (clientId) {
+      values.push(clientId);
+      where.push(`sc.client_id = $${values.length}`);
+    }
+    const sql = `
+      SELECT sc.*, c.name AS client_name
+      FROM social_credentials sc
+      LEFT JOIN clients c ON c.id = sc.client_id
+      ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+      ORDER BY sc.client_id NULLS FIRST, sc.platform, sc.account_name
+    `;
+    const result = await pool.query(sql, values);
     res.json(result.rows.map(sanitizeCred));
   } catch (err) {
     console.error('List credentials error:', err);
@@ -204,7 +224,7 @@ router.get('/credentials', async (req, res) => {
 // POST /credentials - create credential
 router.post('/credentials', async (req, res) => {
   const b = toSnakeBody(req.body);
-  const { platform, account_name, account_handle, credentials, is_active } = b;
+  const { platform, account_name, account_handle, credentials, is_active, client_id } = b;
 
   if (!platform || !account_name) {
     return res.status(400).json({ error: 'platform and account_name are required' });
@@ -214,8 +234,8 @@ router.post('/credentials', async (req, res) => {
     const userId = req.user && req.user.id ? req.user.id : null;
     const result = await pool.query(
       `INSERT INTO social_credentials
-        (platform, account_name, account_handle, credentials, is_active, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6)
+        (platform, account_name, account_handle, credentials, is_active, client_id, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        RETURNING *`,
       [
         platform,
@@ -223,10 +243,19 @@ router.post('/credentials', async (req, res) => {
         account_handle || null,
         JSON.stringify(credentials || {}),
         is_active !== false,
+        client_id || null,
         userId
       ]
     );
-    res.status(201).json(sanitizeCred(result.rows[0]));
+    // Re-fetch with client name so the new row matches the list response shape
+    const enriched = await pool.query(
+      `SELECT sc.*, c.name AS client_name
+       FROM social_credentials sc
+       LEFT JOIN clients c ON c.id = sc.client_id
+       WHERE sc.id = $1`,
+      [result.rows[0].id]
+    );
+    res.status(201).json(sanitizeCred(enriched.rows[0]));
   } catch (err) {
     console.error('Create credential error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -236,7 +265,7 @@ router.post('/credentials', async (req, res) => {
 // PATCH /credentials/:id
 router.patch('/credentials/:id', async (req, res) => {
   const b = toSnakeBody(req.body);
-  const fields = ['platform', 'account_name', 'account_handle', 'credentials', 'is_active', 'last_verified_at'];
+  const fields = ['platform', 'account_name', 'account_handle', 'credentials', 'is_active', 'last_verified_at', 'client_id'];
   const jsonFields = new Set(['credentials']);
   const updates = [];
   const values = [];
@@ -259,11 +288,19 @@ router.patch('/credentials/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE social_credentials SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE social_credentials SET ${updates.join(', ')} WHERE id = $${idx} RETURNING id`,
       values
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Credential not found' });
-    res.json(sanitizeCred(result.rows[0]));
+    // Re-fetch with client name so the response shape matches the list endpoint
+    const enriched = await pool.query(
+      `SELECT sc.*, c.name AS client_name
+       FROM social_credentials sc
+       LEFT JOIN clients c ON c.id = sc.client_id
+       WHERE sc.id = $1`,
+      [result.rows[0].id]
+    );
+    res.json(sanitizeCred(enriched.rows[0]));
   } catch (err) {
     console.error('Update credential error:', err);
     res.status(500).json({ error: 'Internal server error' });

@@ -891,6 +891,73 @@
   font-size: 13px;
 }
 
+/* Filter row at the top of the credentials modal */
+.sch-cred-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sch-cred-filter-row .sch-field-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.sch-cred-filter-row select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--color-secondary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  outline: none;
+}
+
+/* Owner badge attached to each credential row.
+   Agency = neutral grey; client = accent-tinted to distinguish at a glance. */
+.sch-cred-owner {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-radius: 10px;
+  align-self: flex-start;
+}
+
+.sch-cred-owner.agency {
+  background: var(--border-color, #e2e8f0);
+  color: var(--text-secondary, #444);
+}
+
+.sch-cred-owner.client {
+  background: rgba(212, 121, 26, 0.12);
+  color: var(--color-accent-dark, #d4791a);
+}
+
+[data-theme="dark"] .sch-cred-owner.agency {
+  background: #3a3f4a;
+  color: #c9cdd5;
+}
+
+[data-theme="dark"] .sch-cred-owner.client {
+  background: rgba(245, 166, 35, 0.18);
+  color: var(--color-accent-light, #f5a623);
+}
+
+/* Empty state shown inside the post composer's platform section
+   when the selected client has no connected accounts. */
+.sch-platform-empty {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  font-style: italic;
+  padding: 10px 0;
+}
+
 .sch-divider {
   height: 1px;
   background: var(--border-color, #e2e8f0);
