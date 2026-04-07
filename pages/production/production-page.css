@@ -13,6 +13,12 @@
   z-index: 1;
 }
 
+/* Hide the combined header row (rendered as both .prod-deliv-row and
+   .prod-deliv-header by production-page.js). */
+.prod-deliv-row.prod-deliv-header {
+  display: none;
+}
+
 .prod-deliv-row {
   display: flex;
   align-items: center;
