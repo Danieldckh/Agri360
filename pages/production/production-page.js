@@ -919,30 +919,45 @@
     }, deptSlug, sharedRefresh);
   }
 
-  // ── Follow Ups Tab — single full-width Materials Requested sheet ──
-  // The "Sent for Approval" view lives in the Approvals tab; keeping it
-  // here was just duplicating that sheet. Follow Ups now focuses solely
-  // on material requests that are waiting on the client.
+  // ── Follow Ups Tab — 50/50 split: Request Materials | Materials Requested ──
+  // Left  : items still in `request_client_materials` (a form needs to be sent)
+  // Right : items already requested and waiting on the client
   function renderFollowUpsTab(container) {
-    renderClientGroupedSheet(container, {
-      title: 'Materials Requested',
-      searchPlaceholder: 'Search materials requested...',
-      statusFilter: function (d) {
-        // Canonical status after form publish + legacy stragglers
-        return d.status === 'materials_requested' ||
-          d.status === 'waiting_for_materials' ||
-          d.status === 'upload_materials';
+    renderSplitSheetTab(container, {
+      prefix: 'fu',
+      left: {
+        title: 'Request Materials',
+        searchPlaceholder: 'Search request materials...',
+        filter: function (d) { return d.status === 'request_client_materials'; },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Waiting Since')
+        ],
+        emptyMessage: 'No items waiting for a materials request',
+        showClientButtons: true
       },
-      columns: [
-        colTitle(),
-        colType(),
-        colStatus(),
-        colStatusChanged('Date Requested'),
-        colFollowUpCount(),
-        colActionAdvance('materials_received', 'Advance to Materials Received')
-      ],
-      emptyMessage: 'No materials requested',
-      showClientButtons: true
+      right: {
+        title: 'Materials Requested',
+        searchPlaceholder: 'Search materials requested...',
+        filter: function (d) {
+          // Canonical status after form publish + legacy stragglers
+          return d.status === 'materials_requested' ||
+            d.status === 'waiting_for_materials' ||
+            d.status === 'upload_materials';
+        },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Date Requested'),
+          colFollowUpCount(),
+          colActionAdvance('materials_received', 'Advance to Materials Received')
+        ],
+        emptyMessage: 'No materials requested',
+        showClientButtons: true
+      }
     });
   }
 
