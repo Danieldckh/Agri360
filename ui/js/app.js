@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
-    'production': ['Client Communications', 'Follow Ups', 'Approvals'],
+    'production': ['Deliverables', 'Follow Ups', 'Approvals'],
     'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
     'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
@@ -949,19 +949,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Route Production > Client Communications to production deliverables view
-    if (page === 'production' && viewName === 'Client Communications' && window.renderProductionTab) {
-      window.renderProductionTab(dashboardContent);
+    // Route Production > Deliverables to unified deliverables view
+    if (page === 'production' && viewName === 'Deliverables' && window.renderProductionDeliverablesTab) {
+      window.renderProductionDeliverablesTab(dashboardContent);
       return;
     }
 
-    // Route Production > Follow Ups to follow-ups 2-sheet view
+    // Route Production > Follow Ups
     if (page === 'production' && viewName === 'Follow Ups' && window.renderFollowUpsTab) {
       window.renderFollowUpsTab(dashboardContent);
       return;
     }
 
-    // Route Production > Approvals to approvals 2-sheet view
+    // Route Production > Approvals
     if (page === 'production' && viewName === 'Approvals' && window.renderApprovalsTab) {
       window.renderApprovalsTab(dashboardContent);
       return;
@@ -976,6 +976,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Route Design > Web Design to web design workflow view
     if (page === 'design' && viewName === 'Web Design' && window.renderDesignWebDesignTab) {
       window.renderDesignWebDesignTab(dashboardContent);
+      return;
+    }
+
+    // Route Social Media > Scheduling to the full scheduler
+    if (page === 'social-media' && viewName === 'Scheduling' && window.renderSocialSchedulerPage) {
+      dashboardContent.style.display = 'block';
+      dashboardContent.style.padding = '0';
+      dashboardContent.style.height = '100%';
+      window.renderSocialSchedulerPage(dashboardContent);
       return;
     }
 

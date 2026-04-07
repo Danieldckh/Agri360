@@ -307,6 +307,16 @@
   color: #16a085;
 }
 
+.proagri-sheet-status-client_changes {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-booking_form_sent {
+  background: rgba(0, 172, 193, 0.15);
+  color: #00acc1;
+}
+
 .proagri-sheet-status-onboarding {
   background: rgba(52, 152, 219, 0.15);
   color: #3498db;
@@ -389,6 +399,145 @@
 }
 
 .proagri-sheet-status-complete {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+/* Content calendar pipeline statuses */
+.proagri-sheet-status-request_focus_points {
+  background: rgba(142, 68, 173, 0.15);
+  color: #8e44ad;
+}
+
+.proagri-sheet-status-focus_points_requested {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-focus_points_received {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-editorial {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-editorial_review {
+  background: rgba(211, 84, 0, 0.15);
+  color: #d35400;
+}
+
+.proagri-sheet-status-ready_for_scheduling {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+/* Social Media pipeline statuses */
+.proagri-sheet-status-upload_materials {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-waiting_for_materials {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-artwork_design {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-create_captions {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-create_links {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-create_stat_sheet {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+.proagri-sheet-status-scheduled {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+.proagri-sheet-status-posted {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+/* Editorial/Online Articles statuses */
+.proagri-sheet-status-editing {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-editorial_changes {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-translating {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-ready_to_upload {
+  background: rgba(22, 160, 133, 0.15);
+  color: #16a085;
+}
+
+/* Video pipeline statuses */
+.proagri-sheet-status-send_request_form {
+  background: rgba(142, 68, 173, 0.15);
+  color: #8e44ad;
+}
+
+.proagri-sheet-status-request_form_sent {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.proagri-sheet-status-request_form_received {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-populating_video_dept {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.proagri-sheet-status-brief_received {
+  background: rgba(41, 128, 185, 0.15);
+  color: #2980b9;
+}
+
+.proagri-sheet-status-assign_and_schedule {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.proagri-sheet-status-review {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+
+.proagri-sheet-status-changes_requested {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.proagri-sheet-status-final_delivery {
   background: rgba(39, 174, 96, 0.15);
   color: #27ae60;
 }
@@ -1102,6 +1251,15 @@
 .proagri-sheet-row-action-btn.action-decline:hover {
   background: rgba(231, 76, 60, 0.15);
   color: #e74c3c;
+}
+
+.proagri-sheet-row-action-btn.action-view {
+  color: #3b82f6;
+}
+
+.proagri-sheet-row-action-btn.action-view:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
 }
 
 .proagri-sheet-row-action-btn svg {

@@ -16,13 +16,15 @@
     // Content Calendar (sm-content-calendar)
     'sm-content-calendar': [
       'request_focus_points', 'focus_points_requested', 'focus_points_received',
-      'design', 'design_review', 'proofread',
-      'approved', 'scheduled', 'posted'
+      'design', 'design_review',
+      'editorial', 'editorial_review',
+      'ready_for_approval', 'approved',
+      'ready_for_scheduling', 'scheduled', 'posted'
     ],
 
     // Agri4All types share the same chain
     'agri4all-posts': [
-      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'request_client_materials', 'materials_requested', 'materials_received',
       'design', 'design_review', 'ready_for_approval', 'sent_for_approval',
       'approved', 'create_links', 'ready_for_scheduling', 'scheduled',
       'create_stat_sheet', 'complete'
@@ -30,14 +32,14 @@
 
     // Print / Magazine
     'magazine': [
-      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'request_client_materials', 'materials_requested', 'materials_received',
       'editing', 'design', 'design_review', 'editorial_review',
       'ready_for_approval', 'sent_for_approval', 'approved'
     ],
 
     // Online Articles
     'online-articles': [
-      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'request_client_materials', 'materials_requested', 'materials_received',
       'editing', 'ready_for_approval', 'sent_for_approval',
       'approved', 'translating', 'ready_to_upload', 'posted'
     ],
@@ -65,7 +67,7 @@
 
     // SM Management types (posts, videos, google ads, linkedin, twitter)
     'sm-posts': [
-      'request_client_materials', 'upload_materials', 'artwork_design',
+      'request_client_materials', 'materials_requested', 'artwork_design',
       'create_captions', 'editorial_review', 'ready_for_approval',
       'sent_for_approval', 'approved', 'ready_for_scheduling', 'scheduled'
     ]
@@ -80,7 +82,17 @@
     'agri4all-videos': 'agri4all-posts',
     'agri4all-product-uploads': 'agri4all-posts',
     'agri4all-newsletters': 'agri4all-posts',
-    'agri4all-linkedin': 'agri4all-posts'
+    'agri4all-newsletter-feature': 'agri4all-posts',
+    'agri4all-newsletter-banner': 'agri4all-posts',
+    'agri4all-linkedin': 'agri4all-posts',
+    'own-social-posts': 'sm-posts',
+    'own-social-videos': 'sm-posts',
+    'own-social-linkedin': 'sm-posts',
+    'own-social-twitter': 'sm-posts',
+    'magazine-sa-digital': 'magazine',
+    'magazine-africa-print': 'magazine',
+    'magazine-africa-digital': 'magazine',
+    'magazine-coffee-table': 'magazine'
   };
 
   // ── Department Routing Maps ────────────────────────────
@@ -93,16 +105,20 @@
       'design': 'design',
       'design_review': 'design',
       'design_changes': 'design',
-      'proofread': 'editorial',
+      'editorial': 'editorial',
+      'editorial_review': 'editorial',
+      'ready_for_approval': 'production',
       'approved': 'social-media',
       'client_changes': 'production',
+      'ready_for_scheduling': 'social-media',
       'scheduled': 'social-media',
       'posted': 'social-media'
     },
 
     'agri4all-posts': {
       'request_client_materials': 'production',
-      'waiting_for_materials': 'production',
+      'materials_requested': 'production',
+      'waiting_for_materials': 'production', // legacy alias — stuck items still route
       'materials_received': 'production',
       'design': 'design',
       'design_review': 'design',
@@ -119,7 +135,8 @@
 
     'magazine': {
       'request_client_materials': 'production',
-      'waiting_for_materials': 'production',
+      'materials_requested': 'production',
+      'waiting_for_materials': 'production', // legacy alias
       'materials_received': 'production',
       'editing': 'editorial',
       'design': 'design',
@@ -135,7 +152,8 @@
 
     'online-articles': {
       'request_client_materials': 'production',
-      'waiting_for_materials': 'production',
+      'materials_requested': 'production',
+      'waiting_for_materials': 'production', // legacy alias
       'materials_received': 'production',
       'editing': 'editorial',
       'editorial_changes': 'editorial',
@@ -191,7 +209,8 @@
 
     'sm-posts': {
       'request_client_materials': 'production',
-      'upload_materials': 'production',
+      'materials_requested': 'production',
+      'upload_materials': 'production', // legacy alias
       'artwork_design': 'design',
       'design_changes': 'design',
       'create_captions': 'editorial',
@@ -214,7 +233,17 @@
     'agri4all-videos': 'agri4all-posts',
     'agri4all-product-uploads': 'agri4all-posts',
     'agri4all-newsletters': 'agri4all-posts',
-    'agri4all-linkedin': 'agri4all-posts'
+    'agri4all-newsletter-feature': 'agri4all-posts',
+    'agri4all-newsletter-banner': 'agri4all-posts',
+    'agri4all-linkedin': 'agri4all-posts',
+    'own-social-posts': 'sm-posts',
+    'own-social-videos': 'sm-posts',
+    'own-social-linkedin': 'sm-posts',
+    'own-social-twitter': 'sm-posts',
+    'magazine-sa-digital': 'magazine',
+    'magazine-africa-print': 'magazine',
+    'magazine-africa-digital': 'magazine',
+    'magazine-coffee-table': 'magazine'
   };
 
   // ── Branch Statuses (loops back) ───────────────────────

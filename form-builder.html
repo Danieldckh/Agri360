@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Builder — ProAgri CRM</title>
+<link rel="stylesheet" href="ui/css/styles.css">
+<style>
+  /* Form Builder — ProAgri Red design language.
+     Layout: fixed-width left palette + fluid right canvas. */
+  :root {
+    --fb-bg: hsl(0 0% 98%);
+    --fb-surface: #fff;
+    --fb-border: hsl(0 0% 90%);
+    --fb-border-strong: hsl(0 0% 80%);
+    --fb-text: hsl(0 0% 15%);
+    --fb-muted: hsl(0 0% 45%);
+    --fb-primary: hsl(0 72% 51%);
+    --fb-primary-hover: hsl(0 72% 44%);
+    --fb-primary-soft: hsla(0, 72%, 51%, 0.08);
+    --fb-ring: hsla(0, 72%, 51%, 0.35);
+    --fb-shadow: 0 4px 24px -4px hsl(0 0% 0% / 0.08);
+    --fb-radius: 0.5rem;
+  }
+  [data-theme="dark"] {
+    --fb-bg: hsl(0 0% 10%);
+    --fb-surface: hsl(0 0% 13%);
+    --fb-border: hsl(0 0% 20%);
+    --fb-border-strong: hsl(0 0% 30%);
+    --fb-text: hsl(0 0% 95%);
+    --fb-muted: hsl(0 0% 60%);
+    --fb-primary: hsl(0 72% 55%);
+    --fb-primary-hover: hsl(0 72% 48%);
+    --fb-primary-soft: hsla(0, 72%, 55%, 0.12);
+    --fb-shadow: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--fb-bg);
+    color: var(--fb-text);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  /* Sticky header with ProAgri wordmark */
+  .fb-header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--fb-surface);
+    border-bottom: 1px solid var(--fb-border);
+    padding: 14px 28px;
+  }
+  .fb-header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .fb-brand {
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .fb-wordmark {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+  }
+  .fb-wordmark span.pro { color: var(--fb-primary); }
+  .fb-wordmark span.agri { color: var(--fb-text); }
+  .fb-page-title {
+    font-size: 13px; color: var(--fb-muted); font-weight: 500;
+  }
+  .fb-client-name {
+    font-size: 13px; color: var(--fb-muted);
+  }
+  .fb-client-name b { color: var(--fb-text); }
+
+  /* 2-column workspace */
+  .fb-workspace {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 28px 80px;
+    align-items: start;
+  }
+
+  /* LEFT palette sidebar (sticky) */
+  .fb-palette {
+    position: sticky; top: 86px;
+    background: var(--fb-surface);
+    border: 1px solid var(--fb-border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--fb-shadow);
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+  .fb-palette-section + .fb-palette-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--fb-border);
+  }
+  .fb-palette-label {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--fb-muted);
+    margin: 0 0 10px;
+  }
+
+  /* Draggable palette tile */
+  .fb-tile {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--fb-border);
+    border-radius: 8px;
+    background: var(--fb-surface);
+    margin-bottom: 6px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.15s;
+  }
+  .fb-tile:hover {
+    border-color: var(--fb-primary);
+    background: var(--fb-primary-soft);
+    transform: translateY(-1px);
+  }
+  .fb-tile:active { cursor: grabbing; }
+  .fb-tile.dragging { opacity: 0.4; }
+  .fb-tile-icon {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--fb-primary-soft);
+    color: var(--fb-primary);
+    border-radius: 6px;
+    font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .fb-tile-label { font-size: 13px; font-weight: 600; }
+
+  /* Saved templates list */
+  .fb-template-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    border: 1px solid var(--fb-border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 12px;
+  }
+  .fb-template-row:hover {
+    border-color: var(--fb-primary);
+    background: var(--fb-primary-soft);
+  }
+  .fb-template-row .name { font-weight: 600; color: var(--fb-text); }
+  .fb-template-row .del {
+    background: none; border: none; color: var(--fb-muted);
+    font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  .fb-template-row .del:hover { color: var(--fb-primary); }
+  .fb-template-empty {
+    font-size: 12px; color: var(--fb-muted); padding: 8px; text-align: center;
+  }
+
+  /* RIGHT canvas */
+  .fb-canvas {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .fb-toolbar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .fb-name-input {
+    flex: 1; min-width: 260px;
+    padding: 12px 16px;
+    font-size: 16px; font-weight: 600;
+    background: var(--fb-surface);
+    color: var(--fb-text);
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .fb-name-input:focus {
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 3px var(--fb-ring);
+  }
+  .fb-btn {
+    padding: 10px 16px;
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    background: var(--fb-surface);
+    color: var(--fb-text);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .fb-btn:hover {
+    border-color: var(--fb-primary);
+    color: var(--fb-primary);
+    background: var(--fb-primary-soft);
+  }
+  .fb-btn-primary {
+    background: var(--fb-primary); border-color: var(--fb-primary); color: #fff;
+  }
+  .fb-btn-primary:hover { background: var(--fb-primary-hover); color: #fff; }
+
+  .fb-success {
+    padding: 12px 16px;
+    background: hsla(145, 63%, 42%, 0.12);
+    color: hsl(145, 63%, 32%);
+    border-radius: var(--fb-radius);
+    font-size: 13px; font-weight: 600;
+  }
+  [data-theme="dark"] .fb-success { color: hsl(145, 63%, 62%); }
+
+  /* Question Card */
+  .fb-card {
+    background: var(--fb-surface);
+    border: 1px solid var(--fb-border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .fb-card.drop-target {
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 3px var(--fb-ring);
+  }
+  .fb-card-num {
+    position: absolute; top: -10px; left: -10px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--fb-primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    box-shadow: var(--fb-shadow);
+  }
+  .fb-card-delete {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none;
+    color: var(--fb-muted);
+    font-size: 22px; line-height: 1; cursor: pointer;
+    padding: 2px 8px; border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .fb-card-delete:hover { color: var(--fb-primary); background: var(--fb-primary-soft); }
+  .fb-question {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 15px; font-weight: 600;
+    background: transparent;
+    color: var(--fb-text);
+    border: 1px solid transparent;
+    border-bottom: 1px solid var(--fb-border);
+    outline: none;
+    margin: 0 0 14px;
+  }
+  .fb-question:focus {
+    border-color: var(--fb-primary);
+    background: var(--fb-surface);
+    border-radius: 4px;
+  }
+
+  /* Individual field inside a card */
+  .fb-field {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--fb-bg);
+    border: 1px solid var(--fb-border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .fb-field-type-badge {
+    padding: 3px 8px;
+    background: var(--fb-primary-soft);
+    color: var(--fb-primary);
+    border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .fb-field-label {
+    padding: 6px 10px;
+    background: var(--fb-surface);
+    color: var(--fb-text);
+    border: 1px solid var(--fb-border);
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+  }
+  .fb-field-label:focus {
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 2px var(--fb-ring);
+  }
+  .fb-field-remove {
+    background: none; border: none;
+    color: var(--fb-muted);
+    cursor: pointer; padding: 4px 8px;
+    font-size: 16px; line-height: 1;
+    border-radius: 4px;
+  }
+  .fb-field-remove:hover { color: var(--fb-primary); background: var(--fb-primary-soft); }
+
+  /* Drop zone at the bottom of each card */
+  .fb-drop-zone {
+    margin-top: 10px;
+    padding: 14px;
+    border: 2px dashed var(--fb-border-strong);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--fb-muted);
+    transition: all 0.15s;
+  }
+  .fb-drop-zone.active {
+    border-color: var(--fb-primary);
+    background: var(--fb-primary-soft);
+    color: var(--fb-primary);
+  }
+
+  /* Add new card drop zone (canvas-level) */
+  .fb-add-card {
+    padding: 28px;
+    border: 2px dashed var(--fb-border-strong);
+    border-radius: 12px;
+    background: var(--fb-surface);
+    color: var(--fb-muted);
+    font-size: 14px; font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .fb-add-card:hover, .fb-add-card.active {
+    border-color: var(--fb-primary);
+    color: var(--fb-primary);
+    background: var(--fb-primary-soft);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .fb-workspace { grid-template-columns: 1fr; }
+    .fb-palette { position: static; max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="fb-header">
+  <div class="fb-header-inner">
+    <div class="fb-brand">
+      <div class="fb-wordmark"><span class="pro">Pro</span><span class="agri">Agri</span></div>
+      <div class="fb-page-title">Form Builder</div>
+    </div>
+    <div class="fb-client-name" id="clientName"></div>
+  </div>
+</header>
+
+<div class="fb-workspace">
+
+  <!-- LEFT: Draggable palette + saved templates -->
+  <aside class="fb-palette">
+    <div class="fb-palette-section">
+      <h3 class="fb-palette-label">Field Types — drag into a card</h3>
+      <div id="paletteList"></div>
+    </div>
+    <div class="fb-palette-section">
+      <h3 class="fb-palette-label">Templates</h3>
+      <div id="templateList"></div>
+      <button class="fb-btn" id="saveTemplateBtn" style="width:100%;margin-top:8px;">Save Current as Template</button>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Canvas with question cards -->
+  <section class="fb-canvas">
+
+    <div id="successMsg"></div>
+
+    <input type="text" class="fb-name-input" id="formName"
+           placeholder="Form Name (e.g. 'Logo Brief Questionnaire')">
+
+    <div class="fb-toolbar">
+      <button class="fb-btn fb-btn-primary" id="publishBtn" style="margin-left:auto;">Publish to Client Portal</button>
+    </div>
+
+    <div id="cardsWrap"></div>
+
+    <div class="fb-add-card" id="addCardBtn">+ Add question card (or drop a field here)</div>
+
+  </section>
+
+</div>
+
+<script src="ui/js/authGuard.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── State ────────────────────────────────────────────────
+  var params = new URLSearchParams(window.location.search);
+  var clientId = parseInt(params.get('clientId'), 10);
+  var deliverableId = params.get('deliverableId') || null;
+
+  // Card model:
+  //   { id, question, fields: [{ id, fieldType, label }] }
+  // A card can hold multiple fields. Legacy { question, fieldType } cards
+  // from previously-saved templates are wrapped when loaded.
+  var cards = [];
+  var formName = '';
+
+  var FIELD_TYPES = [
+    { type: 'text',     icon: 'T',  label: 'Short Text' },
+    { type: 'textarea', icon: '¶',  label: 'Long Text' },
+    { type: 'number',   icon: '#',  label: 'Number' },
+    { type: 'date',     icon: '📅', label: 'Date' },
+    { type: 'file',     icon: '↥',  label: 'File Upload' }
+  ];
+
+  var FIELD_PREVIEWS = {
+    text:     '[ Short text input ]',
+    textarea: '[ Multi-line text area ]',
+    number:   '[ Number input ]',
+    date:     '[ Date picker ]',
+    file:     '[ File upload ]'
+  };
+
+  // ── DOM refs ─────────────────────────────────────────────
+  var clientNameEl   = document.getElementById('clientName');
+  var formNameInput  = document.getElementById('formName');
+  var cardsWrap      = document.getElementById('cardsWrap');
+  var successMsg     = document.getElementById('successMsg');
+  var paletteList    = document.getElementById('paletteList');
+  var templateList   = document.getElementById('templateList');
+  var addCardBtn     = document.getElementById('addCardBtn');
+
+  formNameInput.addEventListener('input', function () { formName = formNameInput.value; });
+
+  // Generate stable ids for cards/fields so re-renders preserve focus/state
+  var _idCounter = 0;
+  function nextId() { return 'fb_' + (++_idCounter) + '_' + Date.now().toString(36); }
+
+  function getHeaders() {
+    var headers = { 'Content-Type': 'application/json' };
+    if (window.getAuthHeaders) {
+      var auth = window.getAuthHeaders();
+      for (var k in auth) if (auth.hasOwnProperty(k)) headers[k] = auth[k];
+    }
+    return headers;
+  }
+
+  // ── Legacy card shape migration ──────────────────────────
+  // Older saved forms/templates use { question, fieldType } (one field per
+  // card). Wrap those into { question, fields: [...] } so the renderer can
+  // handle them uniformly.
+  function normalizeCards(raw) {
+    return (raw || []).map(function (c) {
+      if (c && Array.isArray(c.fields)) {
+        return {
+          id: c.id || nextId(),
+          question: c.question || '',
+          fields: c.fields.map(function (f) {
+            return {
+              id: f.id || nextId(),
+              fieldType: f.fieldType || 'text',
+              label: f.label || ''
+            };
+          })
+        };
+      }
+      // Legacy single-field shape
+      return {
+        id: nextId(),
+        question: (c && c.question) || '',
+        fields: [{
+          id: nextId(),
+          fieldType: (c && c.fieldType) || 'text',
+          label: ''
+        }]
+      };
+    });
+  }
+
+  // ── Render: palette tiles (draggable) ────────────────────
+  function renderPalette() {
+    while (paletteList.firstChild) paletteList.removeChild(paletteList.firstChild);
+    FIELD_TYPES.forEach(function (t) {
+      var tile = document.createElement('div');
+      tile.className = 'fb-tile';
+      tile.draggable = true;
+      tile.dataset.fieldType = t.type;
+
+      var icon = document.createElement('div');
+      icon.className = 'fb-tile-icon';
+      icon.textContent = t.icon;
+      tile.appendChild(icon);
+
+      var lbl = document.createElement('div');
+      lbl.className = 'fb-tile-label';
+      lbl.textContent = t.label;
+      tile.appendChild(lbl);
+
+      tile.addEventListener('dragstart', function (e) {
+        tile.classList.add('dragging');
+        // Payload tells drop handlers WHAT to create
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          kind: 'new-field',
+          fieldType: t.type
+        }));
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+      tile.addEventListener('dragend', function () {
+        tile.classList.remove('dragging');
+      });
+
+      paletteList.appendChild(tile);
+    });
+  }
+
+  // ── Render: question cards ───────────────────────────────
+  function renderCards() {
+    while (cardsWrap.firstChild) cardsWrap.removeChild(cardsWrap.firstChild);
+
+    cards.forEach(function (card, idx) {
+      var el = document.createElement('div');
+      el.className = 'fb-card';
+      el.dataset.cardId = card.id;
+
+      var num = document.createElement('div');
+      num.className = 'fb-card-num';
+      num.textContent = idx + 1;
+      el.appendChild(num);
+
+      var del = document.createElement('button');
+      del.className = 'fb-card-delete';
+      del.title = 'Delete card';
+      del.textContent = '×';
+      del.addEventListener('click', function () {
+        cards.splice(idx, 1);
+        renderCards();
+      });
+      el.appendChild(del);
+
+      var q = document.createElement('input');
+      q.type = 'text';
+      q.className = 'fb-question';
+      q.placeholder = 'Question...';
+      q.value = card.question || '';
+      q.addEventListener('input', function () { card.question = q.value; });
+      el.appendChild(q);
+
+      // Render each field inside the card
+      card.fields.forEach(function (field, fIdx) {
+        el.appendChild(renderField(card, field, fIdx));
+      });
+
+      // Drop zone — drag a palette tile here to add another field to this card
+      var dropZone = document.createElement('div');
+      dropZone.className = 'fb-drop-zone';
+      dropZone.textContent = 'Drop a field here to add to this question';
+
+      dropZone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'copy';
+        dropZone.classList.add('active');
+        el.classList.add('drop-target');
+      });
+      dropZone.addEventListener('dragleave', function () {
+        dropZone.classList.remove('active');
+        el.classList.remove('drop-target');
+      });
+      dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('active');
+        el.classList.remove('drop-target');
+        var payload = parseDragPayload(e);
+        if (payload && payload.kind === 'new-field') {
+          card.fields.push({
+            id: nextId(),
+            fieldType: payload.fieldType,
+            label: ''
+          });
+          renderCards();
+        }
+      });
+      el.appendChild(dropZone);
+
+      // Whole-card drop target too (not just the zone) — easier target
+      el.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        el.classList.add('drop-target');
+      });
+      el.addEventListener('dragleave', function (e) {
+        // Only remove if leaving the card entirely, not just crossing child borders
+        if (!el.contains(e.relatedTarget)) el.classList.remove('drop-target');
+      });
+      el.addEventListener('drop', function (e) {
+        e.preventDefault();
+        el.classList.remove('drop-target');
+        var payload = parseDragPayload(e);
+        if (payload && payload.kind === 'new-field') {
+          card.fields.push({
+            id: nextId(),
+            fieldType: payload.fieldType,
+            label: ''
+          });
+          renderCards();
+        }
+      });
+
+      cardsWrap.appendChild(el);
+    });
+  }
+
+  function renderField(card, field, fIdx) {
+    var row = document.createElement('div');
+    row.className = 'fb-field';
+    row.dataset.fieldId = field.id;
+
+    var badge = document.createElement('span');
+    badge.className = 'fb-field-type-badge';
+    badge.textContent = field.fieldType;
+    row.appendChild(badge);
+
+    var lbl = document.createElement('input');
+    lbl.type = 'text';
+    lbl.className = 'fb-field-label';
+    lbl.placeholder = FIELD_PREVIEWS[field.fieldType] || 'Label (optional)';
+    lbl.value = field.label || '';
+    lbl.addEventListener('input', function () { field.label = lbl.value; });
+    row.appendChild(lbl);
+
+    var rm = document.createElement('button');
+    rm.className = 'fb-field-remove';
+    rm.title = 'Remove field';
+    rm.textContent = '×';
+    rm.addEventListener('click', function () {
+      card.fields.splice(fIdx, 1);
+      if (card.fields.length === 0) {
+        // Empty card — seed with a text field so the user still has a starting point
+        card.fields.push({ id: nextId(), fieldType: 'text', label: '' });
+      }
+      renderCards();
+    });
+    row.appendChild(rm);
+
+    return row;
+  }
+
+  function parseDragPayload(e) {
+    try {
+      var raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // ── Canvas-level drop zone (Add Card button) ─────────────
+  addCardBtn.addEventListener('click', function () {
+    cards.push({
+      id: nextId(),
+      question: '',
+      fields: [{ id: nextId(), fieldType: 'text', label: '' }]
+    });
+    renderCards();
+  });
+  addCardBtn.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    addCardBtn.classList.add('active');
+  });
+  addCardBtn.addEventListener('dragleave', function () {
+    addCardBtn.classList.remove('active');
+  });
+  addCardBtn.addEventListener('drop', function (e) {
+    e.preventDefault();
+    addCardBtn.classList.remove('active');
+    var payload = parseDragPayload(e);
+    if (payload && payload.kind === 'new-field') {
+      // Drop onto canvas = create a new card with this field
+      cards.push({
+        id: nextId(),
+        question: '',
+        fields: [{ id: nextId(), fieldType: payload.fieldType, label: '' }]
+      });
+      renderCards();
+    }
+  });
+
+  // ── Templates sidebar ────────────────────────────────────
+  function loadTemplates() {
+    fetch('/api/portal/forms/templates', { headers: getHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (templates) { renderTemplates(templates); })
+      .catch(function () { renderTemplates([]); });
+  }
+
+  function renderTemplates(templates) {
+    while (templateList.firstChild) templateList.removeChild(templateList.firstChild);
+    if (!templates || templates.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'fb-template-empty';
+      empty.textContent = 'No templates yet.';
+      templateList.appendChild(empty);
+      return;
+    }
+    templates.forEach(function (tmpl) {
+      var row = document.createElement('div');
+      row.className = 'fb-template-row';
+
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = tmpl.name;
+      row.appendChild(name);
+
+      var del = document.createElement('button');
+      del.className = 'del';
+      del.title = 'Delete template';
+      del.textContent = '×';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!confirm('Delete template "' + tmpl.name + '"?')) return;
+        fetch('/api/portal/forms/templates/' + tmpl.id, {
+          method: 'DELETE', headers: getHeaders()
+        }).then(loadTemplates);
+      });
+      row.appendChild(del);
+
+      row.addEventListener('click', function () {
+        cards = normalizeCards(tmpl.fields);
+        formName = tmpl.name;
+        formNameInput.value = tmpl.name;
+        renderCards();
+      });
+
+      templateList.appendChild(row);
+    });
+  }
+
+  document.getElementById('saveTemplateBtn').addEventListener('click', function () {
+    var name = prompt('Template name:', formName || 'My Template');
+    if (!name) return;
+    fetch('/api/portal/forms/templates', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ name: name, fields: cards })
+    }).then(function (r) { return r.json(); })
+      .then(function () {
+        showSuccess('Template saved: ' + name);
+        loadTemplates();
+      });
+  });
+
+  // ── Publish ──────────────────────────────────────────────
+  document.getElementById('publishBtn').addEventListener('click', function () {
+    if (!formName) { alert('Please enter a form name'); return; }
+    if (cards.length === 0) { alert('Please add at least one question card'); return; }
+
+    fetch('/api/portal/forms', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({
+        clientId: clientId,
+        deliverableId: deliverableId,
+        name: formName,
+        fields: cards
+      })
+    }).then(function (r) { return r.json(); })
+      .then(function (form) {
+        if (form && form.error) { alert(form.error); return; }
+        showSuccess('Form published! Visible in the client portal now.');
+      });
+  });
+
+  function showSuccess(msg) {
+    successMsg.innerHTML = '';
+    var d = document.createElement('div');
+    d.className = 'fb-success';
+    d.textContent = msg;
+    successMsg.appendChild(d);
+    setTimeout(function () { successMsg.innerHTML = ''; }, 4000);
+  }
+
+  // ── Load client info ─────────────────────────────────────
+  if (clientId) {
+    fetch('/api/clients/' + clientId, { headers: getHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (client) {
+        clientNameEl.innerHTML = 'Client: <b>' + (client.name || 'Unknown') + '</b>';
+        document.title = 'Form Builder — ' + (client.name || '');
+      });
+  }
+
+  // ── Initial render ───────────────────────────────────────
+  renderPalette();
+  renderCards();
+  loadTemplates();
+
+  // Inherit theme from localStorage if present (same key as main app)
+  var savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+})();
+</script>
+</body>
+</html>

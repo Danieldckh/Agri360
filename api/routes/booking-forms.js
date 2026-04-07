@@ -41,13 +41,25 @@ router.get('/by-client/:clientId', async (req, res) => {
   }
 });
 
-// GET /:id - single booking form with client info
+// GET /:id - single booking form with full client details
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT bf.*, c.name AS client_name, c.contact_person AS client_contact_person
+      `SELECT bf.*,
+              c.name AS client_name, c.contact_person AS client_contact_person,
+              c.trading_name AS client_trading_name, c.email AS client_email,
+              c.phone AS client_phone, c.company_reg_no AS client_company_reg_no,
+              c.vat_number AS client_vat_number, c.website AS client_website,
+              c.industry_expertise AS client_industry_expertise,
+              c.physical_address AS client_physical_address,
+              c.physical_postal_code AS client_physical_postal_code,
+              c.postal_address AS client_postal_address,
+              c.postal_code AS client_postal_code,
+              c.primary_contact AS client_primary_contact,
+              c.material_contact AS client_material_contact,
+              c.accounts_contact AS client_accounts_contact
        FROM booking_forms bf
-       JOIN clients c ON c.id = bf.client_id
+       LEFT JOIN clients c ON c.id = bf.client_id
        WHERE bf.id = $1`,
       [req.params.id]
     );

@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Portal — ProAgri</title>
+<style>
+  /* ── ProAgri Red design tokens (mirrors client-finder-pro/src/index.css) ── */
+  :root {
+    --cp-bg: hsl(0 0% 98%);
+    --cp-surface: #fff;
+    --cp-surface-alt: hsl(0 0% 96%);
+    --cp-border: hsl(0 0% 90%);
+    --cp-text: hsl(0 0% 15%);
+    --cp-text-muted: hsl(0 0% 45%);
+    --cp-primary: hsl(0 72% 51%);
+    --cp-primary-hover: hsl(0 72% 44%);
+    --cp-primary-soft: hsla(0, 72%, 51%, 0.1);
+    --cp-ring: hsla(0, 72%, 51%, 0.35);
+    --cp-success: hsl(145 63% 42%);
+    --cp-success-soft: hsla(145, 63%, 42%, 0.12);
+    --cp-warn: hsl(38 92% 50%);
+    --cp-warn-soft: hsla(38, 92%, 50%, 0.12);
+    --cp-danger: hsl(0 84% 60%);
+    --cp-danger-soft: hsla(0, 84%, 60%, 0.12);
+    --cp-shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.08);
+    --cp-shadow-float: 0 8px 32px -8px hsl(0 72% 51% / 0.2);
+    --cp-radius: 0.75rem;
+  }
+  [data-theme="dark"] {
+    --cp-bg: hsl(0 0% 10%);
+    --cp-surface: hsl(0 0% 13%);
+    --cp-surface-alt: hsl(0 0% 16%);
+    --cp-border: hsl(0 0% 20%);
+    --cp-text: hsl(0 0% 95%);
+    --cp-text-muted: hsl(0 0% 60%);
+    --cp-primary: hsl(0 72% 55%);
+    --cp-primary-hover: hsl(0 72% 48%);
+    --cp-primary-soft: hsla(0, 72%, 55%, 0.14);
+    --cp-success: hsl(145 63% 55%);
+    --cp-success-soft: hsla(145, 63%, 55%, 0.15);
+    --cp-shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+    --cp-shadow-float: 0 8px 32px -8px hsl(0 72% 55% / 0.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--cp-bg);
+    color: var(--cp-text);
+    margin: 0; padding: 0;
+    min-height: 100vh;
+  }
+
+  /* ── Sticky header with Pro/Agri wordmark ── */
+  .cp-header {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--cp-surface) 95%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--cp-border);
+    padding: 16px 28px;
+  }
+  .cp-header-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .cp-wordmark {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1;
+  }
+  .cp-wordmark .pro { color: var(--cp-primary); }
+  .cp-wordmark .agri { color: var(--cp-text); }
+  .cp-brand-sub {
+    font-size: 12px; color: var(--cp-text-muted); margin-top: 4px; font-weight: 500;
+  }
+  .cp-client-name {
+    font-size: 13px; color: var(--cp-text-muted);
+    padding: 6px 14px;
+    background: var(--cp-surface-alt);
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  /* ── Tabs ── */
+  .cp-tabs {
+    position: sticky; top: 74px; z-index: 9;
+    background: color-mix(in srgb, var(--cp-surface) 95%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--cp-border);
+    padding: 0 28px;
+  }
+  .cp-tabs-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; gap: 4px;
+  }
+  .cp-tab {
+    padding: 14px 18px;
+    border: none; background: none;
+    font-size: 14px; font-weight: 600;
+    color: var(--cp-text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .cp-tab:hover { color: var(--cp-primary); }
+  .cp-tab.active {
+    color: var(--cp-primary);
+    border-bottom-color: var(--cp-primary);
+  }
+
+  /* ── Main content area ── */
+  .cp-main {
+    max-width: 1100px; margin: 28px auto;
+    padding: 0 28px 80px;
+  }
+  .cp-card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-card-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--cp-text-muted);
+    margin: 0 0 14px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .cp-empty {
+    padding: 48px; text-align: center;
+    color: var(--cp-text-muted); font-size: 14px;
+  }
+
+  /* ── Stat cards (dashboard) ── */
+  .cp-stat {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 20px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    margin-bottom: 12px;
+    box-shadow: var(--cp-shadow-card);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .cp-stat:hover { transform: translateY(-1px); box-shadow: var(--cp-shadow-float); }
+  .cp-stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .cp-stat-text { flex: 1; min-width: 0; }
+  .cp-stat-label {
+    font-size: 11px; color: var(--cp-text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .cp-stat-value {
+    font-size: 22px; font-weight: 700;
+    color: var(--cp-text);
+    margin-top: 2px;
+  }
+  .cp-stat-action {
+    padding: 8px 16px;
+    background: var(--cp-primary); color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cp-stat-action:hover { background: var(--cp-primary-hover); }
+
+  /* ── Form cards (request materials tab) ── */
+  .cp-form-card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-form-title {
+    font-size: 17px; font-weight: 700;
+    color: var(--cp-text);
+    margin: 0 0 18px;
+  }
+  .cp-form-field {
+    position: relative;
+    background: var(--cp-surface-alt);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .cp-form-field .fq {
+    font-size: 14px; font-weight: 600;
+    color: var(--cp-text);
+    margin-bottom: 10px;
+  }
+  .cp-form-field input[type=text],
+  .cp-form-field input[type=number],
+  .cp-form-field input[type=date],
+  .cp-form-field textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-radius: 8px;
+    font-size: 14px; font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .cp-form-field input:focus, .cp-form-field textarea:focus {
+    border-color: var(--cp-primary);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+  .cp-form-field textarea { min-height: 90px; resize: vertical; }
+  .cp-form-field input[type=file] { display: block; margin-top: 4px; font-size: 12px; color: var(--cp-text-muted); }
+  .cp-form-submit {
+    padding: 12px 24px;
+    background: var(--cp-primary); color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cp-form-submit:hover { background: var(--cp-primary-hover); }
+  .cp-form-completed {
+    padding: 14px;
+    background: var(--cp-success-soft);
+    color: var(--cp-success);
+    border-radius: 10px;
+    font-size: 13px; font-weight: 600;
+    text-align: center;
+  }
+
+  /* ── Approval cards ── */
+  .cp-approval-card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-approval-title { font-size: 17px; font-weight: 700; color: var(--cp-text); margin: 0 0 8px; }
+  .cp-approval-meta { font-size: 12px; color: var(--cp-text-muted); margin-bottom: 14px; }
+  .cp-change-counter {
+    display: inline-block;
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    background: var(--cp-warn-soft);
+    color: var(--cp-warn);
+  }
+  .cp-change-counter.exhausted { background: var(--cp-danger-soft); color: var(--cp-danger); }
+  .cp-post-card {
+    background: var(--cp-surface-alt);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 12px 0;
+  }
+  .cp-post-date { font-size: 12px; font-weight: 600; color: var(--cp-text-muted); }
+  .cp-post-caption {
+    margin: 8px 0;
+    font-size: 14px; line-height: 1.5;
+    color: var(--cp-text);
+    min-height: 40px;
+    outline: none;
+    padding: 4px;
+    border-radius: 4px;
+  }
+  .cp-post-caption:focus {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-primary);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+  .cp-post-images { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cp-post-images img {
+    width: 90px; height: 90px;
+    object-fit: cover; border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--cp-border);
+  }
+  .cp-approval-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .cp-btn {
+    padding: 10px 18px;
+    border: 1px solid var(--cp-border);
+    border-radius: 8px;
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cp-btn-approve { background: var(--cp-success); color: #fff; border-color: var(--cp-success); }
+  .cp-btn-approve:hover { filter: brightness(1.1); }
+  .cp-btn-changes { background: var(--cp-warn); color: #fff; border-color: var(--cp-warn); }
+  .cp-btn-changes:hover { filter: brightness(1.1); }
+  .cp-btn-changes:disabled { background: var(--cp-surface-alt); color: var(--cp-text-muted); cursor: not-allowed; filter: none; }
+  .cp-changes-box {
+    margin-top: 14px;
+    display: none;
+    background: var(--cp-surface-alt);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .cp-changes-box.open { display: block; }
+  .cp-changes-box textarea {
+    width: 100%; min-height: 90px;
+    padding: 12px;
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-radius: 8px;
+    font-family: inherit; font-size: 13px;
+    resize: vertical;
+    outline: none;
+  }
+  .cp-changes-box textarea:focus {
+    border-color: var(--cp-primary);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+
+  /* ── Embedded chat (replaces the old messenger link) ── */
+  .cp-chat {
+    display: flex; flex-direction: column;
+    height: 420px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    overflow: hidden;
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-chat-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--cp-border);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--cp-surface-alt);
+  }
+  .cp-chat-title {
+    font-size: 14px; font-weight: 700;
+    color: var(--cp-text);
+    flex: 1;
+  }
+  .cp-chat-status {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--cp-success);
+    box-shadow: 0 0 0 3px var(--cp-success-soft);
+  }
+  .cp-chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    background: var(--cp-bg);
+  }
+  .cp-chat-empty {
+    margin: auto;
+    text-align: center;
+    color: var(--cp-text-muted);
+    font-size: 13px;
+  }
+  .cp-msg {
+    display: flex; gap: 10px;
+    max-width: 80%;
+  }
+  .cp-msg-employee { align-self: flex-start; }
+  .cp-msg-client { align-self: flex-end; flex-direction: row-reverse; }
+  .cp-msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    background: var(--cp-primary);
+    overflow: hidden;
+  }
+  .cp-msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .cp-msg-client .cp-msg-avatar { background: var(--cp-text-muted); }
+  .cp-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    word-wrap: break-word;
+  }
+  .cp-msg-employee .cp-msg-bubble {
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-top-left-radius: 4px;
+  }
+  .cp-msg-client .cp-msg-bubble {
+    background: var(--cp-primary);
+    color: #fff;
+    border-top-right-radius: 4px;
+  }
+  .cp-msg-meta {
+    font-size: 10px;
+    color: var(--cp-text-muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+  .cp-chat-input-row {
+    display: flex; gap: 10px;
+    padding: 14px;
+    border-top: 1px solid var(--cp-border);
+    background: var(--cp-surface);
+  }
+  .cp-chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--cp-surface-alt);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    font-size: 14px; font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .cp-chat-input:focus {
+    border-color: var(--cp-primary);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+  .cp-chat-send {
+    padding: 0 20px;
+    background: var(--cp-primary); color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cp-chat-send:hover { background: var(--cp-primary-hover); }
+  .cp-chat-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .cp-lightbox {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  .cp-lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+  .cp-lightbox .close {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.2); border: none;
+    color: #fff; width: 40px; height: 40px;
+    border-radius: 50%; font-size: 24px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="cp-header">
+  <div class="cp-header-inner">
+    <div>
+      <div class="cp-wordmark"><span class="pro">Pro</span><span class="agri">Agri</span></div>
+      <div class="cp-brand-sub">Client Portal</div>
+    </div>
+    <div class="cp-client-name" id="clientName">Loading...</div>
+  </div>
+</header>
+
+<div class="cp-tabs">
+  <div class="cp-tabs-inner">
+    <button class="cp-tab active" data-tab="dashboard">Dashboard</button>
+    <button class="cp-tab" data-tab="materials">Request Materials</button>
+    <button class="cp-tab" data-tab="approvals">Approvals</button>
+  </div>
+</div>
+
+<div class="cp-main">
+  <div id="content"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('token');
+  if (!token) {
+    document.getElementById('content').innerHTML = '<div class="cp-empty">Invalid portal link.</div>';
+    return;
+  }
+
+  var client = null;
+  var currentTab = 'dashboard';
+
+  // Fetch client info
+  fetch('/api/portal/' + token + '/client')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) {
+        document.getElementById('clientName').textContent = 'Invalid link';
+        document.getElementById('content').innerHTML = '<div class="cp-empty">This portal link is invalid or expired.</div>';
+        return;
+      }
+      client = data;
+      document.getElementById('clientName').textContent = data.name || 'Client';
+      document.title = 'Portal — ' + (data.name || '');
+      renderTab();
+    });
+
+  // Tab switching
+  document.querySelectorAll('.cp-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.cp-tab').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      renderTab();
+    });
+  });
+
+  function renderTab() {
+    var el = document.getElementById('content');
+    el.innerHTML = '';
+    // Stop chat polling when leaving dashboard — it'll restart on mountChat()
+    if (currentTab !== 'dashboard' && _chatPollTimer) {
+      clearInterval(_chatPollTimer);
+      _chatPollTimer = null;
+    }
+    if (currentTab === 'dashboard') renderDashboard(el);
+    else if (currentTab === 'materials') renderMaterials(el);
+    else if (currentTab === 'approvals') renderApprovals(el);
+  }
+
+  // ========== DASHBOARD ==========
+  function renderDashboard(el) {
+    fetch('/api/portal/' + token + '/dashboard')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var html = '';
+
+        // Pending forms stat
+        html += '<div class="cp-stat">';
+        html += '<div class="cp-stat-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;">📝</div>';
+        html += '<div class="cp-stat-text">';
+        html += '<div class="cp-stat-label">Forms Pending</div>';
+        html += '<div class="cp-stat-value">' + data.pendingFormCount + '</div>';
+        html += '</div>';
+        if (data.pendingFormCount > 0) {
+          html += '<button class="cp-stat-action" data-go="materials">Complete</button>';
+        }
+        html += '</div>';
+
+        // Pending approvals stat
+        html += '<div class="cp-stat">';
+        html += '<div class="cp-stat-icon" style="background:rgba(245,166,35,0.1);color:#f5a623;">✓</div>';
+        html += '<div class="cp-stat-text">';
+        html += '<div class="cp-stat-label">Awaiting Approval</div>';
+        html += '<div class="cp-stat-value">' + data.pendingApprovalCount + '</div>';
+        html += '</div>';
+        if (data.pendingApprovalCount > 0) {
+          html += '<button class="cp-stat-action" data-go="approvals">Review</button>';
+        }
+        html += '</div>';
+
+        // Messages card with embedded chat placeholder (filled below)
+        html += '<div class="cp-card">';
+        html += '<h2 class="cp-card-title">Messages</h2>';
+        html += '<div id="cpChatMount"></div>';
+        html += '</div>';
+
+        el.innerHTML = html;
+
+        el.querySelectorAll('[data-go]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            currentTab = b.dataset.go;
+            document.querySelectorAll('.cp-tab').forEach(function (t) {
+              t.classList.toggle('active', t.dataset.tab === currentTab);
+            });
+            renderTab();
+          });
+        });
+
+        // Mount the embedded chat widget
+        var chatMount = el.querySelector('#cpChatMount');
+        if (chatMount) mountChat(chatMount);
+      });
+  }
+
+  // ========== EMBEDDED CHAT ==========
+  // Mounts a compact chat UI into the given container. Polls GET
+  // /:token/messages every 5 seconds to pick up CRM-side replies.
+  // Posts via POST /:token/messages. Scrolls to bottom on new messages.
+  var _chatPollTimer = null;
+  function mountChat(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'cp-chat';
+
+    var header = document.createElement('div');
+    header.className = 'cp-chat-header';
+    var status = document.createElement('span');
+    status.className = 'cp-chat-status';
+    header.appendChild(status);
+    var ht = document.createElement('div');
+    ht.className = 'cp-chat-title';
+    ht.textContent = 'Chat with your ProAgri team';
+    header.appendChild(ht);
+    wrap.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'cp-chat-body';
+    wrap.appendChild(body);
+
+    var inputRow = document.createElement('div');
+    inputRow.className = 'cp-chat-input-row';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'cp-chat-input';
+    input.placeholder = 'Type a message...';
+    inputRow.appendChild(input);
+    var sendBtn = document.createElement('button');
+    sendBtn.className = 'cp-chat-send';
+    sendBtn.textContent = 'Send';
+    inputRow.appendChild(sendBtn);
+    wrap.appendChild(inputRow);
+
+    container.appendChild(wrap);
+
+    var lastMessageCount = 0;
+    var isAtBottom = true;
+
+    body.addEventListener('scroll', function () {
+      // Only auto-scroll on new messages if the user was already at the bottom
+      isAtBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+    });
+
+    function render(messages) {
+      while (body.firstChild) body.removeChild(body.firstChild);
+      if (!messages || messages.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'cp-chat-empty';
+        empty.innerHTML = '<div style="font-size:32px;margin-bottom:8px;">💬</div><div>No messages yet.<br>Say hi to your ProAgri team!</div>';
+        body.appendChild(empty);
+        return;
+      }
+      messages.forEach(function (m) {
+        var msg = document.createElement('div');
+        msg.className = 'cp-msg cp-msg-' + (m.senderType === 'client' ? 'client' : 'employee');
+
+        var avatar = document.createElement('div');
+        avatar.className = 'cp-msg-avatar';
+        if (m.senderType === 'employee' && m.senderPhotoUrl) {
+          var img = document.createElement('img');
+          img.src = m.senderPhotoUrl;
+          img.alt = m.senderFirstName || '';
+          avatar.appendChild(img);
+        } else if (m.senderType === 'employee') {
+          avatar.textContent = ((m.senderFirstName || '').charAt(0) + (m.senderLastName || '').charAt(0)).toUpperCase() || 'T';
+        } else {
+          avatar.textContent = 'You';
+          avatar.style.fontSize = '10px';
+        }
+        msg.appendChild(avatar);
+
+        var content = document.createElement('div');
+        var bubble = document.createElement('div');
+        bubble.className = 'cp-msg-bubble';
+        bubble.textContent = m.content;
+        content.appendChild(bubble);
+
+        var meta = document.createElement('div');
+        meta.className = 'cp-msg-meta';
+        var senderName = m.senderType === 'client'
+          ? 'You'
+          : ((m.senderFirstName || '') + ' ' + (m.senderLastName || '')).trim() || 'ProAgri Team';
+        meta.textContent = senderName + ' · ' + formatRelativeTime(m.createdAt);
+        content.appendChild(meta);
+
+        msg.appendChild(content);
+        body.appendChild(msg);
+      });
+    }
+
+    function poll() {
+      fetch('/api/portal/' + token + '/messages')
+        .then(function (r) { return r.json(); })
+        .then(function (messages) {
+          if (!Array.isArray(messages)) return;
+          var newCount = messages.length;
+          var hadNew = newCount > lastMessageCount;
+          lastMessageCount = newCount;
+          render(messages);
+          if (hadNew && isAtBottom) {
+            body.scrollTop = body.scrollHeight;
+          }
+        })
+        .catch(function (err) { console.error('Chat poll error:', err); });
+    }
+
+    function send() {
+      var text = input.value.trim();
+      if (!text) return;
+      sendBtn.disabled = true;
+      fetch('/api/portal/' + token + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text })
+      }).then(function (r) { return r.json(); })
+        .then(function () {
+          input.value = '';
+          sendBtn.disabled = false;
+          isAtBottom = true; // ensure we scroll to the new message
+          poll();
+        }).catch(function () {
+          sendBtn.disabled = false;
+        });
+    }
+
+    sendBtn.addEventListener('click', send);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); send(); }
+    });
+
+    // Initial load + 5s polling
+    poll();
+    if (_chatPollTimer) clearInterval(_chatPollTimer);
+    _chatPollTimer = setInterval(poll, 5000);
+  }
+
+  function formatRelativeTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    var diffMs = Date.now() - d.getTime();
+    var sec = Math.floor(diffMs / 1000);
+    if (sec < 10) return 'just now';
+    if (sec < 60) return sec + 's ago';
+    var min = Math.floor(sec / 60);
+    if (min < 60) return min + 'm ago';
+    var hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    var day = Math.floor(hr / 24);
+    if (day < 7) return day + 'd ago';
+    return d.toLocaleDateString();
+  }
+
+  // ========== REQUEST MATERIALS ==========
+  // Renders forms built with the multi-field form builder. Each "card"
+  // has a question + one or more fields. Legacy single-field cards
+  // (shape: { question, fieldType }) are wrapped on the fly so older
+  // published forms still render.
+  function renderMaterials(el) {
+    fetch('/api/portal/' + token + '/forms')
+      .then(function (r) { return r.json(); })
+      .then(function (forms) {
+        if (!forms || forms.length === 0) {
+          el.innerHTML = '<div class="cp-empty">No forms yet. We\'ll let you know when we need something from you.</div>';
+          return;
+        }
+        forms.forEach(function (form) {
+          var card = document.createElement('div');
+          card.className = 'cp-form-card';
+
+          var title = document.createElement('h3');
+          title.className = 'cp-form-title';
+          title.textContent = form.name;
+          card.appendChild(title);
+
+          if (form.status === 'completed') {
+            var done = document.createElement('div');
+            done.className = 'cp-form-completed';
+            done.textContent = '✓ Completed';
+            card.appendChild(done);
+            el.appendChild(card);
+            return;
+          }
+
+          var responses = {};
+          var rawCards = form.fields || [];
+
+          rawCards.forEach(function (rawCard, cardIdx) {
+            // Normalize to new multi-field shape
+            var fields;
+            if (rawCard && Array.isArray(rawCard.fields)) {
+              fields = rawCard.fields;
+            } else {
+              // Legacy { question, fieldType } → wrap as single-field card
+              fields = [{ fieldType: (rawCard && rawCard.fieldType) || 'text', label: '' }];
+            }
+
+            var group = document.createElement('div');
+            group.className = 'cp-form-field';
+
+            var q = document.createElement('div');
+            q.className = 'fq';
+            q.textContent = (cardIdx + 1) + '. ' + ((rawCard && rawCard.question) || '');
+            group.appendChild(q);
+
+            fields.forEach(function (f, fIdx) {
+              var responseKey = cardIdx + '_' + fIdx;
+
+              // Optional per-field label (when multiple fields share a question)
+              if (f.label && fields.length > 1) {
+                var lbl = document.createElement('div');
+                lbl.style.cssText = 'font-size:12px;color:#64748b;margin:8px 0 4px;font-weight:500;';
+                lbl.textContent = f.label;
+                group.appendChild(lbl);
+              }
+
+              var input;
+              if (f.fieldType === 'textarea') {
+                input = document.createElement('textarea');
+              } else if (f.fieldType === 'file') {
+                input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+              } else if (f.fieldType === 'date') {
+                input = document.createElement('input');
+                input.type = 'date';
+              } else if (f.fieldType === 'number') {
+                input = document.createElement('input');
+                input.type = 'number';
+              } else {
+                input = document.createElement('input');
+                input.type = 'text';
+              }
+              if (fields.length > 1) input.style.marginBottom = '8px';
+
+              input.addEventListener('change', function () {
+                if (f.fieldType === 'file') {
+                  responses[responseKey] = Array.from(input.files).map(function (file) { return file.name; });
+                } else {
+                  responses[responseKey] = input.value;
+                }
+              });
+              group.appendChild(input);
+            });
+
+            card.appendChild(group);
+          });
+
+          var submitBtn = document.createElement('button');
+          submitBtn.className = 'cp-form-submit';
+          submitBtn.textContent = 'Submit';
+          submitBtn.addEventListener('click', function () {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            fetch('/api/portal/' + token + '/forms/' + form.token + '/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ responses: responses })
+            }).then(function (r) { return r.json(); })
+              .then(function () { renderTab(); });
+          });
+          card.appendChild(submitBtn);
+          el.appendChild(card);
+        });
+      });
+  }
+
+  // ========== APPROVALS ==========
+  function renderApprovals(el) {
+    fetch('/api/portal/' + token + '/approvals')
+      .then(function (r) { return r.json(); })
+      .then(function (items) {
+        if (!items || items.length === 0) {
+          el.innerHTML = '<div class="cp-empty">No deliverables pending approval right now.</div>';
+          return;
+        }
+        items.forEach(function (d) {
+          var card = document.createElement('div');
+          card.className = 'cp-approval-card';
+
+          var title = document.createElement('h3');
+          title.className = 'cp-approval-title';
+          title.textContent = d.title || 'Untitled';
+          card.appendChild(title);
+
+          var meta = document.createElement('div');
+          meta.className = 'cp-approval-meta';
+          meta.textContent = (d.type || '') + (d.deliveryMonth ? ' · ' + d.deliveryMonth : '');
+          card.appendChild(meta);
+
+          var changesLeft = 3 - (d.changeRequestCount || 0);
+          var counter = document.createElement('span');
+          counter.className = 'cp-change-counter' + (changesLeft <= 0 ? ' exhausted' : '');
+          counter.textContent = changesLeft + ' of 3 change requests remaining';
+          card.appendChild(counter);
+
+          // Show posts if content calendar
+          var meta2 = d.metadata || {};
+          if (typeof meta2 === 'string') try { meta2 = JSON.parse(meta2); } catch (e) { meta2 = {}; }
+          var posts = meta2.posts || [];
+          var editedCaptions = {};
+
+          posts.forEach(function (post, idx) {
+            var pCard = document.createElement('div');
+            pCard.className = 'cp-post-card';
+            var date = document.createElement('div');
+            date.className = 'cp-post-date';
+            date.textContent = post.date || 'Post ' + (idx + 1);
+            pCard.appendChild(date);
+            var cap = document.createElement('div');
+            cap.className = 'cp-post-caption';
+            cap.contentEditable = 'true';
+            cap.innerHTML = post.caption || '';
+            cap.addEventListener('blur', function () {
+              editedCaptions[idx] = cap.innerHTML;
+            });
+            pCard.appendChild(cap);
+            if (post.images && post.images.length > 0) {
+              var imgs = document.createElement('div');
+              imgs.className = 'cp-post-images';
+              post.images.forEach(function (url) {
+                var img = document.createElement('img');
+                img.src = url;
+                img.addEventListener('click', function () { openLightbox(url); });
+                imgs.appendChild(img);
+              });
+              pCard.appendChild(imgs);
+            }
+            card.appendChild(pCard);
+          });
+
+          var actions = document.createElement('div');
+          actions.className = 'cp-approval-actions';
+
+          var approveBtn = document.createElement('button');
+          approveBtn.className = 'cp-btn cp-btn-approve';
+          approveBtn.textContent = '✓ Approve';
+          approveBtn.addEventListener('click', function () {
+            if (!confirm('Approve this deliverable?')) return;
+            fetch('/api/portal/' + token + '/approvals/' + d.id + '/approve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            }).then(function () { renderTab(); });
+          });
+          actions.appendChild(approveBtn);
+
+          var changesBtn = document.createElement('button');
+          changesBtn.className = 'cp-btn cp-btn-changes';
+          changesBtn.textContent = 'Request Changes';
+          changesBtn.disabled = changesLeft <= 0;
+          var changesBox = document.createElement('div');
+          changesBox.className = 'cp-changes-box';
+          var changesNotes = document.createElement('textarea');
+          changesNotes.placeholder = 'Describe what changes you\'d like...';
+          changesBox.appendChild(changesNotes);
+          var sendChangesBtn = document.createElement('button');
+          sendChangesBtn.className = 'cp-btn cp-btn-changes';
+          sendChangesBtn.textContent = 'Send Changes';
+          sendChangesBtn.style.marginTop = '10px';
+          sendChangesBtn.addEventListener('click', function () {
+            var notes = changesNotes.value.trim();
+            if (!notes) { alert('Please describe the changes'); return; }
+            sendChangesBtn.disabled = true;
+            sendChangesBtn.textContent = 'Sending...';
+            fetch('/api/portal/' + token + '/approvals/' + d.id + '/request-changes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                change_notes: notes,
+                post_updates: editedCaptions
+              })
+            }).then(function (r) { return r.json(); })
+              .then(function (res) {
+                if (res.error) alert(res.error);
+                renderTab();
+              });
+          });
+          changesBox.appendChild(sendChangesBtn);
+
+          changesBtn.addEventListener('click', function () {
+            changesBox.classList.toggle('open');
+          });
+          actions.appendChild(changesBtn);
+          card.appendChild(actions);
+          card.appendChild(changesBox);
+
+          el.appendChild(card);
+        });
+      });
+  }
+
+  function openLightbox(url) {
+    var lb = document.createElement('div');
+    lb.className = 'cp-lightbox';
+    var img = document.createElement('img');
+    img.src = url;
+    lb.appendChild(img);
+    var close = document.createElement('button');
+    close.className = 'close';
+    close.textContent = '×';
+    close.addEventListener('click', function () { lb.remove(); });
+    lb.appendChild(close);
+    lb.addEventListener('click', function (e) { if (e.target === lb) lb.remove(); });
+    document.body.appendChild(lb);
+  }
+})();
+</script>
+</body>
+</html>

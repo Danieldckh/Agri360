@@ -93,7 +93,7 @@ async function runMigrations() {
     await client.query(`CREATE TABLE IF NOT EXISTS deliverables (
       id SERIAL PRIMARY KEY, booking_form_id INT REFERENCES booking_forms(id) ON DELETE CASCADE,
       department_id INT REFERENCES departments(id), type VARCHAR(100), title VARCHAR(255),
-      description TEXT, status VARCHAR(20) DEFAULT 'pending', assigned_to INT REFERENCES employees(id),
+      description TEXT, status VARCHAR(50) DEFAULT 'pending', assigned_to INT REFERENCES employees(id),
       due_date DATE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
     )`);
     await client.query(`CREATE TABLE IF NOT EXISTS dashboards (
@@ -186,6 +186,112 @@ async function runMigrations() {
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS follow_up_count INTEGER DEFAULT 0`);
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ`);
     await client.query(`UPDATE deliverables SET status_changed_at = updated_at WHERE status_changed_at IS NULL`);
+
+    // Deliverables: JSONB metadata for type-specific data (platforms, posts count, etc.)
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`);
+
+    // Widen status columns — many statuses exceed VARCHAR(20)
+    await client.query(`ALTER TABLE deliverables ALTER COLUMN status TYPE VARCHAR(50)`);
+    await client.query(`ALTER TABLE booking_forms ALTER COLUMN status TYPE VARCHAR(50)`);
+
+    // Department-specific assignment columns
+    const deptAssignedCols = ['assigned_admin', 'assigned_production', 'assigned_design',
+      'assigned_editorial', 'assigned_video', 'assigned_agri4all', 'assigned_social_media'];
+    for (const col of deptAssignedCols) {
+      await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS ${col} INT REFERENCES employees(id)`);
+    }
+
+    // Change request counter per deliverable (3 max enforced at API level)
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS change_request_count INTEGER DEFAULT 0`);
+
+    // Client Portal Tokens — public access for clients
+    await client.query(`CREATE TABLE IF NOT EXISTS client_portal_tokens (
+      id SERIAL PRIMARY KEY,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      token VARCHAR(64) UNIQUE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      last_accessed_at TIMESTAMPTZ
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_client_portal_token ON client_portal_tokens(token)`);
+
+    // Request Forms — built by production, completed by client
+    await client.query(`CREATE TABLE IF NOT EXISTS request_forms (
+      id SERIAL PRIMARY KEY,
+      token VARCHAR(64) UNIQUE NOT NULL,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      deliverable_id INT REFERENCES deliverables(id) ON DELETE SET NULL,
+      name VARCHAR(255),
+      fields JSONB DEFAULT '[]',
+      responses JSONB DEFAULT '{}',
+      status VARCHAR(20) DEFAULT 'draft',
+      created_by INT REFERENCES employees(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_request_forms_token ON request_forms(token)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_request_forms_client ON request_forms(client_id)`);
+
+    // Request Form Templates — reusable form structures
+    await client.query(`CREATE TABLE IF NOT EXISTS request_form_templates (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      fields JSONB DEFAULT '[]',
+      created_by INT REFERENCES employees(id),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+
+    // Portal Messages — standalone chat thread between a client (via
+    // portal token) and the CRM team. Kept separate from the internal
+    // `messages` table to avoid schema churn on employee-centric fields.
+    await client.query(`CREATE TABLE IF NOT EXISTS portal_messages (
+      id SERIAL PRIMARY KEY,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      sender_type VARCHAR(20) NOT NULL,
+      sender_employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_portal_messages_client ON portal_messages(client_id, created_at)`);
+
+    // Social Media Scheduler — scheduled posts for content calendars, agri4all, own SM
+    await client.query(`CREATE TABLE IF NOT EXISTS scheduled_posts (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255),
+      content TEXT,
+      platforms JSONB DEFAULT '[]',
+      scheduled_at TIMESTAMPTZ,
+      status VARCHAR(20) DEFAULT 'draft',
+      source_type VARCHAR(30) NOT NULL,
+      source_id INT,
+      client_id INT REFERENCES clients(id) ON DELETE SET NULL,
+      media_urls JSONB DEFAULT '[]',
+      link_url TEXT,
+      hashtags TEXT,
+      notes TEXT,
+      created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+      posted_at TIMESTAMPTZ,
+      post_error TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_scheduled_at ON scheduled_posts(scheduled_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_source ON scheduled_posts(source_type)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_status ON scheduled_posts(status)`);
+
+    // Social credentials — per-platform account credentials used by the scheduler
+    await client.query(`CREATE TABLE IF NOT EXISTS social_credentials (
+      id SERIAL PRIMARY KEY,
+      platform VARCHAR(30) NOT NULL,
+      account_name VARCHAR(255) NOT NULL,
+      account_handle VARCHAR(255),
+      credentials JSONB DEFAULT '{}',
+      is_active BOOLEAN DEFAULT TRUE,
+      last_verified_at TIMESTAMPTZ,
+      created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_social_credentials_platform ON social_credentials(platform)`);
 
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);

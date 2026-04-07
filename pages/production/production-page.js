@@ -184,6 +184,268 @@
     return null;
   }
 
+  // ── Generic client-grouped sheet renderer ─────────────────────────
+  // Shared by all production tabs. Builds a sheet card with grouped-
+  // by-client rows, chevron toggles, client-level buttons, and
+  // per-cell render callbacks. Two modes:
+  //
+  // 1. Full mode (default) — builds its own wrapper + month selector
+  //    + fetches /api/deliverables/by-department/:slug. Used by the
+  //    Production Deliverables tab (one sheet, full width).
+  //
+  // 2. Embedded mode (skipMonthSelector: true) — builds ONLY the card,
+  //    doesn't fetch. Caller passes data via setData(items). Used by
+  //    50/50 tabs (Follow Ups, Approvals) where one shared month
+  //    selector above drives two sheets below.
+  //
+  // Returns { refresh(ym), setData(items) }.
+  //
+  // options: {
+  //   title: string,
+  //   searchPlaceholder?: string,
+  //   deptSlug?: string ('production'),
+  //   statusFilter: function(item) => boolean,
+  //   columns: [{ label, className?, render?: function(item, refresh) => string|Node }],
+  //   emptyMessage?: string,
+  //   showClientButtons?: boolean,
+  //   skipMonthSelector?: boolean
+  // }
+  function renderClientGroupedSheet(container, options) {
+    options = options || {};
+    var title = options.title || 'Sheet';
+    var searchPlaceholder = options.searchPlaceholder || 'Search...';
+    var statusFilter = options.statusFilter || function () { return true; };
+    var deptSlug = options.deptSlug || 'production';
+    var columns = options.columns || [];
+    var emptyMessage = options.emptyMessage || 'No items to display';
+    var showClientButtons = !!options.showClientButtons;
+    var skipMonthSelector = !!options.skipMonthSelector;
+
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var wrapper, prevBtn, nextBtn, monthLabel;
+    if (!skipMonthSelector) {
+      wrapper = document.createElement('div');
+      wrapper.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;';
+
+      var monthBar = document.createElement('div');
+      monthBar.className = 'dept-month-selector';
+      var uid = 'cgs_' + Math.random().toString(36).slice(2, 10);
+      prevBtn = document.createElement('button');
+      prevBtn.id = uid + '_prev';
+      prevBtn.className = 'dept-month-nav';
+      prevBtn.textContent = '\u25C0';
+      monthLabel = document.createElement('span');
+      monthLabel.id = uid + '_label';
+      monthLabel.className = 'dept-month-label';
+      nextBtn = document.createElement('button');
+      nextBtn.id = uid + '_next';
+      nextBtn.className = 'dept-month-nav';
+      nextBtn.textContent = '\u25B6';
+      monthBar.appendChild(prevBtn);
+      monthBar.appendChild(monthLabel);
+      monthBar.appendChild(nextBtn);
+      wrapper.appendChild(monthBar);
+    } else {
+      // Embedded mode — caller owns the wrapper/layout
+      wrapper = container;
+    }
+
+    // Sheet card — reuse dept-sheet-card styling
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card';
+    card.style.flex = '1';
+    card.style.minHeight = '0';
+    card.style.overflow = 'hidden';
+
+    var headerBar = document.createElement('div');
+    headerBar.className = 'dept-sheet-header';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+    var titleEl = document.createElement('h3');
+    titleEl.className = 'dept-sheet-title';
+    titleEl.textContent = title;
+    titleWrap.appendChild(titleEl);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+    headerBar.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = searchPlaceholder;
+    headerBar.appendChild(searchInput);
+    card.appendChild(headerBar);
+
+    var sheetBody = document.createElement('div');
+    sheetBody.style.cssText = 'flex:1;overflow-y:auto;min-height:0;';
+    card.appendChild(sheetBody);
+    if (skipMonthSelector) {
+      // Embedded mode — append card directly to caller-provided container
+      container.appendChild(card);
+    } else {
+      wrapper.appendChild(card);
+      container.appendChild(wrapper);
+    }
+
+    var allData = [];
+    var collapsedClients = {};
+    var currentYM = '';
+
+    function renderTable() {
+      while (sheetBody.firstChild) sheetBody.removeChild(sheetBody.firstChild);
+
+      var term = (searchInput.value || '').toLowerCase();
+      var filtered = allData.filter(statusFilter);
+      if (term) {
+        filtered = filtered.filter(function (d) {
+          return (d.title || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.clientName || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.status || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.type || '').toLowerCase().indexOf(term) !== -1;
+        });
+      }
+
+      countBadge.textContent = filtered.length;
+      var groups = groupByClient(filtered);
+
+      if (groups.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'proagri-sheet-empty';
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = emptyMessage;
+        sheetBody.appendChild(empty);
+        return;
+      }
+
+      // Column header row
+      var headerRow = document.createElement('div');
+      headerRow.className = 'prod-deliv-row prod-deliv-header';
+      columns.forEach(function (col) {
+        var cell = document.createElement('div');
+        cell.className = 'prod-deliv-cell' + (col.className ? ' ' + col.className : '');
+        cell.textContent = col.label || '';
+        headerRow.appendChild(cell);
+      });
+      sheetBody.appendChild(headerRow);
+
+      groups.forEach(function (group) {
+        var isCollapsed = !!collapsedClients[group.clientName];
+
+        var clientRow = document.createElement('div');
+        clientRow.className = 'prod-deliv-client-row';
+        var chevron = document.createElement('span');
+        chevron.className = 'prod-deliv-chevron' + (isCollapsed ? ' collapsed' : '');
+        chevron.textContent = isCollapsed ? '\u25B6' : '\u25BC';
+        clientRow.appendChild(chevron);
+        var clientLabel = document.createElement('span');
+        clientLabel.className = 'prod-deliv-client-name';
+        clientLabel.textContent = group.clientName;
+        clientRow.appendChild(clientLabel);
+        var clientCount = document.createElement('span');
+        clientCount.className = 'prod-deliv-client-count';
+        clientCount.textContent = group.items.length;
+        clientRow.appendChild(clientCount);
+
+        if (showClientButtons && group.clientId) {
+          var spacer = document.createElement('span');
+          spacer.style.flex = '1';
+          clientRow.appendChild(spacer);
+
+          var reqBtn = document.createElement('button');
+          reqBtn.className = 'prod-client-btn';
+          reqBtn.textContent = 'Request Materials';
+          (function (cid) {
+            reqBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              window.open('/form-builder.html?clientId=' + cid, '_blank');
+            });
+          })(group.clientId);
+          clientRow.appendChild(reqBtn);
+
+          var portalBtn = document.createElement('button');
+          portalBtn.className = 'prod-client-btn prod-client-btn-primary';
+          portalBtn.textContent = 'Open Portal';
+          (function (cid) {
+            portalBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              fetch('/api/portal/get-or-create-token', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ clientId: cid })
+              }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.token) window.open('/client-portal.html?token=' + data.token, '_blank');
+              });
+            });
+          })(group.clientId);
+          clientRow.appendChild(portalBtn);
+        }
+
+        clientRow.addEventListener('click', function () {
+          collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+          renderTable();
+        });
+        sheetBody.appendChild(clientRow);
+
+        if (isCollapsed) return;
+
+        group.items.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'prod-deliv-row';
+
+          columns.forEach(function (col) {
+            var cell = document.createElement('div');
+            cell.className = 'prod-deliv-cell' + (col.className ? ' ' + col.className : '');
+            var content = col.render ? col.render(item, refresh) : '';
+            if (content == null || content === '') {
+              // leave cell empty
+            } else if (typeof content === 'string') {
+              cell.textContent = content;
+            } else if (content.nodeType) {
+              cell.appendChild(content);
+            }
+            row.appendChild(cell);
+          });
+
+          sheetBody.appendChild(row);
+        });
+      });
+    }
+
+    function refresh(ym) {
+      if (ym) currentYM = ym;
+      var url = '/api/deliverables/by-department/' + deptSlug + (currentYM ? '?month=' + currentYM : '');
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch(url, { headers: getHeaders() }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        allData = results[1] || [];
+        renderTable();
+      }).catch(function (err) {
+        console.error('Client-grouped sheet fetch error:', err);
+      });
+    }
+
+    function setData(items) {
+      allData = items || [];
+      renderTable();
+    }
+
+    searchInput.addEventListener('input', renderTable);
+
+    if (!skipMonthSelector) {
+      // initMonthSelector triggers the first fetch via refresh() callback
+      initMonthSelector(wrapper, { prev: prevBtn.id, next: nextBtn.id, label: monthLabel.id }, deptSlug, refresh);
+    }
+
+    return { refresh: refresh, setData: setData };
+  }
+
   // ── Client Communications Tab (template-based) ──────────────────
   function renderProductionTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
@@ -422,8 +684,146 @@
     });
   }
 
-  // ── Follow Ups Tab (50/50 layout, template-based) ──────────────
-  function renderFollowUpsTab(container) {
+  // ── Shared column renderers for 50/50 tabs ──────────────────────
+  // These factories produce column specs used by the client-grouped
+  // sheet helper. Each returns a { label, className?, render } tuple.
+
+  function colTitle() {
+    return { label: 'Title', className: 'prod-deliv-title', render: function (item) {
+      return item.title || '';
+    }};
+  }
+
+  function colType() {
+    return { label: 'Type', className: 'prod-deliv-type', render: function (item) {
+      var badge = document.createElement('span');
+      badge.className = 'production-type-badge';
+      badge.textContent = formatStatus(item.type || '');
+      return badge;
+    }};
+  }
+
+  function colStatus() {
+    return { label: 'Status', className: 'prod-deliv-status-cell', render: function (item, refresh) {
+      var badge = document.createElement('span');
+      badge.className = 'proagri-sheet-status ' + statusClass(item.status);
+      badge.textContent = formatStatus(item.status);
+      badge.style.cursor = 'pointer';
+      badge.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var existing = document.querySelector('.prod-deliv-status-dropdown');
+        if (existing) existing.remove();
+
+        var chain = workflows ? workflows.getStatusChain(item.type) : [];
+        if (chain.length === 0) return;
+        var dropdown = document.createElement('div');
+        dropdown.className = 'prod-deliv-status-dropdown';
+        chain.forEach(function (st) {
+          var opt = document.createElement('div');
+          opt.className = 'prod-deliv-status-opt' + (st === item.status ? ' active' : '');
+          var optBadge = document.createElement('span');
+          optBadge.className = 'proagri-sheet-status ' + statusClass(st);
+          optBadge.textContent = formatStatus(st);
+          opt.appendChild(optBadge);
+          opt.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            dropdown.remove();
+            if (st === item.status) return;
+            fetch('/api/deliverables/' + item.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: st })
+            }).then(function (res) { if (res.ok && refresh) refresh(); });
+          });
+          dropdown.appendChild(opt);
+        });
+        document.body.appendChild(dropdown);
+        var rect = badge.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = rect.bottom + 4 + 'px';
+        dropdown.style.left = rect.left + 'px';
+        setTimeout(function () {
+          document.addEventListener('click', function closeDD() {
+            dropdown.remove();
+            document.removeEventListener('click', closeDD);
+          });
+        }, 0);
+      });
+      return badge;
+    }};
+  }
+
+  function colStatusChanged(label) {
+    return { label: label || 'Status Changed', render: function (item) {
+      return formatStatusChanged(item.statusChangedAt);
+    }};
+  }
+
+  function colFollowUpCount() {
+    return { label: 'Follow Ups', render: function (item, refresh) {
+      var count = item.followUpCount || 0;
+      var badge = document.createElement('span');
+      badge.className = 'dept-sheet-count';
+      badge.textContent = count;
+      badge.style.cursor = 'pointer';
+      badge.title = 'Click to increment follow up count';
+      badge.addEventListener('click', function (e) {
+        e.stopPropagation();
+        fetch('/api/deliverables/' + item.id, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ followUpCount: count + 1 })
+        }).then(function (res) { if (res.ok && refresh) refresh(); });
+      });
+      return badge;
+    }};
+  }
+
+  function colActionAdvance(nextStatusOrAuto, tooltipText) {
+    return { label: '', className: 'prod-deliv-act', render: function (item, refresh) {
+      var target, tooltip;
+      if (nextStatusOrAuto === 'auto') {
+        var wf = workflows && workflows.getNextStatus(item.type, item.status);
+        if (!wf) return '';
+        target = wf.next;
+        tooltip = tooltipText || wf.tooltip;
+      } else {
+        target = nextStatusOrAuto;
+        tooltip = tooltipText || ('Advance to ' + formatStatus(target));
+      }
+      var btn = document.createElement('button');
+      btn.className = 'proagri-sheet-row-action-btn action-advance';
+      btn.title = tooltip;
+      btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+      btn.style.opacity = '1';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        fetch('/api/deliverables/' + item.id, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status: target })
+        }).then(function (res) { if (res.ok && refresh) refresh(); });
+      });
+      return btn;
+    }};
+  }
+
+  // ── Split-sheet tab helper (50/50 layout, shared month selector) ──
+  // Builds a month selector at the top and two renderClientGroupedSheet
+  // halves side-by-side. Both halves share one fetch per month change.
+  //
+  // options: {
+  //   prefix: string — unique id prefix for DOM elements (e.g. 'fu', 'app'),
+  //   deptSlug?: string ('production'),
+  //   left/right: {
+  //     title, filter, columns, emptyMessage, showClientButtons?
+  //   }
+  // }
+  function renderSplitSheetTab(container, options) {
+    options = options || {};
+    var prefix = options.prefix || 'split';
+    var deptSlug = options.deptSlug || 'production';
+
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = '';
     container.style.alignItems = '';
@@ -433,603 +833,147 @@
     container.style.gap = '';
     container.style.padding = '';
 
-    loadProductionTemplates().then(function (tmplContainer) {
-      var frag = cloneTemplateContent(tmplContainer, 'followUpsTabTemplate');
-      if (!frag) return;
-      container.appendChild(frag);
+    var wrap = document.createElement('div');
+    wrap.className = 'dept-tab-wrap';
 
-      var leftCount = container.querySelector('#fuLeftCount');
-      var leftSearch = container.querySelector('#fuLeftSearch');
-      var leftSheet = container.querySelector('#fuLeftSheet');
-      var rightCount = container.querySelector('#fuRightCount');
-      var rightSearch = container.querySelector('#fuRightSearch');
-      var rightSheet = container.querySelector('#fuRightSheet');
+    // Shared month selector
+    var monthBar = document.createElement('div');
+    monthBar.className = 'dept-month-selector';
+    monthBar.id = prefix + 'MonthSelector';
+    var prevBtn = document.createElement('button');
+    prevBtn.id = prefix + 'MonthPrev';
+    prevBtn.className = 'dept-month-nav dept-month-prev';
+    prevBtn.title = 'Previous month';
+    prevBtn.innerHTML = '&#9664;';
+    var monthLabel = document.createElement('span');
+    monthLabel.id = prefix + 'MonthLabel';
+    monthLabel.className = 'dept-month-label';
+    var nextBtn = document.createElement('button');
+    nextBtn.id = prefix + 'MonthNext';
+    nextBtn.className = 'dept-month-nav dept-month-next';
+    nextBtn.title = 'Next month';
+    nextBtn.innerHTML = '&#9654;';
+    monthBar.appendChild(prevBtn);
+    monthBar.appendChild(monthLabel);
+    monthBar.appendChild(nextBtn);
+    wrap.appendChild(monthBar);
 
-      var leftItems = [];
-      var rightItems = [];
-      var leftSort = { key: null, dir: 'asc' };
-      var rightSort = { key: null, dir: 'asc' };
+    // 50/50 dashboard layout
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
 
-      leftSearch.addEventListener('input', function () {
-        renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+    var leftHalf = document.createElement('div');
+    leftHalf.className = 'dept-dashboard-half';
+    layout.appendChild(leftHalf);
+
+    var rightHalf = document.createElement('div');
+    rightHalf.className = 'dept-dashboard-half';
+    layout.appendChild(rightHalf);
+
+    wrap.appendChild(layout);
+    container.appendChild(wrap);
+
+    // Create both halves as embedded sheets (no month selector)
+    var leftSheet = renderClientGroupedSheet(leftHalf, {
+      title: options.left.title,
+      searchPlaceholder: options.left.searchPlaceholder || 'Search...',
+      statusFilter: options.left.filter,
+      columns: options.left.columns,
+      emptyMessage: options.left.emptyMessage,
+      showClientButtons: !!options.left.showClientButtons,
+      skipMonthSelector: true
+    });
+
+    var rightSheet = renderClientGroupedSheet(rightHalf, {
+      title: options.right.title,
+      searchPlaceholder: options.right.searchPlaceholder || 'Search...',
+      statusFilter: options.right.filter,
+      columns: options.right.columns,
+      emptyMessage: options.right.emptyMessage,
+      showClientButtons: !!options.right.showClientButtons,
+      skipMonthSelector: true
+    });
+
+    // Shared fetch — one network call, both halves render their filtered slice
+    function sharedRefresh(ym) {
+      var url = '/api/deliverables/by-department/' + deptSlug + (ym ? '?month=' + ym : '');
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch(url, { headers: getHeaders() }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        var data = results[1] || [];
+        leftSheet.setData(data);
+        rightSheet.setData(data);
+      }).catch(function (err) {
+        console.error('Split-sheet fetch error:', err);
       });
+    }
 
-      rightSearch.addEventListener('input', function () {
-        renderRightTable(rightItems, rightSearch.value.toLowerCase());
-      });
+    // Wire up the shared month selector → re-fetch on change
+    initMonthSelector(wrap, {
+      prev: prevBtn.id,
+      next: nextBtn.id,
+      label: monthLabel.id
+    }, deptSlug, sharedRefresh);
+  }
 
-      function refreshData(month) {
-        var url = API_BASE + '/by-department/production';
-        if (month) url += '?month=' + month;
-        fetch(url, { headers: getHeaders() })
-          .then(function (res) {
-            if (!res.ok) throw new Error('Failed to fetch');
-            return res.json();
-          })
-          .then(function (deliverables) {
-            leftItems = deliverables.filter(function (d) {
-              return d.status === 'materials_requested';
-            });
-            rightItems = deliverables.filter(function (d) {
-              return d.status === 'sent_for_approval';
-            });
-            leftCount.textContent = leftItems.length;
-            rightCount.textContent = rightItems.length;
-            renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-            renderRightTable(rightItems, rightSearch.value.toLowerCase());
-          })
-          .catch(function (err) {
-            console.error('Follow Ups fetch error:', err);
-          });
-      }
-
-      var monthCtrl = initMonthSelector(container, {prev: 'fuMonthPrev', next: 'fuMonthNext', label: 'fuMonthLabel'}, 'production', function(month) { refreshData(month); });
-
-      function advanceStatus(itemId, nextStatus) {
-        fetch(API_BASE + '/' + itemId, {
-          method: 'PATCH',
-          headers: getHeaders(),
-          body: JSON.stringify({ status: nextStatus })
-        }).then(function (res) {
-          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
-        });
-      }
-
-      function incrementFollowUp(itemId, currentCount) {
-        fetch(API_BASE + '/' + itemId, {
-          method: 'PATCH',
-          headers: getHeaders(),
-          body: JSON.stringify({ followUpCount: currentCount + 1 })
-        }).then(function (res) {
-          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
-        });
-      }
-
-      function renderLeftTable(items, filterTerm) {
-        while (leftSheet.firstChild) leftSheet.removeChild(leftSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No materials requested';
-          leftSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Status Changed', sortKey: 'statusChangedAt' },
-          { label: 'Follow Up Count', sortKey: 'followUpCount' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, leftSort, function () {
-          renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, leftSort.key, leftSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          var tdChanged = document.createElement('td');
-          tdChanged.textContent = formatStatusChanged(item.statusChangedAt);
-          row.appendChild(tdChanged);
-
-          var tdFollowUp = document.createElement('td');
-          var count = item.followUpCount || 0;
-          var countBadge = document.createElement('span');
-          countBadge.className = 'dept-sheet-count';
-          countBadge.textContent = count;
-          countBadge.style.cursor = 'pointer';
-          countBadge.title = 'Click to increment follow up count';
-          countBadge.addEventListener('click', (function (id, c) {
-            return function (e) {
-              e.stopPropagation();
-              incrementFollowUp(id, c);
-            };
-          })(item.id, count));
-          tdFollowUp.appendChild(countBadge);
-          row.appendChild(tdFollowUp);
-
-          var tdAction = document.createElement('td');
-          var btn = document.createElement('button');
-          btn.className = 'proagri-sheet-row-action-btn action-advance';
-          btn.title = 'Advance to Materials Received';
-          btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-          btn.style.opacity = '1';
-          btn.addEventListener('click', (function (id) {
-            return function (e) {
-              e.stopPropagation();
-              advanceStatus(id, 'materials_received');
-            };
-          })(item.id));
-          tdAction.appendChild(btn);
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        leftSheet.appendChild(table);
-      }
-
-      function renderRightTable(items, filterTerm) {
-        while (rightSheet.firstChild) rightSheet.removeChild(rightSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No items sent for approval';
-          rightSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Status Changed', sortKey: 'statusChangedAt' },
-          { label: 'Follow Up Count', sortKey: 'followUpCount' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, rightSort, function () {
-          renderRightTable(rightItems, rightSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, rightSort.key, rightSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          var tdChanged = document.createElement('td');
-          tdChanged.textContent = formatStatusChanged(item.statusChangedAt);
-          row.appendChild(tdChanged);
-
-          var tdFollowUp = document.createElement('td');
-          var count = item.followUpCount || 0;
-          var countBadge = document.createElement('span');
-          countBadge.className = 'dept-sheet-count';
-          countBadge.textContent = count;
-          countBadge.style.cursor = 'pointer';
-          countBadge.title = 'Click to increment follow up count';
-          countBadge.addEventListener('click', (function (id, c) {
-            return function (e) {
-              e.stopPropagation();
-              incrementFollowUp(id, c);
-            };
-          })(item.id, count));
-          tdFollowUp.appendChild(countBadge);
-          row.appendChild(tdFollowUp);
-
-          var tdAction = document.createElement('td');
-          var wf = workflows.getNextStatus(item.type, item.status);
-          if (wf) {
-            var btn = document.createElement('button');
-            btn.className = 'proagri-sheet-row-action-btn action-advance';
-            btn.title = wf.tooltip;
-            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-            btn.style.opacity = '1';
-            btn.addEventListener('click', (function (id, next) {
-              return function (e) {
-                e.stopPropagation();
-                advanceStatus(id, next);
-              };
-            })(item.id, wf.next));
-            tdAction.appendChild(btn);
-          }
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        rightSheet.appendChild(table);
-      }
-
-      // initMonthSelector triggers the first fetch via onMonthChange callback
+  // ── Follow Ups Tab — single full-width Materials Requested sheet ──
+  // The "Sent for Approval" view lives in the Approvals tab; keeping it
+  // here was just duplicating that sheet. Follow Ups now focuses solely
+  // on material requests that are waiting on the client.
+  function renderFollowUpsTab(container) {
+    renderClientGroupedSheet(container, {
+      title: 'Materials Requested',
+      searchPlaceholder: 'Search materials requested...',
+      statusFilter: function (d) {
+        // Canonical status after form publish + legacy stragglers
+        return d.status === 'materials_requested' ||
+          d.status === 'waiting_for_materials' ||
+          d.status === 'upload_materials';
+      },
+      columns: [
+        colTitle(),
+        colType(),
+        colStatus(),
+        colStatusChanged('Date Requested'),
+        colFollowUpCount(),
+        colActionAdvance('materials_received', 'Advance to Materials Received')
+      ],
+      emptyMessage: 'No materials requested',
+      showClientButtons: true
     });
   }
 
-  // ── Approvals Tab (50/50 layout, template-based) ───────────────
+  // ── Approvals Tab — 50/50 layout, uses renderClientGroupedSheet ──
   function renderApprovalsTab(container) {
-    while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = '';
-    container.style.alignItems = '';
-    container.style.justifyContent = '';
-    container.style.flexDirection = '';
-    container.style.height = '';
-    container.style.gap = '';
-    container.style.padding = '';
-
-    loadProductionTemplates().then(function (tmplContainer) {
-      var frag = cloneTemplateContent(tmplContainer, 'approvalsTabTemplate');
-      if (!frag) return;
-      container.appendChild(frag);
-
-      var leftCount = container.querySelector('#appLeftCount');
-      var leftSearch = container.querySelector('#appLeftSearch');
-      var leftSheet = container.querySelector('#appLeftSheet');
-      var rightCount = container.querySelector('#appRightCount');
-      var rightSearch = container.querySelector('#appRightSearch');
-      var rightSheet = container.querySelector('#appRightSheet');
-
-      var leftItems = [];
-      var rightItems = [];
-      var leftSort = { key: null, dir: 'asc' };
-      var rightSort = { key: null, dir: 'asc' };
-
-      leftSearch.addEventListener('input', function () {
-        renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-      });
-
-      rightSearch.addEventListener('input', function () {
-        renderRightTable(rightItems, rightSearch.value.toLowerCase());
-      });
-
-      function refreshData(month) {
-        var url = API_BASE + '/by-department/production';
-        if (month) url += '?month=' + month;
-        fetch(url, { headers: getHeaders() })
-          .then(function (res) {
-            if (!res.ok) throw new Error('Failed to fetch');
-            return res.json();
-          })
-          .then(function (deliverables) {
-            leftItems = deliverables.filter(function (d) {
-              return d.status === 'ready_for_approval';
-            });
-            rightItems = deliverables.filter(function (d) {
-              return d.status === 'sent_for_approval';
-            });
-            leftCount.textContent = leftItems.length;
-            rightCount.textContent = rightItems.length;
-            renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-            renderRightTable(rightItems, rightSearch.value.toLowerCase());
-          })
-          .catch(function (err) {
-            console.error('Approvals fetch error:', err);
-          });
+    renderSplitSheetTab(container, {
+      prefix: 'app',
+      left: {
+        title: 'Send for Approval',
+        filter: function (d) { return d.status === 'ready_for_approval'; },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Ready Since'),
+          colActionAdvance('sent_for_approval', 'Send for Approval')
+        ],
+        emptyMessage: 'No items ready for approval'
+      },
+      right: {
+        title: 'Sent for Approval',
+        filter: function (d) { return d.status === 'sent_for_approval'; },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Date Sent'),
+          colFollowUpCount(),
+          colActionAdvance('auto')
+        ],
+        emptyMessage: 'No items sent for approval'
       }
-
-      var monthCtrl = initMonthSelector(container, {prev: 'appMonthPrev', next: 'appMonthNext', label: 'appMonthLabel'}, 'production', function(month) { refreshData(month); });
-
-      function advanceStatus(itemId, nextStatus) {
-        fetch(API_BASE + '/' + itemId, {
-          method: 'PATCH',
-          headers: getHeaders(),
-          body: JSON.stringify({ status: nextStatus })
-        }).then(function (res) {
-          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
-        });
-      }
-
-      function renderAssignedCell(item) {
-        var td = document.createElement('td');
-        var assignedId = item.assignedProduction || item.assignedTo;
-        if (assignedId && window._employeeCacheLookup) {
-          var emp = window._employeeCacheLookup(assignedId);
-          if (emp && emp.photo_url) {
-            var avatarImg = document.createElement('img');
-            avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
-            avatarImg.src = emp.photo_url;
-            avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
-            avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
-            td.appendChild(avatarImg);
-          } else {
-            td.textContent = assignedId;
-          }
-        } else {
-          td.textContent = '\u2014';
-        }
-        return td;
-      }
-
-      function renderLeftTable(items, filterTerm) {
-        while (leftSheet.firstChild) leftSheet.removeChild(leftSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No items ready for approval';
-          leftSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Assigned To', sortKey: null },
-          { label: 'Due Date', sortKey: 'dueDate' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, leftSort, function () {
-          renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, leftSort.key, leftSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          row.appendChild(renderAssignedCell(item));
-
-          var tdDue = document.createElement('td');
-          tdDue.textContent = formatDate(item.dueDate);
-          row.appendChild(tdDue);
-
-          var tdAction = document.createElement('td');
-          var btn = document.createElement('button');
-          btn.className = 'proagri-sheet-row-action-btn action-advance';
-          btn.title = 'Send for Approval';
-          btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-          btn.style.opacity = '1';
-          btn.addEventListener('click', (function (id) {
-            return function (e) {
-              e.stopPropagation();
-              advanceStatus(id, 'sent_for_approval');
-            };
-          })(item.id));
-          tdAction.appendChild(btn);
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        leftSheet.appendChild(table);
-      }
-
-      function renderRightTable(items, filterTerm) {
-        while (rightSheet.firstChild) rightSheet.removeChild(rightSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No items sent for approval';
-          rightSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Assigned To', sortKey: null },
-          { label: 'Due Date', sortKey: 'dueDate' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, rightSort, function () {
-          renderRightTable(rightItems, rightSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, rightSort.key, rightSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          row.appendChild(renderAssignedCell(item));
-
-          var tdDue = document.createElement('td');
-          tdDue.textContent = formatDate(item.dueDate);
-          row.appendChild(tdDue);
-
-          var tdAction = document.createElement('td');
-          var wf = workflows.getNextStatus(item.type, item.status);
-          if (wf) {
-            var btn = document.createElement('button');
-            btn.className = 'proagri-sheet-row-action-btn action-advance';
-            btn.title = wf.tooltip;
-            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-            btn.style.opacity = '1';
-            btn.addEventListener('click', (function (id, next) {
-              return function (e) {
-                e.stopPropagation();
-                advanceStatus(id, next);
-              };
-            })(item.id, wf.next));
-            tdAction.appendChild(btn);
-          }
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        rightSheet.appendChild(table);
-      }
-
-      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   }
 
@@ -1324,4 +1268,2110 @@
   window.renderProductionTab = renderProductionTab;
   window.renderFollowUpsTab = renderFollowUpsTab;
   window.renderApprovalsTab = renderApprovalsTab;
+
+  // ── Department person assignment config ────────────────
+  var DEPT_SLOTS = [
+    { field: 'assignedAdmin',       api: 'assigned_admin',        label: 'Admin',        color: '#3b82f6' },
+    { field: 'assignedProduction',  api: 'assigned_production',   label: 'Production',   color: '#8b5cf6' },
+    { field: 'assignedDesign',      api: 'assigned_design',       label: 'Design',       color: '#ec4899' },
+    { field: 'assignedEditorial',   api: 'assigned_editorial',    label: 'Editorial',    color: '#f59e0b' },
+    { field: 'assignedVideo',       api: 'assigned_video',        label: 'Video',        color: '#ef4444' },
+    { field: 'assignedAgri4all',    api: 'assigned_agri4all',     label: 'Agri4All',     color: '#10b981' },
+    { field: 'assignedSocialMedia', api: 'assigned_social_media', label: 'Social Media', color: '#06b6d4' }
+  ];
+
+  // Avatar: photo if available, otherwise colored initials circle
+  // Normalize employee field names (API returns snake_case)
+  function empFirst(e) { return e && (e.first_name || e.firstName) || ''; }
+  function empLast(e) { return e && (e.last_name || e.lastName) || ''; }
+  function empPhoto(e) { return e && (e.photo_url || e.photoUrl) || ''; }
+  function empFullName(e) {
+    if (!e) return '';
+    return (empFirst(e) + ' ' + empLast(e)).trim() || (e.username || '');
+  }
+  function empInitials(e) {
+    if (!e) return '?';
+    var f = empFirst(e);
+    var l = empLast(e);
+    if (f || l) return ((f[0] || '') + (l[0] || '')).toUpperCase();
+    var u = (e.username || '').trim();
+    return u ? u.substring(0, 2).toUpperCase() : '?';
+  }
+
+  function buildAvatar(employee, size, deptColor) {
+    var el = document.createElement('div');
+    el.className = 'dept-avatar';
+    var px = (size || 22) + 'px';
+    el.style.cssText = 'width:' + px + ';height:' + px + ';';
+    var photo = empPhoto(employee);
+    if (employee && photo) {
+      var img = document.createElement('img');
+      img.src = photo;
+      img.alt = empFullName(employee);
+      el.appendChild(img);
+    } else if (employee) {
+      el.textContent = empInitials(employee);
+      el.style.background = deptColor || '#64748b';
+      el.style.color = '#fff';
+      // Scale font by size
+      el.style.fontSize = (size >= 28 ? '11px' : '9px');
+    } else {
+      el.className += ' dept-avatar-empty';
+      el.textContent = '+';
+      el.style.borderColor = deptColor || '#cbd5e1';
+      el.style.color = deptColor || '#94a3b8';
+    }
+    if (employee) {
+      el.title = empFullName(employee);
+    }
+    return el;
+  }
+
+  // Employee picker modal — searchable list with current user first
+  function openEmployeePicker(deptLabel, currentId, onSelect) {
+    var existing = document.querySelector('.emp-picker-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'emp-picker-overlay';
+    var modal = document.createElement('div');
+    modal.className = 'emp-picker-modal';
+
+    var title = document.createElement('h3');
+    title.className = 'emp-picker-title';
+    title.textContent = 'Assign ' + deptLabel;
+    modal.appendChild(title);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'emp-picker-search';
+    searchInput.placeholder = 'Search employees...';
+    modal.appendChild(searchInput);
+
+    var listEl = document.createElement('div');
+    listEl.className = 'emp-picker-list';
+    modal.appendChild(listEl);
+
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    (window._fetchEmployees ? window._fetchEmployees() : fetch('/api/employees', { headers: getHeaders() }).then(function (r) { return r.json(); }))
+      .then(function (employees) {
+        var currentUser = null;
+        if (window.getCurrentUser) currentUser = window.getCurrentUser();
+        // Sort: current user first, then alphabetically
+        var sorted = employees.slice().sort(function (a, b) {
+          if (currentUser) {
+            if (a.id === currentUser.id) return -1;
+            if (b.id === currentUser.id) return 1;
+          }
+          return empFullName(a).localeCompare(empFullName(b));
+        });
+
+        function renderList(filter) {
+          while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+          var filtered = sorted;
+          if (filter) {
+            var f = filter.toLowerCase();
+            filtered = sorted.filter(function (e) {
+              var name = (empFullName(e) + ' ' + (e.username || '') + ' ' + (e.role || '')).toLowerCase();
+              return name.indexOf(f) !== -1;
+            });
+          }
+
+          // "Unassign" option
+          var clearRow = document.createElement('div');
+          clearRow.className = 'emp-picker-item emp-picker-clear';
+          clearRow.textContent = '\u2715  Unassign';
+          clearRow.addEventListener('click', function () {
+            onSelect(null);
+            overlay.remove();
+          });
+          listEl.appendChild(clearRow);
+
+          filtered.forEach(function (emp) {
+            var row = document.createElement('div');
+            row.className = 'emp-picker-item' + (emp.id === currentId ? ' active' : '');
+            row.appendChild(buildAvatar(emp, 28, '#64748b'));
+            var info = document.createElement('div');
+            info.className = 'emp-picker-info';
+            var name = document.createElement('div');
+            name.className = 'emp-picker-name';
+            name.textContent = empFullName(emp) || emp.username;
+            info.appendChild(name);
+            var role = document.createElement('div');
+            role.className = 'emp-picker-role';
+            role.textContent = emp.role || '';
+            info.appendChild(role);
+            row.appendChild(info);
+            if (currentUser && emp.id === currentUser.id) {
+              var you = document.createElement('span');
+              you.className = 'emp-picker-you';
+              you.textContent = 'You';
+              row.appendChild(you);
+            }
+            row.addEventListener('click', function () {
+              onSelect(emp.id);
+              overlay.remove();
+            });
+            listEl.appendChild(row);
+          });
+        }
+        renderList('');
+        searchInput.addEventListener('input', function () { renderList(searchInput.value); });
+        searchInput.focus();
+      });
+  }
+
+  // Build the 7-avatar cell for a deliverable row
+  // Get the "send back" target status for a review/approval status
+  // Returns null if not a review status
+  function getSendBackTarget(status) {
+    var map = {
+      'design_review': 'design_changes',
+      'editorial_review': 'editorial_changes',
+      'ready_for_approval': 'design_changes',
+      'sent_for_approval': 'client_changes',
+      'client_approved': 'client_changes',
+      'review': 'changes_requested'
+    };
+    return map[status] || null;
+  }
+
+  // Map dept slug to slot (for filtering by context)
+  function getSlotForDeptSlug(slug) {
+    // Match slug variations: 'production' → production slot, 'social-media' → socialMedia, etc.
+    var normalized = (slug || '').toLowerCase().replace(/-/g, '');
+    for (var i = 0; i < DEPT_SLOTS.length; i++) {
+      var s = DEPT_SLOTS[i];
+      if (s.api.replace('assigned_', '').replace(/_/g, '') === normalized) return s;
+    }
+    return null;
+  }
+
+  // Build avatar cell — shows only the slot(s) matching the given dept context
+  // If deptContext is 'all', shows all 7. Otherwise shows just that dept's slot.
+  function buildDeptAvatarRow(deliverable, onUpdate, deptContext) {
+    var wrap = document.createElement('div');
+    wrap.className = 'dept-avatar-row';
+
+    var slots;
+    if (deptContext === 'all') {
+      slots = DEPT_SLOTS;
+    } else {
+      var slot = getSlotForDeptSlug(deptContext);
+      slots = slot ? [slot] : DEPT_SLOTS;
+    }
+
+    slots.forEach(function (slot) {
+      var assignedId = deliverable[slot.field];
+      var emp = assignedId && window._employeeCacheLookup ? window._employeeCacheLookup(assignedId) : null;
+      var avatar = buildAvatar(emp, 22, slot.color);
+      avatar.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openEmployeePicker(slot.label, assignedId, function (newId) {
+          var body = {};
+          body[slot.api] = newId;
+          fetch(API_BASE + '/' + deliverable.id, {
+            method: 'PATCH', headers: getHeaders(),
+            body: JSON.stringify(body)
+          }).then(function (res) {
+            if (res.ok) {
+              deliverable[slot.field] = newId;
+              if (onUpdate) onUpdate();
+            }
+          });
+        });
+      });
+      wrap.appendChild(avatar);
+    });
+    return wrap;
+  }
+
+  // ── Unified Production Deliverables Tab ─────────────────────
+  function renderProductionDeliverablesTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;';
+
+    // Month selector
+    var monthBar = document.createElement('div');
+    monthBar.className = 'dept-month-selector';
+    var prevBtn = document.createElement('button');
+    prevBtn.id = 'prodDelivPrev';
+    prevBtn.className = 'dept-month-nav';
+    prevBtn.textContent = '\u25C0';
+    var monthLabel = document.createElement('span');
+    monthLabel.id = 'prodDelivLabel';
+    monthLabel.className = 'dept-month-label';
+    var nextBtn = document.createElement('button');
+    nextBtn.id = 'prodDelivNext';
+    nextBtn.className = 'dept-month-nav';
+    nextBtn.textContent = '\u25B6';
+    monthBar.appendChild(prevBtn);
+    monthBar.appendChild(monthLabel);
+    monthBar.appendChild(nextBtn);
+    wrapper.appendChild(monthBar);
+
+    // Sheet card
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card';
+    card.style.flex = '1';
+    card.style.minHeight = '0';
+    card.style.overflow = 'hidden';
+
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = 'Deliverables';
+    titleWrap.appendChild(h);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+    header.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search deliverables...';
+    header.appendChild(searchInput);
+    card.appendChild(header);
+
+    var sheetBody = document.createElement('div');
+    sheetBody.style.cssText = 'flex:1;overflow-y:auto;min-height:0;';
+    card.appendChild(sheetBody);
+    wrapper.appendChild(card);
+    container.appendChild(wrapper);
+
+    var allData = [];
+    var collapsedClients = {};
+
+    function advanceStatus(itemId, type, currentStatus) {
+      if (!workflows) return;
+      var next = workflows.getNextStatus(type, currentStatus);
+      if (!next || !next.next) return;
+      fetch(API_BASE + '/' + itemId, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: next.next })
+      }).then(function (res) {
+        if (res.ok) monthSelector.getCurrentMonth && fetchData(monthSelector.getCurrentMonth());
+      });
+    }
+
+    function renderTable() {
+      while (sheetBody.firstChild) sheetBody.removeChild(sheetBody.firstChild);
+
+      var term = searchInput.value.toLowerCase();
+      var filtered = allData;
+      if (term) {
+        filtered = allData.filter(function (d) {
+          return (d.title || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.clientName || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.status || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.type || '').toLowerCase().indexOf(term) !== -1;
+        });
+      }
+
+      countBadge.textContent = filtered.length;
+      var groups = groupByClient(filtered);
+
+      if (groups.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'proagri-sheet-empty';
+        empty.textContent = 'No deliverables to display';
+        sheetBody.appendChild(empty);
+        return;
+      }
+
+      // Column header — classes must match data row cells
+      var headerRow = document.createElement('div');
+      headerRow.className = 'prod-deliv-row prod-deliv-header';
+      var headerCols = [
+        { label: '', cls: 'prod-deliv-cell prod-deliv-act' },
+        { label: 'Team', cls: 'prod-deliv-cell prod-deliv-team' },
+        { label: 'Title', cls: 'prod-deliv-cell prod-deliv-title' },
+        { label: 'Type', cls: 'prod-deliv-cell prod-deliv-type' },
+        { label: 'Status', cls: 'prod-deliv-cell' }
+      ];
+      headerCols.forEach(function (col) {
+        var cell = document.createElement('div');
+        cell.className = col.cls;
+        cell.textContent = col.label;
+        headerRow.appendChild(cell);
+      });
+      var actCell = document.createElement('div');
+      actCell.className = 'prod-deliv-cell prod-deliv-act';
+      headerRow.appendChild(actCell);
+      sheetBody.appendChild(headerRow);
+
+      groups.forEach(function (group) {
+        var isCollapsed = !!collapsedClients[group.clientName];
+
+        // Client header row
+        var clientRow = document.createElement('div');
+        clientRow.className = 'prod-deliv-client-row';
+        var chevron = document.createElement('span');
+        chevron.className = 'prod-deliv-chevron' + (isCollapsed ? ' collapsed' : '');
+        chevron.textContent = isCollapsed ? '\u25B6' : '\u25BC';
+        clientRow.appendChild(chevron);
+        var clientLabel = document.createElement('span');
+        clientLabel.className = 'prod-deliv-client-name';
+        clientLabel.textContent = group.clientName;
+        clientRow.appendChild(clientLabel);
+        var clientCount = document.createElement('span');
+        clientCount.className = 'prod-deliv-client-count';
+        clientCount.textContent = group.items.length;
+        clientRow.appendChild(clientCount);
+
+        // Client action buttons: Request Materials + Open Portal
+        if (group.clientId) {
+          var spacer = document.createElement('span');
+          spacer.style.flex = '1';
+          clientRow.appendChild(spacer);
+
+          var reqBtn = document.createElement('button');
+          reqBtn.className = 'prod-client-btn';
+          reqBtn.textContent = 'Request Materials';
+          (function (cid) {
+            reqBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              window.open('/form-builder.html?clientId=' + cid, '_blank');
+            });
+          })(group.clientId);
+          clientRow.appendChild(reqBtn);
+
+          var portalBtn = document.createElement('button');
+          portalBtn.className = 'prod-client-btn prod-client-btn-primary';
+          portalBtn.textContent = 'Open Portal';
+          (function (cid) {
+            portalBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              // Get or create portal token
+              fetch('/api/portal/get-or-create-token', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ clientId: cid })
+              }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.token) window.open('/client-portal.html?token=' + data.token, '_blank');
+              });
+            });
+          })(group.clientId);
+          clientRow.appendChild(portalBtn);
+        }
+
+        clientRow.addEventListener('click', function () {
+          collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+          renderTable();
+        });
+        sheetBody.appendChild(clientRow);
+
+        if (isCollapsed) return;
+
+        group.items.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'prod-deliv-row';
+
+          // Eye icon — open deliverable dashboard
+          var eyeCell = document.createElement('div');
+          eyeCell.className = 'prod-deliv-cell prod-deliv-act';
+          var dashboardTypes = ['sm-content-calendar', 'website-design', 'online-articles',
+            'agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads',
+            'agri4all-newsletter-feature', 'agri4all-newsletter-banner', 'agri4all-linkedin',
+            'own-social-posts', 'own-social-videos', 'own-social-linkedin', 'own-social-twitter',
+            'agri4all-banners', 'video',
+            'magazine-sa-digital', 'magazine-africa-print', 'magazine-africa-digital', 'magazine-coffee-table'];
+          if (dashboardTypes.indexOf(item.type) !== -1) {
+            var eyeBtn = document.createElement('button');
+            eyeBtn.className = 'proagri-sheet-row-action-btn action-view';
+            eyeBtn.type = 'button';
+            eyeBtn.title = 'View dashboard';
+            eyeBtn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+            (function (it) {
+              eyeBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (it.type === 'sm-content-calendar') openContentCalendarDashboard(container, it);
+                else if (it.type === 'website-design') openWebsiteDesignDashboard(container, it);
+                else if (it.type === 'online-articles') openOnlineArticlesDashboard(container, it);
+                else if (it.type === 'agri4all-posts') openA4AMultiSectionDashboard(container, it, 'posts');
+                else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(container, it, 'videos');
+                else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(container, it, 'own-posts');
+                else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(container, it, 'own-videos');
+                else if (it.type === 'agri4all-product-uploads') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'agri4all-newsletter-feature') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'agri4all-newsletter-banner') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'agri4all-banners') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type && it.type.indexOf('magazine') === 0) openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'agri4all-linkedin') openA4ARichTextDashboard(container, it);
+                else if (it.type === 'own-social-linkedin') openA4ARichTextDashboard(container, it);
+                else if (it.type === 'own-social-twitter') openA4ARichTextDashboard(container, it);
+                else if (it.type === 'video') openVideoDashboard(container, it);
+              });
+            })(item);
+            eyeCell.appendChild(eyeBtn);
+          }
+          row.appendChild(eyeCell);
+
+          // Team avatar — only the current dept's slot (production for this tab)
+          var teamCell = document.createElement('div');
+          teamCell.className = 'prod-deliv-cell prod-deliv-team';
+          teamCell.appendChild(buildDeptAvatarRow(item, function () {
+            fetchData(currentYM);
+          }, 'production'));
+          row.appendChild(teamCell);
+
+          // Title
+          var titleCell = document.createElement('div');
+          titleCell.className = 'prod-deliv-cell prod-deliv-title';
+          titleCell.textContent = item.title || '';
+          row.appendChild(titleCell);
+
+          // Type
+          var typeCell = document.createElement('div');
+          typeCell.className = 'prod-deliv-cell prod-deliv-type';
+          typeCell.textContent = formatStatus(item.type || '');
+          row.appendChild(typeCell);
+
+          // Status — clickable dropdown
+          var statusCell = document.createElement('div');
+          statusCell.className = 'prod-deliv-cell prod-deliv-status-cell';
+          var badge = document.createElement('span');
+          badge.className = 'proagri-sheet-status ' + statusClass(item.status);
+          badge.textContent = formatStatus(item.status);
+          statusCell.appendChild(badge);
+
+          (function (cellEl, itemRef) {
+            cellEl.addEventListener('click', function (e) {
+              e.stopPropagation();
+              var existing = document.querySelector('.prod-deliv-status-dropdown');
+              if (existing) existing.remove();
+
+              var chain = workflows ? workflows.getStatusChain(itemRef.type) : [];
+              if (chain.length === 0) return;
+
+              var dropdown = document.createElement('div');
+              dropdown.className = 'prod-deliv-status-dropdown';
+
+              chain.forEach(function (st) {
+                var opt = document.createElement('div');
+                opt.className = 'prod-deliv-status-opt' + (st === itemRef.status ? ' active' : '');
+                var optBadge = document.createElement('span');
+                optBadge.className = 'proagri-sheet-status ' + statusClass(st);
+                optBadge.textContent = formatStatus(st);
+                opt.appendChild(optBadge);
+                opt.addEventListener('click', function (ev) {
+                  ev.stopPropagation();
+                  dropdown.remove();
+                  if (st === itemRef.status) return;
+                  fetch(API_BASE + '/' + itemRef.id, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ status: st })
+                  }).then(function (res) {
+                    if (res.ok) fetchData(currentYM);
+                  });
+                });
+                dropdown.appendChild(opt);
+              });
+
+              document.body.appendChild(dropdown);
+              var rect = cellEl.getBoundingClientRect();
+              dropdown.style.position = 'fixed';
+              dropdown.style.top = rect.bottom + 4 + 'px';
+              dropdown.style.left = rect.left + 'px';
+
+              setTimeout(function () {
+                document.addEventListener('click', function closeDD() {
+                  dropdown.remove();
+                  document.removeEventListener('click', closeDD);
+                });
+              }, 0);
+            });
+          })(statusCell, item);
+
+          row.appendChild(statusCell);
+
+          // Send-back button (only for review/approval statuses)
+          var sendBackTarget = getSendBackTarget(item.status);
+          var actCol = document.createElement('div');
+          actCol.className = 'prod-deliv-cell prod-deliv-act';
+          if (sendBackTarget) {
+            var backBtn = document.createElement('button');
+            backBtn.className = 'proagri-sheet-row-action-btn action-undo';
+            backBtn.type = 'button';
+            backBtn.title = 'Send back for changes (' + formatStatus(sendBackTarget) + ')';
+            backBtn.appendChild(makeSvgIcon('M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z'));
+            (function (it, target) {
+              backBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fetch(API_BASE + '/' + it.id, {
+                  method: 'PATCH', headers: getHeaders(),
+                  body: JSON.stringify({ status: target })
+                }).then(function (res) { if (res.ok) fetchData(currentYM); });
+              });
+            })(item, sendBackTarget);
+            actCol.appendChild(backBtn);
+          }
+          var advBtn = document.createElement('button');
+          advBtn.className = 'proagri-sheet-row-action-btn action-advance';
+          advBtn.type = 'button';
+          advBtn.title = 'Advance status';
+          advBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
+          advBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            advanceStatus(item.id, item.type, item.status);
+          });
+          actCol.appendChild(advBtn);
+          row.appendChild(actCol);
+
+          sheetBody.appendChild(row);
+        });
+      });
+    }
+
+    searchInput.addEventListener('input', renderTable);
+
+    var currentYM = '';
+    function fetchData(ym) {
+      currentYM = ym;
+      // Ensure employee cache is populated before rendering
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch(API_BASE + '/by-department/production?month=' + ym, { headers: getHeaders() }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        allData = results[1];
+        renderTable();
+      }).catch(function (err) {
+        console.error('Production deliverables fetch error:', err);
+      });
+    }
+
+    var monthSelector = initMonthSelector(wrapper, {
+      prev: 'prodDelivPrev',
+      next: 'prodDelivNext',
+      label: 'prodDelivLabel'
+    }, 'production', fetchData);
+  }
+
+  window.renderProductionDeliverablesTab = renderProductionDeliverablesTab;
+
+  // ── Content Calendar Dashboard ─────────────────────────
+  var _savedProdSidebar = null;
+  var _ccContainer = null;
+  var _ccRefreshFn = null;
+
+  function openContentCalendarDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    var posts = meta.posts || [];
+    var monthlyPostsCount = meta.monthly_posts || meta.posts_per_month || 0;
+
+    // Auto-populate posts if empty
+    if (posts.length === 0 && monthlyPostsCount > 0) {
+      for (var i = 0; i < monthlyPostsCount; i++) {
+        posts.push({ date: '', caption: '', images: [], change_requests: [] });
+      }
+    }
+
+    setupCCSidebar(deliverable, meta);
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'cc-dashboard';
+
+    // Title row
+    var titleRow = document.createElement('div');
+    titleRow.className = 'cc-dashboard-title-row';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Content Calendar';
+    titleRow.appendChild(title);
+    var addRowBtn = document.createElement('button');
+    addRowBtn.className = 'cc-add-row-btn';
+    addRowBtn.textContent = '+ Add Post';
+    addRowBtn.addEventListener('click', function () {
+      posts.push({ date: '', caption: '', images: [], change_requests: [] });
+      renderAllRows();
+      savePostData(deliverable.id, posts);
+    });
+    titleRow.appendChild(addRowBtn);
+    wrapper.appendChild(titleRow);
+
+    // Table
+    var tableWrap = document.createElement('div');
+    tableWrap.className = 'cc-posts-table-wrap';
+
+    var table = document.createElement('div');
+    table.className = 'cc-posts-table';
+
+    // Header
+    var thead = document.createElement('div');
+    thead.className = 'cc-posts-header';
+    [
+      { label: '#', cls: 'cc-posts-th-num' },
+      { label: 'Date', cls: 'cc-posts-th-date' },
+      { label: 'Caption', cls: 'cc-posts-th-caption' },
+      { label: 'Images', cls: 'cc-posts-th-images' },
+      { label: 'Changes', cls: 'cc-posts-th-changes' },
+      { label: '', cls: 'cc-posts-th-act' }
+    ].forEach(function (h) {
+      var th = document.createElement('div');
+      th.className = 'cc-posts-th ' + h.cls;
+      th.textContent = h.label;
+      thead.appendChild(th);
+    });
+    table.appendChild(thead);
+
+    var tbody = document.createElement('div');
+    tbody.className = 'cc-posts-body';
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    wrapper.appendChild(tableWrap);
+    container.appendChild(wrapper);
+
+    function renderAllRows() {
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      posts.forEach(function (post, idx) {
+        tbody.appendChild(buildPostRow(post, idx, deliverable, posts));
+      });
+    }
+    renderAllRows();
+  }
+
+  function buildPostRow(post, idx, deliverable, posts) {
+    var row = document.createElement('div');
+    row.className = 'cc-posts-row';
+
+    // #
+    var numCell = document.createElement('div');
+    numCell.className = 'cc-posts-cell cc-posts-num';
+    numCell.textContent = idx + 1;
+    row.appendChild(numCell);
+
+    // Date
+    var dateCell = document.createElement('div');
+    dateCell.className = 'cc-posts-cell cc-posts-date';
+    var dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'cc-input';
+    dateInput.value = post.date || '';
+    dateInput.addEventListener('change', function () {
+      post.date = dateInput.value;
+      savePostData(deliverable.id, posts);
+    });
+    dateCell.appendChild(dateInput);
+    row.appendChild(dateCell);
+
+    // Caption
+    var captionCell = document.createElement('div');
+    captionCell.className = 'cc-posts-cell cc-posts-caption';
+    var captionEditor = document.createElement('div');
+    captionEditor.className = 'cc-caption-editor';
+    captionEditor.contentEditable = 'true';
+    captionEditor.innerHTML = post.caption || '';
+    captionEditor.setAttribute('placeholder', 'Write caption...');
+    captionEditor.addEventListener('blur', function () {
+      post.caption = captionEditor.innerHTML;
+      savePostData(deliverable.id, posts);
+    });
+    captionCell.appendChild(captionEditor);
+    row.appendChild(captionCell);
+
+    // Images
+    var imgCell = document.createElement('div');
+    imgCell.className = 'cc-posts-cell cc-posts-images';
+    var imgGrid = document.createElement('div');
+    imgGrid.className = 'cc-img-grid';
+
+    function renderImages() {
+      while (imgGrid.firstChild) imgGrid.removeChild(imgGrid.firstChild);
+      (post.images || []).forEach(function (url, imgIdx) {
+        var thumb = document.createElement('div');
+        thumb.className = 'cc-img-thumb';
+        var img = document.createElement('img');
+        img.src = url;
+        img.addEventListener('click', function () { openLightbox(url); });
+        thumb.appendChild(img);
+        var removeBtn = document.createElement('button');
+        removeBtn.className = 'cc-img-remove';
+        removeBtn.textContent = '\u00D7';
+        removeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          post.images.splice(imgIdx, 1);
+          renderImages();
+          savePostData(deliverable.id, posts);
+        });
+        thumb.appendChild(removeBtn);
+        imgGrid.appendChild(thumb);
+      });
+      var uploadBtn = document.createElement('label');
+      uploadBtn.className = 'cc-img-upload';
+      uploadBtn.textContent = '+';
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.multiple = true;
+      fileInput.style.display = 'none';
+      fileInput.addEventListener('change', function () {
+        var files = Array.from(fileInput.files);
+        if (files.length === 0) return;
+        var fd = new FormData();
+        files.forEach(function (f) { fd.append('images', f); });
+        fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.urls) {
+              post.images = (post.images || []).concat(result.urls);
+              renderImages();
+              savePostData(deliverable.id, posts);
+            }
+          });
+      });
+      uploadBtn.appendChild(fileInput);
+      imgGrid.appendChild(uploadBtn);
+    }
+    renderImages();
+    imgCell.appendChild(imgGrid);
+    row.appendChild(imgCell);
+
+    // Change Requests (per row)
+    if (!post.change_requests) post.change_requests = [];
+    var crCell = document.createElement('div');
+    crCell.className = 'cc-posts-cell cc-posts-changes';
+
+    function renderCR() {
+      while (crCell.firstChild) crCell.removeChild(crCell.firstChild);
+      post.change_requests.forEach(function (cr, crIdx) {
+        var item = document.createElement('div');
+        item.className = 'cc-cr-item';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!cr.done;
+        cb.addEventListener('change', function () {
+          cr.done = cb.checked;
+          text.className = 'cc-cr-text' + (cr.done ? ' done' : '');
+          savePostData(deliverable.id, posts);
+        });
+        item.appendChild(cb);
+        var text = document.createElement('span');
+        text.className = 'cc-cr-text' + (cr.done ? ' done' : '');
+        text.contentEditable = 'true';
+        text.textContent = cr.text || '';
+        text.addEventListener('blur', function () {
+          cr.text = text.textContent;
+          savePostData(deliverable.id, posts);
+        });
+        item.appendChild(text);
+        var del = document.createElement('button');
+        del.className = 'cc-cr-delete';
+        del.textContent = '\u00D7';
+        del.addEventListener('click', function () {
+          post.change_requests.splice(crIdx, 1);
+          renderCR();
+          savePostData(deliverable.id, posts);
+        });
+        item.appendChild(del);
+        crCell.appendChild(item);
+      });
+      var addBtn = document.createElement('button');
+      addBtn.className = 'cc-cr-add-inline';
+      addBtn.textContent = '+';
+      addBtn.title = 'Add change request';
+      addBtn.addEventListener('click', function () {
+        post.change_requests.push({ text: '', done: false });
+        renderCR();
+        var lastText = crCell.querySelector('.cc-cr-item:last-child .cc-cr-text');
+        if (lastText) lastText.focus();
+      });
+      crCell.appendChild(addBtn);
+    }
+    renderCR();
+    row.appendChild(crCell);
+
+    // Delete row button
+    var actCell = document.createElement('div');
+    actCell.className = 'cc-posts-cell cc-posts-act';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'cc-row-delete';
+    delBtn.title = 'Remove post';
+    delBtn.textContent = '\u00D7';
+    delBtn.addEventListener('click', function () {
+      posts.splice(idx, 1);
+      // Re-render all rows (re-indexes)
+      var tbody = row.parentNode;
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      posts.forEach(function (p, i) {
+        tbody.appendChild(buildPostRow(p, i, deliverable, posts));
+      });
+      savePostData(deliverable.id, posts);
+    });
+    actCell.appendChild(delBtn);
+    row.appendChild(actCell);
+
+    return row;
+  }
+
+  function savePostData(deliverableId, posts) {
+    fetch(API_BASE + '/' + deliverableId, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ metadata: { posts: posts } })
+    });
+  }
+
+  function setupCCSidebar(deliverable, meta) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+    _savedProdSidebar = document.createDocumentFragment();
+    while (nav.firstChild) _savedProdSidebar.appendChild(nav.firstChild);
+    nav.style.overflowY = 'auto';
+
+    // Back button
+    var backItem = document.createElement('a');
+    backItem.className = 'nav-item';
+    backItem.tabIndex = 0;
+    backItem.style.cursor = 'pointer';
+    var backIcon = document.createElement('span');
+    backIcon.className = 'nav-icon';
+    backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+    backItem.appendChild(backIcon);
+    var backLabel = document.createElement('span');
+    backLabel.className = 'nav-label';
+    backLabel.textContent = 'Back';
+    backItem.appendChild(backLabel);
+    backItem.addEventListener('click', function () {
+      nav.style.overflowY = '';
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      nav.appendChild(_savedProdSidebar);
+      _savedProdSidebar = null;
+      if (_ccContainer) renderProductionDeliverablesTab(_ccContainer);
+    });
+    nav.appendChild(backItem);
+
+    // Separator
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep);
+
+    // Client & title
+    var section = document.createElement('div');
+    section.style.padding = '4px 16px';
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:14px;font-weight:700;color:var(--text-primary,#1e293b);margin-bottom:2px;';
+    nameEl.textContent = deliverable.clientName || deliverable.title || '';
+    section.appendChild(nameEl);
+    var monthEl = document.createElement('div');
+    monthEl.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);margin-bottom:8px;';
+    monthEl.textContent = deliverable.deliveryMonth || '';
+    section.appendChild(monthEl);
+    nav.appendChild(section);
+
+    // Status
+    var sep2 = document.createElement('div');
+    sep2.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep2);
+    var statusWrap = document.createElement('div');
+    statusWrap.style.padding = '4px 16px';
+    var statusBadge = document.createElement('span');
+    statusBadge.className = 'proagri-sheet-status ' + statusClass(deliverable.status);
+    statusBadge.textContent = formatStatus(deliverable.status);
+    statusWrap.appendChild(statusBadge);
+    nav.appendChild(statusWrap);
+
+    // Posts count
+    var sep3 = document.createElement('div');
+    sep3.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep3);
+    var headerEl = document.createElement('div');
+    headerEl.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+    headerEl.textContent = 'Details';
+    nav.appendChild(headerEl);
+
+    var detailsWrap = document.createElement('div');
+    detailsWrap.style.padding = '0 16px';
+
+    function addDetail(label, value) {
+      if (!value) return;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-size:11px;';
+      var lbl = document.createElement('span');
+      lbl.style.color = 'var(--text-secondary,#64748b)';
+      lbl.textContent = label;
+      row.appendChild(lbl);
+      var val = document.createElement('span');
+      val.style.cssText = 'color:var(--text-primary,#1e293b);font-weight:500;text-align:right;';
+      val.textContent = value;
+      row.appendChild(val);
+      detailsWrap.appendChild(row);
+    }
+
+    addDetail('Monthly Posts', meta.monthly_posts || meta.posts_per_month || '');
+    addDetail('Type', 'Content Calendar');
+
+    nav.appendChild(detailsWrap);
+
+    // Platforms — Facebook, Instagram, Stories
+    var sep4 = document.createElement('div');
+    sep4.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep4);
+    var platHeader = document.createElement('div');
+    platHeader.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+    platHeader.textContent = 'Platforms';
+    nav.appendChild(platHeader);
+
+    var platWrap = document.createElement('div');
+    platWrap.style.padding = '0 16px';
+    var platforms = meta.platforms || [];
+    var hasFb = platforms.some(function (p) { return p.key === 'facebook'; });
+    var hasIg = platforms.some(function (p) { return p.key === 'instagram'; });
+    // Stories is derived from Instagram being present
+    var hasStories = hasIg;
+
+    [{ name: 'Facebook', active: hasFb }, { name: 'Instagram', active: hasIg }, { name: 'Stories', active: hasStories }].forEach(function (pl) {
+      if (!pl.active) return;
+      var tag = document.createElement('div');
+      tag.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px 4px 2px 0;border-radius:12px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.1);color:#3b82f6;';
+      tag.textContent = pl.name;
+      platWrap.appendChild(tag);
+    });
+    nav.appendChild(platWrap);
+  }
+
+  // Lightbox
+  function openLightbox(url) {
+    var overlay = document.createElement('div');
+    overlay.className = 'cc-lightbox';
+    var img = document.createElement('img');
+    img.src = url;
+    img.className = 'cc-lightbox-img';
+    overlay.appendChild(img);
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'cc-lightbox-close';
+    closeBtn.textContent = '\u00D7';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    overlay.appendChild(closeBtn);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  // Shared: fetch booking form data for dashboards
+  function fetchBookingFormData(bookingFormId, callback) {
+    fetch('/api/booking-forms/' + bookingFormId, { headers: getHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (bf) {
+        var fd = bf.formData || {};
+        if (typeof fd === 'string') try { fd = JSON.parse(fd); } catch (e) { fd = {}; }
+        callback(fd, bf);
+      })
+      .catch(function () { callback({}, {}); });
+  }
+
+  // Shared: build sidebar back button + details
+  function setupDashboardSidebar(deliverable, buildContent) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+    _savedProdSidebar = document.createDocumentFragment();
+    while (nav.firstChild) _savedProdSidebar.appendChild(nav.firstChild);
+    nav.style.overflowY = 'auto';
+
+    var backItem = document.createElement('a');
+    backItem.className = 'nav-item';
+    backItem.tabIndex = 0;
+    backItem.style.cursor = 'pointer';
+    var backIcon = document.createElement('span');
+    backIcon.className = 'nav-icon';
+    backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+    backItem.appendChild(backIcon);
+    var backLabel = document.createElement('span');
+    backLabel.className = 'nav-label';
+    backLabel.textContent = 'Back';
+    backItem.appendChild(backLabel);
+    backItem.addEventListener('click', function () {
+      nav.style.overflowY = '';
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      nav.appendChild(_savedProdSidebar);
+      _savedProdSidebar = null;
+      if (_ccContainer) renderProductionDeliverablesTab(_ccContainer);
+    });
+    nav.appendChild(backItem);
+
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep);
+
+    // Client + status
+    var sec = document.createElement('div');
+    sec.style.padding = '4px 16px';
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:14px;font-weight:700;color:var(--text-primary,#1e293b);margin-bottom:2px;';
+    nameEl.textContent = deliverable.clientName || deliverable.title || '';
+    sec.appendChild(nameEl);
+    var monthEl = document.createElement('div');
+    monthEl.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);margin-bottom:6px;';
+    monthEl.textContent = deliverable.deliveryMonth || '';
+    sec.appendChild(monthEl);
+    var badge = document.createElement('span');
+    badge.className = 'proagri-sheet-status ' + statusClass(deliverable.status);
+    badge.textContent = formatStatus(deliverable.status);
+    sec.appendChild(badge);
+    nav.appendChild(sec);
+
+    // Assigned Team section — show only assigned slots
+    var teamSlots = DEPT_SLOTS.filter(function (s) { return deliverable[s.field]; });
+    if (teamSlots.length > 0) {
+      addSidebarSection(nav, 'Assigned Team');
+      var teamWrap = document.createElement('div');
+      teamWrap.style.padding = '0 16px 4px';
+      teamSlots.forEach(function (slot) {
+        var emp = window._employeeCacheLookup ? window._employeeCacheLookup(deliverable[slot.field]) : null;
+        if (!emp) return;
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;';
+        row.appendChild(buildAvatar(emp, 22, slot.color));
+        var info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        var name = document.createElement('div');
+        name.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-primary,#1e293b);';
+        name.textContent = empFullName(emp) || emp.username;
+        info.appendChild(name);
+        var role = document.createElement('div');
+        role.style.cssText = 'font-size:10px;color:var(--text-secondary,#64748b);';
+        role.textContent = slot.label;
+        info.appendChild(role);
+        row.appendChild(info);
+        teamWrap.appendChild(row);
+      });
+      nav.appendChild(teamWrap);
+    }
+
+    // Fetch client details and show
+    if (deliverable.clientId) {
+      fetch('/api/clients/' + deliverable.clientId, { headers: getHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (client) {
+          if (!client || client.error) return;
+          addSidebarSection(nav, 'Client Info');
+          var wrap = document.createElement('div');
+          wrap.style.padding = '0 16px 4px';
+          addSidebarField(wrap, 'Name', client.name);
+          addSidebarField(wrap, 'Trading', client.tradingName);
+          addSidebarField(wrap, 'Email', client.email);
+          addSidebarField(wrap, 'Phone', client.phone);
+          addSidebarField(wrap, 'Website', client.website);
+          nav.appendChild(wrap);
+
+          // Contact details
+          var contacts = [
+            { label: 'Primary', data: client.primaryContact },
+            { label: 'Material', data: client.materialContact },
+            { label: 'Accounts', data: client.accountsContact }
+          ];
+          var hasAnyContact = contacts.some(function (c) {
+            var d = c.data;
+            if (typeof d === 'string') try { d = JSON.parse(d); } catch (e) { d = {}; }
+            return d && (d.name || d.email || d.cell || d.tel);
+          });
+          if (hasAnyContact) {
+            addSidebarSection(nav, 'Contacts');
+            contacts.forEach(function (c) {
+              var d = c.data;
+              if (typeof d === 'string') try { d = JSON.parse(d); } catch (e) { d = {}; }
+              if (!d || (!d.name && !d.email && !d.cell)) return;
+              var block = document.createElement('div');
+              block.style.cssText = 'padding:4px 16px 6px;';
+              var lbl = document.createElement('div');
+              lbl.style.cssText = 'font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-secondary,#94a3b8);margin-bottom:2px;';
+              lbl.textContent = c.label;
+              block.appendChild(lbl);
+              if (d.name) {
+                var n = document.createElement('div');
+                n.style.cssText = 'font-size:12px;font-weight:600;color:var(--text-primary,#1e293b);';
+                n.textContent = d.name;
+                block.appendChild(n);
+              }
+              if (d.email) {
+                var e2 = document.createElement('div');
+                e2.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);';
+                e2.textContent = d.email;
+                block.appendChild(e2);
+              }
+              if (d.cell) {
+                var cell2 = document.createElement('div');
+                cell2.style.cssText = 'font-size:11px;color:var(--text-secondary,#64748b);';
+                cell2.textContent = d.cell;
+                block.appendChild(cell2);
+              }
+              nav.appendChild(block);
+            });
+          }
+        });
+    }
+
+    buildContent(nav);
+  }
+
+  function addSidebarSection(nav, title) {
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+    nav.appendChild(sep);
+    var h = document.createElement('div');
+    h.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+    h.textContent = title;
+    nav.appendChild(h);
+  }
+
+  function addSidebarField(parent, label, value) {
+    if (!value) return;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-size:11px;';
+    var lbl = document.createElement('span');
+    lbl.style.color = 'var(--text-secondary,#64748b)';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    var val = document.createElement('span');
+    val.style.cssText = 'color:var(--text-primary,#1e293b);font-weight:500;text-align:right;word-break:break-word;';
+    val.textContent = value;
+    row.appendChild(val);
+    parent.appendChild(row);
+  }
+
+  // Shared: file upload area builder
+  function buildUploadArea(deliverableId, files, onUpdate, label) {
+    var wrap = document.createElement('div');
+    wrap.className = 'wd-upload-area';
+
+    var grid = document.createElement('div');
+    grid.className = 'cc-img-grid';
+
+    function render() {
+      while (grid.firstChild) grid.removeChild(grid.firstChild);
+      (files || []).forEach(function (url, i) {
+        var thumb = document.createElement('div');
+        thumb.className = 'wd-file-thumb';
+        var isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
+        if (isImage) {
+          var img = document.createElement('img');
+          img.src = url;
+          img.addEventListener('click', function () { openLightbox(url); });
+          thumb.appendChild(img);
+        } else {
+          var link = document.createElement('a');
+          link.href = url;
+          link.target = '_blank';
+          link.textContent = url.split('/').pop();
+          link.className = 'wd-file-link';
+          thumb.appendChild(link);
+        }
+        var rm = document.createElement('button');
+        rm.className = 'cc-img-remove';
+        rm.textContent = '\u00D7';
+        rm.addEventListener('click', function (e) {
+          e.stopPropagation();
+          files.splice(i, 1);
+          render();
+          onUpdate();
+        });
+        thumb.appendChild(rm);
+        grid.appendChild(thumb);
+      });
+
+      var uploadBtn = document.createElement('label');
+      uploadBtn.className = 'cc-img-upload';
+      uploadBtn.textContent = '+';
+      uploadBtn.title = label || 'Upload files';
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*,.pdf,.doc,.docx,.xd,.fig,.sketch';
+      fileInput.multiple = true;
+      fileInput.style.display = 'none';
+      fileInput.addEventListener('change', function () {
+        var fList = Array.from(fileInput.files);
+        if (fList.length === 0) return;
+        var fd = new FormData();
+        fList.forEach(function (f) { fd.append('images', f); });
+        fetch('/api/deliverables/' + deliverableId + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.urls) {
+              result.urls.forEach(function (u) { files.push(u); });
+              render();
+              onUpdate();
+            }
+          });
+      });
+      uploadBtn.appendChild(fileInput);
+      grid.appendChild(uploadBtn);
+    }
+    render();
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  // ══════ WEBSITE DESIGN DASHBOARD ══════════════════════════
+  function openWebsiteDesignDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.steps) {
+      meta.steps = [
+        { name: 'Meeting Notes / Brief', description: '', files: [] },
+        { name: 'Sitemap', description: '', files: [] },
+        { name: 'Wireframe', description: '', files: [] },
+        { name: 'Prototype / Design', description: '', files: [] },
+        { name: 'Development', description: '', files: [] },
+        { name: 'Hosting & SEO', description: '', files: [] }
+      ];
+    }
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { steps: meta.steps } })
+      });
+    }
+
+    // Sidebar
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Website Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      addSidebarField(wrap, 'Type', meta.website_type);
+      addSidebarField(wrap, 'Pages', meta.number_of_pages);
+      nav.appendChild(wrap);
+
+      // Fetch booking form for extra client info
+      if (deliverable.bookingFormId) {
+        fetchBookingFormData(deliverable.bookingFormId, function (fd) {
+          var ci = fd.client_information || {};
+          if (ci.website) {
+            addSidebarSection(nav, 'Client Website');
+            var wWrap = document.createElement('div');
+            wWrap.style.padding = '0 16px';
+            var link = document.createElement('a');
+            link.href = ci.website;
+            link.target = '_blank';
+            link.textContent = ci.website;
+            link.style.cssText = 'font-size:11px;color:var(--accent-color,#3b82f6);word-break:break-all;';
+            wWrap.appendChild(link);
+            nav.appendChild(wWrap);
+          }
+          // Social links
+          var sm = (fd.social_media_management || [])[0];
+          if (sm && sm.platforms && sm.platforms.length > 0) {
+            addSidebarSection(nav, 'Social Media');
+            var sWrap = document.createElement('div');
+            sWrap.style.padding = '0 16px';
+            sm.platforms.forEach(function (p) {
+              if (!p.link) return;
+              var a = document.createElement('a');
+              a.href = p.link;
+              a.target = '_blank';
+              a.style.cssText = 'display:block;font-size:11px;color:var(--accent-color,#3b82f6);margin:2px 0;word-break:break-all;';
+              a.textContent = p.platform + ': ' + p.link;
+              sWrap.appendChild(a);
+            });
+            nav.appendChild(sWrap);
+          }
+          // Project description
+          if (ci.project_description) {
+            addSidebarSection(nav, 'Project Brief');
+            var bWrap = document.createElement('div');
+            bWrap.style.cssText = 'padding:0 16px;font-size:11px;color:var(--text-primary,#1e293b);line-height:1.4;';
+            bWrap.textContent = ci.project_description;
+            nav.appendChild(bWrap);
+          }
+        });
+      }
+    });
+
+    // Main content
+    var wrapper = document.createElement('div');
+    wrapper.className = 'wd-dashboard';
+
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Website Design';
+    title.style.marginBottom = '16px';
+    wrapper.appendChild(title);
+
+    var stepsWrap = document.createElement('div');
+    stepsWrap.className = 'wd-steps';
+
+    meta.steps.forEach(function (step, idx) {
+      var stepEl = document.createElement('div');
+      stepEl.className = 'wd-step';
+
+      var stepHeader = document.createElement('div');
+      stepHeader.className = 'wd-step-header';
+      var stepNum = document.createElement('span');
+      stepNum.className = 'wd-step-num';
+      stepNum.textContent = idx + 1;
+      stepHeader.appendChild(stepNum);
+      var stepTitle = document.createElement('span');
+      stepTitle.className = 'wd-step-title';
+      stepTitle.textContent = step.name;
+      stepHeader.appendChild(stepTitle);
+      stepEl.appendChild(stepHeader);
+
+      var descEditor = document.createElement('div');
+      descEditor.className = 'cc-caption-editor';
+      descEditor.contentEditable = 'true';
+      descEditor.innerHTML = step.description || '';
+      descEditor.setAttribute('placeholder', 'Add notes...');
+      descEditor.addEventListener('blur', function () {
+        step.description = descEditor.innerHTML;
+        save();
+      });
+      stepEl.appendChild(descEditor);
+
+      stepEl.appendChild(buildUploadArea(deliverable.id, step.files, save, 'Upload ' + step.name + ' files'));
+
+      stepsWrap.appendChild(stepEl);
+    });
+
+    wrapper.appendChild(stepsWrap);
+    container.appendChild(wrapper);
+  }
+
+  // ══════ ONLINE ARTICLES DASHBOARD ═════════════════════════
+  function openOnlineArticlesDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.article_text) meta.article_text = '';
+    if (!meta.article_images) meta.article_images = [];
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { article_text: meta.article_text, article_images: meta.article_images } })
+      });
+    }
+
+    // Sidebar
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Article Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      addSidebarField(wrap, 'Articles', meta.amount);
+      addSidebarField(wrap, 'Curated', meta.curated_amount);
+      nav.appendChild(wrap);
+
+      // Publishing platforms
+      if (meta.platforms && meta.platforms.length) {
+        addSidebarSection(nav, 'Publish To');
+        var pWrap = document.createElement('div');
+        pWrap.style.padding = '0 16px';
+        meta.platforms.forEach(function (p) {
+          var tag = document.createElement('div');
+          tag.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px 4px 2px 0;border-radius:12px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.1);color:#3b82f6;';
+          tag.textContent = p;
+          pWrap.appendChild(tag);
+        });
+        nav.appendChild(pWrap);
+      }
+
+      // Social links from booking form
+      if (deliverable.bookingFormId) {
+        fetchBookingFormData(deliverable.bookingFormId, function (fd) {
+          var ci = fd.client_information || {};
+          if (ci.website) {
+            addSidebarSection(nav, 'Client Website');
+            var wWrap = document.createElement('div');
+            wWrap.style.padding = '0 16px';
+            var link = document.createElement('a');
+            link.href = ci.website;
+            link.target = '_blank';
+            link.textContent = ci.website;
+            link.style.cssText = 'font-size:11px;color:var(--accent-color,#3b82f6);word-break:break-all;';
+            wWrap.appendChild(link);
+            nav.appendChild(wWrap);
+          }
+          var sm = (fd.social_media_management || [])[0];
+          if (sm && sm.platforms && sm.platforms.length > 0) {
+            addSidebarSection(nav, 'Social Media');
+            var sWrap = document.createElement('div');
+            sWrap.style.padding = '0 16px';
+            sm.platforms.forEach(function (p) {
+              if (!p.link) return;
+              var a = document.createElement('a');
+              a.href = p.link;
+              a.target = '_blank';
+              a.style.cssText = 'display:block;font-size:11px;color:var(--accent-color,#3b82f6);margin:2px 0;word-break:break-all;';
+              a.textContent = p.platform;
+              sWrap.appendChild(a);
+            });
+            nav.appendChild(sWrap);
+          }
+        });
+      }
+    });
+
+    // Main content
+    var wrapper = document.createElement('div');
+    wrapper.className = 'oa-dashboard';
+
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Online Article';
+    title.style.marginBottom = '16px';
+    wrapper.appendChild(title);
+
+    // Article text editor
+    var editorCard = document.createElement('div');
+    editorCard.className = 'oa-editor-card';
+    var editorTitle = document.createElement('h3');
+    editorTitle.className = 'oa-card-title';
+    editorTitle.textContent = 'Article Text';
+    editorCard.appendChild(editorTitle);
+    var editor = document.createElement('div');
+    editor.className = 'oa-article-editor';
+    editor.contentEditable = 'true';
+    editor.innerHTML = meta.article_text || '';
+    editor.setAttribute('placeholder', 'Paste or write the article text here...');
+    editor.addEventListener('blur', function () {
+      meta.article_text = editor.innerHTML;
+      save();
+    });
+    editorCard.appendChild(editor);
+    wrapper.appendChild(editorCard);
+
+    // Image dump
+    var imgCard = document.createElement('div');
+    imgCard.className = 'oa-editor-card';
+    var imgTitle = document.createElement('h3');
+    imgTitle.className = 'oa-card-title';
+    imgTitle.textContent = 'Images';
+    imgCard.appendChild(imgTitle);
+    imgCard.appendChild(buildUploadArea(deliverable.id, meta.article_images, save, 'Upload images'));
+    wrapper.appendChild(imgCard);
+
+    container.appendChild(wrapper);
+  }
+
+  // ══════ AGRI4ALL SHARED: Countries sidebar section ══════
+  function addCountriesToSidebar(nav, countries) {
+    if (!countries || countries.length === 0) return;
+    addSidebarSection(nav, 'Countries');
+    var wrap = document.createElement('div');
+    wrap.style.padding = '0 16px';
+    countries.forEach(function (c) {
+      var tag = document.createElement('div');
+      tag.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px 4px 2px 0;border-radius:12px;font-size:11px;font-weight:600;background:rgba(46,204,113,0.1);color:#27ae60;';
+      tag.textContent = c;
+      wrap.appendChild(tag);
+    });
+    nav.appendChild(wrap);
+  }
+
+  // ══════ A4A MULTI-SECTION FILE UPLOAD DASHBOARD (posts/videos) ══════
+  function openA4AMultiSectionDashboard(container, deliverable, kind) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.sections) meta.sections = {};
+    if (!meta.extra_sections) meta.extra_sections = [];
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { sections: meta.sections, extra_sections: meta.extra_sections } })
+      });
+    }
+
+    // Build sections config based on kind
+    var sectionConfig = [];
+    if (kind === 'posts') {
+      if (meta.facebook_posts) sectionConfig.push({ key: 'facebook_posts', label: 'Facebook Posts', amount: meta.facebook_posts_amount, curated: meta.facebook_posts_curated_amount });
+      if (meta.instagram_posts) sectionConfig.push({ key: 'instagram_posts', label: 'Instagram Posts', amount: meta.instagram_posts_amount, curated: meta.instagram_posts_curated_amount });
+      if (meta.instagram_stories) sectionConfig.push({ key: 'instagram_stories', label: 'Instagram Stories', amount: meta.instagram_stories_amount });
+    } else if (kind === 'videos') {
+      if (meta.facebook_stories) sectionConfig.push({ key: 'facebook_stories', label: 'Facebook Stories', amount: meta.facebook_stories_amount });
+      if (meta.instagram_stories) sectionConfig.push({ key: 'instagram_stories', label: 'Instagram Stories', amount: meta.instagram_stories_amount });
+      if (meta.facebook_video_posts) sectionConfig.push({ key: 'facebook_video_posts', label: 'Facebook Video Posts', amount: meta.facebook_video_posts_amount, curated: meta.facebook_video_posts_curated_amount });
+      if (meta.tiktok_shorts) sectionConfig.push({ key: 'tiktok_shorts', label: 'TikTok Shorts', amount: meta.tiktok_amount });
+      if (meta.youtube_shorts) sectionConfig.push({ key: 'youtube_shorts', label: 'YouTube Shorts', amount: meta.youtube_shorts_amount });
+      if (meta.youtube_video) sectionConfig.push({ key: 'youtube_video', label: 'YouTube Videos', amount: meta.youtube_video_amount });
+    } else if (kind === 'own-posts') {
+      if (meta.facebook_posts) sectionConfig.push({ key: 'facebook_posts', label: 'Facebook Posts', amount: meta.facebook_posts_amount, curated: meta.facebook_posts_curated_amount, timeframe: meta.facebook_posts_timeframe });
+      if (meta.facebook_stories) sectionConfig.push({ key: 'facebook_stories', label: 'Facebook Stories', amount: meta.facebook_stories_amount, timeframe: meta.facebook_stories_timeframe });
+      if (meta.instagram_posts) sectionConfig.push({ key: 'instagram_posts', label: 'Instagram Posts', amount: meta.instagram_posts_amount, curated: meta.instagram_posts_curated_amount, timeframe: meta.instagram_posts_timeframe });
+      if (meta.instagram_stories) sectionConfig.push({ key: 'instagram_stories', label: 'Instagram Stories', amount: meta.instagram_stories_amount, timeframe: meta.instagram_stories_timeframe });
+    } else if (kind === 'own-videos') {
+      if (meta.facebook_video_posts) sectionConfig.push({ key: 'facebook_video_posts', label: 'Facebook Video Posts', amount: meta.facebook_video_posts_amount, curated: meta.facebook_video_posts_curated_amount, timeframe: meta.facebook_video_posts_timeframe });
+      if (meta.tiktok_shorts) sectionConfig.push({ key: 'tiktok_shorts', label: 'TikTok Shorts', amount: meta.tiktok_amount, timeframe: meta.tiktok_timeframe });
+      if (meta.youtube_shorts) sectionConfig.push({ key: 'youtube_shorts', label: 'YouTube Shorts', amount: meta.youtube_shorts_amount, timeframe: meta.youtube_shorts_timeframe });
+      if (meta.youtube_video) sectionConfig.push({ key: 'youtube_video', label: 'YouTube Videos', amount: meta.youtube_video_amount, timeframe: meta.youtube_video_timeframe });
+    }
+
+    setupDashboardSidebar(deliverable, function (nav) {
+      var sectionTitle = (kind === 'posts' || kind === 'own-posts') ? 'Post Amounts' : 'Video Amounts';
+      addSidebarSection(nav, sectionTitle);
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      sectionConfig.forEach(function (s) {
+        var parts = [];
+        if (s.amount) parts.push(s.amount);
+        if (s.curated) parts.push('(+' + s.curated + ' curated)');
+        if (s.timeframe) parts.push('(' + s.timeframe + ')');
+        addSidebarField(wrap, s.label, parts.join(' '));
+      });
+      nav.appendChild(wrap);
+      addCountriesToSidebar(nav, meta.countries);
+    });
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'wd-dashboard';
+
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || '';
+    titleRow.appendChild(title);
+
+    var addBlockBtn = document.createElement('button');
+    addBlockBtn.className = 'cc-add-row-btn';
+    addBlockBtn.textContent = '+ Add Block';
+    addBlockBtn.addEventListener('click', function () {
+      meta.extra_sections.push({ name: 'New Block', files: [], done: false });
+      renderAll();
+      save();
+    });
+    titleRow.appendChild(addBlockBtn);
+    wrapper.appendChild(titleRow);
+
+    var stepsWrap = document.createElement('div');
+    stepsWrap.className = 'wd-steps';
+    wrapper.appendChild(stepsWrap);
+    container.appendChild(wrapper);
+
+    function buildStep(opts) {
+      // opts: { num, label, amount, curated, timeframe, files, done, editable, onRename, onDone, onDelete }
+      var stepEl = document.createElement('div');
+      stepEl.className = 'wd-step';
+
+      var header = document.createElement('div');
+      header.className = 'wd-step-header';
+
+      var num = document.createElement('span');
+      num.className = 'wd-step-num';
+      num.textContent = opts.num;
+      header.appendChild(num);
+
+      var titleEl = document.createElement(opts.editable ? 'span' : 'span');
+      titleEl.className = 'wd-step-title';
+      if (opts.editable) {
+        titleEl.contentEditable = 'true';
+        titleEl.textContent = opts.label;
+        titleEl.addEventListener('blur', function () {
+          opts.onRename(titleEl.textContent);
+        });
+      } else {
+        var amtText = '';
+        if (opts.amount) amtText += ' — ' + opts.amount;
+        if (opts.curated) amtText += ' (+' + opts.curated + ' curated)';
+        if (opts.timeframe) amtText += ' · ' + opts.timeframe;
+        titleEl.textContent = opts.label + amtText;
+      }
+      header.appendChild(titleEl);
+
+      if (opts.onDelete) {
+        var delBtn = document.createElement('button');
+        delBtn.className = 'wd-step-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.title = 'Delete block';
+        delBtn.addEventListener('click', function () { opts.onDelete(); });
+        header.appendChild(delBtn);
+      }
+
+      stepEl.appendChild(header);
+      if (opts.done) stepEl.classList.add('wd-step-done');
+
+      stepEl.appendChild(buildUploadArea(deliverable.id, opts.files, save, 'Upload ' + opts.label));
+      return stepEl;
+    }
+
+    function renderAll() {
+      while (stepsWrap.firstChild) stepsWrap.removeChild(stepsWrap.firstChild);
+      var counter = 1;
+
+      if (sectionConfig.length === 0 && meta.extra_sections.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'padding:20px;text-align:center;color:var(--text-muted,#94a3b8);';
+        empty.textContent = 'No sections. Click + Add Block to add one.';
+        stepsWrap.appendChild(empty);
+        return;
+      }
+
+      // Built-in sections
+      sectionConfig.forEach(function (sec) {
+        if (!meta.sections[sec.key]) meta.sections[sec.key] = { files: [], done: false };
+        (function (s) {
+          stepsWrap.appendChild(buildStep({
+            num: counter++,
+            label: s.label,
+            amount: s.amount, curated: s.curated, timeframe: s.timeframe,
+            files: meta.sections[s.key].files,
+            done: meta.sections[s.key].done,
+            editable: false,
+            onDone: function (v) { meta.sections[s.key].done = v; save(); }
+          }));
+        })(sec);
+      });
+
+      // Extra sections
+      meta.extra_sections.forEach(function (xs, idx) {
+        if (!xs.files) xs.files = [];
+        stepsWrap.appendChild(buildStep({
+          num: counter++,
+          label: xs.name || 'New Block',
+          files: xs.files,
+          done: xs.done,
+          editable: true,
+          onRename: function (v) { xs.name = v; save(); },
+          onDone: function (v) { xs.done = v; save(); },
+          onDelete: function () { meta.extra_sections.splice(idx, 1); renderAll(); save(); }
+        }));
+      });
+    }
+    renderAll();
+  }
+
+  // ══════ A4A IMAGE + DESCRIPTION DASHBOARD (product uploads, newsletters) ══════
+  function openA4AImageDescriptionDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.items) meta.items = [];
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { items: meta.items } })
+      });
+    }
+
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      if (meta.amount) addSidebarField(wrap, 'Amount', meta.amount);
+      if (meta.product_uploads_amount) addSidebarField(wrap, 'Product Uploads', meta.product_uploads_amount);
+      if (meta.unlimited_product_uploads) addSidebarField(wrap, 'Unlimited', 'Yes');
+      // Video-specific fields
+      if (meta.video_type) addSidebarField(wrap, 'Video Type', meta.video_type);
+      if (meta.video_duration) addSidebarField(wrap, 'Duration', meta.video_duration);
+      if (meta.shoot_location) addSidebarField(wrap, 'Location', meta.shoot_location);
+      if (meta.shoot_days) addSidebarField(wrap, 'Days', meta.shoot_days);
+      if (meta.shoot_hours) addSidebarField(wrap, 'Hours', meta.shoot_hours);
+      if (meta.photographer_included) addSidebarField(wrap, 'Photographer', 'Yes');
+      if (meta.photographer_portraits) addSidebarField(wrap, 'Portraits', meta.photographer_portraits);
+      if (meta.photographer_backdrop) addSidebarField(wrap, 'Backdrop', meta.photographer_backdrop);
+      if (meta.photographer_groups) addSidebarField(wrap, 'Groups', meta.photographer_groups);
+      if (meta.photographer_group_amount) addSidebarField(wrap, 'Group Size', meta.photographer_group_amount);
+      if (meta.description && !meta.video_type) addSidebarField(wrap, 'Description', meta.description);
+      nav.appendChild(wrap);
+
+      // Show video description as its own section if present
+      if (meta.description && meta.video_type) {
+        addSidebarSection(nav, 'Video Brief');
+        var descWrap = document.createElement('div');
+        descWrap.style.cssText = 'padding:0 16px;font-size:11px;color:var(--text-primary,#1e293b);line-height:1.5;white-space:pre-wrap;';
+        descWrap.textContent = meta.description;
+        nav.appendChild(descWrap);
+      }
+
+      addCountriesToSidebar(nav, meta.countries);
+    });
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'oa-dashboard';
+
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || '';
+    titleRow.appendChild(title);
+    var addBtn = document.createElement('button');
+    addBtn.className = 'cc-add-row-btn';
+    addBtn.textContent = '+ Add Item';
+    addBtn.addEventListener('click', function () {
+      meta.items.push({ images: [], description: '' });
+      renderItems();
+      save();
+    });
+    titleRow.appendChild(addBtn);
+    wrapper.appendChild(titleRow);
+
+    var itemsWrap = document.createElement('div');
+    itemsWrap.className = 'a4a-items';
+
+    function renderItems() {
+      while (itemsWrap.firstChild) itemsWrap.removeChild(itemsWrap.firstChild);
+      if (meta.items.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'padding:20px;text-align:center;color:var(--text-muted,#94a3b8);';
+        empty.textContent = 'No items yet. Click + Add Item to start.';
+        itemsWrap.appendChild(empty);
+        return;
+      }
+      meta.items.forEach(function (item, idx) {
+        if (!item.images) item.images = [];
+        var card = document.createElement('div');
+        card.className = 'a4a-item-card';
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'cc-row-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.style.cssText = 'position:absolute;top:10px;right:10px;font-size:18px;';
+        delBtn.addEventListener('click', function () {
+          meta.items.splice(idx, 1);
+          renderItems();
+          save();
+        });
+        card.appendChild(delBtn);
+
+        var numLbl = document.createElement('div');
+        numLbl.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-secondary,#64748b);margin-bottom:8px;';
+        numLbl.textContent = 'Item ' + (idx + 1);
+        card.appendChild(numLbl);
+
+        var imgWrap = buildUploadArea(deliverable.id, item.images, save, 'Upload images');
+        card.appendChild(imgWrap);
+
+        var descLabel = document.createElement('div');
+        descLabel.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-secondary,#64748b);margin:10px 0 4px;';
+        descLabel.textContent = 'Description';
+        card.appendChild(descLabel);
+
+        var desc = document.createElement('div');
+        desc.className = 'cc-caption-editor';
+        desc.contentEditable = 'true';
+        desc.innerHTML = item.description || '';
+        desc.setAttribute('placeholder', 'Write description...');
+        desc.addEventListener('blur', function () {
+          item.description = desc.innerHTML;
+          save();
+        });
+        card.appendChild(desc);
+
+        itemsWrap.appendChild(card);
+      });
+    }
+    renderItems();
+    wrapper.appendChild(itemsWrap);
+    container.appendChild(wrapper);
+  }
+
+  // ══════ A4A RICH TEXT DASHBOARD (LinkedIn) ══════
+  function openA4ARichTextDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.article_text) meta.article_text = '';
+    if (!meta.extra_blocks) meta.extra_blocks = [];
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { article_text: meta.article_text, extra_blocks: meta.extra_blocks } })
+      });
+    }
+
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      if (meta.article) addSidebarField(wrap, 'Article', 'Yes');
+      if (meta.company_campaign || meta.campaign) addSidebarField(wrap, 'Campaign', 'Yes');
+      if (meta.twitter_x_posts) addSidebarField(wrap, 'Posts', 'Yes');
+      if (meta.amount) addSidebarField(wrap, 'Amount', meta.amount);
+      if (meta.timeframe) addSidebarField(wrap, 'Timeframe', meta.timeframe);
+      nav.appendChild(wrap);
+      addCountriesToSidebar(nav, meta.countries);
+    });
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'oa-dashboard';
+
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || '';
+    titleRow.appendChild(title);
+    var addBlockBtn = document.createElement('button');
+    addBlockBtn.className = 'cc-add-row-btn';
+    addBlockBtn.textContent = '+ Add Block';
+    addBlockBtn.addEventListener('click', function () {
+      meta.extra_blocks.push({ name: 'New Block', text: '', done: false });
+      renderAll();
+      save();
+    });
+    titleRow.appendChild(addBlockBtn);
+    wrapper.appendChild(titleRow);
+
+    var blocksWrap = document.createElement('div');
+    wrapper.appendChild(blocksWrap);
+    container.appendChild(wrapper);
+
+    function buildRichBlock(opts) {
+      var card = document.createElement('div');
+      card.className = 'oa-editor-card';
+
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+
+      var titleEl = document.createElement(opts.editable ? 'span' : 'h3');
+      titleEl.className = opts.editable ? 'wd-step-title' : 'oa-card-title';
+      titleEl.style.margin = '0';
+      titleEl.style.flex = '1';
+      if (opts.editable) {
+        titleEl.contentEditable = 'true';
+        titleEl.textContent = opts.label;
+        titleEl.addEventListener('blur', function () { opts.onRename(titleEl.textContent); });
+      } else {
+        titleEl.textContent = opts.label;
+      }
+      header.appendChild(titleEl);
+
+      if (opts.onDelete) {
+        var delBtn = document.createElement('button');
+        delBtn.className = 'wd-step-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.addEventListener('click', function () { opts.onDelete(); });
+        header.appendChild(delBtn);
+      }
+      card.appendChild(header);
+      if (opts.done) card.classList.add('wd-step-done');
+
+      // Toolbar with insert image
+      var toolbar = document.createElement('div');
+      toolbar.className = 'a4a-rt-toolbar';
+      var insertImgBtn = document.createElement('label');
+      insertImgBtn.className = 'a4a-rt-btn';
+      insertImgBtn.textContent = '+ Image';
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.style.display = 'none';
+      fileInput.addEventListener('change', function () {
+        if (!fileInput.files || fileInput.files.length === 0) return;
+        var fd = new FormData();
+        Array.from(fileInput.files).forEach(function (f) { fd.append('images', f); });
+        fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.urls) {
+              result.urls.forEach(function (u) {
+                var img = '<img src="' + u + '" style="max-width:100%;margin:8px 0;border-radius:6px;">';
+                editor.focus();
+                document.execCommand('insertHTML', false, img);
+              });
+              opts.onTextChange(editor.innerHTML);
+            }
+          });
+        fileInput.value = '';
+      });
+      insertImgBtn.appendChild(fileInput);
+      toolbar.appendChild(insertImgBtn);
+      card.appendChild(toolbar);
+
+      var editor = document.createElement('div');
+      editor.className = 'oa-article-editor';
+      editor.contentEditable = 'true';
+      editor.innerHTML = opts.text || '';
+      editor.setAttribute('placeholder', opts.placeholder || 'Write content here...');
+      editor.addEventListener('blur', function () { opts.onTextChange(editor.innerHTML); });
+      card.appendChild(editor);
+
+      return card;
+    }
+
+    function renderAll() {
+      while (blocksWrap.firstChild) blocksWrap.removeChild(blocksWrap.firstChild);
+
+      // Main block
+      blocksWrap.appendChild(buildRichBlock({
+        label: 'Main Content',
+        text: meta.article_text,
+        done: meta.main_done,
+        editable: false,
+        placeholder: 'Write content here...',
+        onDone: function (v) { meta.main_done = v; save(); },
+        onTextChange: function (v) { meta.article_text = v; save(); }
+      }));
+
+      // Extra blocks
+      meta.extra_blocks.forEach(function (xb, idx) {
+        blocksWrap.appendChild(buildRichBlock({
+          label: xb.name || 'New Block',
+          text: xb.text,
+          done: xb.done,
+          editable: true,
+          placeholder: 'Write content here...',
+          onRename: function (v) { xb.name = v; save(); },
+          onDone: function (v) { xb.done = v; save(); },
+          onTextChange: function (v) { xb.text = v; save(); },
+          onDelete: function () { meta.extra_blocks.splice(idx, 1); renderAll(); save(); }
+        }));
+      });
+    }
+    renderAll();
+  }
+
+  // ══════ VIDEO DASHBOARD ════════════════════════════════
+  function openVideoDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.stages) {
+      meta.stages = [
+        { name: 'Pre-Production / Brief', description: '', files: [], done: false },
+        { name: 'Storyboard', description: '', files: [], done: false },
+        { name: 'Raw Footage', description: '', files: [], done: false },
+        { name: 'First Edit', description: '', files: [], done: false },
+        { name: 'Review & Changes', description: '', files: [], done: false },
+        { name: 'Final Delivery', description: '', files: [], done: false }
+      ];
+    }
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { stages: meta.stages } })
+      });
+    }
+
+    // Sidebar — full video info
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Video Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      if (meta.video_type) addSidebarField(wrap, 'Type', meta.video_type);
+      if (meta.video_type_other) addSidebarField(wrap, 'Other', meta.video_type_other);
+      if (meta.video_duration) addSidebarField(wrap, 'Duration', meta.video_duration);
+      if (meta.video_index) addSidebarField(wrap, 'Video #', meta.video_index);
+      nav.appendChild(wrap);
+
+      addSidebarSection(nav, 'Shoot Details');
+      var shootWrap = document.createElement('div');
+      shootWrap.style.padding = '0 16px';
+      if (meta.shoot_location) addSidebarField(shootWrap, 'Location', meta.shoot_location);
+      if (meta.shoot_days) addSidebarField(shootWrap, 'Days', meta.shoot_days);
+      if (meta.shoot_hours) addSidebarField(shootWrap, 'Hours', meta.shoot_hours);
+      nav.appendChild(shootWrap);
+
+      if (meta.photographer_included || meta.photographer_info) {
+        addSidebarSection(nav, 'Photographer');
+        var pWrap = document.createElement('div');
+        pWrap.style.padding = '0 16px';
+        if (meta.photographer_portraits) addSidebarField(pWrap, 'Portraits', meta.photographer_portraits);
+        if (meta.photographer_backdrop) addSidebarField(pWrap, 'Backdrop', meta.photographer_backdrop);
+        if (meta.photographer_groups) addSidebarField(pWrap, 'Groups', meta.photographer_groups);
+        if (meta.photographer_group_amount) addSidebarField(pWrap, 'Group Size', meta.photographer_group_amount);
+        if (meta.photographer_days) addSidebarField(pWrap, 'Days', meta.photographer_days);
+        if (meta.photographer_hours) addSidebarField(pWrap, 'Hours', meta.photographer_hours);
+        if (meta.photographer_flashes) addSidebarField(pWrap, 'Flashes', 'Yes');
+        nav.appendChild(pWrap);
+      }
+
+      if (meta.description) {
+        addSidebarSection(nav, 'Brief');
+        var descWrap = document.createElement('div');
+        descWrap.style.cssText = 'padding:0 16px 8px;font-size:11px;color:var(--text-primary,#1e293b);line-height:1.5;white-space:pre-wrap;';
+        descWrap.textContent = meta.description;
+        nav.appendChild(descWrap);
+      }
+    });
+
+    // Main content — stages
+    var wrapper = document.createElement('div');
+    wrapper.className = 'wd-dashboard';
+
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Video';
+    titleRow.appendChild(title);
+    wrapper.appendChild(titleRow);
+
+    var stagesWrap = document.createElement('div');
+    stagesWrap.className = 'wd-steps';
+    wrapper.appendChild(stagesWrap);
+    container.appendChild(wrapper);
+
+    function renderStages() {
+      while (stagesWrap.firstChild) stagesWrap.removeChild(stagesWrap.firstChild);
+      meta.stages.forEach(function (stage, idx) {
+        if (!stage.files) stage.files = [];
+        var stepEl = document.createElement('div');
+        stepEl.className = 'wd-step';
+
+        var header = document.createElement('div');
+        header.className = 'wd-step-header';
+
+        var num = document.createElement('span');
+        num.className = 'wd-step-num';
+        num.textContent = idx + 1;
+        header.appendChild(num);
+
+        var titleEl = document.createElement('span');
+        titleEl.className = 'wd-step-title';
+        titleEl.textContent = stage.name;
+        header.appendChild(titleEl);
+
+        stepEl.appendChild(header);
+
+        var descEditor = document.createElement('div');
+        descEditor.className = 'cc-caption-editor';
+        descEditor.contentEditable = 'true';
+        descEditor.innerHTML = stage.description || '';
+        descEditor.setAttribute('placeholder', 'Add notes for ' + stage.name + '...');
+        descEditor.addEventListener('blur', function () {
+          stage.description = descEditor.innerHTML;
+          save();
+        });
+        stepEl.appendChild(descEditor);
+
+        stepEl.appendChild(buildUploadArea(deliverable.id, stage.files, save, 'Upload ' + stage.name + ' files'));
+        stagesWrap.appendChild(stepEl);
+      });
+    }
+    renderStages();
+  }
+
 })();
