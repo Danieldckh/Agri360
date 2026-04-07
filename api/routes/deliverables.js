@@ -86,26 +86,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Default production deliverable types with initial statuses
-const DEFAULT_DELIVERABLES = [
-  { type: 'sm-posts', title: 'SM Management - Posts', initialStatus: 'request_client_materials' },
-  { type: 'sm-videos', title: 'SM Management - Videos', initialStatus: 'request_client_materials' },
-  { type: 'sm-google-ads', title: 'SM Management - Google Ads', initialStatus: 'request_client_materials' },
-  { type: 'sm-linkedin', title: 'SM Management - LinkedIn', initialStatus: 'request_client_materials' },
-  { type: 'sm-twitter', title: 'SM Management - Twitter/X', initialStatus: 'request_client_materials' },
-  { type: 'sm-content-calendar', title: 'Content Calendar', initialStatus: 'request_focus_points' },
-  { type: 'agri4all-posts', title: 'Agri4All - Posts', initialStatus: 'request_client_materials' },
-  { type: 'agri4all-videos', title: 'Agri4All - Videos', initialStatus: 'request_client_materials' },
-  { type: 'agri4all-product-uploads', title: 'Agri4All - Product Uploads', initialStatus: 'request_client_materials' },
-  { type: 'agri4all-newsletters', title: 'Agri4All - Newsletters', initialStatus: 'request_client_materials' },
-  { type: 'agri4all-banners', title: 'Agri4All - Banners', initialStatus: 'design' },
-  { type: 'agri4all-linkedin', title: 'Agri4All - LinkedIn', initialStatus: 'request_client_materials' },
-  { type: 'online-articles', title: 'Online Articles', initialStatus: 'request_client_materials' },
-  { type: 'magazine', title: 'Magazine', initialStatus: 'request_client_materials' },
-  { type: 'video', title: 'Video', initialStatus: 'send_request_form' },
-  { type: 'website-design', title: 'Website Design', initialStatus: 'request_client_materials' }
-];
-
 // Comprehensive status → department slug routing for all types
 const DEPT_MAPS = {
   'sm-posts': {
