@@ -1717,7 +1717,7 @@
                 else if (it.type === 'agri4all-linkedin') openA4ARichTextDashboard(container, it);
                 else if (it.type === 'own-social-linkedin') openA4ARichTextDashboard(container, it);
                 else if (it.type === 'own-social-twitter') openA4ARichTextDashboard(container, it);
-                else if (it.type === 'video') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'video') openVideoDashboard(container, it);
               });
             })(item);
             eyeCell.appendChild(eyeBtn);
@@ -3256,6 +3256,141 @@
       });
     }
     renderAll();
+  }
+
+  // ══════ VIDEO DASHBOARD ════════════════════════════════
+  function openVideoDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.stages) {
+      meta.stages = [
+        { name: 'Pre-Production / Brief', description: '', files: [], done: false },
+        { name: 'Storyboard', description: '', files: [], done: false },
+        { name: 'Raw Footage', description: '', files: [], done: false },
+        { name: 'First Edit', description: '', files: [], done: false },
+        { name: 'Review & Changes', description: '', files: [], done: false },
+        { name: 'Final Delivery', description: '', files: [], done: false }
+      ];
+    }
+
+    function save() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH', headers: getHeaders(),
+        body: JSON.stringify({ metadata: { stages: meta.stages } })
+      });
+    }
+
+    // Sidebar — full video info
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Video Details');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      if (meta.video_type) addSidebarField(wrap, 'Type', meta.video_type);
+      if (meta.video_type_other) addSidebarField(wrap, 'Other', meta.video_type_other);
+      if (meta.video_duration) addSidebarField(wrap, 'Duration', meta.video_duration);
+      if (meta.video_index) addSidebarField(wrap, 'Video #', meta.video_index);
+      nav.appendChild(wrap);
+
+      addSidebarSection(nav, 'Shoot Details');
+      var shootWrap = document.createElement('div');
+      shootWrap.style.padding = '0 16px';
+      if (meta.shoot_location) addSidebarField(shootWrap, 'Location', meta.shoot_location);
+      if (meta.shoot_days) addSidebarField(shootWrap, 'Days', meta.shoot_days);
+      if (meta.shoot_hours) addSidebarField(shootWrap, 'Hours', meta.shoot_hours);
+      nav.appendChild(shootWrap);
+
+      if (meta.photographer_included || meta.photographer_info) {
+        addSidebarSection(nav, 'Photographer');
+        var pWrap = document.createElement('div');
+        pWrap.style.padding = '0 16px';
+        if (meta.photographer_portraits) addSidebarField(pWrap, 'Portraits', meta.photographer_portraits);
+        if (meta.photographer_backdrop) addSidebarField(pWrap, 'Backdrop', meta.photographer_backdrop);
+        if (meta.photographer_groups) addSidebarField(pWrap, 'Groups', meta.photographer_groups);
+        if (meta.photographer_group_amount) addSidebarField(pWrap, 'Group Size', meta.photographer_group_amount);
+        if (meta.photographer_days) addSidebarField(pWrap, 'Days', meta.photographer_days);
+        if (meta.photographer_hours) addSidebarField(pWrap, 'Hours', meta.photographer_hours);
+        if (meta.photographer_flashes) addSidebarField(pWrap, 'Flashes', 'Yes');
+        nav.appendChild(pWrap);
+      }
+
+      if (meta.description) {
+        addSidebarSection(nav, 'Brief');
+        var descWrap = document.createElement('div');
+        descWrap.style.cssText = 'padding:0 16px 8px;font-size:11px;color:var(--text-primary,#1e293b);line-height:1.5;white-space:pre-wrap;';
+        descWrap.textContent = meta.description;
+        nav.appendChild(descWrap);
+      }
+    });
+
+    // Main content — stages
+    var wrapper = document.createElement('div');
+    wrapper.className = 'wd-dashboard';
+
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
+    var title = document.createElement('h2');
+    title.className = 'cc-dashboard-title';
+    title.textContent = deliverable.title || 'Video';
+    titleRow.appendChild(title);
+    wrapper.appendChild(titleRow);
+
+    var stagesWrap = document.createElement('div');
+    stagesWrap.className = 'wd-steps';
+    wrapper.appendChild(stagesWrap);
+    container.appendChild(wrapper);
+
+    function renderStages() {
+      while (stagesWrap.firstChild) stagesWrap.removeChild(stagesWrap.firstChild);
+      meta.stages.forEach(function (stage, idx) {
+        if (!stage.files) stage.files = [];
+        var stepEl = document.createElement('div');
+        stepEl.className = 'wd-step' + (stage.done ? ' wd-step-done' : '');
+
+        var header = document.createElement('div');
+        header.className = 'wd-step-header';
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'wd-step-checkbox';
+        cb.checked = !!stage.done;
+        cb.addEventListener('change', function () {
+          stage.done = cb.checked;
+          stepEl.classList.toggle('wd-step-done', cb.checked);
+          save();
+        });
+        header.appendChild(cb);
+
+        var num = document.createElement('span');
+        num.className = 'wd-step-num';
+        num.textContent = idx + 1;
+        header.appendChild(num);
+
+        var titleEl = document.createElement('span');
+        titleEl.className = 'wd-step-title';
+        titleEl.textContent = stage.name;
+        header.appendChild(titleEl);
+
+        stepEl.appendChild(header);
+
+        var descEditor = document.createElement('div');
+        descEditor.className = 'cc-caption-editor';
+        descEditor.contentEditable = 'true';
+        descEditor.innerHTML = stage.description || '';
+        descEditor.setAttribute('placeholder', 'Add notes for ' + stage.name + '...');
+        descEditor.addEventListener('blur', function () {
+          stage.description = descEditor.innerHTML;
+          save();
+        });
+        stepEl.appendChild(descEditor);
+
+        stepEl.appendChild(buildUploadArea(deliverable.id, stage.files, save, 'Upload ' + stage.name + ' files'));
+        stagesWrap.appendChild(stepEl);
+      });
+    }
+    renderStages();
   }
 
 })();
