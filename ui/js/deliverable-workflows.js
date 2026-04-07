@@ -84,7 +84,15 @@
     'agri4all-newsletters': 'agri4all-posts',
     'agri4all-newsletter-feature': 'agri4all-posts',
     'agri4all-newsletter-banner': 'agri4all-posts',
-    'agri4all-linkedin': 'agri4all-posts'
+    'agri4all-linkedin': 'agri4all-posts',
+    'own-social-posts': 'sm-posts',
+    'own-social-videos': 'sm-posts',
+    'own-social-linkedin': 'sm-posts',
+    'own-social-twitter': 'sm-posts',
+    'magazine-sa-digital': 'magazine',
+    'magazine-africa-print': 'magazine',
+    'magazine-africa-digital': 'magazine',
+    'magazine-coffee-table': 'magazine'
   };
 
   // ── Department Routing Maps ────────────────────────────
@@ -223,7 +231,15 @@
     'agri4all-newsletters': 'agri4all-posts',
     'agri4all-newsletter-feature': 'agri4all-posts',
     'agri4all-newsletter-banner': 'agri4all-posts',
-    'agri4all-linkedin': 'agri4all-posts'
+    'agri4all-linkedin': 'agri4all-posts',
+    'own-social-posts': 'sm-posts',
+    'own-social-videos': 'sm-posts',
+    'own-social-linkedin': 'sm-posts',
+    'own-social-twitter': 'sm-posts',
+    'magazine-sa-digital': 'magazine',
+    'magazine-africa-print': 'magazine',
+    'magazine-africa-digital': 'magazine',
+    'magazine-coffee-table': 'magazine'
   };
 
   // ── Branch Statuses (loops back) ───────────────────────
