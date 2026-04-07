@@ -534,6 +534,8 @@ router.post('/create-content-calendars', async (req, res) => {
 
       // 1. Agri4All Posts (FB + IG posts)
       if (anyHas(states, 'facebook_posts') || anyHas(states, 'instagram_posts')) {
+        const igPosts = anyHas(states, 'instagram_posts');
+        const igPostsAmount = maxAmt(states, 'instagram_posts_amount');
         created.push(await createDeliv(
           'agri4all-posts',
           clientName + ' - Agri4All Posts - ' + ml,
@@ -543,9 +545,12 @@ router.post('/create-content-calendars', async (req, res) => {
             facebook_posts: anyHas(states, 'facebook_posts'),
             facebook_posts_amount: maxAmt(states, 'facebook_posts_amount'),
             facebook_posts_curated_amount: maxAmt(states, 'facebook_posts_curated_amount'),
-            instagram_posts: anyHas(states, 'instagram_posts'),
-            instagram_posts_amount: maxAmt(states, 'instagram_posts_amount'),
-            instagram_posts_curated_amount: maxAmt(states, 'instagram_posts_curated_amount')
+            instagram_posts: igPosts,
+            instagram_posts_amount: igPostsAmount,
+            instagram_posts_curated_amount: maxAmt(states, 'instagram_posts_curated_amount'),
+            // Instagram Stories auto-derived from IG posts (same amount)
+            instagram_stories: igPosts,
+            instagram_stories_amount: igPostsAmount
           }
         ));
       }

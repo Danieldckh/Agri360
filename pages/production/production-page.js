@@ -2474,6 +2474,7 @@
     if (kind === 'posts') {
       if (meta.facebook_posts) sectionConfig.push({ key: 'facebook_posts', label: 'Facebook Posts', amount: meta.facebook_posts_amount, curated: meta.facebook_posts_curated_amount });
       if (meta.instagram_posts) sectionConfig.push({ key: 'instagram_posts', label: 'Instagram Posts', amount: meta.instagram_posts_amount, curated: meta.instagram_posts_curated_amount });
+      if (meta.instagram_stories) sectionConfig.push({ key: 'instagram_stories', label: 'Instagram Stories', amount: meta.instagram_stories_amount });
     } else if (kind === 'videos') {
       if (meta.facebook_stories) sectionConfig.push({ key: 'facebook_stories', label: 'Facebook Stories', amount: meta.facebook_stories_amount });
       if (meta.instagram_stories) sectionConfig.push({ key: 'instagram_stories', label: 'Instagram Stories', amount: meta.instagram_stories_amount });
