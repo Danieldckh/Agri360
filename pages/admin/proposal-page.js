@@ -13,7 +13,12 @@
   // Tab → which statuses it shows
   var TAB_FILTERS = {
     'Proposal':         ['outline_proposal', 'design_proposal', 'design_review', 'proposal_ready', 'design_changes'],
-    'Booking Form':     ['booking_form_ready', 'client_changes', 'booking_form_sent'],
+    // Booking Form is a *document hub* — rows stay visible through their
+    // entire booking-form lifecycle (ready → change_requested → sent →
+    // signed). onboarding / onboarded rows also appear here so admins can
+    // still see the signed PDF; those rows ALSO appear in the Onboarding
+    // tab, which is the *workflow stage* lens on the same row.
+    'Booking Form':     ['booking_form_ready', 'client_changes', 'change_requested', 'booking_form_sent', 'onboarding', 'onboarded'],
     'Onboarding':       ['onboarding', 'onboarded'],
     'Declined Proposal': ['declined']
   };
@@ -66,8 +71,10 @@
   // BASE_COLUMNS is used by every sheet. PROPOSAL_COLUMNS / BOOKING_FORM_COLUMNS
   // extend it with status-specific link columns:
   //   - PROPOSAL_COLUMNS    → Checklist link, only meaningful for outline_proposal rows
-  //   - BOOKING_FORM_COLUMNS → Esign link,    only meaningful for booking_form_ready rows
-  // Both extra columns render "—" for rows whose status doesn't qualify.
+  //   - BOOKING_FORM_COLUMNS → 4-column document hub for the Booking Form tab:
+  //         Prefilled Checklist | Unsigned Booking Form | Change Request | Signed Booking Form
+  // Each link is populated only when the corresponding artifact actually
+  // exists on the row; otherwise the cell renders "—".
   var BASE_COLUMNS = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
@@ -77,8 +84,13 @@
     { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' }
   ]);
 
+  // The Booking Form sheet is a document hub — every booking-form artifact
+  // gets its own column so an admin can audit the lifecycle at a glance.
   var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
-    { key: 'esignUrl', label: 'Unsigned Booking Form', type: 'link', width: 'sm' }
+    { key: 'checklistUrl', label: 'Prefilled Checklist',     type: 'link', width: 'sm' },
+    { key: 'esignUrl',     label: 'Unsigned Booking Form',  type: 'link', width: 'sm' },
+    { key: 'changeReqUrl', label: 'Change Request',         type: 'link', width: 'sm' },
+    { key: 'signedUrl',    label: 'Signed Booking Form',    type: 'link', width: 'sm' }
   ]);
 
   // Per-tab column overrides for renderAdminTab. Tabs not listed fall back
@@ -87,18 +99,32 @@
     'Booking Form': BOOKING_FORM_COLUMNS
   };
 
+  // Tiny helper: wrap a base64-encoded PDF in a data URL the link cell
+  // renderer can drop straight into an <a href>. Browsers handle clicks
+  // natively (open in a new tab). Returns '' for null/empty so the
+  // renderer falls back to "—".
+  function pdfDataUrl(b64) {
+    if (!b64) return '';
+    return 'data:application/pdf;base64,' + b64;
+  }
+
   function mapFormToRow(form) {
     return {
       id: form.id,
       client: form.clientName || form.title || 'Untitled',
       status: form.status || 'outline_proposal',
-      // Only surface the link for rows still in outline_proposal so the
-      // column renders "—" once the proposal has moved past that stage.
-      checklistUrl: (form.status === 'outline_proposal') ? (form.checklistUrl || '') : '',
-      // Same shape for the Esign link — only show on booking_form_ready rows.
-      // The URL is populated by the Booking Form Esign app at token-creation
-      // time (UPDATE booking_forms SET esign_url = $1).
-      esignUrl: (form.status === 'booking_form_ready') ? (form.esignUrl || '') : ''
+      // Prefilled checklist link — populated by the checklist app at
+      // submit time. Surfaced on the Proposal sub-sheet for outline_proposal
+      // rows AND on the Booking Form hub regardless of status (because the
+      // checklist data is relevant throughout the booking-form lifecycle).
+      checklistUrl: form.checklistUrl || '',
+      // Unsigned esign URL — populated by the Booking Form Esign app at
+      // token creation time. Show whenever it exists.
+      esignUrl: form.esignUrl || '',
+      // Change-request and signed PDFs are stored as base64. Wrap them in
+      // data URLs so a click on "View" opens the PDF in a new tab.
+      changeReqUrl: pdfDataUrl(form.changeRequestPdf),
+      signedUrl: pdfDataUrl(form.signedPdf)
     };
   }
 
