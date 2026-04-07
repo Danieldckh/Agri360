@@ -5,235 +5,587 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Portal — ProAgri</title>
 <style>
-  /* ── ProAgri Red design tokens (mirrors client-finder-pro/src/index.css) ── */
+  /* ── Neutral design tokens ──
+     A calm, professional palette anchored on dark navy/charcoal instead of
+     the older bright-red theme. Pastel icon backgrounds give to-do rows a
+     friendly distinguishing color without screaming for attention. */
   :root {
-    --cp-bg: hsl(0 0% 98%);
-    --cp-surface: #fff;
-    --cp-surface-alt: hsl(0 0% 96%);
-    --cp-border: hsl(0 0% 90%);
-    --cp-text: hsl(0 0% 15%);
-    --cp-text-muted: hsl(0 0% 45%);
-    --cp-primary: hsl(0 72% 51%);
-    --cp-primary-hover: hsl(0 72% 44%);
-    --cp-primary-soft: hsla(0, 72%, 51%, 0.1);
-    --cp-ring: hsla(0, 72%, 51%, 0.35);
-    --cp-success: hsl(145 63% 42%);
-    --cp-success-soft: hsla(145, 63%, 42%, 0.12);
-    --cp-warn: hsl(38 92% 50%);
-    --cp-warn-soft: hsla(38, 92%, 50%, 0.12);
-    --cp-danger: hsl(0 84% 60%);
-    --cp-danger-soft: hsla(0, 84%, 60%, 0.12);
-    --cp-shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.08);
-    --cp-shadow-float: 0 8px 32px -8px hsl(0 72% 51% / 0.2);
-    --cp-radius: 0.75rem;
+    --cp-bg: #f5f6f8;
+    --cp-surface: #ffffff;
+    --cp-surface-alt: #f7f8fa;
+    --cp-surface-soft: #eff1f5;
+    --cp-border: #e8eaee;
+    --cp-border-strong: #d6d9e0;
+    --cp-text: #1a1d29;
+    --cp-text-secondary: #4b5063;
+    --cp-text-muted: #8b8f9c;
+    --cp-accent: #1a1d29;
+    --cp-accent-hover: #2c3041;
+    --cp-accent-fg: #ffffff;        /* foreground color for accent surfaces */
+    --cp-accent-soft: rgba(26, 29, 41, 0.06);
+    --cp-ring: rgba(26, 29, 41, 0.18);
+
+    --cp-success: #1f8a4c;
+    --cp-success-soft: rgba(31, 138, 76, 0.12);
+    --cp-warn: #c8632e;
+    --cp-warn-soft: rgba(200, 99, 46, 0.12);
+    --cp-danger: #dc2626;
+    --cp-danger-soft: rgba(220, 38, 38, 0.12);
+
+    /* Pastel icon backgrounds (peach / blue / mint) — used by to-do rows */
+    --cp-icon-peach: #fde6dc;
+    --cp-icon-peach-fg: #c8632e;
+    --cp-icon-blue: #dde9ff;
+    --cp-icon-blue-fg: #2563eb;
+    --cp-icon-mint: #d6f0e1;
+    --cp-icon-mint-fg: #1f8a4c;
+
+    --cp-shadow-card: 0 1px 2px rgba(15, 17, 28, 0.04), 0 6px 20px rgba(15, 17, 28, 0.05);
+    --cp-shadow-float: 0 4px 24px rgba(15, 17, 28, 0.12);
+    --cp-radius: 16px;
+    --cp-radius-sm: 12px;
+
+    --cp-sidebar-w: 64px;
+    --cp-sidebar-bg: #14171f;
+    --cp-sidebar-fg: #8b8f9c;
+    --cp-sidebar-fg-active: #ffffff;
   }
+
   [data-theme="dark"] {
-    --cp-bg: hsl(0 0% 10%);
-    --cp-surface: hsl(0 0% 13%);
-    --cp-surface-alt: hsl(0 0% 16%);
-    --cp-border: hsl(0 0% 20%);
-    --cp-text: hsl(0 0% 95%);
-    --cp-text-muted: hsl(0 0% 60%);
-    --cp-primary: hsl(0 72% 55%);
-    --cp-primary-hover: hsl(0 72% 48%);
-    --cp-primary-soft: hsla(0, 72%, 55%, 0.14);
-    --cp-success: hsl(145 63% 55%);
-    --cp-success-soft: hsla(145, 63%, 55%, 0.15);
-    --cp-shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
-    --cp-shadow-float: 0 8px 32px -8px hsl(0 72% 55% / 0.3);
+    --cp-bg: #0e1018;
+    --cp-surface: #181b25;
+    --cp-surface-alt: #1f2230;
+    --cp-surface-soft: #161924;
+    --cp-border: #2a2e3c;
+    --cp-border-strong: #353a4a;
+    --cp-text: #f3f4f6;
+    --cp-text-secondary: #c9cdd5;
+    --cp-text-muted: #7a7e8c;
+    --cp-accent: #f3f4f6;
+    --cp-accent-hover: #ffffff;
+    --cp-accent-fg: #14171f;        /* dark text on light accent in dark theme */
+    --cp-accent-soft: rgba(255, 255, 255, 0.06);
+    --cp-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
   }
 
   * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--cp-bg);
     color: var(--cp-text);
-    margin: 0; padding: 0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── App shell: sidebar + main column ── */
+  .cp-app {
+    display: flex;
     min-height: 100vh;
   }
 
-  /* ── Sticky header with Pro/Agri wordmark ── */
-  .cp-header {
-    position: sticky; top: 0; z-index: 10;
-    background: color-mix(in srgb, var(--cp-surface) 95%, transparent);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--cp-border);
-    padding: 16px 28px;
-  }
-  .cp-header-inner {
-    max-width: 1100px; margin: 0 auto;
-    display: flex; align-items: center; justify-content: space-between; gap: 24px;
-  }
-  .cp-wordmark {
-    font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1;
-  }
-  .cp-wordmark .pro { color: var(--cp-primary); }
-  .cp-wordmark .agri { color: var(--cp-text); }
-  .cp-brand-sub {
-    font-size: 12px; color: var(--cp-text-muted); margin-top: 4px; font-weight: 500;
-  }
-  .cp-client-name {
-    font-size: 13px; color: var(--cp-text-muted);
-    padding: 6px 14px;
-    background: var(--cp-surface-alt);
-    border-radius: 999px;
-    font-weight: 600;
+  /* ── Sidebar ── */
+  .cp-sidebar {
+    width: var(--cp-sidebar-w);
+    background: var(--cp-sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 0;
+    gap: 12px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
   }
 
-  /* ── Tabs ── */
-  .cp-tabs {
-    position: sticky; top: 74px; z-index: 9;
-    background: color-mix(in srgb, var(--cp-surface) 95%, transparent);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--cp-border);
-    padding: 0 28px;
+  .cp-profile {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--cp-icon-peach-fg);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
   }
-  .cp-tabs-inner {
-    max-width: 1100px; margin: 0 auto;
-    display: flex; gap: 4px;
-  }
-  .cp-tab {
-    padding: 14px 18px;
-    border: none; background: none;
-    font-size: 14px; font-weight: 600;
-    color: var(--cp-text-muted);
+
+  .cp-nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--cp-sidebar-fg);
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .cp-tab:hover { color: var(--cp-primary); }
-  .cp-tab.active {
-    color: var(--cp-primary);
-    border-bottom-color: var(--cp-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
   }
 
-  /* ── Main content area ── */
-  .cp-main {
-    max-width: 1100px; margin: 28px auto;
-    padding: 0 28px 80px;
+  .cp-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--cp-sidebar-fg-active);
   }
+
+  .cp-nav-btn.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--cp-sidebar-fg-active);
+  }
+
+  .cp-nav-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cp-nav-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--cp-icon-peach-fg);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cp-nav-spacer {
+    flex: 1;
+  }
+
+  /* ── Main column ── */
+  .cp-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top bar with page title + search + bell */
+  .cp-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 36px;
+    background: var(--cp-bg);
+    border-bottom: 1px solid transparent;
+  }
+
+  .cp-page-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--cp-text);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .cp-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .cp-search {
+    position: relative;
+    width: 280px;
+  }
+
+  .cp-search input {
+    width: 100%;
+    padding: 9px 14px 9px 38px;
+    border: 1px solid var(--cp-border);
+    border-radius: 999px;
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .cp-search input:focus {
+    border-color: var(--cp-border-strong);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+
+  .cp-search svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--cp-text-muted);
+    pointer-events: none;
+  }
+
+  .cp-bell {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--cp-icon-peach-fg);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .cp-bell svg { width: 18px; height: 18px; }
+
+  .cp-bell-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background: var(--cp-text);
+    color: var(--cp-bg);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--cp-bg);
+  }
+
+  /* ── Greeting + content area ── */
+  .cp-content {
+    padding: 8px 36px 60px;
+  }
+
+  .cp-greeting {
+    margin: 0 0 24px;
+  }
+
+  .cp-greeting h2 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--cp-text);
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .cp-greeting p {
+    font-size: 14px;
+    color: var(--cp-text-muted);
+    margin: 0;
+  }
+
+  /* ── Generic card ── */
   .cp-card {
     background: var(--cp-surface);
     border: 1px solid var(--cp-border);
     border-radius: var(--cp-radius);
-    padding: 22px;
-    margin-bottom: 16px;
+    padding: 22px 24px;
     box-shadow: var(--cp-shadow-card);
-  }
-  .cp-card-title {
-    font-size: 11px; font-weight: 700;
-    color: var(--cp-text-muted);
-    margin: 0 0 14px;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .cp-empty {
-    padding: 48px; text-align: center;
-    color: var(--cp-text-muted); font-size: 14px;
   }
 
-  /* ── Stat cards (dashboard) ── */
-  .cp-stat {
-    display: flex; align-items: center; gap: 16px;
-    padding: 16px 20px;
-    background: var(--cp-surface);
-    border: 1px solid var(--cp-border);
-    border-radius: var(--cp-radius);
-    margin-bottom: 12px;
-    box-shadow: var(--cp-shadow-card);
+  .cp-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cp-text);
+    margin: 0 0 16px;
+  }
+
+  .cp-empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--cp-text-muted);
+    font-size: 14px;
+  }
+
+  /* ── Dashboard grid: 1.1fr / 1fr column split, single column < 960 ── */
+  .cp-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 22px;
+  }
+
+  .cp-col {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+
+  /* ── To Do list ── */
+  .cp-todo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--cp-surface-alt);
+    border-radius: var(--cp-radius-sm);
+    margin-bottom: 10px;
     transition: transform 0.15s, box-shadow 0.15s;
   }
-  .cp-stat:hover { transform: translateY(-1px); box-shadow: var(--cp-shadow-float); }
-  .cp-stat-icon {
-    width: 48px; height: 48px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
+
+  .cp-todo-row:last-child { margin-bottom: 0; }
+
+  .cp-todo-row.clickable { cursor: pointer; }
+
+  .cp-todo-row.clickable:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 17, 28, 0.06);
+  }
+
+  .cp-todo-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
     flex-shrink: 0;
   }
-  .cp-stat-text { flex: 1; min-width: 0; }
-  .cp-stat-label {
-    font-size: 11px; color: var(--cp-text-muted);
-    text-transform: uppercase; letter-spacing: 0.06em;
-    font-weight: 600;
-  }
-  .cp-stat-value {
-    font-size: 22px; font-weight: 700;
+
+  .cp-todo-icon.peach { background: var(--cp-icon-peach); color: var(--cp-icon-peach-fg); }
+  .cp-todo-icon.blue  { background: var(--cp-icon-blue);  color: var(--cp-icon-blue-fg); }
+  .cp-todo-icon.mint  { background: var(--cp-icon-mint);  color: var(--cp-icon-mint-fg); }
+
+  .cp-todo-text { flex: 1; min-width: 0; }
+  .cp-todo-title {
+    font-size: 14px;
+    font-weight: 700;
     color: var(--cp-text);
-    margin-top: 2px;
+    margin-bottom: 2px;
   }
-  .cp-stat-action {
-    padding: 8px 16px;
-    background: var(--cp-primary); color: #fff;
-    border: none; border-radius: 8px;
-    font-size: 12px; font-weight: 600;
+
+  .cp-todo-sub {
+    font-size: 12px;
+    color: var(--cp-text-muted);
+  }
+
+  .cp-todo-count {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--cp-text);
+    flex-shrink: 0;
+  }
+
+  /* ── Embedded chat (used inside Messages card) ── */
+  .cp-messages-card { display: flex; flex-direction: column; }
+
+  .cp-chat {
+    display: flex;
+    flex-direction: column;
+    height: 380px;
+    border-radius: var(--cp-radius-sm);
+    overflow: hidden;
+    background: var(--cp-surface-alt);
+  }
+
+  .cp-chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cp-chat-empty {
+    margin: auto;
+    text-align: center;
+    color: var(--cp-text-muted);
+    font-size: 13px;
+  }
+
+  .cp-msg {
+    display: flex;
+    gap: 10px;
+    max-width: 82%;
+  }
+
+  .cp-msg-employee { align-self: flex-start; }
+  .cp-msg-client { align-self: flex-end; flex-direction: row-reverse; }
+
+  .cp-msg-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    background: var(--cp-icon-peach-fg);
+    overflow: hidden;
+  }
+
+  .cp-msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .cp-msg-client .cp-msg-avatar { background: var(--cp-text-muted); }
+
+  .cp-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    word-wrap: break-word;
+  }
+
+  .cp-msg-employee .cp-msg-bubble {
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-top-left-radius: 4px;
+  }
+
+  .cp-msg-client .cp-msg-bubble {
+    background: var(--cp-accent);
+    color: var(--cp-accent-fg);
+    border-top-right-radius: 4px;
+  }
+
+  .cp-msg-meta {
+    font-size: 10px;
+    color: var(--cp-text-muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  .cp-chat-input-row {
+    display: flex;
+    gap: 10px;
+    padding: 14px 0 0;
+  }
+
+  .cp-chat-input {
+    flex: 1;
+    padding: 12px 18px;
+    background: var(--cp-surface-alt);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .cp-chat-input:focus {
+    border-color: var(--cp-border-strong);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+
+  .cp-chat-send {
+    padding: 0 26px;
+    background: var(--cp-accent);
+    color: var(--cp-accent-fg);
+    border: none;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.15s;
   }
-  .cp-stat-action:hover { background: var(--cp-primary-hover); }
 
-  /* ── Form cards (request materials tab) ── */
+  .cp-chat-send:hover { background: var(--cp-accent-hover); }
+  .cp-chat-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── Materials forms (restyled to match new aesthetic) ── */
   .cp-form-card {
     background: var(--cp-surface);
     border: 1px solid var(--cp-border);
     border-radius: var(--cp-radius);
-    padding: 24px;
-    margin-bottom: 16px;
+    padding: 26px;
+    margin-bottom: 18px;
     box-shadow: var(--cp-shadow-card);
   }
+
   .cp-form-title {
-    font-size: 17px; font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
     color: var(--cp-text);
     margin: 0 0 18px;
   }
+
   .cp-form-field {
-    position: relative;
     background: var(--cp-surface-alt);
     border: 1px solid var(--cp-border);
-    border-radius: 10px;
-    padding: 16px;
+    border-radius: var(--cp-radius-sm);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .cp-form-field .fq {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cp-text);
     margin-bottom: 12px;
   }
-  .cp-form-field .fq {
-    font-size: 14px; font-weight: 600;
-    color: var(--cp-text);
-    margin-bottom: 10px;
-  }
+
   .cp-form-field input[type=text],
   .cp-form-field input[type=number],
   .cp-form-field input[type=date],
   .cp-form-field textarea {
     width: 100%;
-    padding: 10px 14px;
+    padding: 11px 14px;
     background: var(--cp-surface);
     color: var(--cp-text);
     border: 1px solid var(--cp-border);
-    border-radius: 8px;
-    font-size: 14px; font-family: inherit;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .cp-form-field input:focus, .cp-form-field textarea:focus {
-    border-color: var(--cp-primary);
+
+  .cp-form-field input:focus,
+  .cp-form-field textarea:focus {
+    border-color: var(--cp-border-strong);
     box-shadow: 0 0 0 3px var(--cp-ring);
   }
+
   .cp-form-field textarea { min-height: 90px; resize: vertical; }
-  .cp-form-field input[type=file] { display: block; margin-top: 4px; font-size: 12px; color: var(--cp-text-muted); }
+  .cp-form-field input[type=file] {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--cp-text-muted);
+  }
+
   .cp-form-submit {
-    padding: 12px 24px;
-    background: var(--cp-primary); color: #fff;
-    border: none; border-radius: 10px;
-    font-size: 14px; font-weight: 600;
+    padding: 12px 26px;
+    background: var(--cp-accent);
+    color: var(--cp-accent-fg);
+    border: none;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.15s;
   }
-  .cp-form-submit:hover { background: var(--cp-primary-hover); }
+
+  .cp-form-submit:hover { background: var(--cp-accent-hover); }
+
   .cp-form-completed {
     padding: 14px;
     background: var(--cp-success-soft);
     color: var(--cp-success);
-    border-radius: 10px;
-    font-size: 13px; font-weight: 600;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
     text-align: center;
   }
 
@@ -242,239 +594,237 @@
     background: var(--cp-surface);
     border: 1px solid var(--cp-border);
     border-radius: var(--cp-radius);
-    padding: 24px;
-    margin-bottom: 16px;
+    padding: 26px;
+    margin-bottom: 18px;
     box-shadow: var(--cp-shadow-card);
   }
-  .cp-approval-title { font-size: 17px; font-weight: 700; color: var(--cp-text); margin: 0 0 8px; }
-  .cp-approval-meta { font-size: 12px; color: var(--cp-text-muted); margin-bottom: 14px; }
+
+  .cp-approval-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--cp-text);
+    margin: 0 0 6px;
+  }
+
+  .cp-approval-meta {
+    font-size: 12px;
+    color: var(--cp-text-muted);
+    margin-bottom: 14px;
+  }
+
   .cp-change-counter {
     display: inline-block;
-    padding: 5px 12px; border-radius: 999px;
-    font-size: 11px; font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
     background: var(--cp-warn-soft);
     color: var(--cp-warn);
   }
-  .cp-change-counter.exhausted { background: var(--cp-danger-soft); color: var(--cp-danger); }
+
+  .cp-change-counter.exhausted {
+    background: var(--cp-danger-soft);
+    color: var(--cp-danger);
+  }
+
   .cp-post-card {
     background: var(--cp-surface-alt);
     border: 1px solid var(--cp-border);
-    border-radius: 10px;
-    padding: 14px;
-    margin: 12px 0;
+    border-radius: var(--cp-radius-sm);
+    padding: 16px;
+    margin: 14px 0;
   }
-  .cp-post-date { font-size: 12px; font-weight: 600; color: var(--cp-text-muted); }
+
+  .cp-post-date {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
   .cp-post-caption {
     margin: 8px 0;
-    font-size: 14px; line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.5;
     color: var(--cp-text);
     min-height: 40px;
     outline: none;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 6px;
+    border-radius: 6px;
   }
+
   .cp-post-caption:focus {
     background: var(--cp-surface);
-    border: 1px solid var(--cp-primary);
+    border: 1px solid var(--cp-border-strong);
     box-shadow: 0 0 0 3px var(--cp-ring);
   }
+
   .cp-post-images { display: flex; gap: 8px; flex-wrap: wrap; }
+
   .cp-post-images img {
-    width: 90px; height: 90px;
-    object-fit: cover; border-radius: 8px;
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 10px;
     cursor: pointer;
     border: 1px solid var(--cp-border);
   }
-  .cp-approval-actions { display: flex; gap: 10px; margin-top: 18px; }
+
+  .cp-approval-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
   .cp-btn {
-    padding: 10px 18px;
+    padding: 10px 20px;
     border: 1px solid var(--cp-border);
-    border-radius: 8px;
+    border-radius: 999px;
     background: var(--cp-surface);
     color: var(--cp-text);
-    font-size: 13px; font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .cp-btn-approve { background: var(--cp-success); color: #fff; border-color: var(--cp-success); }
-  .cp-btn-approve:hover { filter: brightness(1.1); }
-  .cp-btn-changes { background: var(--cp-warn); color: #fff; border-color: var(--cp-warn); }
-  .cp-btn-changes:hover { filter: brightness(1.1); }
-  .cp-btn-changes:disabled { background: var(--cp-surface-alt); color: var(--cp-text-muted); cursor: not-allowed; filter: none; }
+
+  .cp-btn-approve {
+    background: var(--cp-success);
+    color: #fff;
+    border-color: var(--cp-success);
+  }
+
+  .cp-btn-approve:hover { filter: brightness(1.08); }
+
+  .cp-btn-changes {
+    background: var(--cp-warn);
+    color: #fff;
+    border-color: var(--cp-warn);
+  }
+
+  .cp-btn-changes:hover { filter: brightness(1.08); }
+
+  .cp-btn-changes:disabled {
+    background: var(--cp-surface-alt);
+    color: var(--cp-text-muted);
+    border-color: var(--cp-border);
+    cursor: not-allowed;
+    filter: none;
+  }
+
   .cp-changes-box {
     margin-top: 14px;
     display: none;
     background: var(--cp-surface-alt);
     border: 1px solid var(--cp-border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 14px;
   }
+
   .cp-changes-box.open { display: block; }
+
   .cp-changes-box textarea {
-    width: 100%; min-height: 90px;
+    width: 100%;
+    min-height: 90px;
     padding: 12px;
     background: var(--cp-surface);
     color: var(--cp-text);
     border: 1px solid var(--cp-border);
-    border-radius: 8px;
-    font-family: inherit; font-size: 13px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
     resize: vertical;
     outline: none;
   }
+
   .cp-changes-box textarea:focus {
-    border-color: var(--cp-primary);
+    border-color: var(--cp-border-strong);
     box-shadow: 0 0 0 3px var(--cp-ring);
   }
 
-  /* ── Embedded chat (replaces the old messenger link) ── */
-  .cp-chat {
-    display: flex; flex-direction: column;
-    height: 420px;
-    background: var(--cp-surface);
-    border: 1px solid var(--cp-border);
-    border-radius: var(--cp-radius);
-    overflow: hidden;
-    box-shadow: var(--cp-shadow-card);
-  }
-  .cp-chat-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--cp-border);
-    display: flex; align-items: center; gap: 10px;
-    background: var(--cp-surface-alt);
-  }
-  .cp-chat-title {
-    font-size: 14px; font-weight: 700;
-    color: var(--cp-text);
-    flex: 1;
-  }
-  .cp-chat-status {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--cp-success);
-    box-shadow: 0 0 0 3px var(--cp-success-soft);
-  }
-  .cp-chat-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px;
-    display: flex; flex-direction: column; gap: 12px;
-    background: var(--cp-bg);
-  }
-  .cp-chat-empty {
-    margin: auto;
-    text-align: center;
-    color: var(--cp-text-muted);
-    font-size: 13px;
-  }
-  .cp-msg {
-    display: flex; gap: 10px;
-    max-width: 80%;
-  }
-  .cp-msg-employee { align-self: flex-start; }
-  .cp-msg-client { align-self: flex-end; flex-direction: row-reverse; }
-  .cp-msg-avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-    background: var(--cp-primary);
-    overflow: hidden;
-  }
-  .cp-msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .cp-msg-client .cp-msg-avatar { background: var(--cp-text-muted); }
-  .cp-msg-bubble {
-    padding: 10px 14px;
-    border-radius: 14px;
-    font-size: 14px;
-    line-height: 1.45;
-    word-wrap: break-word;
-  }
-  .cp-msg-employee .cp-msg-bubble {
-    background: var(--cp-surface);
-    color: var(--cp-text);
-    border: 1px solid var(--cp-border);
-    border-top-left-radius: 4px;
-  }
-  .cp-msg-client .cp-msg-bubble {
-    background: var(--cp-primary);
-    color: #fff;
-    border-top-right-radius: 4px;
-  }
-  .cp-msg-meta {
-    font-size: 10px;
-    color: var(--cp-text-muted);
-    margin-top: 4px;
-    padding: 0 4px;
-  }
-  .cp-chat-input-row {
-    display: flex; gap: 10px;
-    padding: 14px;
-    border-top: 1px solid var(--cp-border);
-    background: var(--cp-surface);
-  }
-  .cp-chat-input {
-    flex: 1;
-    padding: 12px 16px;
-    background: var(--cp-surface-alt);
-    color: var(--cp-text);
-    border: 1px solid var(--cp-border);
-    border-radius: 10px;
-    font-size: 14px; font-family: inherit;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .cp-chat-input:focus {
-    border-color: var(--cp-primary);
-    box-shadow: 0 0 0 3px var(--cp-ring);
-  }
-  .cp-chat-send {
-    padding: 0 20px;
-    background: var(--cp-primary); color: #fff;
-    border: none; border-radius: 10px;
-    font-size: 14px; font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .cp-chat-send:hover { background: var(--cp-primary-hover); }
-  .cp-chat-send:disabled { opacity: 0.6; cursor: not-allowed; }
-
+  /* ── Lightbox ── */
   .cp-lightbox {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85);
-    display: flex; align-items: center; justify-content: center;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 1000;
   }
-  .cp-lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
+  .cp-lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 10px;
+  }
+
   .cp-lightbox .close {
-    position: absolute; top: 20px; right: 20px;
-    background: rgba(255,255,255,0.2); border: none;
-    color: #fff; width: 40px; height: 40px;
-    border-radius: 50%; font-size: 24px; cursor: pointer;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  /* ── Responsive: stack the dashboard grid + collapse search on narrow screens ── */
+  @media (max-width: 960px) {
+    .cp-grid { grid-template-columns: 1fr; }
+    .cp-search { display: none; }
+    .cp-content { padding: 8px 20px 60px; }
+    .cp-topbar { padding: 18px 20px; }
   }
 </style>
 </head>
 <body>
 
-<header class="cp-header">
-  <div class="cp-header-inner">
-    <div>
-      <div class="cp-wordmark"><span class="pro">Pro</span><span class="agri">Agri</span></div>
-      <div class="cp-brand-sub">Client Portal</div>
+<div class="cp-app">
+
+  <aside class="cp-sidebar">
+    <div class="cp-profile" id="cpProfile">·</div>
+    <button class="cp-nav-btn active" data-tab="dashboard" title="Dashboard" aria-label="Dashboard">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+    </button>
+    <button class="cp-nav-btn" data-tab="materials" title="Request Materials" aria-label="Request Materials">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+    </button>
+    <button class="cp-nav-btn" data-tab="approvals" title="Approvals" aria-label="Approvals">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+    </button>
+    <div class="cp-nav-spacer"></div>
+  </aside>
+
+  <main class="cp-main">
+    <header class="cp-topbar">
+      <h1 class="cp-page-title" id="cpPageTitle">Dashboard</h1>
+      <div class="cp-topbar-right">
+        <div class="cp-search">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" id="cpSearch" placeholder="Search...">
+        </div>
+        <button class="cp-bell" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="cp-bell-badge" id="cpBellBadge" style="display:none;">0</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="cp-content">
+      <div class="cp-greeting" id="cpGreeting">
+        <h2 id="cpGreetText">Loading...</h2>
+        <p id="cpGreetSub">&nbsp;</p>
+      </div>
+      <div id="content"></div>
     </div>
-    <div class="cp-client-name" id="clientName">Loading...</div>
-  </div>
-</header>
+  </main>
 
-<div class="cp-tabs">
-  <div class="cp-tabs-inner">
-    <button class="cp-tab active" data-tab="dashboard">Dashboard</button>
-    <button class="cp-tab" data-tab="materials">Request Materials</button>
-    <button class="cp-tab" data-tab="approvals">Approvals</button>
-  </div>
-</div>
-
-<div class="cp-main">
-  <div id="content"></div>
 </div>
 
 <script>
@@ -489,31 +839,77 @@
 
   var client = null;
   var currentTab = 'dashboard';
+  var dashboardSnapshot = null; // last fetched dashboard data, used to drive bell badge
+
+  // Per-tab page title + greeting subtitle
+  var TAB_META = {
+    dashboard: { title: 'Dashboard', sub: "Here's what needs your attention today" },
+    materials: { title: 'Request Materials', sub: 'Forms your ProAgri team needs you to complete' },
+    approvals: { title: 'Approvals', sub: 'Content waiting for your review' }
+  };
+
+  // Time-of-day greeting
+  function timeGreeting() {
+    var h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  // Update the topbar title + greeting block based on the active tab
+  function updateChrome() {
+    var meta = TAB_META[currentTab] || TAB_META.dashboard;
+    document.getElementById('cpPageTitle').textContent = meta.title;
+
+    var greetEl = document.getElementById('cpGreetText');
+    var subEl = document.getElementById('cpGreetSub');
+    if (currentTab === 'dashboard') {
+      var name = client && client.name ? client.name.split(' ')[0] : '';
+      greetEl.textContent = timeGreeting() + (name ? ', ' + name : '');
+    } else {
+      greetEl.textContent = meta.title;
+    }
+    subEl.textContent = meta.sub;
+  }
 
   // Fetch client info
   fetch('/api/portal/' + token + '/client')
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.error) {
-        document.getElementById('clientName').textContent = 'Invalid link';
-        document.getElementById('content').innerHTML = '<div class="cp-empty">This portal link is invalid or expired.</div>';
+        document.getElementById('cpPageTitle').textContent = 'Invalid link';
+        document.getElementById('content').innerHTML =
+          '<div class="cp-empty">This portal link is invalid or expired.</div>';
         return;
       }
       client = data;
-      document.getElementById('clientName').textContent = data.name || 'Client';
+      // Profile circle initial
+      var initial = (data.name || '?').trim().charAt(0).toUpperCase() || '?';
+      document.getElementById('cpProfile').textContent = initial;
       document.title = 'Portal — ' + (data.name || '');
+      updateChrome();
       renderTab();
     });
 
-  // Tab switching
-  document.querySelectorAll('.cp-tab').forEach(function (btn) {
+  // Tab switching (sidebar buttons)
+  document.querySelectorAll('.cp-nav-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      document.querySelectorAll('.cp-tab').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.cp-nav-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       currentTab = btn.dataset.tab;
+      updateChrome();
       renderTab();
     });
   });
+
+  function setActiveTab(tabId) {
+    currentTab = tabId;
+    document.querySelectorAll('.cp-nav-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === tabId);
+    });
+    updateChrome();
+    renderTab();
+  }
 
   function renderTab() {
     var el = document.getElementById('content');
@@ -529,58 +925,89 @@
   }
 
   // ========== DASHBOARD ==========
+  // Renders a 2-column grid: left has the To Do card, right has the Messages card.
+  // Both columns share the same dashboard fetch — pendingFormCount and
+  // pendingApprovalCount become rows in the To Do list.
   function renderDashboard(el) {
     fetch('/api/portal/' + token + '/dashboard')
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        var html = '';
+        dashboardSnapshot = data;
+        updateBellBadge();
 
-        // Pending forms stat
-        html += '<div class="cp-stat">';
-        html += '<div class="cp-stat-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;">📝</div>';
-        html += '<div class="cp-stat-text">';
-        html += '<div class="cp-stat-label">Forms Pending</div>';
-        html += '<div class="cp-stat-value">' + data.pendingFormCount + '</div>';
-        html += '</div>';
-        if (data.pendingFormCount > 0) {
-          html += '<button class="cp-stat-action" data-go="materials">Complete</button>';
+        var pendingForms = data.pendingFormCount || 0;
+        var pendingApprovals = data.pendingApprovalCount || 0;
+
+        // Layout: cp-grid with left + right columns
+        var grid = document.createElement('div');
+        grid.className = 'cp-grid';
+
+        // ── LEFT column ──
+        var leftCol = document.createElement('div');
+        leftCol.className = 'cp-col';
+
+        var todoCard = document.createElement('div');
+        todoCard.className = 'cp-card';
+        todoCard.innerHTML = '<h3 class="cp-card-title">To Do</h3>';
+
+        // To Do row builder
+        function todoRow(iconText, iconColor, title, sub, count, targetTab) {
+          var row = document.createElement('div');
+          row.className = 'cp-todo-row' + (targetTab ? ' clickable' : '');
+          row.innerHTML =
+            '<div class="cp-todo-icon ' + iconColor + '">' + iconText + '</div>' +
+            '<div class="cp-todo-text">' +
+              '<div class="cp-todo-title">' + title + '</div>' +
+              '<div class="cp-todo-sub">' + sub + '</div>' +
+            '</div>' +
+            '<div class="cp-todo-count">' + count + '</div>';
+          if (targetTab) {
+            row.addEventListener('click', function () { setActiveTab(targetTab); });
+          }
+          return row;
         }
-        html += '</div>';
 
-        // Pending approvals stat
-        html += '<div class="cp-stat">';
-        html += '<div class="cp-stat-icon" style="background:rgba(245,166,35,0.1);color:#f5a623;">✓</div>';
-        html += '<div class="cp-stat-text">';
-        html += '<div class="cp-stat-label">Awaiting Approval</div>';
-        html += '<div class="cp-stat-value">' + data.pendingApprovalCount + '</div>';
-        html += '</div>';
-        if (data.pendingApprovalCount > 0) {
-          html += '<button class="cp-stat-action" data-go="approvals">Review</button>';
-        }
-        html += '</div>';
+        todoCard.appendChild(todoRow(
+          '✓', 'peach', 'Pending Reviews', 'Content awaiting approval',
+          pendingApprovals, pendingApprovals > 0 ? 'approvals' : null));
+        todoCard.appendChild(todoRow(
+          '📋', 'blue', 'Forms to Complete', 'Information your team needs',
+          pendingForms, pendingForms > 0 ? 'materials' : null));
+        todoCard.appendChild(todoRow(
+          '💬', 'mint', 'Messages', 'Chat with your ProAgri team',
+          '', null));
+        leftCol.appendChild(todoCard);
 
-        // Messages card with embedded chat placeholder (filled below)
-        html += '<div class="cp-card">';
-        html += '<h2 class="cp-card-title">Messages</h2>';
-        html += '<div id="cpChatMount"></div>';
-        html += '</div>';
+        // ── RIGHT column ──
+        var rightCol = document.createElement('div');
+        rightCol.className = 'cp-col';
 
-        el.innerHTML = html;
+        var msgCard = document.createElement('div');
+        msgCard.className = 'cp-card cp-messages-card';
+        msgCard.innerHTML = '<h3 class="cp-card-title">Messages</h3><div id="cpChatMount"></div>';
+        rightCol.appendChild(msgCard);
 
-        el.querySelectorAll('[data-go]').forEach(function (b) {
-          b.addEventListener('click', function () {
-            currentTab = b.dataset.go;
-            document.querySelectorAll('.cp-tab').forEach(function (t) {
-              t.classList.toggle('active', t.dataset.tab === currentTab);
-            });
-            renderTab();
-          });
-        });
+        grid.appendChild(leftCol);
+        grid.appendChild(rightCol);
+        el.appendChild(grid);
 
         // Mount the embedded chat widget
         var chatMount = el.querySelector('#cpChatMount');
         if (chatMount) mountChat(chatMount);
       });
+  }
+
+  function updateBellBadge() {
+    var badge = document.getElementById('cpBellBadge');
+    if (!badge) return;
+    var d = dashboardSnapshot || {};
+    var total = (d.pendingFormCount || 0) + (d.pendingApprovalCount || 0);
+    if (total > 0) {
+      badge.textContent = total > 9 ? '9+' : String(total);
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 
   // ========== EMBEDDED CHAT ==========
@@ -594,21 +1021,14 @@
     var wrap = document.createElement('div');
     wrap.className = 'cp-chat';
 
-    var header = document.createElement('div');
-    header.className = 'cp-chat-header';
-    var status = document.createElement('span');
-    status.className = 'cp-chat-status';
-    header.appendChild(status);
-    var ht = document.createElement('div');
-    ht.className = 'cp-chat-title';
-    ht.textContent = 'Chat with your ProAgri team';
-    header.appendChild(ht);
-    wrap.appendChild(header);
-
     var body = document.createElement('div');
     body.className = 'cp-chat-body';
     wrap.appendChild(body);
 
+    container.appendChild(wrap);
+
+    // Send row sits OUTSIDE the chat shell so it visually matches the
+    // screenshot's bordered input + Send button below the chat area.
     var inputRow = document.createElement('div');
     inputRow.className = 'cp-chat-input-row';
     var input = document.createElement('input');
@@ -620,9 +1040,7 @@
     sendBtn.className = 'cp-chat-send';
     sendBtn.textContent = 'Send';
     inputRow.appendChild(sendBtn);
-    wrap.appendChild(inputRow);
-
-    container.appendChild(wrap);
+    container.appendChild(inputRow);
 
     var lastMessageCount = 0;
     var isAtBottom = true;
@@ -637,7 +1055,7 @@
       if (!messages || messages.length === 0) {
         var empty = document.createElement('div');
         empty.className = 'cp-chat-empty';
-        empty.innerHTML = '<div style="font-size:32px;margin-bottom:8px;">💬</div><div>No messages yet.<br>Say hi to your ProAgri team!</div>';
+        empty.textContent = 'No messages yet.';
         body.appendChild(empty);
         return;
       }
@@ -656,7 +1074,7 @@
           avatar.textContent = ((m.senderFirstName || '').charAt(0) + (m.senderLastName || '').charAt(0)).toUpperCase() || 'T';
         } else {
           avatar.textContent = 'You';
-          avatar.style.fontSize = '10px';
+          avatar.style.fontSize = '9px';
         }
         msg.appendChild(avatar);
 
@@ -800,7 +1218,7 @@
               // Optional per-field label (when multiple fields share a question)
               if (f.label && fields.length > 1) {
                 var lbl = document.createElement('div');
-                lbl.style.cssText = 'font-size:12px;color:#64748b;margin:8px 0 4px;font-weight:500;';
+                lbl.style.cssText = 'font-size:12px;color:var(--cp-text-muted);margin:8px 0 4px;font-weight:600;';
                 lbl.textContent = f.label;
                 group.appendChild(lbl);
               }
