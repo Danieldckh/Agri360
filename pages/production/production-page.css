@@ -255,8 +255,8 @@
 .wd-step-title[contenteditable="true"]:hover { border-bottom-color:var(--border-color,#e2e8f0); }
 
 /* ===== Department Avatars ===== */
-.prod-deliv-team { flex:0 0 180px; }
-.dept-avatar-row { display:flex; gap:3px; flex-wrap:nowrap; }
+.prod-deliv-team { flex:0 0 36px; }
+.dept-avatar-row { display:flex; gap:3px; flex-wrap:nowrap; align-items:center; }
 .dept-avatar {
   display:flex; align-items:center; justify-content:center;
   border-radius:50%; font-size:9px; font-weight:700;
