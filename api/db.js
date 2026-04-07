@@ -167,12 +167,50 @@ async function runMigrations() {
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS esign_url TEXT`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS checklist_url TEXT`);
 
-    // E-sign data
+    // E-sign data (latest-state "pointer" columns on booking_forms —
+    // the append-only source of truth lives in booking_form_revisions)
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_pdf TEXT`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signature_data JSONB`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_at TIMESTAMPTZ`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS change_request_pdf TEXT`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS change_notes TEXT`);
+
+    // ── E-sign immutable revisions ────────────────────────────────────
+    // Every sign / change-request event appends one row. Rows are never
+    // updated or deleted — this is the legal paper trail. The Booking
+    // Form Esign app (separate repo, shares this Postgres) writes here.
+    await client.query(`CREATE TABLE IF NOT EXISTS booking_form_revisions (
+      id SERIAL PRIMARY KEY,
+      booking_form_id INT NOT NULL REFERENCES booking_forms(id) ON DELETE CASCADE,
+      action VARCHAR(32) NOT NULL,
+      html_snapshot TEXT,
+      pdf_base64 TEXT,
+      signer_name VARCHAR(255),
+      signer_email VARCHAR(255),
+      signature_data JSONB,
+      change_notes TEXT,
+      client_ip VARCHAR(64),
+      user_agent TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_booking_form_revisions_bf ON booking_form_revisions(booking_form_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_booking_form_revisions_action ON booking_form_revisions(action)`);
+
+    // ── E-sign tokens ─────────────────────────────────────────────────
+    // Tokenized one-per-session URLs used by the Booking Form Esign app.
+    // Distinct from client_portal_tokens (which are per-client and
+    // persistent) — these are per-booking-form and can expire.
+    await client.query(`CREATE TABLE IF NOT EXISTS booking_form_esign_tokens (
+      id SERIAL PRIMARY KEY,
+      booking_form_id INT NOT NULL REFERENCES booking_forms(id) ON DELETE CASCADE,
+      token VARCHAR(64) UNIQUE NOT NULL,
+      html_snapshot TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      expires_at TIMESTAMPTZ,
+      last_accessed_at TIMESTAMPTZ
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_booking_form_esign_token ON booking_form_esign_tokens(token)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_booking_form_esign_bf ON booking_form_esign_tokens(booking_form_id)`);
 
     // Make dashboard foreign keys nullable
     await client.query(`ALTER TABLE dashboards ALTER COLUMN deliverable_id DROP NOT NULL`).catch(() => {});

@@ -292,16 +292,48 @@ router.post('/:id/send-to-esign', async (req, res) => {
   }
 });
 
-// POST /:id/sign - Handle e-sign completion (signed or change request)
+// POST /:id/sign - Handle e-sign completion (signed or change request).
+// Writes to two places:
+//   1) The "latest" pointer columns on booking_forms (signed_pdf,
+//      change_request_pdf, etc.) so existing queries keep working.
+//   2) The append-only booking_form_revisions table — the immutable
+//      audit trail. Every call creates a new row here; rows are never
+//      updated or deleted.
 router.post('/:id/sign', async (req, res) => {
   try {
-    const { action, pdfData, signatureData, changeNotes } = req.body || {};
+    const { action, pdfData, signatureData, changeNotes, htmlSnapshot, signerName, signerEmail } = req.body || {};
     const result = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Booking form not found' });
     }
 
+    const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim() || null;
+    const userAgent = req.headers['user-agent'] || null;
+
+    async function appendRevision() {
+      await pool.query(
+        `INSERT INTO booking_form_revisions
+          (booking_form_id, action, html_snapshot, pdf_base64,
+           signer_name, signer_email, signature_data, change_notes,
+           client_ip, user_agent)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          req.params.id,
+          action === 'signed' ? 'signed' : 'change_requested',
+          htmlSnapshot || null,
+          pdfData || null,
+          signerName || null,
+          signerEmail || null,
+          signatureData ? JSON.stringify(signatureData) : null,
+          changeNotes || null,
+          clientIp,
+          userAgent
+        ]
+      );
+    }
+
     if (action === 'signed') {
+      await appendRevision();
       // Save signed PDF and advance to onboarding
       await pool.query(
         `UPDATE booking_forms SET
@@ -312,6 +344,7 @@ router.post('/:id/sign', async (req, res) => {
       );
       res.json({ success: true, status: 'onboarding' });
     } else if (action === 'change_request') {
+      await appendRevision();
       // Save change request PDF
       await pool.query(
         `UPDATE booking_forms SET
@@ -326,6 +359,42 @@ router.post('/:id/sign', async (req, res) => {
     }
   } catch (err) {
     console.error('Sign booking form error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /:id/revisions - list immutable revision history for a booking form
+router.get('/:id/revisions', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, booking_form_id, action, signer_name, signer_email,
+              change_notes, client_ip, user_agent, created_at
+       FROM booking_form_revisions
+       WHERE booking_form_id = $1
+       ORDER BY created_at DESC, id DESC`,
+      [req.params.id]
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('List booking form revisions error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /:id/revisions/:revisionId - fetch a specific revision with full payload
+router.get('/:id/revisions/:revisionId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM booking_form_revisions
+       WHERE booking_form_id = $1 AND id = $2`,
+      [req.params.id, req.params.revisionId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Revision not found' });
+    }
+    res.json(toCamelCase(result.rows[0]));
+  } catch (err) {
+    console.error('Get booking form revision error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
