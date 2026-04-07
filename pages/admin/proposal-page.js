@@ -29,6 +29,11 @@
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
   var ICON_UNDO = 'M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z';
   var ICON_EYE = 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z';
+  // skip_next (Material): jumps straight to the end bar — used to skip
+  // outline_proposal rows directly to booking_form_ready, bypassing the
+  // design/review/sent_to_client sequence for clients who don't need a
+  // custom-designed proposal.
+  var ICON_SKIP = 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z';
 
   // Track active container for back navigation
   var _activeContainer = null;
@@ -161,6 +166,27 @@
             } else {
               refreshFn();
             }
+          });
+        }
+      },
+      {
+        // Shortcut: skip the entire design/review/sent_to_client arc and
+        // jump straight to booking_form_ready. Only visible for rows still
+        // in outline_proposal — other rows see an invisible placeholder
+        // that keeps the actions column width stable.
+        icon: ICON_SKIP,
+        tooltip: 'Skip to Booking Form Ready',
+        className: 'action-skip',
+        visible: function (rowData) { return rowData.status === 'outline_proposal'; },
+        onClick: function (rowData) {
+          if (rowData.status !== 'outline_proposal') return;
+          if (!confirm('Skip straight to Booking Form Ready? This bypasses the design/review steps.')) return;
+          fetch(API_BASE + '/' + rowData.id, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'booking_form_ready' })
+          }).then(function (res) {
+            if (res.ok) refreshFn();
           });
         }
       }
