@@ -73,10 +73,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST / - create or update booking form (upsert by checklist_id)
+// POST / - create or update booking form (upsert by checklist_id).
+// Also accepts checklist_url so the checklist app can ship a prefilled
+// "re-open this checklist" link alongside the form data on submit.
 router.post('/', async (req, res) => {
   const b = toSnakeBody(req.body);
-  const { client_id, campaign_month_start, campaign_month_end, form_data, sign_off_date, representative, description, status, booked_date, due_date, checklist_id } = b;
+  const { client_id, campaign_month_start, campaign_month_end, form_data, sign_off_date, representative, description, status, booked_date, due_date, checklist_id, checklist_url } = b;
   let { title } = b;
 
   if (!client_id) {
@@ -99,16 +101,20 @@ router.post('/', async (req, res) => {
     if (checklist_id) {
       const existing = await pool.query('SELECT id FROM booking_forms WHERE checklist_id = $1', [checklist_id]);
       if (existing.rows.length > 0) {
+        // Use COALESCE so an older client that doesn't send checklist_url
+        // doesn't wipe a previously-stored URL.
         const result = await pool.query(
           `UPDATE booking_forms SET client_id = $1, title = $2, description = $3, status = $4,
            booked_date = $5, due_date = $6, campaign_month_start = $7, campaign_month_end = $8,
-           form_data = $9, sign_off_date = $10, representative = $11, updated_at = NOW()
-           WHERE checklist_id = $12 RETURNING *`,
+           form_data = $9, sign_off_date = $10, representative = $11,
+           checklist_url = COALESCE($12, checklist_url), updated_at = NOW()
+           WHERE checklist_id = $13 RETURNING *`,
           [
             client_id, title || null, description || null, status || 'draft',
             booked_date || null, due_date || null,
             campaign_month_start || null, campaign_month_end || null,
             formDataVal, sign_off_date || null, representative || null,
+            checklist_url || null,
             checklist_id
           ]
         );
@@ -118,15 +124,15 @@ router.post('/', async (req, res) => {
 
     // Create new
     const result = await pool.query(
-      `INSERT INTO booking_forms (client_id, title, description, status, booked_date, due_date, campaign_month_start, campaign_month_end, form_data, sign_off_date, representative, checklist_id, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `INSERT INTO booking_forms (client_id, title, description, status, booked_date, due_date, campaign_month_start, campaign_month_end, form_data, sign_off_date, representative, checklist_id, checklist_url, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
       [
         client_id, title || null, description || null, status || 'draft',
         booked_date || null, due_date || null,
         campaign_month_start || null, campaign_month_end || null,
         formDataVal, sign_off_date || null, representative || null,
-        checklist_id || null, req.user.id
+        checklist_id || null, checklist_url || null, req.user.id
       ]
     );
     res.status(201).json(toCamelCase(result.rows[0]));

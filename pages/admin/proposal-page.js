@@ -63,21 +63,37 @@
   }
 
   // --- Shared columns ---
-  var sheetColumns = [
+  // BASE_COLUMNS is used by every sheet. PROPOSAL_COLUMNS extends it with
+  // a "Checklist" link column — exposed only on the Proposal sub-sheet,
+  // where rows in outline_proposal status still benefit from a
+  // re-open-the-checklist link. Rows in other statuses within the same
+  // sub-sheet just render "—" for that column.
+  var BASE_COLUMNS = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
   ];
+
+  var PROPOSAL_COLUMNS = BASE_COLUMNS.concat([
+    { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' }
+  ]);
 
   function mapFormToRow(form) {
     return {
       id: form.id,
       client: form.clientName || form.title || 'Untitled',
-      status: form.status || 'outline_proposal'
+      status: form.status || 'outline_proposal',
+      // Only surface the link for rows still in outline_proposal so the
+      // column renders "—" once the proposal has moved past that stage.
+      checklistUrl: (form.status === 'outline_proposal') ? (form.checklistUrl || '') : ''
     };
   }
 
   // --- Reusable Sheet Builder ---
-  function buildSheet(title, refreshFn) {
+  // columns defaults to BASE_COLUMNS; pass a custom set to override (e.g.
+  // PROPOSAL_COLUMNS for the main Proposal sub-sheet which surfaces the
+  // prefilled-checklist link).
+  function buildSheet(title, refreshFn, columns) {
+    var sheetCols = columns || BASE_COLUMNS;
     var card = document.createElement('div');
     card.className = 'dept-sheet-card';
 
@@ -197,7 +213,7 @@
       var term = searchInput.value.toLowerCase();
       if (term) {
         filtered = allData.filter(function (row) {
-          return sheetColumns.some(function (col) {
+          return sheetCols.some(function (col) {
             var val = row[col.key];
             return val && val.toString().toLowerCase().indexOf(term) !== -1;
           });
@@ -208,7 +224,7 @@
 
       if (window.renderSheet) {
         window.renderSheet(sheetContainer, {
-          columns: sheetColumns,
+          columns: sheetCols,
           data: filtered,
           searchable: false,
           apiEndpoint: API_BASE,
@@ -301,7 +317,10 @@
     var sheets = [];
 
     PROPOSAL_SUB_SHEETS.forEach(function (sub, idx) {
-      var sheet = buildSheet(sub.label, refreshAll);
+      // Only the main "Proposal" sub-sheet (idx 0) gets the Checklist column;
+      // the In Design / Sent to Client sub-sheets stay on the minimal column set.
+      var cols = (idx === 0) ? PROPOSAL_COLUMNS : BASE_COLUMNS;
+      var sheet = buildSheet(sub.label, refreshAll, cols);
       sheets.push(sheet);
 
       if (idx === 0) {
