@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
     'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
-    'social-media': ['Content Calendars', 'Agri for All', 'Banners', 'Scheduling']
+    'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
@@ -979,13 +979,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Route Social Media > Scheduling to the full scheduler
-    if (page === 'social-media' && viewName === 'Scheduling' && window.renderSocialSchedulerPage) {
-      dashboardContent.style.display = 'block';
-      dashboardContent.style.padding = '0';
-      dashboardContent.style.height = '100%';
-      window.renderSocialSchedulerPage(dashboardContent);
-      return;
+    // Social Media department: every tab IS the scheduler, preset to a source.
+    // Content Calendars → content-calendar, Agri for All → agri4all,
+    // Own Social Media → own-sm. The scheduler hides its internal source
+    // switcher when a preset is active so the dept tabs are the nav.
+    if (page === 'social-media' && window.renderSocialSchedulerPage) {
+      var SM_SOURCE_MAP = {
+        'Content Calendars': 'content-calendar',
+        'Agri for All': 'agri4all',
+        'Own Social Media': 'own-sm'
+      };
+      var presetSource = SM_SOURCE_MAP[viewName];
+      if (presetSource) {
+        dashboardContent.style.display = 'block';
+        dashboardContent.style.padding = '0';
+        dashboardContent.style.height = '100%';
+        window.renderSocialSchedulerPage(dashboardContent, { sourceFilter: presetSource });
+        return;
+      }
     }
 
     // Route department tabs to generic type-filtered view
