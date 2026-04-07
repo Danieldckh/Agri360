@@ -24,7 +24,7 @@
 
     // Agri4All types share the same chain
     'agri4all-posts': [
-      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'request_client_materials', 'materials_requested', 'materials_received',
       'design', 'design_review', 'ready_for_approval', 'sent_for_approval',
       'approved', 'create_links', 'ready_for_scheduling', 'scheduled',
       'create_stat_sheet', 'complete'
@@ -32,14 +32,14 @@
 
     // Print / Magazine
     'magazine': [
-      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'request_client_materials', 'materials_requested', 'materials_received',
       'editing', 'design', 'design_review', 'editorial_review',
       'ready_for_approval', 'sent_for_approval', 'approved'
     ],
 
     // Online Articles
     'online-articles': [
-      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'request_client_materials', 'materials_requested', 'materials_received',
       'editing', 'ready_for_approval', 'sent_for_approval',
       'approved', 'translating', 'ready_to_upload', 'posted'
     ],
@@ -67,7 +67,7 @@
 
     // SM Management types (posts, videos, google ads, linkedin, twitter)
     'sm-posts': [
-      'request_client_materials', 'upload_materials', 'artwork_design',
+      'request_client_materials', 'materials_requested', 'artwork_design',
       'create_captions', 'editorial_review', 'ready_for_approval',
       'sent_for_approval', 'approved', 'ready_for_scheduling', 'scheduled'
     ]
@@ -117,7 +117,8 @@
 
     'agri4all-posts': {
       'request_client_materials': 'production',
-      'waiting_for_materials': 'production',
+      'materials_requested': 'production',
+      'waiting_for_materials': 'production', // legacy alias — stuck items still route
       'materials_received': 'production',
       'design': 'design',
       'design_review': 'design',
@@ -134,7 +135,8 @@
 
     'magazine': {
       'request_client_materials': 'production',
-      'waiting_for_materials': 'production',
+      'materials_requested': 'production',
+      'waiting_for_materials': 'production', // legacy alias
       'materials_received': 'production',
       'editing': 'editorial',
       'design': 'design',
@@ -150,7 +152,8 @@
 
     'online-articles': {
       'request_client_materials': 'production',
-      'waiting_for_materials': 'production',
+      'materials_requested': 'production',
+      'waiting_for_materials': 'production', // legacy alias
       'materials_received': 'production',
       'editing': 'editorial',
       'editorial_changes': 'editorial',
@@ -206,7 +209,8 @@
 
     'sm-posts': {
       'request_client_materials': 'production',
-      'upload_materials': 'production',
+      'materials_requested': 'production',
+      'upload_materials': 'production', // legacy alias
       'artwork_design': 'design',
       'design_changes': 'design',
       'create_captions': 'editorial',

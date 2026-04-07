@@ -184,6 +184,268 @@
     return null;
   }
 
+  // ── Generic client-grouped sheet renderer ─────────────────────────
+  // Shared by all production tabs. Builds a sheet card with grouped-
+  // by-client rows, chevron toggles, client-level buttons, and
+  // per-cell render callbacks. Two modes:
+  //
+  // 1. Full mode (default) — builds its own wrapper + month selector
+  //    + fetches /api/deliverables/by-department/:slug. Used by the
+  //    Production Deliverables tab (one sheet, full width).
+  //
+  // 2. Embedded mode (skipMonthSelector: true) — builds ONLY the card,
+  //    doesn't fetch. Caller passes data via setData(items). Used by
+  //    50/50 tabs (Follow Ups, Approvals) where one shared month
+  //    selector above drives two sheets below.
+  //
+  // Returns { refresh(ym), setData(items) }.
+  //
+  // options: {
+  //   title: string,
+  //   searchPlaceholder?: string,
+  //   deptSlug?: string ('production'),
+  //   statusFilter: function(item) => boolean,
+  //   columns: [{ label, className?, render?: function(item, refresh) => string|Node }],
+  //   emptyMessage?: string,
+  //   showClientButtons?: boolean,
+  //   skipMonthSelector?: boolean
+  // }
+  function renderClientGroupedSheet(container, options) {
+    options = options || {};
+    var title = options.title || 'Sheet';
+    var searchPlaceholder = options.searchPlaceholder || 'Search...';
+    var statusFilter = options.statusFilter || function () { return true; };
+    var deptSlug = options.deptSlug || 'production';
+    var columns = options.columns || [];
+    var emptyMessage = options.emptyMessage || 'No items to display';
+    var showClientButtons = !!options.showClientButtons;
+    var skipMonthSelector = !!options.skipMonthSelector;
+
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var wrapper, prevBtn, nextBtn, monthLabel;
+    if (!skipMonthSelector) {
+      wrapper = document.createElement('div');
+      wrapper.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;';
+
+      var monthBar = document.createElement('div');
+      monthBar.className = 'dept-month-selector';
+      var uid = 'cgs_' + Math.random().toString(36).slice(2, 10);
+      prevBtn = document.createElement('button');
+      prevBtn.id = uid + '_prev';
+      prevBtn.className = 'dept-month-nav';
+      prevBtn.textContent = '\u25C0';
+      monthLabel = document.createElement('span');
+      monthLabel.id = uid + '_label';
+      monthLabel.className = 'dept-month-label';
+      nextBtn = document.createElement('button');
+      nextBtn.id = uid + '_next';
+      nextBtn.className = 'dept-month-nav';
+      nextBtn.textContent = '\u25B6';
+      monthBar.appendChild(prevBtn);
+      monthBar.appendChild(monthLabel);
+      monthBar.appendChild(nextBtn);
+      wrapper.appendChild(monthBar);
+    } else {
+      // Embedded mode — caller owns the wrapper/layout
+      wrapper = container;
+    }
+
+    // Sheet card — reuse dept-sheet-card styling
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card';
+    card.style.flex = '1';
+    card.style.minHeight = '0';
+    card.style.overflow = 'hidden';
+
+    var headerBar = document.createElement('div');
+    headerBar.className = 'dept-sheet-header';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+    var titleEl = document.createElement('h3');
+    titleEl.className = 'dept-sheet-title';
+    titleEl.textContent = title;
+    titleWrap.appendChild(titleEl);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+    headerBar.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = searchPlaceholder;
+    headerBar.appendChild(searchInput);
+    card.appendChild(headerBar);
+
+    var sheetBody = document.createElement('div');
+    sheetBody.style.cssText = 'flex:1;overflow-y:auto;min-height:0;';
+    card.appendChild(sheetBody);
+    if (skipMonthSelector) {
+      // Embedded mode — append card directly to caller-provided container
+      container.appendChild(card);
+    } else {
+      wrapper.appendChild(card);
+      container.appendChild(wrapper);
+    }
+
+    var allData = [];
+    var collapsedClients = {};
+    var currentYM = '';
+
+    function renderTable() {
+      while (sheetBody.firstChild) sheetBody.removeChild(sheetBody.firstChild);
+
+      var term = (searchInput.value || '').toLowerCase();
+      var filtered = allData.filter(statusFilter);
+      if (term) {
+        filtered = filtered.filter(function (d) {
+          return (d.title || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.clientName || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.status || '').toLowerCase().indexOf(term) !== -1 ||
+            (d.type || '').toLowerCase().indexOf(term) !== -1;
+        });
+      }
+
+      countBadge.textContent = filtered.length;
+      var groups = groupByClient(filtered);
+
+      if (groups.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'proagri-sheet-empty';
+        empty.style.padding = '40px';
+        empty.style.textAlign = 'center';
+        empty.style.color = 'var(--text-muted, #999)';
+        empty.textContent = emptyMessage;
+        sheetBody.appendChild(empty);
+        return;
+      }
+
+      // Column header row
+      var headerRow = document.createElement('div');
+      headerRow.className = 'prod-deliv-row prod-deliv-header';
+      columns.forEach(function (col) {
+        var cell = document.createElement('div');
+        cell.className = 'prod-deliv-cell' + (col.className ? ' ' + col.className : '');
+        cell.textContent = col.label || '';
+        headerRow.appendChild(cell);
+      });
+      sheetBody.appendChild(headerRow);
+
+      groups.forEach(function (group) {
+        var isCollapsed = !!collapsedClients[group.clientName];
+
+        var clientRow = document.createElement('div');
+        clientRow.className = 'prod-deliv-client-row';
+        var chevron = document.createElement('span');
+        chevron.className = 'prod-deliv-chevron' + (isCollapsed ? ' collapsed' : '');
+        chevron.textContent = isCollapsed ? '\u25B6' : '\u25BC';
+        clientRow.appendChild(chevron);
+        var clientLabel = document.createElement('span');
+        clientLabel.className = 'prod-deliv-client-name';
+        clientLabel.textContent = group.clientName;
+        clientRow.appendChild(clientLabel);
+        var clientCount = document.createElement('span');
+        clientCount.className = 'prod-deliv-client-count';
+        clientCount.textContent = group.items.length;
+        clientRow.appendChild(clientCount);
+
+        if (showClientButtons && group.clientId) {
+          var spacer = document.createElement('span');
+          spacer.style.flex = '1';
+          clientRow.appendChild(spacer);
+
+          var reqBtn = document.createElement('button');
+          reqBtn.className = 'prod-client-btn';
+          reqBtn.textContent = 'Request Materials';
+          (function (cid) {
+            reqBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              window.open('/form-builder.html?clientId=' + cid, '_blank');
+            });
+          })(group.clientId);
+          clientRow.appendChild(reqBtn);
+
+          var portalBtn = document.createElement('button');
+          portalBtn.className = 'prod-client-btn prod-client-btn-primary';
+          portalBtn.textContent = 'Open Portal';
+          (function (cid) {
+            portalBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              fetch('/api/portal/get-or-create-token', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ clientId: cid })
+              }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.token) window.open('/client-portal.html?token=' + data.token, '_blank');
+              });
+            });
+          })(group.clientId);
+          clientRow.appendChild(portalBtn);
+        }
+
+        clientRow.addEventListener('click', function () {
+          collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+          renderTable();
+        });
+        sheetBody.appendChild(clientRow);
+
+        if (isCollapsed) return;
+
+        group.items.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'prod-deliv-row';
+
+          columns.forEach(function (col) {
+            var cell = document.createElement('div');
+            cell.className = 'prod-deliv-cell' + (col.className ? ' ' + col.className : '');
+            var content = col.render ? col.render(item, refresh) : '';
+            if (content == null || content === '') {
+              // leave cell empty
+            } else if (typeof content === 'string') {
+              cell.textContent = content;
+            } else if (content.nodeType) {
+              cell.appendChild(content);
+            }
+            row.appendChild(cell);
+          });
+
+          sheetBody.appendChild(row);
+        });
+      });
+    }
+
+    function refresh(ym) {
+      if (ym) currentYM = ym;
+      var url = '/api/deliverables/by-department/' + deptSlug + (currentYM ? '?month=' + currentYM : '');
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch(url, { headers: getHeaders() }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        allData = results[1] || [];
+        renderTable();
+      }).catch(function (err) {
+        console.error('Client-grouped sheet fetch error:', err);
+      });
+    }
+
+    function setData(items) {
+      allData = items || [];
+      renderTable();
+    }
+
+    searchInput.addEventListener('input', renderTable);
+
+    if (!skipMonthSelector) {
+      // initMonthSelector triggers the first fetch via refresh() callback
+      initMonthSelector(wrapper, { prev: prevBtn.id, next: nextBtn.id, label: monthLabel.id }, deptSlug, refresh);
+    }
+
+    return { refresh: refresh, setData: setData };
+  }
+
   // ── Client Communications Tab (template-based) ──────────────────
   function renderProductionTab(container) {
     while (container.firstChild) container.removeChild(container.firstChild);
@@ -422,8 +684,146 @@
     });
   }
 
-  // ── Follow Ups Tab (50/50 layout, template-based) ──────────────
-  function renderFollowUpsTab(container) {
+  // ── Shared column renderers for 50/50 tabs ──────────────────────
+  // These factories produce column specs used by the client-grouped
+  // sheet helper. Each returns a { label, className?, render } tuple.
+
+  function colTitle() {
+    return { label: 'Title', className: 'prod-deliv-title', render: function (item) {
+      return item.title || '';
+    }};
+  }
+
+  function colType() {
+    return { label: 'Type', className: 'prod-deliv-type', render: function (item) {
+      var badge = document.createElement('span');
+      badge.className = 'production-type-badge';
+      badge.textContent = formatStatus(item.type || '');
+      return badge;
+    }};
+  }
+
+  function colStatus() {
+    return { label: 'Status', className: 'prod-deliv-status-cell', render: function (item, refresh) {
+      var badge = document.createElement('span');
+      badge.className = 'proagri-sheet-status ' + statusClass(item.status);
+      badge.textContent = formatStatus(item.status);
+      badge.style.cursor = 'pointer';
+      badge.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var existing = document.querySelector('.prod-deliv-status-dropdown');
+        if (existing) existing.remove();
+
+        var chain = workflows ? workflows.getStatusChain(item.type) : [];
+        if (chain.length === 0) return;
+        var dropdown = document.createElement('div');
+        dropdown.className = 'prod-deliv-status-dropdown';
+        chain.forEach(function (st) {
+          var opt = document.createElement('div');
+          opt.className = 'prod-deliv-status-opt' + (st === item.status ? ' active' : '');
+          var optBadge = document.createElement('span');
+          optBadge.className = 'proagri-sheet-status ' + statusClass(st);
+          optBadge.textContent = formatStatus(st);
+          opt.appendChild(optBadge);
+          opt.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            dropdown.remove();
+            if (st === item.status) return;
+            fetch('/api/deliverables/' + item.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: st })
+            }).then(function (res) { if (res.ok && refresh) refresh(); });
+          });
+          dropdown.appendChild(opt);
+        });
+        document.body.appendChild(dropdown);
+        var rect = badge.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = rect.bottom + 4 + 'px';
+        dropdown.style.left = rect.left + 'px';
+        setTimeout(function () {
+          document.addEventListener('click', function closeDD() {
+            dropdown.remove();
+            document.removeEventListener('click', closeDD);
+          });
+        }, 0);
+      });
+      return badge;
+    }};
+  }
+
+  function colStatusChanged(label) {
+    return { label: label || 'Status Changed', render: function (item) {
+      return formatStatusChanged(item.statusChangedAt);
+    }};
+  }
+
+  function colFollowUpCount() {
+    return { label: 'Follow Ups', render: function (item, refresh) {
+      var count = item.followUpCount || 0;
+      var badge = document.createElement('span');
+      badge.className = 'dept-sheet-count';
+      badge.textContent = count;
+      badge.style.cursor = 'pointer';
+      badge.title = 'Click to increment follow up count';
+      badge.addEventListener('click', function (e) {
+        e.stopPropagation();
+        fetch('/api/deliverables/' + item.id, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ followUpCount: count + 1 })
+        }).then(function (res) { if (res.ok && refresh) refresh(); });
+      });
+      return badge;
+    }};
+  }
+
+  function colActionAdvance(nextStatusOrAuto, tooltipText) {
+    return { label: '', className: 'prod-deliv-act', render: function (item, refresh) {
+      var target, tooltip;
+      if (nextStatusOrAuto === 'auto') {
+        var wf = workflows && workflows.getNextStatus(item.type, item.status);
+        if (!wf) return '';
+        target = wf.next;
+        tooltip = tooltipText || wf.tooltip;
+      } else {
+        target = nextStatusOrAuto;
+        tooltip = tooltipText || ('Advance to ' + formatStatus(target));
+      }
+      var btn = document.createElement('button');
+      btn.className = 'proagri-sheet-row-action-btn action-advance';
+      btn.title = tooltip;
+      btn.appendChild(makeSvgIcon(ICON_ADVANCE));
+      btn.style.opacity = '1';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        fetch('/api/deliverables/' + item.id, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status: target })
+        }).then(function (res) { if (res.ok && refresh) refresh(); });
+      });
+      return btn;
+    }};
+  }
+
+  // ── Split-sheet tab helper (50/50 layout, shared month selector) ──
+  // Builds a month selector at the top and two renderClientGroupedSheet
+  // halves side-by-side. Both halves share one fetch per month change.
+  //
+  // options: {
+  //   prefix: string — unique id prefix for DOM elements (e.g. 'fu', 'app'),
+  //   deptSlug?: string ('production'),
+  //   left/right: {
+  //     title, filter, columns, emptyMessage, showClientButtons?
+  //   }
+  // }
+  function renderSplitSheetTab(container, options) {
+    options = options || {};
+    var prefix = options.prefix || 'split';
+    var deptSlug = options.deptSlug || 'production';
+
     while (container.firstChild) container.removeChild(container.firstChild);
     container.style.display = '';
     container.style.alignItems = '';
@@ -433,605 +833,158 @@
     container.style.gap = '';
     container.style.padding = '';
 
-    loadProductionTemplates().then(function (tmplContainer) {
-      var frag = cloneTemplateContent(tmplContainer, 'followUpsTabTemplate');
-      if (!frag) return;
-      container.appendChild(frag);
+    var wrap = document.createElement('div');
+    wrap.className = 'dept-tab-wrap';
 
-      var leftCount = container.querySelector('#fuLeftCount');
-      var leftSearch = container.querySelector('#fuLeftSearch');
-      var leftSheet = container.querySelector('#fuLeftSheet');
-      var rightCount = container.querySelector('#fuRightCount');
-      var rightSearch = container.querySelector('#fuRightSearch');
-      var rightSheet = container.querySelector('#fuRightSheet');
+    // Shared month selector
+    var monthBar = document.createElement('div');
+    monthBar.className = 'dept-month-selector';
+    monthBar.id = prefix + 'MonthSelector';
+    var prevBtn = document.createElement('button');
+    prevBtn.id = prefix + 'MonthPrev';
+    prevBtn.className = 'dept-month-nav dept-month-prev';
+    prevBtn.title = 'Previous month';
+    prevBtn.innerHTML = '&#9664;';
+    var monthLabel = document.createElement('span');
+    monthLabel.id = prefix + 'MonthLabel';
+    monthLabel.className = 'dept-month-label';
+    var nextBtn = document.createElement('button');
+    nextBtn.id = prefix + 'MonthNext';
+    nextBtn.className = 'dept-month-nav dept-month-next';
+    nextBtn.title = 'Next month';
+    nextBtn.innerHTML = '&#9654;';
+    monthBar.appendChild(prevBtn);
+    monthBar.appendChild(monthLabel);
+    monthBar.appendChild(nextBtn);
+    wrap.appendChild(monthBar);
 
-      var leftItems = [];
-      var rightItems = [];
-      var leftSort = { key: null, dir: 'asc' };
-      var rightSort = { key: null, dir: 'asc' };
+    // 50/50 dashboard layout
+    var layout = document.createElement('div');
+    layout.className = 'dept-dashboard-layout';
 
-      leftSearch.addEventListener('input', function () {
-        renderLeftTable(leftItems, leftSearch.value.toLowerCase());
+    var leftHalf = document.createElement('div');
+    leftHalf.className = 'dept-dashboard-half';
+    layout.appendChild(leftHalf);
+
+    var rightHalf = document.createElement('div');
+    rightHalf.className = 'dept-dashboard-half';
+    layout.appendChild(rightHalf);
+
+    wrap.appendChild(layout);
+    container.appendChild(wrap);
+
+    // Create both halves as embedded sheets (no month selector)
+    var leftSheet = renderClientGroupedSheet(leftHalf, {
+      title: options.left.title,
+      searchPlaceholder: options.left.searchPlaceholder || 'Search...',
+      statusFilter: options.left.filter,
+      columns: options.left.columns,
+      emptyMessage: options.left.emptyMessage,
+      showClientButtons: !!options.left.showClientButtons,
+      skipMonthSelector: true
+    });
+
+    var rightSheet = renderClientGroupedSheet(rightHalf, {
+      title: options.right.title,
+      searchPlaceholder: options.right.searchPlaceholder || 'Search...',
+      statusFilter: options.right.filter,
+      columns: options.right.columns,
+      emptyMessage: options.right.emptyMessage,
+      showClientButtons: !!options.right.showClientButtons,
+      skipMonthSelector: true
+    });
+
+    // Shared fetch — one network call, both halves render their filtered slice
+    function sharedRefresh(ym) {
+      var url = '/api/deliverables/by-department/' + deptSlug + (ym ? '?month=' + ym : '');
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch(url, { headers: getHeaders() }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        var data = results[1] || [];
+        leftSheet.setData(data);
+        rightSheet.setData(data);
+      }).catch(function (err) {
+        console.error('Split-sheet fetch error:', err);
       });
+    }
 
-      rightSearch.addEventListener('input', function () {
-        renderRightTable(rightItems, rightSearch.value.toLowerCase());
-      });
+    // Wire up the shared month selector → re-fetch on change
+    initMonthSelector(wrap, {
+      prev: prevBtn.id,
+      next: nextBtn.id,
+      label: monthLabel.id
+    }, deptSlug, sharedRefresh);
+  }
 
-      function refreshData(month) {
-        var url = API_BASE + '/by-department/production';
-        if (month) url += '?month=' + month;
-        fetch(url, { headers: getHeaders() })
-          .then(function (res) {
-            if (!res.ok) throw new Error('Failed to fetch');
-            return res.json();
-          })
-          .then(function (deliverables) {
-            var materialStatuses = ['materials_requested', 'request_client_materials', 'waiting_for_materials'];
-            var approvalStatuses = ['sent_for_approval'];
-            leftItems = deliverables.filter(function (d) {
-              return materialStatuses.indexOf(d.status) !== -1;
-            });
-            rightItems = deliverables.filter(function (d) {
-              return approvalStatuses.indexOf(d.status) !== -1;
-            });
-            leftCount.textContent = leftItems.length;
-            rightCount.textContent = rightItems.length;
-            renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-            renderRightTable(rightItems, rightSearch.value.toLowerCase());
-          })
-          .catch(function (err) {
-            console.error('Follow Ups fetch error:', err);
-          });
+  // ── Follow Ups Tab — 50/50 layout, uses renderClientGroupedSheet ──
+  function renderFollowUpsTab(container) {
+    renderSplitSheetTab(container, {
+      prefix: 'fu',
+      left: {
+        title: 'Materials Requested',
+        filter: function (d) {
+          // Canonical status after form publish + legacy stragglers
+          return d.status === 'materials_requested' ||
+            d.status === 'waiting_for_materials' ||
+            d.status === 'upload_materials';
+        },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Date Requested'),
+          colFollowUpCount(),
+          colActionAdvance('materials_received', 'Advance to Materials Received')
+        ],
+        emptyMessage: 'No materials requested'
+      },
+      right: {
+        title: 'Sent for Approval',
+        filter: function (d) { return d.status === 'sent_for_approval'; },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Date Sent'),
+          colFollowUpCount(),
+          colActionAdvance('auto')
+        ],
+        emptyMessage: 'No items sent for approval'
       }
-
-      var monthCtrl = initMonthSelector(container, {prev: 'fuMonthPrev', next: 'fuMonthNext', label: 'fuMonthLabel'}, 'production', function(month) { refreshData(month); });
-
-      function advanceStatus(itemId, nextStatus) {
-        fetch(API_BASE + '/' + itemId, {
-          method: 'PATCH',
-          headers: getHeaders(),
-          body: JSON.stringify({ status: nextStatus })
-        }).then(function (res) {
-          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
-        });
-      }
-
-      function incrementFollowUp(itemId, currentCount) {
-        fetch(API_BASE + '/' + itemId, {
-          method: 'PATCH',
-          headers: getHeaders(),
-          body: JSON.stringify({ followUpCount: currentCount + 1 })
-        }).then(function (res) {
-          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
-        });
-      }
-
-      function renderLeftTable(items, filterTerm) {
-        while (leftSheet.firstChild) leftSheet.removeChild(leftSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No materials requested';
-          leftSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Status Changed', sortKey: 'statusChangedAt' },
-          { label: 'Follow Up Count', sortKey: 'followUpCount' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, leftSort, function () {
-          renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, leftSort.key, leftSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          var tdChanged = document.createElement('td');
-          tdChanged.textContent = formatStatusChanged(item.statusChangedAt);
-          row.appendChild(tdChanged);
-
-          var tdFollowUp = document.createElement('td');
-          var count = item.followUpCount || 0;
-          var countBadge = document.createElement('span');
-          countBadge.className = 'dept-sheet-count';
-          countBadge.textContent = count;
-          countBadge.style.cursor = 'pointer';
-          countBadge.title = 'Click to increment follow up count';
-          countBadge.addEventListener('click', (function (id, c) {
-            return function (e) {
-              e.stopPropagation();
-              incrementFollowUp(id, c);
-            };
-          })(item.id, count));
-          tdFollowUp.appendChild(countBadge);
-          row.appendChild(tdFollowUp);
-
-          var tdAction = document.createElement('td');
-          var btn = document.createElement('button');
-          btn.className = 'proagri-sheet-row-action-btn action-advance';
-          btn.title = 'Advance to Materials Received';
-          btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-          btn.style.opacity = '1';
-          btn.addEventListener('click', (function (id) {
-            return function (e) {
-              e.stopPropagation();
-              advanceStatus(id, 'materials_received');
-            };
-          })(item.id));
-          tdAction.appendChild(btn);
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        leftSheet.appendChild(table);
-      }
-
-      function renderRightTable(items, filterTerm) {
-        while (rightSheet.firstChild) rightSheet.removeChild(rightSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No items sent for approval';
-          rightSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Status Changed', sortKey: 'statusChangedAt' },
-          { label: 'Follow Up Count', sortKey: 'followUpCount' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, rightSort, function () {
-          renderRightTable(rightItems, rightSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, rightSort.key, rightSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          var tdChanged = document.createElement('td');
-          tdChanged.textContent = formatStatusChanged(item.statusChangedAt);
-          row.appendChild(tdChanged);
-
-          var tdFollowUp = document.createElement('td');
-          var count = item.followUpCount || 0;
-          var countBadge = document.createElement('span');
-          countBadge.className = 'dept-sheet-count';
-          countBadge.textContent = count;
-          countBadge.style.cursor = 'pointer';
-          countBadge.title = 'Click to increment follow up count';
-          countBadge.addEventListener('click', (function (id, c) {
-            return function (e) {
-              e.stopPropagation();
-              incrementFollowUp(id, c);
-            };
-          })(item.id, count));
-          tdFollowUp.appendChild(countBadge);
-          row.appendChild(tdFollowUp);
-
-          var tdAction = document.createElement('td');
-          var wf = workflows.getNextStatus(item.type, item.status);
-          if (wf) {
-            var btn = document.createElement('button');
-            btn.className = 'proagri-sheet-row-action-btn action-advance';
-            btn.title = wf.tooltip;
-            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-            btn.style.opacity = '1';
-            btn.addEventListener('click', (function (id, next) {
-              return function (e) {
-                e.stopPropagation();
-                advanceStatus(id, next);
-              };
-            })(item.id, wf.next));
-            tdAction.appendChild(btn);
-          }
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        rightSheet.appendChild(table);
-      }
-
-      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   }
 
-  // ── Approvals Tab (50/50 layout, template-based) ───────────────
+  // ── Approvals Tab — 50/50 layout, uses renderClientGroupedSheet ──
   function renderApprovalsTab(container) {
-    while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = '';
-    container.style.alignItems = '';
-    container.style.justifyContent = '';
-    container.style.flexDirection = '';
-    container.style.height = '';
-    container.style.gap = '';
-    container.style.padding = '';
-
-    loadProductionTemplates().then(function (tmplContainer) {
-      var frag = cloneTemplateContent(tmplContainer, 'approvalsTabTemplate');
-      if (!frag) return;
-      container.appendChild(frag);
-
-      var leftCount = container.querySelector('#appLeftCount');
-      var leftSearch = container.querySelector('#appLeftSearch');
-      var leftSheet = container.querySelector('#appLeftSheet');
-      var rightCount = container.querySelector('#appRightCount');
-      var rightSearch = container.querySelector('#appRightSearch');
-      var rightSheet = container.querySelector('#appRightSheet');
-
-      var leftItems = [];
-      var rightItems = [];
-      var leftSort = { key: null, dir: 'asc' };
-      var rightSort = { key: null, dir: 'asc' };
-
-      leftSearch.addEventListener('input', function () {
-        renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-      });
-
-      rightSearch.addEventListener('input', function () {
-        renderRightTable(rightItems, rightSearch.value.toLowerCase());
-      });
-
-      function refreshData(month) {
-        var url = API_BASE + '/by-department/production';
-        if (month) url += '?month=' + month;
-        fetch(url, { headers: getHeaders() })
-          .then(function (res) {
-            if (!res.ok) throw new Error('Failed to fetch');
-            return res.json();
-          })
-          .then(function (deliverables) {
-            leftItems = deliverables.filter(function (d) {
-              return d.status === 'ready_for_approval';
-            });
-            rightItems = deliverables.filter(function (d) {
-              return d.status === 'sent_for_approval';
-            });
-            leftCount.textContent = leftItems.length;
-            rightCount.textContent = rightItems.length;
-            renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-            renderRightTable(rightItems, rightSearch.value.toLowerCase());
-          })
-          .catch(function (err) {
-            console.error('Approvals fetch error:', err);
-          });
+    renderSplitSheetTab(container, {
+      prefix: 'app',
+      left: {
+        title: 'Send for Approval',
+        filter: function (d) { return d.status === 'ready_for_approval'; },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Ready Since'),
+          colActionAdvance('sent_for_approval', 'Send for Approval')
+        ],
+        emptyMessage: 'No items ready for approval'
+      },
+      right: {
+        title: 'Sent for Approval',
+        filter: function (d) { return d.status === 'sent_for_approval'; },
+        columns: [
+          colTitle(),
+          colType(),
+          colStatus(),
+          colStatusChanged('Date Sent'),
+          colFollowUpCount(),
+          colActionAdvance('auto')
+        ],
+        emptyMessage: 'No items sent for approval'
       }
-
-      var monthCtrl = initMonthSelector(container, {prev: 'appMonthPrev', next: 'appMonthNext', label: 'appMonthLabel'}, 'production', function(month) { refreshData(month); });
-
-      function advanceStatus(itemId, nextStatus) {
-        fetch(API_BASE + '/' + itemId, {
-          method: 'PATCH',
-          headers: getHeaders(),
-          body: JSON.stringify({ status: nextStatus })
-        }).then(function (res) {
-          if (res.ok) refreshData(monthCtrl.getCurrentMonth());
-        });
-      }
-
-      function renderAssignedCell(item) {
-        var td = document.createElement('td');
-        var assignedId = item.assignedProduction || item.assignedTo;
-        if (assignedId && window._employeeCacheLookup) {
-          var emp = window._employeeCacheLookup(assignedId);
-          if (emp && emp.photo_url) {
-            var avatarImg = document.createElement('img');
-            avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
-            avatarImg.src = emp.photo_url;
-            avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
-            avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
-            td.appendChild(avatarImg);
-          } else {
-            td.textContent = assignedId;
-          }
-        } else {
-          td.textContent = '\u2014';
-        }
-        return td;
-      }
-
-      function renderLeftTable(items, filterTerm) {
-        while (leftSheet.firstChild) leftSheet.removeChild(leftSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No items ready for approval';
-          leftSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Assigned To', sortKey: null },
-          { label: 'Due Date', sortKey: 'dueDate' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, leftSort, function () {
-          renderLeftTable(leftItems, leftSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, leftSort.key, leftSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          row.appendChild(renderAssignedCell(item));
-
-          var tdDue = document.createElement('td');
-          tdDue.textContent = formatDate(item.dueDate);
-          row.appendChild(tdDue);
-
-          var tdAction = document.createElement('td');
-          var btn = document.createElement('button');
-          btn.className = 'proagri-sheet-row-action-btn action-advance';
-          btn.title = 'Send for Approval';
-          btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-          btn.style.opacity = '1';
-          btn.addEventListener('click', (function (id) {
-            return function (e) {
-              e.stopPropagation();
-              advanceStatus(id, 'sent_for_approval');
-            };
-          })(item.id));
-          tdAction.appendChild(btn);
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        leftSheet.appendChild(table);
-      }
-
-      function renderRightTable(items, filterTerm) {
-        while (rightSheet.firstChild) rightSheet.removeChild(rightSheet.firstChild);
-
-        var filtered = items;
-        if (filterTerm) {
-          filtered = items.filter(function (item) {
-            return (item.clientName && item.clientName.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1);
-          });
-        }
-
-        if (filtered.length === 0) {
-          var empty = document.createElement('div');
-          empty.style.padding = '40px';
-          empty.style.textAlign = 'center';
-          empty.style.color = 'var(--text-muted, #999)';
-          empty.textContent = 'No items sent for approval';
-          rightSheet.appendChild(empty);
-          return;
-        }
-
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
-
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        var columns = [
-          { label: 'Client', sortKey: 'clientName' },
-          { label: 'Title', sortKey: 'title' },
-          { label: 'Type', sortKey: 'type' },
-          { label: 'Assigned To', sortKey: null },
-          { label: 'Due Date', sortKey: 'dueDate' },
-          { label: '', sortKey: null }
-        ];
-        columns.forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col.label;
-          if (col.label === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        makeSortableHeaders(thead, columns, rightSort, function () {
-          renderRightTable(rightItems, rightSearch.value.toLowerCase());
-        });
-
-        var sorted = sortItems(filtered, rightSort.key, rightSort.dir);
-
-        var tbody = document.createElement('tbody');
-        sorted.forEach(function (item) {
-          var row = document.createElement('tr');
-          row.className = 'production-child-row';
-
-          var tdClient = document.createElement('td');
-          tdClient.style.fontWeight = '600';
-          tdClient.textContent = item.clientName || '\u2014';
-          row.appendChild(tdClient);
-
-          var tdTitle = document.createElement('td');
-          tdTitle.textContent = item.title || '\u2014';
-          row.appendChild(tdTitle);
-
-          var tdType = document.createElement('td');
-          var typeBadge = document.createElement('span');
-          typeBadge.className = 'production-type-badge';
-          typeBadge.textContent = item.type || '\u2014';
-          tdType.appendChild(typeBadge);
-          row.appendChild(tdType);
-
-          row.appendChild(renderAssignedCell(item));
-
-          var tdDue = document.createElement('td');
-          tdDue.textContent = formatDate(item.dueDate);
-          row.appendChild(tdDue);
-
-          var tdAction = document.createElement('td');
-          var wf = workflows.getNextStatus(item.type, item.status);
-          if (wf) {
-            var btn = document.createElement('button');
-            btn.className = 'proagri-sheet-row-action-btn action-advance';
-            btn.title = wf.tooltip;
-            btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-            btn.style.opacity = '1';
-            btn.addEventListener('click', (function (id, next) {
-              return function (e) {
-                e.stopPropagation();
-                advanceStatus(id, next);
-              };
-            })(item.id, wf.next));
-            tdAction.appendChild(btn);
-          }
-          row.appendChild(tdAction);
-
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        rightSheet.appendChild(table);
-      }
-
-      // initMonthSelector triggers the first fetch via onMonthChange callback
     });
   }
 

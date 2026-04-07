@@ -240,6 +240,19 @@ async function runMigrations() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`);
 
+    // Portal Messages — standalone chat thread between a client (via
+    // portal token) and the CRM team. Kept separate from the internal
+    // `messages` table to avoid schema churn on employee-centric fields.
+    await client.query(`CREATE TABLE IF NOT EXISTS portal_messages (
+      id SERIAL PRIMARY KEY,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      sender_type VARCHAR(20) NOT NULL,
+      sender_employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_portal_messages_client ON portal_messages(client_id, created_at)`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {
