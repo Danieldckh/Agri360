@@ -30,12 +30,30 @@
   var state = {
     posts: [],
     creds: [],
+    clients: [],
     sourceFilter: 'all',
     view: 'month',         // month | week | day
     cursor: new Date(),    // current focused date
     search: '',
     container: null
   };
+
+  // Returns active credentials owned by a given client (or agency if clientId is null/undefined)
+  function credsForClient(clientId) {
+    var key = (clientId == null) ? null : Number(clientId);
+    return state.creds.filter(function (c) {
+      if (!c.isActive) return false;
+      var cClient = (c.clientId == null) ? null : Number(c.clientId);
+      return cClient === key;
+    });
+  }
+
+  // Returns the unique platforms a given client has connected (active accounts only)
+  function platformsForClient(clientId) {
+    var seen = {};
+    credsForClient(clientId).forEach(function (c) { seen[c.platform] = true; });
+    return PLATFORMS.filter(function (p) { return seen[p]; });
+  }
 
   // ---------------- helpers ----------------
   function getHeaders() {
@@ -157,13 +175,21 @@
   }
 
   // ---------------- data fetching ----------------
+  function fetchClients() {
+    return fetch('/api/clients', { headers: getHeaders() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; });
+  }
+
   function loadAll() {
     return Promise.all([
       api('/posts').catch(function () { return []; }),
-      api('/credentials').catch(function () { return []; })
+      api('/credentials').catch(function () { return []; }),
+      fetchClients()
     ]).then(function (res) {
       state.posts = res[0] || [];
       state.creds = res[1] || [];
+      state.clients = res[2] || [];
       render();
     });
   }
@@ -623,7 +649,8 @@
       linkUrl: '',
       hashtags: '',
       notes: '',
-      status: 'draft'
+      status: 'draft',
+      clientId: null
     }, post || {});
 
     var form = el('div');
@@ -636,35 +663,65 @@
     form.appendChild(field('Caption / Content',
       textarea(data.content, function (v) { data.content = v; })));
 
-    // Source + Status row
-    var row = el('div', 'sch-field-row');
-    row.appendChild(field('Source',
+    // Client + Source row — client comes first because it gates platform options below
+    var clientRow = el('div', 'sch-field-row');
+    var clientOptions = ['agency'].concat(state.clients.map(function (c) { return String(c.id); }));
+    var clientLabels = { agency: 'Agency (Own accounts)' };
+    state.clients.forEach(function (c) { clientLabels[String(c.id)] = c.name; });
+    var currentClientKey = data.clientId == null ? 'agency' : String(data.clientId);
+    clientRow.appendChild(field('Client',
+      select(clientOptions, currentClientKey, function (v) {
+        data.clientId = (v === 'agency') ? null : Number(v);
+        // Drop any previously-selected platforms that the new client doesn't have
+        var allowed = platformsForClient(data.clientId);
+        data.platforms = (data.platforms || []).filter(function (p) { return allowed.indexOf(p) !== -1; });
+        renderPlatforms();
+      }, clientLabels)));
+    clientRow.appendChild(field('Source',
       select(['content-calendar', 'agri4all', 'own-sm'], data.sourceType,
         function (v) { data.sourceType = v; },
         { 'content-calendar': 'Content Calendar', 'agri4all': 'Agri4All', 'own-sm': 'Own Social Media' })));
-    row.appendChild(field('Status',
+    form.appendChild(clientRow);
+
+    // Status row
+    form.appendChild(field('Status',
       select(['draft', 'scheduled', 'posted', 'failed'], data.status,
         function (v) { data.status = v; })));
-    form.appendChild(row);
 
-    // Platforms
+    // Platforms — filtered to the selected client's connected accounts
     var platField = el('div', 'sch-field');
-    platField.appendChild(el('label', 'sch-field-label', 'Platforms'));
+    var platLabel = el('label', 'sch-field-label', 'Platforms');
+    platField.appendChild(platLabel);
     var platWrap = el('div', 'sch-platform-select');
-    PLATFORMS.forEach(function (pl) {
-      var opt = el('div', 'sch-platform-opt' +
-        (data.platforms && data.platforms.indexOf(pl) !== -1 ? ' selected' : ''), pl);
-      opt.addEventListener('click', function () {
-        if (!Array.isArray(data.platforms)) data.platforms = [];
-        var idx = data.platforms.indexOf(pl);
-        if (idx === -1) data.platforms.push(pl);
-        else data.platforms.splice(idx, 1);
-        opt.classList.toggle('selected');
-      });
-      platWrap.appendChild(opt);
-    });
     platField.appendChild(platWrap);
     form.appendChild(platField);
+
+    function renderPlatforms() {
+      while (platWrap.firstChild) platWrap.removeChild(platWrap.firstChild);
+      var allowed = platformsForClient(data.clientId);
+      if (allowed.length === 0) {
+        var empty = el('div', 'sch-platform-empty');
+        var who = data.clientId == null
+          ? 'No agency accounts connected yet.'
+          : 'This client has no connected accounts yet.';
+        empty.textContent = who + ' Open Credentials to add one.';
+        platWrap.appendChild(empty);
+        return;
+      }
+      allowed.forEach(function (pl) {
+        var opt = el('div', 'sch-platform-opt' +
+          (data.platforms && data.platforms.indexOf(pl) !== -1 ? ' selected' : ''), pl);
+        opt.addEventListener('click', function () {
+          if (!Array.isArray(data.platforms)) data.platforms = [];
+          var idx = data.platforms.indexOf(pl);
+          if (idx === -1) data.platforms.push(pl);
+          else data.platforms.splice(idx, 1);
+          opt.classList.toggle('selected');
+        });
+        platWrap.appendChild(opt);
+      });
+    }
+    renderPlatforms();
 
     // Schedule + Link row
     var row2 = el('div', 'sch-field-row');
@@ -717,7 +774,8 @@
           linkUrl: data.linkUrl || null,
           hashtags: data.hashtags || null,
           notes: data.notes || null,
-          status: data.status
+          status: data.status,
+          clientId: data.clientId
         };
         var p = isNew
           ? api('/posts', { method: 'POST', body: JSON.stringify(payload) })
@@ -776,16 +834,42 @@
   }
 
   // ---------------- credentials modal ----------------
+  // The modal remembers its filter across re-renders inside the same session
+  var credModalFilter = 'all'; // 'all' | 'agency' | <client id as string>
+
   function openCredentialsModal() {
     var body = el('div');
 
+    // Filter row — lets the user narrow the connected-account list to a single owner
+    var filterRow = el('div', 'sch-cred-filter-row');
+    filterRow.appendChild(el('label', 'sch-field-label', 'Show accounts for:'));
+    var filterOptions = ['all', 'agency'].concat(state.clients.map(function (c) { return String(c.id); }));
+    var filterLabels = { all: 'All', agency: 'Agency (Own accounts)' };
+    state.clients.forEach(function (c) { filterLabels[String(c.id)] = c.name; });
+    filterRow.appendChild(select(filterOptions, credModalFilter, function (v) {
+      credModalFilter = v;
+      modal.close();
+      openCredentialsModal();
+    }, filterLabels));
+    body.appendChild(filterRow);
+
     body.appendChild(el('h4', 'sch-section-title', 'Connected Accounts'));
 
+    // Apply the filter to the cred list before rendering
+    var visibleCreds = state.creds.filter(function (c) {
+      if (credModalFilter === 'all') return true;
+      if (credModalFilter === 'agency') return c.clientId == null;
+      return String(c.clientId) === credModalFilter;
+    });
+
     var list = el('div', 'sch-cred-list');
-    if (state.creds.length === 0) {
-      list.appendChild(el('div', 'sch-cred-empty', 'No social accounts connected yet. Add one below to enable auto-posting.'));
+    if (visibleCreds.length === 0) {
+      var msg = state.creds.length === 0
+        ? 'No social accounts connected yet. Add one below to enable auto-posting.'
+        : 'No accounts match this filter. Pick a different owner above, or add one below.';
+      list.appendChild(el('div', 'sch-cred-empty', msg));
     } else {
-      state.creds.forEach(function (c) {
+      visibleCreds.forEach(function (c) {
         var item = el('div', 'sch-cred-item');
 
         var info = el('div', 'sch-cred-info');
@@ -796,6 +880,12 @@
         info.appendChild(pf);
         info.appendChild(el('div', 'sch-cred-account',
           c.accountName + (c.accountHandle ? ' (' + c.accountHandle + ')' : '')));
+        // Owner badge — agency-owned accounts get a neutral badge, client-owned get an accent badge
+        var ownerLabel = c.clientId == null ? 'Agency' : (c.clientName || ('Client #' + c.clientId));
+        var ownerBadge = el('div',
+          'sch-cred-owner' + (c.clientId == null ? ' agency' : ' client'),
+          ownerLabel);
+        info.appendChild(ownerBadge);
         item.appendChild(info);
 
         var actions = el('div', 'sch-cred-actions');
@@ -831,14 +921,31 @@
     body.appendChild(el('div', 'sch-divider'));
     body.appendChild(el('h4', 'sch-section-title', 'Add New Account'));
 
+    // Pre-select the new account's owner from the current filter, so adding
+    // an account while filtered to a client defaults to that client.
+    var defaultClientId = null;
+    if (credModalFilter !== 'all' && credModalFilter !== 'agency') {
+      defaultClientId = Number(credModalFilter);
+    }
+
     var newCred = {
       platform: 'facebook',
       accountName: '',
       accountHandle: '',
-      credentials: {}
+      credentials: {},
+      clientId: defaultClientId
     };
 
     var addForm = el('div');
+
+    // Owner select — first field because it determines who the account belongs to
+    var ownerOptions = ['agency'].concat(state.clients.map(function (c) { return String(c.id); }));
+    var ownerLabels = { agency: 'Agency (Own accounts)' };
+    state.clients.forEach(function (c) { ownerLabels[String(c.id)] = c.name; });
+    var initialOwner = newCred.clientId == null ? 'agency' : String(newCred.clientId);
+    addForm.appendChild(field('Owner', select(ownerOptions, initialOwner, function (v) {
+      newCred.clientId = (v === 'agency') ? null : Number(v);
+    }, ownerLabels)));
 
     // Platform select rebuilds field section on change
     var fieldsHost = el('div');
