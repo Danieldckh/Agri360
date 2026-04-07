@@ -194,6 +194,13 @@ async function runMigrations() {
     await client.query(`ALTER TABLE deliverables ALTER COLUMN status TYPE VARCHAR(50)`);
     await client.query(`ALTER TABLE booking_forms ALTER COLUMN status TYPE VARCHAR(50)`);
 
+    // Department-specific assignment columns
+    const deptAssignedCols = ['assigned_admin', 'assigned_production', 'assigned_design',
+      'assigned_editorial', 'assigned_video', 'assigned_agri4all', 'assigned_social_media'];
+    for (const col of deptAssignedCols) {
+      await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS ${col} INT REFERENCES employees(id)`);
+    }
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {
