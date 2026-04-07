@@ -84,20 +84,23 @@
     { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' }
   ]);
 
-  // The Booking Form sheet is a document hub — every booking-form artifact
-  // gets its own column so an admin can audit the lifecycle at a glance.
+  // The Booking Form sheet is a signing-lifecycle hub. Three columns,
+  // one per artifact:
+  //   - Unsigned Booking Form → the link a client clicks to sign
+  //   - Change Request Doc    → PDF stored when a client requested changes
+  //   - Signed Booking Form   → PDF stored once the client has signed
+  // The Prefilled Checklist column lives only on the Proposal sheet.
   var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
-    { key: 'checklistUrl', label: 'Prefilled Checklist',     type: 'link', width: 'sm' },
-    { key: 'esignUrl',     label: 'Unsigned Booking Form',  type: 'link', width: 'sm' },
-    { key: 'changeReqUrl', label: 'Change Request',         type: 'link', width: 'sm' },
-    { key: 'signedUrl',    label: 'Signed Booking Form',    type: 'link', width: 'sm' }
+    { key: 'esignUrl',     label: 'Unsigned Booking Form', type: 'link', width: 'sm' },
+    { key: 'changeReqUrl', label: 'Change Request Doc',    type: 'link', width: 'sm' },
+    { key: 'signedUrl',    label: 'Signed Booking Form',   type: 'link', width: 'sm' }
   ]);
 
   // Per-tab column overrides for renderAdminTab. Tabs not listed fall back
-  // to BASE_COLUMNS.
-  var TAB_COLUMNS = {
-    'Booking Form': BOOKING_FORM_COLUMNS
-  };
+  // to BASE_COLUMNS. NOTE: the Booking Form tab does NOT go through
+  // renderAdminTab — it has its own custom split-layout renderer
+  // (renderBookingFormTab) that hardcodes BOOKING_FORM_COLUMNS directly.
+  var TAB_COLUMNS = {};
 
   // Tiny helper: wrap a base64-encoded PDF in a data URL the link cell
   // renderer can drop straight into an <a href>. Browsers handle clicks
@@ -1186,17 +1189,30 @@
     var rightCol = document.createElement('div');
     rightCol.className = 'proposal-grid-right';
 
-    var bfSheet = buildSheet('Booking Form', refreshAll);
+    // Both sheets get the BOOKING_FORM_COLUMNS set so the Unsigned /
+    // Change Request / Signed link columns appear on every row.
+    var bfSheet = buildSheet('Booking Form', refreshAll, BOOKING_FORM_COLUMNS);
     leftCol.appendChild(bfSheet.el);
 
-    var sentSheet = buildSheet('Sent to Client', refreshAll);
+    var sentSheet = buildSheet('Sent to Client', refreshAll, BOOKING_FORM_COLUMNS);
     rightCol.appendChild(sentSheet.el);
 
     grid.appendChild(leftCol);
     grid.appendChild(rightCol);
     container.appendChild(grid);
 
-    var bfStatuses = ['booking_form_ready', 'client_changes'];
+    // Left sheet is the lifecycle hub — it shows rows in every state from
+    // "ready to send" through "signed". change_requested was orphaned
+    // before this expansion (not in any tab); onboarding/onboarded rows
+    // also appear here so the signed-PDF column has data to show — they
+    // ALSO still appear in the Onboarding tab (different lens, same row).
+    var bfStatuses = [
+      'booking_form_ready',
+      'client_changes',
+      'change_requested',
+      'onboarding',
+      'onboarded'
+    ];
     var sentStatuses = ['booking_form_sent'];
 
     function refreshAll() {
