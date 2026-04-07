@@ -12,7 +12,8 @@
       "mcp__playwright__browser_evaluate",
       "Bash(curl -s -X GET -H 'Authorization: Bearer $COOLIFY_API_TOKEN' $COOLIFY_BASE_URL/api/v1/applications/tows08oogko8k4wk84g40oo4)",
       "Bash(done)",
-      "Bash(curl -s -X POST -H \"Authorization: Bearer $COOLIFY_API_TOKEN\" \"$COOLIFY_BASE_URL/api/v1/applications/tows08oogko8k4wk84g40oo4/restart\")"
+      "Bash(curl -s -X POST -H \"Authorization: Bearer $COOLIFY_API_TOKEN\" \"$COOLIFY_BASE_URL/api/v1/applications/tows08oogko8k4wk84g40oo4/restart\")",
+      "Bash(claude mcp:*)"
     ]
   }
 }

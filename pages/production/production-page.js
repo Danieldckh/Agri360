@@ -325,6 +325,7 @@
       // Column header row
       var headerRow = document.createElement('div');
       headerRow.className = 'prod-deliv-row prod-deliv-header';
+      headerRow.style.display = 'none';
       columns.forEach(function (col) {
         var cell = document.createElement('div');
         cell.className = 'prod-deliv-cell' + (col.className ? ' ' + col.className : '');

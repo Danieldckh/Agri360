@@ -1,0 +1,1333 @@
+{
+  "client_information": {
+    "company_name": "Test 1",
+    "trading_name": "Test Trading Name",
+    "company_reg_number": "2025/000001/07",
+    "vat_number": "4123456789",
+    "website": "https://example.com",
+    "industry_expertise": "Agriculture",
+    "physical_address": "1 Test Street, Testville",
+    "physical_postal_code": "0001",
+    "postal_address": "PO Box 123, Testville",
+    "postal_postal_code": "0001",
+    "primary_contact": {
+      "name": "Primary Contact",
+      "email": "primary@example.com",
+      "cell": "0820000000",
+      "tel": "0110000000"
+    },
+    "material_contact": {
+      "name": "Material Contact",
+      "email": "material@example.com",
+      "cell": "0820000001",
+      "tel": "0110000001"
+    },
+    "accounts_contact": {
+      "name": "Accounts Contact",
+      "email": "accounts@example.com",
+      "cell": "0820000002",
+      "tel": "0110000002"
+    },
+    "project_description": "2026 Marketing Campaign preferences (test data) - aligned to ProAgriMedia-CheckList-2026-V2.pdf.",
+    "campaign_start": "2026-02",
+    "campaign_end": "2026-05"
+  },
+  "social_media_management": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "platforms": [
+        {
+          "platform": "Facebook",
+          "key": "facebook",
+          "link": "https://facebook.com/test"
+        },
+        {
+          "platform": "Instagram",
+          "key": "instagram",
+          "link": "https://instagram.com/test"
+        },
+        {
+          "platform": "LinkedIn",
+          "key": "linkedin",
+          "link": "https://linkedin.com/company/test"
+        },
+        {
+          "platform": "YouTube",
+          "key": "youtube",
+          "link": "https://youtube.com/@test"
+        },
+        {
+          "platform": "TikTok",
+          "key": "tiktok",
+          "link": "https://tiktok.com/@test"
+        },
+        {
+          "platform": "Twitter / X",
+          "key": "twitter_x",
+          "link": "https://x.com/test"
+        }
+      ],
+      "monthly_posts": 12,
+      "content_calendar": false,
+      "own_page": {
+        "facebook_posts": true,
+        "facebook_posts_amount": 4,
+        "facebook_posts_curated_amount": 2,
+        "facebook_posts_timeframe": "2 per week",
+        "facebook_stories": true,
+        "facebook_stories_amount": 3,
+        "facebook_stories_timeframe": "2 per week",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": 2,
+        "facebook_video_posts_curated_amount": 1,
+        "facebook_video_posts_timeframe": "2 per week",
+        "instagram_posts": true,
+        "instagram_posts_amount": 4,
+        "instagram_posts_curated_amount": 2,
+        "instagram_posts_timeframe": "2 per week",
+        "instagram_stories": true,
+        "instagram_stories_amount": 3,
+        "instagram_stories_timeframe": "2 per week",
+        "tiktok_shorts": true,
+        "tiktok_amount": 2,
+        "tiktok_timeframe": "2 per week",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": 2,
+        "youtube_shorts_timeframe": "2 per week",
+        "youtube_video": true,
+        "youtube_video_amount": 2,
+        "youtube_video_timeframe": "2 per week",
+        "linkedin_article": true,
+        "linkedin_campaign": true,
+        "linkedin_amount": 2,
+        "linkedin_timeframe": "2 per week",
+        "twitter_x_posts": true,
+        "twitter_x_posts_amount": 2,
+        "twitter_x_posts_timeframe": "2 per week"
+      },
+      "google_ads": {
+        "enabled": true,
+        "initial_setup_text": "Initial setup Cost\nKeyword Research and Analysis\nCompetitor Anyalysis\nCampaign and Ad Group Structuring\nAd Copywriting and Creation :1st 20 Free, thereafter\nR350 each) Structuring\nLanding Page Development\nConversion Tracking Setup\nGoogle Analytics Integration",
+        "monthly_ongoing_text": "Ongoing Google Ads Management cost\nCampaign Management\nA/B Testing and Optimization\nReporting and Analysis\nAdvertising budget\nClient responsible for payment of ad spend separately\ndepending on their monthly budget and affordability"
+      }
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "platforms": [
+        {
+          "platform": "Facebook",
+          "key": "facebook",
+          "link": "https://facebook.com/test"
+        },
+        {
+          "platform": "Instagram",
+          "key": "instagram",
+          "link": "https://instagram.com/test"
+        },
+        {
+          "platform": "LinkedIn",
+          "key": "linkedin",
+          "link": "https://linkedin.com/company/test"
+        },
+        {
+          "platform": "YouTube",
+          "key": "youtube",
+          "link": "https://youtube.com/@test"
+        },
+        {
+          "platform": "TikTok",
+          "key": "tiktok",
+          "link": "https://tiktok.com/@test"
+        },
+        {
+          "platform": "Twitter / X",
+          "key": "twitter_x",
+          "link": "https://x.com/test"
+        }
+      ],
+      "monthly_posts": 14,
+      "content_calendar": false,
+      "own_page": {
+        "facebook_posts": true,
+        "facebook_posts_amount": 5,
+        "facebook_posts_curated_amount": 3,
+        "facebook_posts_timeframe": "2 per week",
+        "facebook_stories": true,
+        "facebook_stories_amount": 4,
+        "facebook_stories_timeframe": "2 per week",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": 3,
+        "facebook_video_posts_curated_amount": 2,
+        "facebook_video_posts_timeframe": "2 per week",
+        "instagram_posts": true,
+        "instagram_posts_amount": 5,
+        "instagram_posts_curated_amount": 3,
+        "instagram_posts_timeframe": "2 per week",
+        "instagram_stories": true,
+        "instagram_stories_amount": 4,
+        "instagram_stories_timeframe": "2 per week",
+        "tiktok_shorts": true,
+        "tiktok_amount": 3,
+        "tiktok_timeframe": "2 per week",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": 3,
+        "youtube_shorts_timeframe": "2 per week",
+        "youtube_video": true,
+        "youtube_video_amount": 3,
+        "youtube_video_timeframe": "2 per week",
+        "linkedin_article": true,
+        "linkedin_campaign": true,
+        "linkedin_amount": 3,
+        "linkedin_timeframe": "2 per week",
+        "twitter_x_posts": true,
+        "twitter_x_posts_amount": 3,
+        "twitter_x_posts_timeframe": "2 per week"
+      },
+      "google_ads": {
+        "enabled": false,
+        "initial_setup_text": "Initial setup Cost\nKeyword Research and Analysis\nCompetitor Anyalysis\nCampaign and Ad Group Structuring\nAd Copywriting and Creation :1st 20 Free, thereafter\nR350 each) Structuring\nLanding Page Development\nConversion Tracking Setup\nGoogle Analytics Integration",
+        "monthly_ongoing_text": "Ongoing Google Ads Management cost\nCampaign Management\nA/B Testing and Optimization\nReporting and Analysis\nAdvertising budget\nClient responsible for payment of ad spend separately\ndepending on their monthly budget and affordability"
+      }
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "platforms": [
+        {
+          "platform": "Facebook",
+          "key": "facebook",
+          "link": "https://facebook.com/test"
+        },
+        {
+          "platform": "Instagram",
+          "key": "instagram",
+          "link": "https://instagram.com/test"
+        },
+        {
+          "platform": "LinkedIn",
+          "key": "linkedin",
+          "link": "https://linkedin.com/company/test"
+        },
+        {
+          "platform": "YouTube",
+          "key": "youtube",
+          "link": "https://youtube.com/@test"
+        },
+        {
+          "platform": "TikTok",
+          "key": "tiktok",
+          "link": "https://tiktok.com/@test"
+        },
+        {
+          "platform": "Twitter / X",
+          "key": "twitter_x",
+          "link": "https://x.com/test"
+        }
+      ],
+      "monthly_posts": 16,
+      "content_calendar": false,
+      "own_page": {
+        "facebook_posts": true,
+        "facebook_posts_amount": 6,
+        "facebook_posts_curated_amount": 4,
+        "facebook_posts_timeframe": "2 per week",
+        "facebook_stories": true,
+        "facebook_stories_amount": 5,
+        "facebook_stories_timeframe": "2 per week",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": 4,
+        "facebook_video_posts_curated_amount": 3,
+        "facebook_video_posts_timeframe": "2 per week",
+        "instagram_posts": true,
+        "instagram_posts_amount": 6,
+        "instagram_posts_curated_amount": 4,
+        "instagram_posts_timeframe": "2 per week",
+        "instagram_stories": true,
+        "instagram_stories_amount": 5,
+        "instagram_stories_timeframe": "2 per week",
+        "tiktok_shorts": true,
+        "tiktok_amount": 4,
+        "tiktok_timeframe": "2 per week",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": 4,
+        "youtube_shorts_timeframe": "2 per week",
+        "youtube_video": true,
+        "youtube_video_amount": 4,
+        "youtube_video_timeframe": "2 per week",
+        "linkedin_article": true,
+        "linkedin_campaign": true,
+        "linkedin_amount": 4,
+        "linkedin_timeframe": "2 per week",
+        "twitter_x_posts": true,
+        "twitter_x_posts_amount": 4,
+        "twitter_x_posts_timeframe": "2 per week"
+      },
+      "google_ads": {
+        "enabled": false,
+        "initial_setup_text": "Initial setup Cost\nKeyword Research and Analysis\nCompetitor Anyalysis\nCampaign and Ad Group Structuring\nAd Copywriting and Creation :1st 20 Free, thereafter\nR350 each) Structuring\nLanding Page Development\nConversion Tracking Setup\nGoogle Analytics Integration",
+        "monthly_ongoing_text": "Ongoing Google Ads Management cost\nCampaign Management\nA/B Testing and Optimization\nReporting and Analysis\nAdvertising budget\nClient responsible for payment of ad spend separately\ndepending on their monthly budget and affordability"
+      }
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "platforms": [
+        {
+          "platform": "Facebook",
+          "key": "facebook",
+          "link": "https://facebook.com/test"
+        },
+        {
+          "platform": "Instagram",
+          "key": "instagram",
+          "link": "https://instagram.com/test"
+        },
+        {
+          "platform": "LinkedIn",
+          "key": "linkedin",
+          "link": "https://linkedin.com/company/test"
+        },
+        {
+          "platform": "YouTube",
+          "key": "youtube",
+          "link": "https://youtube.com/@test"
+        },
+        {
+          "platform": "TikTok",
+          "key": "tiktok",
+          "link": "https://tiktok.com/@test"
+        },
+        {
+          "platform": "Twitter / X",
+          "key": "twitter_x",
+          "link": "https://x.com/test"
+        }
+      ],
+      "monthly_posts": 18,
+      "content_calendar": false,
+      "own_page": {
+        "facebook_posts": true,
+        "facebook_posts_amount": 7,
+        "facebook_posts_curated_amount": 5,
+        "facebook_posts_timeframe": "2 per week",
+        "facebook_stories": true,
+        "facebook_stories_amount": 6,
+        "facebook_stories_timeframe": "2 per week",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": 5,
+        "facebook_video_posts_curated_amount": 4,
+        "facebook_video_posts_timeframe": "2 per week",
+        "instagram_posts": true,
+        "instagram_posts_amount": 7,
+        "instagram_posts_curated_amount": 5,
+        "instagram_posts_timeframe": "2 per week",
+        "instagram_stories": true,
+        "instagram_stories_amount": 6,
+        "instagram_stories_timeframe": "2 per week",
+        "tiktok_shorts": true,
+        "tiktok_amount": 5,
+        "tiktok_timeframe": "2 per week",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": 5,
+        "youtube_shorts_timeframe": "2 per week",
+        "youtube_video": true,
+        "youtube_video_amount": 5,
+        "youtube_video_timeframe": "2 per week",
+        "linkedin_article": true,
+        "linkedin_campaign": true,
+        "linkedin_amount": 5,
+        "linkedin_timeframe": "2 per week",
+        "twitter_x_posts": true,
+        "twitter_x_posts_amount": 5,
+        "twitter_x_posts_timeframe": "2 per week"
+      },
+      "google_ads": {
+        "enabled": false,
+        "initial_setup_text": "Initial setup Cost\nKeyword Research and Analysis\nCompetitor Anyalysis\nCampaign and Ad Group Structuring\nAd Copywriting and Creation :1st 20 Free, thereafter\nR350 each) Structuring\nLanding Page Development\nConversion Tracking Setup\nGoogle Analytics Integration",
+        "monthly_ongoing_text": "Ongoing Google Ads Management cost\nCampaign Management\nA/B Testing and Optimization\nReporting and Analysis\nAdvertising budget\nClient responsible for payment of ad spend separately\ndepending on their monthly budget and affordability"
+      }
+    }
+  ],
+  "agri4all": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "country": "",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "4",
+        "facebook_posts_curated_amount": "3",
+        "facebook_stories": true,
+        "facebook_stories_amount": "4",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "5",
+        "facebook_video_posts_curated_amount": "3",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "5",
+        "instagram_posts_curated_amount": "3",
+        "instagram_stories": true,
+        "instagram_stories_amount": "5",
+        "tiktok_shorts": true,
+        "tiktok_amount": "5",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "5",
+        "youtube_video": true,
+        "youtube_video_amount": "4",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "4",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "4",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "4",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "country": "Algeria",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "4",
+        "facebook_posts_curated_amount": "3",
+        "facebook_stories": true,
+        "facebook_stories_amount": "4",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "5",
+        "facebook_video_posts_curated_amount": "3",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "5",
+        "instagram_posts_curated_amount": "3",
+        "instagram_stories": true,
+        "instagram_stories_amount": "5",
+        "tiktok_shorts": true,
+        "tiktok_amount": "5",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "5",
+        "youtube_video": true,
+        "youtube_video_amount": "4",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "4",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "4",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "4",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "country": "Angola",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "6",
+        "facebook_posts_curated_amount": "5",
+        "facebook_stories": true,
+        "facebook_stories_amount": "6",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "7",
+        "facebook_video_posts_curated_amount": "5",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "7",
+        "instagram_posts_curated_amount": "5",
+        "instagram_stories": true,
+        "instagram_stories_amount": "7",
+        "tiktok_shorts": true,
+        "tiktok_amount": "7",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "7",
+        "youtube_video": true,
+        "youtube_video_amount": "6",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "6",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "6",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "6",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "country": "South Africa",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "4",
+        "facebook_posts_curated_amount": "3",
+        "facebook_stories": true,
+        "facebook_stories_amount": "4",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "5",
+        "facebook_video_posts_curated_amount": "3",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "5",
+        "instagram_posts_curated_amount": "3",
+        "instagram_stories": true,
+        "instagram_stories_amount": "5",
+        "tiktok_shorts": true,
+        "tiktok_amount": "5",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "5",
+        "youtube_video": true,
+        "youtube_video_amount": "4",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "4",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "4",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "4",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "country": "",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "5",
+        "facebook_posts_curated_amount": "4",
+        "facebook_stories": true,
+        "facebook_stories_amount": "5",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "6",
+        "facebook_video_posts_curated_amount": "4",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "6",
+        "instagram_posts_curated_amount": "4",
+        "instagram_stories": true,
+        "instagram_stories_amount": "6",
+        "tiktok_shorts": true,
+        "tiktok_amount": "6",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "6",
+        "youtube_video": true,
+        "youtube_video_amount": "5",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "5",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "5",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "5",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "country": "Algeria",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "5",
+        "facebook_posts_curated_amount": "4",
+        "facebook_stories": true,
+        "facebook_stories_amount": "5",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "6",
+        "facebook_video_posts_curated_amount": "4",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "6",
+        "instagram_posts_curated_amount": "4",
+        "instagram_stories": true,
+        "instagram_stories_amount": "6",
+        "tiktok_shorts": true,
+        "tiktok_amount": "6",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "6",
+        "youtube_video": true,
+        "youtube_video_amount": "5",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "5",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "5",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "5",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "country": "Angola",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "7",
+        "facebook_posts_curated_amount": "6",
+        "facebook_stories": true,
+        "facebook_stories_amount": "7",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "8",
+        "facebook_video_posts_curated_amount": "6",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "8",
+        "instagram_posts_curated_amount": "6",
+        "instagram_stories": true,
+        "instagram_stories_amount": "8",
+        "tiktok_shorts": true,
+        "tiktok_amount": "8",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "8",
+        "youtube_video": true,
+        "youtube_video_amount": "7",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "7",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "7",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "7",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "country": "South Africa",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "5",
+        "facebook_posts_curated_amount": "4",
+        "facebook_stories": true,
+        "facebook_stories_amount": "5",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "6",
+        "facebook_video_posts_curated_amount": "4",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "6",
+        "instagram_posts_curated_amount": "4",
+        "instagram_stories": true,
+        "instagram_stories_amount": "6",
+        "tiktok_shorts": true,
+        "tiktok_amount": "6",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "6",
+        "youtube_video": true,
+        "youtube_video_amount": "5",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "5",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "5",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "5",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "country": "",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "4",
+        "facebook_posts_curated_amount": "3",
+        "facebook_stories": true,
+        "facebook_stories_amount": "4",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "5",
+        "facebook_video_posts_curated_amount": "3",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "5",
+        "instagram_posts_curated_amount": "3",
+        "instagram_stories": true,
+        "instagram_stories_amount": "5",
+        "tiktok_shorts": true,
+        "tiktok_amount": "5",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "5",
+        "youtube_video": true,
+        "youtube_video_amount": "4",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "4",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "4",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "4",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "country": "Algeria",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "6",
+        "facebook_posts_curated_amount": "5",
+        "facebook_stories": true,
+        "facebook_stories_amount": "6",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "7",
+        "facebook_video_posts_curated_amount": "5",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "7",
+        "instagram_posts_curated_amount": "5",
+        "instagram_stories": true,
+        "instagram_stories_amount": "7",
+        "tiktok_shorts": true,
+        "tiktok_amount": "7",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "7",
+        "youtube_video": true,
+        "youtube_video_amount": "6",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "6",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "6",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "6",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "country": "Angola",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "8",
+        "facebook_posts_curated_amount": "7",
+        "facebook_stories": true,
+        "facebook_stories_amount": "8",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "9",
+        "facebook_video_posts_curated_amount": "7",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "9",
+        "instagram_posts_curated_amount": "7",
+        "instagram_stories": true,
+        "instagram_stories_amount": "9",
+        "tiktok_shorts": true,
+        "tiktok_amount": "9",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "9",
+        "youtube_video": true,
+        "youtube_video_amount": "8",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "8",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "8",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "8",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "country": "South Africa",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "4",
+        "facebook_posts_curated_amount": "3",
+        "facebook_stories": true,
+        "facebook_stories_amount": "4",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "5",
+        "facebook_video_posts_curated_amount": "3",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "5",
+        "instagram_posts_curated_amount": "3",
+        "instagram_stories": true,
+        "instagram_stories_amount": "5",
+        "tiktok_shorts": true,
+        "tiktok_amount": "5",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "5",
+        "youtube_video": true,
+        "youtube_video_amount": "4",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "4",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "4",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "4",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "country": "",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "5",
+        "facebook_posts_curated_amount": "4",
+        "facebook_stories": true,
+        "facebook_stories_amount": "5",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "6",
+        "facebook_video_posts_curated_amount": "4",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "6",
+        "instagram_posts_curated_amount": "4",
+        "instagram_stories": true,
+        "instagram_stories_amount": "6",
+        "tiktok_shorts": true,
+        "tiktok_amount": "6",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "6",
+        "youtube_video": true,
+        "youtube_video_amount": "5",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "5",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "5",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "5",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "country": "Algeria",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "4",
+        "facebook_posts_curated_amount": "3",
+        "facebook_stories": true,
+        "facebook_stories_amount": "4",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "5",
+        "facebook_video_posts_curated_amount": "3",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "5",
+        "instagram_posts_curated_amount": "3",
+        "instagram_stories": true,
+        "instagram_stories_amount": "5",
+        "tiktok_shorts": true,
+        "tiktok_amount": "5",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "5",
+        "youtube_video": true,
+        "youtube_video_amount": "4",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "4",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "4",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "4",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "country": "Angola",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "6",
+        "facebook_posts_curated_amount": "5",
+        "facebook_stories": true,
+        "facebook_stories_amount": "6",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "7",
+        "facebook_video_posts_curated_amount": "5",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "7",
+        "instagram_posts_curated_amount": "5",
+        "instagram_stories": true,
+        "instagram_stories_amount": "7",
+        "tiktok_shorts": true,
+        "tiktok_amount": "7",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "7",
+        "youtube_video": true,
+        "youtube_video_amount": "6",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "6",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "6",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "6",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "country": "South Africa",
+      "state": {
+        "facebook_posts": true,
+        "facebook_posts_amount": "5",
+        "facebook_posts_curated_amount": "4",
+        "facebook_stories": true,
+        "facebook_stories_amount": "5",
+        "facebook_video_posts": true,
+        "facebook_video_posts_amount": "6",
+        "facebook_video_posts_curated_amount": "4",
+        "facebook_instant_experience": false,
+        "facebook_instant_experience_amount": "",
+        "facebook_instant_experience_curated_amount": "",
+        "instagram_posts": true,
+        "instagram_posts_amount": "6",
+        "instagram_posts_curated_amount": "4",
+        "instagram_stories": true,
+        "instagram_stories_amount": "6",
+        "tiktok_shorts": true,
+        "tiktok_amount": "6",
+        "youtube_shorts": true,
+        "youtube_shorts_amount": "6",
+        "youtube_video": true,
+        "youtube_video_amount": "5",
+        "unlimited_product_uploads": true,
+        "unlimited_product_uploads_message": "Unlimited Product uploads to\nAgri4All.com Full report after\ncampaign\nAll designs for required\ncreative material included at no\nadditional cost.",
+        "agri4all_product_uploads": true,
+        "agri4all_product_uploads_amount": "5",
+        "linkedin_article": true,
+        "linkedin_company_campaign": true,
+        "linkedin_amount": "5",
+        "newsletter_feature": true,
+        "newsletter_feature_amount": "5",
+        "newsletter_banner": false,
+        "newsletter_banner_amount": ""
+      }
+    }
+  ],
+  "online_articles": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "platforms": [
+        "ProAgriMedia.com",
+        "ProAgri.co.za"
+      ],
+      "amount": 2,
+      "curated_amount": 1
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "platforms": [
+        "ProAgriMedia.com",
+        "ProAgri.co.za"
+      ],
+      "amount": 3,
+      "curated_amount": 2
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "platforms": [
+        "ProAgriMedia.com",
+        "ProAgri.co.za"
+      ],
+      "amount": 4,
+      "curated_amount": 3
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "platforms": [
+        "ProAgriMedia.com",
+        "ProAgri.co.za"
+      ],
+      "amount": 5,
+      "curated_amount": 4
+    }
+  ],
+  "banners": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "entries": [
+        {
+          "platform": "Agri4All.com",
+          "impressions": 20000
+        },
+        {
+          "platform": "ProAgri.co.za",
+          "impressions": 20000
+        }
+      ]
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "entries": [
+        {
+          "platform": "Agri4All.com",
+          "impressions": 20000
+        },
+        {
+          "platform": "ProAgri.co.za",
+          "impressions": 20000
+        }
+      ]
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "entries": [
+        {
+          "platform": "Agri4All.com",
+          "impressions": 20000
+        },
+        {
+          "platform": "ProAgri.co.za",
+          "impressions": 20000
+        }
+      ]
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "entries": [
+        {
+          "platform": "Agri4All.com",
+          "impressions": 20000
+        },
+        {
+          "platform": "ProAgri.co.za",
+          "impressions": 20000
+        }
+      ]
+    }
+  ],
+  "magazine": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "magazine": "SA Digital",
+      "magazine_display": "SA Digital",
+      "magazine_key": "mag_sa",
+      "magazine_original_label": "SA Digital",
+      "mag": "SA Digital",
+      "page_size": "Full Page",
+      "type": "Advert",
+      "positions": [
+        "Front Cover"
+      ],
+      "line_item": "1 x Full Page Advert SA Digital - Special Position: Front Cover",
+      "line_item_text": "1 x Full Page Advert SA Digital - Special Position: Front Cover",
+      "line_item_lines": [
+        "1 x Full Page Advert SA Digital - Special Position: Front Cover"
+      ],
+      "line_item_html": "<div>1 x Full Page Advert SA Digital - Special Position: Front Cover</div>",
+      "magazine_entry_index": 1
+    },
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "magazine": "Africa Print",
+      "magazine_display": "Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly",
+      "magazine_key": "mag_africa",
+      "magazine_original_label": "Africa Print",
+      "mag": "Africa Print",
+      "page_size": "Half Page",
+      "type": "Article",
+      "positions": [
+        "Inside Front Cover"
+      ],
+      "line_item": "1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover",
+      "line_item_text": "1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover",
+      "line_item_lines": [
+        "1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover"
+      ],
+      "line_item_html": "<div>1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover</div>",
+      "magazine_entry_index": 1
+    },
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "magazine": "Africa Digital",
+      "magazine_display": "Africa Digital",
+      "magazine_key": "mag_africa_digital",
+      "magazine_original_label": "Africa Digital",
+      "mag": "Africa Digital",
+      "page_size": "Full Page",
+      "type": "Advert",
+      "positions": [
+        "Center Fold"
+      ],
+      "line_item": "1 x Full Page Advert Africa Digital - Special Position: Center Fold",
+      "line_item_text": "1 x Full Page Advert Africa Digital - Special Position: Center Fold",
+      "line_item_lines": [
+        "1 x Full Page Advert Africa Digital - Special Position: Center Fold"
+      ],
+      "line_item_html": "<div>1 x Full Page Advert Africa Digital - Special Position: Center Fold</div>",
+      "magazine_entry_index": 2
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "magazine": "SA Digital",
+      "magazine_display": "SA Digital",
+      "magazine_key": "mag_sa",
+      "magazine_original_label": "SA Digital",
+      "mag": "SA Digital",
+      "page_size": "Full Page",
+      "type": "Advert",
+      "positions": [
+        "Front Cover"
+      ],
+      "line_item": "1 x Full Page Advert SA Digital - Special Position: Front Cover",
+      "line_item_text": "1 x Full Page Advert SA Digital - Special Position: Front Cover",
+      "line_item_lines": [
+        "1 x Full Page Advert SA Digital - Special Position: Front Cover"
+      ],
+      "line_item_html": "<div>1 x Full Page Advert SA Digital - Special Position: Front Cover</div>",
+      "magazine_entry_index": 1
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "magazine": "Africa Print",
+      "magazine_display": "Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly",
+      "magazine_key": "mag_africa",
+      "magazine_original_label": "Africa Print",
+      "mag": "Africa Print",
+      "page_size": "Half Page",
+      "type": "Article",
+      "positions": [
+        "Inside Front Cover"
+      ],
+      "line_item": "1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover",
+      "line_item_text": "1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover",
+      "line_item_lines": [
+        "1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover"
+      ],
+      "line_item_html": "<div>1 x Half Page Article Print Africa magazine (Zambia / Botswana / Namibia / Zimbabwe) Bi-monthly - Special Position: Inside Front Cover</div>",
+      "magazine_entry_index": 1
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "magazine": "Africa Digital",
+      "magazine_display": "Africa Digital",
+      "magazine_key": "mag_africa_digital",
+      "magazine_original_label": "Africa Digital",
+      "mag": "Africa Digital",
+      "page_size": "Full Page",
+      "type": "Advert",
+      "positions": [
+        "Center Fold"
+      ],
+      "line_item": "1 x Full Page Advert Africa Digital - Special Position: Center Fold",
+      "line_item_text": "1 x Full Page Advert Africa Digital - Special Position: Center Fold",
+      "line_item_lines": [
+        "1 x Full Page Advert Africa Digital - Special Position: Center Fold"
+      ],
+      "line_item_html": "<div>1 x Full Page Advert Africa Digital - Special Position: Center Fold</div>",
+      "magazine_entry_index": 2
+    }
+  ],
+  "video": [
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "video_index": 1,
+      "video_type": "Testimonial / Case Study",
+      "video_duration": "3-5 minutes",
+      "video_type_other": "",
+      "shoot_days": 1,
+      "shoot_hours": 2,
+      "shoot_location": "Test Location 1-1",
+      "description": "Test video description 1-1",
+      "photographer_included": true,
+      "photographer_info": "Portraits: Head & shoulders\nBackdrop: With backdrop\nGroups: Yes\nAmount of people in group: 4\nFlashes included on all portrait shoots",
+      "photographer_portraits": "Head & shoulders",
+      "photographer_backdrop": "With backdrop",
+      "photographer_groups": "Yes",
+      "photographer_group_amount": 4,
+      "photographer_days": "",
+      "photographer_hours": "",
+      "photographer_flashes": true
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "video_index": 2,
+      "video_type": "Interactive / Event Coverage",
+      "video_duration": "5-10 minutes",
+      "video_type_other": "",
+      "shoot_days": 2,
+      "shoot_hours": 3,
+      "shoot_location": "Test Location 1-2",
+      "description": "Test video description 1-2",
+      "photographer_included": true,
+      "photographer_info": "Portraits: Head & shoulders\nBackdrop: With backdrop\nGroups: Yes\nAmount of people in group: 4\nFlashes included on all portrait shoots",
+      "photographer_portraits": "Head & shoulders",
+      "photographer_backdrop": "With backdrop",
+      "photographer_groups": "Yes",
+      "photographer_group_amount": 4,
+      "photographer_days": "",
+      "photographer_hours": "",
+      "photographer_flashes": true
+    }
+  ],
+  "website": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "website_type": "Website Design & Development",
+      "number_of_pages": "1-5"
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "website_type": "Website Redesign",
+      "number_of_pages": "5-10"
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "website_type": "Website Design & Development",
+      "number_of_pages": "1-5"
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "website_type": "Website Redesign",
+      "number_of_pages": "5-10"
+    }
+  ],
+  "financial": [
+    {
+      "month_label": "February, 2026",
+      "months_display": "February, 2026",
+      "base_price": "R10000",
+      "discount": "R1000",
+      "subtotal": "R9000"
+    },
+    {
+      "month_label": "March, 2026",
+      "months_display": "March, 2026",
+      "base_price": "R10500",
+      "discount": "R1100",
+      "subtotal": "R9400"
+    },
+    {
+      "month_label": "April, 2026",
+      "months_display": "April, 2026",
+      "base_price": "R11000",
+      "discount": "R1200",
+      "subtotal": "R9800"
+    },
+    {
+      "month_label": "May, 2026",
+      "months_display": "May, 2026",
+      "base_price": "R11500",
+      "discount": "R1300",
+      "subtotal": "R10200"
+    }
+  ],
+  "financial_totals": {
+    "subtotal": "R38400",
+    "tax": "R5760",
+    "total": "R44160"
+  },
+  "sign_off": {
+    "date": "2026-04-01",
+    "representative": "Test Representative"
+  },
+  "financial_currency": "R"
+}
