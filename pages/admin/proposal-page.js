@@ -63,11 +63,11 @@
   }
 
   // --- Shared columns ---
-  // BASE_COLUMNS is used by every sheet. PROPOSAL_COLUMNS extends it with
-  // a "Checklist" link column — exposed only on the Proposal sub-sheet,
-  // where rows in outline_proposal status still benefit from a
-  // re-open-the-checklist link. Rows in other statuses within the same
-  // sub-sheet just render "—" for that column.
+  // BASE_COLUMNS is used by every sheet. PROPOSAL_COLUMNS / BOOKING_FORM_COLUMNS
+  // extend it with status-specific link columns:
+  //   - PROPOSAL_COLUMNS    → Checklist link, only meaningful for outline_proposal rows
+  //   - BOOKING_FORM_COLUMNS → Esign link,    only meaningful for booking_form_ready rows
+  // Both extra columns render "—" for rows whose status doesn't qualify.
   var BASE_COLUMNS = [
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
@@ -77,6 +77,16 @@
     { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' }
   ]);
 
+  var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
+    { key: 'esignUrl', label: 'Unsigned Booking Form', type: 'link', width: 'sm' }
+  ]);
+
+  // Per-tab column overrides for renderAdminTab. Tabs not listed fall back
+  // to BASE_COLUMNS.
+  var TAB_COLUMNS = {
+    'Booking Form': BOOKING_FORM_COLUMNS
+  };
+
   function mapFormToRow(form) {
     return {
       id: form.id,
@@ -84,7 +94,11 @@
       status: form.status || 'outline_proposal',
       // Only surface the link for rows still in outline_proposal so the
       // column renders "—" once the proposal has moved past that stage.
-      checklistUrl: (form.status === 'outline_proposal') ? (form.checklistUrl || '') : ''
+      checklistUrl: (form.status === 'outline_proposal') ? (form.checklistUrl || '') : '',
+      // Same shape for the Esign link — only show on booking_form_ready rows.
+      // The URL is populated by the Booking Form Esign app at token-creation
+      // time (UPDATE booking_forms SET esign_url = $1).
+      esignUrl: (form.status === 'booking_form_ready') ? (form.esignUrl || '') : ''
     };
   }
 
@@ -272,7 +286,9 @@
     mainCol.className = 'dept-dashboard-main';
     mainCol.style.width = '100%';
 
-    var sheet = buildSheet(tabName, refreshAll);
+    // Tabs can opt into a custom column set via TAB_COLUMNS (e.g. the
+    // Booking Form tab adds an "Unsigned Booking Form" link column).
+    var sheet = buildSheet(tabName, refreshAll, TAB_COLUMNS[tabName]);
     mainCol.appendChild(sheet.el);
     layout.appendChild(mainCol);
     container.appendChild(layout);
