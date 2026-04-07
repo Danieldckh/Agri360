@@ -31,6 +31,11 @@
     posts: [],
     creds: [],
     sourceFilter: 'all',
+    // When the scheduler is opened from a dept tab that pins it to a specific
+    // source (e.g. Social Media > Content Calendars), presetSource is set
+    // and the internal source switcher is hidden — the dept nav becomes the
+    // source nav instead.
+    presetSource: false,
     view: 'month',         // month | week | day
     cursor: new Date(),    // current focused date
     search: '',
@@ -246,17 +251,21 @@
     title.appendChild(document.createTextNode(' Social Media Scheduler'));
     bar.appendChild(title);
 
-    // source tabs
-    var tabs = el('div', 'sch-source-tabs');
-    SOURCES.forEach(function (s) {
-      var btn = el('button', 'sch-source-tab' + (state.sourceFilter === s.id ? ' active' : ''), s.label);
-      btn.addEventListener('click', function () {
-        state.sourceFilter = s.id;
-        render();
+    // Source tabs — hidden when a preset source is active (the dept tab
+    // nav drives the source in that case, so showing a second switcher
+    // would be redundant + confusing).
+    if (!state.presetSource) {
+      var tabs = el('div', 'sch-source-tabs');
+      SOURCES.forEach(function (s) {
+        var btn = el('button', 'sch-source-tab' + (state.sourceFilter === s.id ? ' active' : ''), s.label);
+        btn.addEventListener('click', function () {
+          state.sourceFilter = s.id;
+          render();
+        });
+        tabs.appendChild(btn);
       });
-      tabs.appendChild(btn);
-    });
-    bar.appendChild(tabs);
+      bar.appendChild(tabs);
+    }
 
     // new post button
     var newBtn = el('button', 'sch-btn sch-btn-primary');
@@ -901,9 +910,21 @@
   }
 
   // ---------------- public entry ----------------
-  window.renderSocialSchedulerPage = function (container) {
+  // options: { sourceFilter?: 'content-calendar'|'agri4all'|'own-sm'|'all' }
+  // When a sourceFilter is passed, the scheduler locks to that source and
+  // hides its internal source switcher — the caller's navigation (e.g. the
+  // dept tab nav) is expected to drive source switching instead.
+  window.renderSocialSchedulerPage = function (container, options) {
+    options = options || {};
     state.container = container;
     state.cursor = new Date();
+    if (options.sourceFilter) {
+      state.sourceFilter = options.sourceFilter;
+      state.presetSource = true;
+    } else {
+      state.sourceFilter = 'all';
+      state.presetSource = false;
+    }
     // initial empty render so user sees layout immediately
     render();
     loadAll();
