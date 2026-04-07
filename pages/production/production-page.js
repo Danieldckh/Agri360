@@ -1337,30 +1337,48 @@
   ];
 
   // Avatar: photo if available, otherwise colored initials circle
+  // Normalize employee field names (API returns snake_case)
+  function empFirst(e) { return e && (e.first_name || e.firstName) || ''; }
+  function empLast(e) { return e && (e.last_name || e.lastName) || ''; }
+  function empPhoto(e) { return e && (e.photo_url || e.photoUrl) || ''; }
+  function empFullName(e) {
+    if (!e) return '';
+    return (empFirst(e) + ' ' + empLast(e)).trim() || (e.username || '');
+  }
+  function empInitials(e) {
+    if (!e) return '?';
+    var f = empFirst(e);
+    var l = empLast(e);
+    if (f || l) return ((f[0] || '') + (l[0] || '')).toUpperCase();
+    var u = (e.username || '').trim();
+    return u ? u.substring(0, 2).toUpperCase() : '?';
+  }
+
   function buildAvatar(employee, size, deptColor) {
     var el = document.createElement('div');
     el.className = 'dept-avatar';
     var px = (size || 22) + 'px';
     el.style.cssText = 'width:' + px + ';height:' + px + ';';
-    if (employee && employee.photoUrl) {
+    var photo = empPhoto(employee);
+    if (employee && photo) {
       var img = document.createElement('img');
-      img.src = employee.photoUrl;
-      img.alt = (employee.firstName || '') + ' ' + (employee.lastName || '');
+      img.src = photo;
+      img.alt = empFullName(employee);
       el.appendChild(img);
     } else if (employee) {
-      var initials = ((employee.firstName || '')[0] || '') + ((employee.lastName || '')[0] || '');
-      el.textContent = initials.toUpperCase() || '?';
+      el.textContent = empInitials(employee);
       el.style.background = deptColor || '#64748b';
       el.style.color = '#fff';
+      // Scale font by size
+      el.style.fontSize = (size >= 28 ? '11px' : '9px');
     } else {
-      // Empty slot — show plus or blank
       el.className += ' dept-avatar-empty';
       el.textContent = '+';
       el.style.borderColor = deptColor || '#cbd5e1';
       el.style.color = deptColor || '#94a3b8';
     }
     if (employee) {
-      el.title = ((employee.firstName || '') + ' ' + (employee.lastName || '')).trim() + (deptColor ? '' : '');
+      el.title = empFullName(employee);
     }
     return el;
   }
@@ -1404,9 +1422,7 @@
             if (a.id === currentUser.id) return -1;
             if (b.id === currentUser.id) return 1;
           }
-          var an = (a.firstName || '') + ' ' + (a.lastName || '');
-          var bn = (b.firstName || '') + ' ' + (b.lastName || '');
-          return an.localeCompare(bn);
+          return empFullName(a).localeCompare(empFullName(b));
         });
 
         function renderList(filter) {
@@ -1415,7 +1431,7 @@
           if (filter) {
             var f = filter.toLowerCase();
             filtered = sorted.filter(function (e) {
-              var name = ((e.firstName || '') + ' ' + (e.lastName || '') + ' ' + (e.username || '') + ' ' + (e.role || '')).toLowerCase();
+              var name = (empFullName(e) + ' ' + (e.username || '') + ' ' + (e.role || '')).toLowerCase();
               return name.indexOf(f) !== -1;
             });
           }
@@ -1438,7 +1454,7 @@
             info.className = 'emp-picker-info';
             var name = document.createElement('div');
             name.className = 'emp-picker-name';
-            name.textContent = ((emp.firstName || '') + ' ' + (emp.lastName || '')).trim() || emp.username;
+            name.textContent = empFullName(emp) || emp.username;
             info.appendChild(name);
             var role = document.createElement('div');
             role.className = 'emp-picker-role';
@@ -1465,10 +1481,32 @@
   }
 
   // Build the 7-avatar cell for a deliverable row
-  function buildDeptAvatarRow(deliverable, onUpdate) {
+  // Map dept slug to slot (for filtering by context)
+  function getSlotForDeptSlug(slug) {
+    // Match slug variations: 'production' → production slot, 'social-media' → socialMedia, etc.
+    var normalized = (slug || '').toLowerCase().replace(/-/g, '');
+    for (var i = 0; i < DEPT_SLOTS.length; i++) {
+      var s = DEPT_SLOTS[i];
+      if (s.api.replace('assigned_', '').replace(/_/g, '') === normalized) return s;
+    }
+    return null;
+  }
+
+  // Build avatar cell — shows only the slot(s) matching the given dept context
+  // If deptContext is 'all', shows all 7. Otherwise shows just that dept's slot.
+  function buildDeptAvatarRow(deliverable, onUpdate, deptContext) {
     var wrap = document.createElement('div');
     wrap.className = 'dept-avatar-row';
-    DEPT_SLOTS.forEach(function (slot) {
+
+    var slots;
+    if (deptContext === 'all') {
+      slots = DEPT_SLOTS;
+    } else {
+      var slot = getSlotForDeptSlug(deptContext);
+      slots = slot ? [slot] : DEPT_SLOTS;
+    }
+
+    slots.forEach(function (slot) {
       var assignedId = deliverable[slot.field];
       var emp = assignedId && window._employeeCacheLookup ? window._employeeCacheLookup(assignedId) : null;
       var avatar = buildAvatar(emp, 22, slot.color);
@@ -1653,7 +1691,7 @@
             'agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads',
             'agri4all-newsletter-feature', 'agri4all-newsletter-banner', 'agri4all-linkedin',
             'own-social-posts', 'own-social-videos', 'own-social-linkedin', 'own-social-twitter',
-            'agri4all-banners',
+            'agri4all-banners', 'video',
             'magazine-sa-digital', 'magazine-africa-print', 'magazine-africa-digital', 'magazine-coffee-table'];
           if (dashboardTypes.indexOf(item.type) !== -1) {
             var eyeBtn = document.createElement('button');
@@ -1679,18 +1717,19 @@
                 else if (it.type === 'agri4all-linkedin') openA4ARichTextDashboard(container, it);
                 else if (it.type === 'own-social-linkedin') openA4ARichTextDashboard(container, it);
                 else if (it.type === 'own-social-twitter') openA4ARichTextDashboard(container, it);
+                else if (it.type === 'video') openA4AImageDescriptionDashboard(container, it);
               });
             })(item);
             eyeCell.appendChild(eyeBtn);
           }
           row.appendChild(eyeCell);
 
-          // Team avatars (7 dept slots)
+          // Team avatar — only the current dept's slot (production for this tab)
           var teamCell = document.createElement('div');
           teamCell.className = 'prod-deliv-cell prod-deliv-team';
           teamCell.appendChild(buildDeptAvatarRow(item, function () {
             fetchData(currentYM);
-          }));
+          }, 'production'));
           row.appendChild(teamCell);
 
           // Title
@@ -2293,7 +2332,7 @@
         info.style.cssText = 'flex:1;min-width:0;';
         var name = document.createElement('div');
         name.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-primary,#1e293b);';
-        name.textContent = ((emp.firstName || '') + ' ' + (emp.lastName || '')).trim() || emp.username;
+        name.textContent = empFullName(emp) || emp.username;
         info.appendChild(name);
         var role = document.createElement('div');
         role.style.cssText = 'font-size:10px;color:var(--text-secondary,#64748b);';
@@ -2942,7 +2981,29 @@
       if (meta.amount) addSidebarField(wrap, 'Amount', meta.amount);
       if (meta.product_uploads_amount) addSidebarField(wrap, 'Product Uploads', meta.product_uploads_amount);
       if (meta.unlimited_product_uploads) addSidebarField(wrap, 'Unlimited', 'Yes');
+      // Video-specific fields
+      if (meta.video_type) addSidebarField(wrap, 'Video Type', meta.video_type);
+      if (meta.video_duration) addSidebarField(wrap, 'Duration', meta.video_duration);
+      if (meta.shoot_location) addSidebarField(wrap, 'Location', meta.shoot_location);
+      if (meta.shoot_days) addSidebarField(wrap, 'Days', meta.shoot_days);
+      if (meta.shoot_hours) addSidebarField(wrap, 'Hours', meta.shoot_hours);
+      if (meta.photographer_included) addSidebarField(wrap, 'Photographer', 'Yes');
+      if (meta.photographer_portraits) addSidebarField(wrap, 'Portraits', meta.photographer_portraits);
+      if (meta.photographer_backdrop) addSidebarField(wrap, 'Backdrop', meta.photographer_backdrop);
+      if (meta.photographer_groups) addSidebarField(wrap, 'Groups', meta.photographer_groups);
+      if (meta.photographer_group_amount) addSidebarField(wrap, 'Group Size', meta.photographer_group_amount);
+      if (meta.description && !meta.video_type) addSidebarField(wrap, 'Description', meta.description);
       nav.appendChild(wrap);
+
+      // Show video description as its own section if present
+      if (meta.description && meta.video_type) {
+        addSidebarSection(nav, 'Video Brief');
+        var descWrap = document.createElement('div');
+        descWrap.style.cssText = 'padding:0 16px;font-size:11px;color:var(--text-primary,#1e293b);line-height:1.5;white-space:pre-wrap;';
+        descWrap.textContent = meta.description;
+        nav.appendChild(descWrap);
+      }
+
       addCountriesToSidebar(nav, meta.countries);
     });
 

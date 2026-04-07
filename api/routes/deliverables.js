@@ -516,6 +516,39 @@ router.post('/create-content-calendars', async (req, res) => {
       ));
     }
 
+    // === Video ===
+    const videoEntries = formData.video || [];
+    for (const entry of videoEntries) {
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      const videoLabel = entry.video_type || 'Video';
+      const titleSuffix = entry.video_index ? ' #' + entry.video_index : '';
+      created.push(await createDeliv(
+        'video',
+        clientName + ' - ' + videoLabel + titleSuffix + ' - ' + ml,
+        'send_request_form', 'production', dm,
+        {
+          video_type: entry.video_type || '',
+          video_type_other: entry.video_type_other || '',
+          video_duration: entry.video_duration || '',
+          description: entry.description || '',
+          shoot_location: entry.shoot_location || '',
+          shoot_days: entry.shoot_days || '',
+          shoot_hours: entry.shoot_hours || '',
+          video_index: entry.video_index || '',
+          photographer_included: !!entry.photographer_included,
+          photographer_info: entry.photographer_info || '',
+          photographer_portraits: entry.photographer_portraits || '',
+          photographer_backdrop: entry.photographer_backdrop || '',
+          photographer_groups: entry.photographer_groups || '',
+          photographer_group_amount: entry.photographer_group_amount || '',
+          photographer_days: entry.photographer_days || '',
+          photographer_hours: entry.photographer_hours || '',
+          photographer_flashes: !!entry.photographer_flashes
+        }
+      ));
+    }
+
     // === Online Articles ===
     const oaEntries = formData.online_articles || [];
     for (const entry of oaEntries) {
