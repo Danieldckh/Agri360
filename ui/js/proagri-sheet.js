@@ -912,10 +912,17 @@
           if (action.icon) {
             btn.appendChild(makeSvgEl(action.icon, 14));
           }
-          btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            if (action.onClick) action.onClick(rowData);
-          });
+          // Per-row visibility: if action.visible returns false, hide the
+          // button but keep its slot so the column width stays stable.
+          if (typeof action.visible === 'function' && !action.visible(rowData)) {
+            btn.style.visibility = 'hidden';
+            btn.tabIndex = -1;
+          } else {
+            btn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (action.onClick) action.onClick(rowData);
+            });
+          }
           leadWrap.appendChild(btn);
         });
         leadCell.appendChild(leadWrap);
@@ -964,10 +971,17 @@
           if (action.icon) {
             btn.appendChild(makeSvgEl(action.icon, 14));
           }
-          btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            if (action.onClick) action.onClick(rowData);
-          });
+          // Per-row visibility: if action.visible returns false, hide the
+          // button but keep its slot so the column width stays stable.
+          if (typeof action.visible === 'function' && !action.visible(rowData)) {
+            btn.style.visibility = 'hidden';
+            btn.tabIndex = -1;
+          } else {
+            btn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (action.onClick) action.onClick(rowData);
+            });
+          }
           actionsWrap.appendChild(btn);
         });
         actionsCell.appendChild(actionsWrap);
