@@ -167,7 +167,11 @@ const DEPT_MAP_ALIASES = {
   'agri4all-videos': 'agri4all-posts', 'agri4all-product-uploads': 'agri4all-posts',
   'agri4all-newsletters': 'agri4all-posts',
   'agri4all-newsletter-feature': 'agri4all-posts', 'agri4all-newsletter-banner': 'agri4all-posts',
-  'agri4all-linkedin': 'agri4all-posts'
+  'agri4all-linkedin': 'agri4all-posts',
+  'own-social-posts': 'sm-posts', 'own-social-videos': 'sm-posts',
+  'own-social-linkedin': 'sm-posts', 'own-social-twitter': 'sm-posts',
+  'magazine-sa-digital': 'magazine', 'magazine-africa-print': 'magazine',
+  'magazine-africa-digital': 'magazine', 'magazine-coffee-table': 'magazine'
 };
 
 function getDeptMapForType(type) {
@@ -462,21 +466,52 @@ router.post('/create-content-calendars', async (req, res) => {
       ));
     }
 
-    // === Magazine ===
+    // === Magazine — separate deliverable per magazine type ===
+    const MAG_TYPE_MAP = {
+      'mag_sa': { type: 'magazine-sa-digital', label: 'SA Digital' },
+      'mag_africa': { type: 'magazine-africa-print', label: 'Africa Print' },
+      'mag_africa_digital': { type: 'magazine-africa-digital', label: 'Africa Digital' },
+      'mag_coffee_table': { type: 'magazine-coffee-table', label: 'Coffee Table Book' }
+    };
     const magEntries = formData.magazine || [];
     for (const entry of magEntries) {
       const dm = parseMonthLabel(entry.month_label || entry.months_display);
       const ml = entry.month_label || entry.months_display || 'Unknown';
+      const magInfo = MAG_TYPE_MAP[entry.magazine_key] || { type: 'magazine', label: entry.magazine_display || entry.magazine || 'Magazine' };
       created.push(await createDeliv(
-        'magazine',
-        clientName + ' - Magazine - ' + (entry.magazine_display || entry.magazine || ml),
+        magInfo.type,
+        clientName + ' - ' + magInfo.label + ' - ' + ml,
         'request_client_materials', 'production', dm,
         {
-          publication: entry.magazine_display || entry.magazine || '',
+          publication: magInfo.label,
+          magazine_key: entry.magazine_key || '',
           page_size: entry.page_size || '',
           type: entry.type || '',
           positions: entry.positions || [],
           line_item: entry.line_item_text || entry.line_item || ''
+        }
+      ));
+    }
+
+    // === Banners ===
+    const bannerEntries = formData.banners || [];
+    for (const entry of bannerEntries) {
+      const dm = parseMonthLabel(entry.month_label || entry.months_display);
+      const ml = entry.month_label || entry.months_display || 'Unknown';
+      const platforms = (entry.entries || []).map(e => e.platform).filter(Boolean);
+      const impressions = {};
+      (entry.entries || []).forEach(e => {
+        if (e.platform && e.impressions) impressions[e.platform] = e.impressions;
+      });
+      const totalImpressions = (entry.entries || []).reduce((sum, e) => sum + (parseInt(e.impressions, 10) || 0), 0);
+      created.push(await createDeliv(
+        'agri4all-banners',
+        clientName + ' - Banners - ' + ml,
+        'design', 'design', dm,
+        {
+          platforms: platforms,
+          impressions_by_platform: impressions,
+          total_impressions: totalImpressions
         }
       ));
     }
@@ -635,6 +670,95 @@ router.post('/create-content-calendars', async (req, res) => {
             article: anyHas(states, 'linkedin_article'),
             company_campaign: anyHas(states, 'linkedin_company_campaign'),
             amount: maxAmt(states, 'linkedin_amount')
+          }
+        ));
+      }
+    }
+
+    // === Own Page Social Media ===
+    // From social_media_management[].own_page — one deliverable per month per type
+    for (const sm of smEntries) {
+      const op = sm.own_page || {};
+      const dm = parseMonthLabel(sm.month_label || sm.months_display);
+      const ml = sm.month_label || sm.months_display || 'Unknown';
+
+      // 1. Own Page Posts (FB posts, IG posts, FB stories, IG stories)
+      if (op.facebook_posts || op.instagram_posts || op.facebook_stories || op.instagram_stories) {
+        const igPosts = !!op.instagram_posts;
+        const igPostsAmt = op.instagram_posts_amount || '';
+        created.push(await createDeliv(
+          'own-social-posts',
+          clientName + ' - Own Page Posts - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            facebook_posts: !!op.facebook_posts,
+            facebook_posts_amount: op.facebook_posts_amount || '',
+            facebook_posts_curated_amount: op.facebook_posts_curated_amount || '',
+            facebook_posts_timeframe: op.facebook_posts_timeframe || '',
+            facebook_stories: !!op.facebook_stories,
+            facebook_stories_amount: op.facebook_stories_amount || '',
+            facebook_stories_timeframe: op.facebook_stories_timeframe || '',
+            instagram_posts: igPosts,
+            instagram_posts_amount: igPostsAmt,
+            instagram_posts_curated_amount: op.instagram_posts_curated_amount || '',
+            instagram_posts_timeframe: op.instagram_posts_timeframe || '',
+            // IG stories auto-derived from IG posts (same amount)
+            instagram_stories: igPosts || !!op.instagram_stories,
+            instagram_stories_amount: igPostsAmt || op.instagram_stories_amount || '',
+            instagram_stories_timeframe: op.instagram_stories_timeframe || ''
+          }
+        ));
+      }
+
+      // 2. Own Page Videos
+      if (op.facebook_video_posts || op.tiktok_shorts || op.youtube_shorts || op.youtube_video) {
+        created.push(await createDeliv(
+          'own-social-videos',
+          clientName + ' - Own Page Videos - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            facebook_video_posts: !!op.facebook_video_posts,
+            facebook_video_posts_amount: op.facebook_video_posts_amount || '',
+            facebook_video_posts_curated_amount: op.facebook_video_posts_curated_amount || '',
+            facebook_video_posts_timeframe: op.facebook_video_posts_timeframe || '',
+            tiktok_shorts: !!op.tiktok_shorts,
+            tiktok_amount: op.tiktok_amount || '',
+            tiktok_timeframe: op.tiktok_timeframe || '',
+            youtube_shorts: !!op.youtube_shorts,
+            youtube_shorts_amount: op.youtube_shorts_amount || '',
+            youtube_shorts_timeframe: op.youtube_shorts_timeframe || '',
+            youtube_video: !!op.youtube_video,
+            youtube_video_amount: op.youtube_video_amount || '',
+            youtube_video_timeframe: op.youtube_video_timeframe || ''
+          }
+        ));
+      }
+
+      // 3. Own Page LinkedIn
+      if (op.linkedin_article || op.linkedin_campaign) {
+        created.push(await createDeliv(
+          'own-social-linkedin',
+          clientName + ' - Own Page LinkedIn - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            article: !!op.linkedin_article,
+            campaign: !!op.linkedin_campaign,
+            amount: op.linkedin_amount || '',
+            timeframe: op.linkedin_timeframe || ''
+          }
+        ));
+      }
+
+      // 4. Own Page Twitter
+      if (op.twitter_x_posts) {
+        created.push(await createDeliv(
+          'own-social-twitter',
+          clientName + ' - Own Page Twitter/X - ' + ml,
+          'request_client_materials', 'production', dm,
+          {
+            twitter_x_posts: true,
+            amount: op.twitter_x_posts_amount || '',
+            timeframe: op.twitter_x_posts_timeframe || ''
           }
         ));
       }

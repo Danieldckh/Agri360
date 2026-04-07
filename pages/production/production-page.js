@@ -1482,7 +1482,10 @@
           eyeCell.className = 'prod-deliv-cell prod-deliv-act';
           var dashboardTypes = ['sm-content-calendar', 'website-design', 'online-articles',
             'agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads',
-            'agri4all-newsletter-feature', 'agri4all-newsletter-banner', 'agri4all-linkedin'];
+            'agri4all-newsletter-feature', 'agri4all-newsletter-banner', 'agri4all-linkedin',
+            'own-social-posts', 'own-social-videos', 'own-social-linkedin', 'own-social-twitter',
+            'agri4all-banners',
+            'magazine-sa-digital', 'magazine-africa-print', 'magazine-africa-digital', 'magazine-coffee-table'];
           if (dashboardTypes.indexOf(item.type) !== -1) {
             var eyeBtn = document.createElement('button');
             eyeBtn.className = 'proagri-sheet-row-action-btn action-view';
@@ -1497,10 +1500,16 @@
                 else if (it.type === 'online-articles') openOnlineArticlesDashboard(container, it);
                 else if (it.type === 'agri4all-posts') openA4AMultiSectionDashboard(container, it, 'posts');
                 else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(container, it, 'videos');
+                else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(container, it, 'own-posts');
+                else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(container, it, 'own-videos');
                 else if (it.type === 'agri4all-product-uploads') openA4AImageDescriptionDashboard(container, it);
                 else if (it.type === 'agri4all-newsletter-feature') openA4AImageDescriptionDashboard(container, it);
                 else if (it.type === 'agri4all-newsletter-banner') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'agri4all-banners') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type && it.type.indexOf('magazine') === 0) openA4AImageDescriptionDashboard(container, it);
                 else if (it.type === 'agri4all-linkedin') openA4ARichTextDashboard(container, it);
+                else if (it.type === 'own-social-linkedin') openA4ARichTextDashboard(container, it);
+                else if (it.type === 'own-social-twitter') openA4ARichTextDashboard(container, it);
               });
             })(item);
             eyeCell.appendChild(eyeBtn);
@@ -2461,11 +2470,12 @@
     var meta = deliverable.metadata || {};
     if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
     if (!meta.sections) meta.sections = {};
+    if (!meta.extra_sections) meta.extra_sections = [];
 
     function save() {
       fetch(API_BASE + '/' + deliverable.id, {
         method: 'PATCH', headers: getHeaders(),
-        body: JSON.stringify({ metadata: { sections: meta.sections } })
+        body: JSON.stringify({ metadata: { sections: meta.sections, extra_sections: meta.extra_sections } })
       });
     }
 
@@ -2482,65 +2492,161 @@
       if (meta.tiktok_shorts) sectionConfig.push({ key: 'tiktok_shorts', label: 'TikTok Shorts', amount: meta.tiktok_amount });
       if (meta.youtube_shorts) sectionConfig.push({ key: 'youtube_shorts', label: 'YouTube Shorts', amount: meta.youtube_shorts_amount });
       if (meta.youtube_video) sectionConfig.push({ key: 'youtube_video', label: 'YouTube Videos', amount: meta.youtube_video_amount });
+    } else if (kind === 'own-posts') {
+      if (meta.facebook_posts) sectionConfig.push({ key: 'facebook_posts', label: 'Facebook Posts', amount: meta.facebook_posts_amount, curated: meta.facebook_posts_curated_amount, timeframe: meta.facebook_posts_timeframe });
+      if (meta.facebook_stories) sectionConfig.push({ key: 'facebook_stories', label: 'Facebook Stories', amount: meta.facebook_stories_amount, timeframe: meta.facebook_stories_timeframe });
+      if (meta.instagram_posts) sectionConfig.push({ key: 'instagram_posts', label: 'Instagram Posts', amount: meta.instagram_posts_amount, curated: meta.instagram_posts_curated_amount, timeframe: meta.instagram_posts_timeframe });
+      if (meta.instagram_stories) sectionConfig.push({ key: 'instagram_stories', label: 'Instagram Stories', amount: meta.instagram_stories_amount, timeframe: meta.instagram_stories_timeframe });
+    } else if (kind === 'own-videos') {
+      if (meta.facebook_video_posts) sectionConfig.push({ key: 'facebook_video_posts', label: 'Facebook Video Posts', amount: meta.facebook_video_posts_amount, curated: meta.facebook_video_posts_curated_amount, timeframe: meta.facebook_video_posts_timeframe });
+      if (meta.tiktok_shorts) sectionConfig.push({ key: 'tiktok_shorts', label: 'TikTok Shorts', amount: meta.tiktok_amount, timeframe: meta.tiktok_timeframe });
+      if (meta.youtube_shorts) sectionConfig.push({ key: 'youtube_shorts', label: 'YouTube Shorts', amount: meta.youtube_shorts_amount, timeframe: meta.youtube_shorts_timeframe });
+      if (meta.youtube_video) sectionConfig.push({ key: 'youtube_video', label: 'YouTube Videos', amount: meta.youtube_video_amount, timeframe: meta.youtube_video_timeframe });
     }
 
     setupDashboardSidebar(deliverable, function (nav) {
-      addSidebarSection(nav, kind === 'posts' ? 'Post Amounts' : 'Video Amounts');
+      var sectionTitle = (kind === 'posts' || kind === 'own-posts') ? 'Post Amounts' : 'Video Amounts';
+      addSidebarSection(nav, sectionTitle);
       var wrap = document.createElement('div');
       wrap.style.padding = '0 16px';
       sectionConfig.forEach(function (s) {
         var parts = [];
         if (s.amount) parts.push(s.amount);
         if (s.curated) parts.push('(+' + s.curated + ' curated)');
+        if (s.timeframe) parts.push('(' + s.timeframe + ')');
         addSidebarField(wrap, s.label, parts.join(' '));
       });
       nav.appendChild(wrap);
-
       addCountriesToSidebar(nav, meta.countries);
     });
 
     var wrapper = document.createElement('div');
     wrapper.className = 'wd-dashboard';
 
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
     var title = document.createElement('h2');
     title.className = 'cc-dashboard-title';
     title.textContent = deliverable.title || '';
-    title.style.marginBottom = '16px';
-    wrapper.appendChild(title);
+    titleRow.appendChild(title);
 
-    if (sectionConfig.length === 0) {
-      var empty = document.createElement('div');
-      empty.style.cssText = 'padding:20px;text-align:center;color:var(--text-muted,#94a3b8);';
-      empty.textContent = 'No sections for this deliverable.';
-      wrapper.appendChild(empty);
-    }
+    var addBlockBtn = document.createElement('button');
+    addBlockBtn.className = 'cc-add-row-btn';
+    addBlockBtn.textContent = '+ Add Block';
+    addBlockBtn.addEventListener('click', function () {
+      meta.extra_sections.push({ name: 'New Block', files: [], done: false });
+      renderAll();
+      save();
+    });
+    titleRow.appendChild(addBlockBtn);
+    wrapper.appendChild(titleRow);
 
     var stepsWrap = document.createElement('div');
     stepsWrap.className = 'wd-steps';
-
-    sectionConfig.forEach(function (sec, idx) {
-      if (!meta.sections[sec.key]) meta.sections[sec.key] = { files: [] };
-      var stepEl = document.createElement('div');
-      stepEl.className = 'wd-step';
-      var header = document.createElement('div');
-      header.className = 'wd-step-header';
-      var num = document.createElement('span');
-      num.className = 'wd-step-num';
-      num.textContent = idx + 1;
-      header.appendChild(num);
-      var titleEl = document.createElement('span');
-      titleEl.className = 'wd-step-title';
-      var amtText = '';
-      if (sec.amount) amtText += ' — ' + sec.amount;
-      if (sec.curated) amtText += ' (+' + sec.curated + ' curated)';
-      titleEl.textContent = sec.label + amtText;
-      header.appendChild(titleEl);
-      stepEl.appendChild(header);
-      stepEl.appendChild(buildUploadArea(deliverable.id, meta.sections[sec.key].files, save, 'Upload ' + sec.label));
-      stepsWrap.appendChild(stepEl);
-    });
     wrapper.appendChild(stepsWrap);
     container.appendChild(wrapper);
+
+    function buildStep(opts) {
+      // opts: { num, label, amount, curated, timeframe, files, done, editable, onRename, onDone, onDelete }
+      var stepEl = document.createElement('div');
+      stepEl.className = 'wd-step';
+
+      var header = document.createElement('div');
+      header.className = 'wd-step-header';
+
+      // Checkbox
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'wd-step-checkbox';
+      cb.checked = !!opts.done;
+      cb.addEventListener('change', function () {
+        opts.onDone(cb.checked);
+        stepEl.classList.toggle('wd-step-done', cb.checked);
+      });
+      header.appendChild(cb);
+
+      var num = document.createElement('span');
+      num.className = 'wd-step-num';
+      num.textContent = opts.num;
+      header.appendChild(num);
+
+      var titleEl = document.createElement(opts.editable ? 'span' : 'span');
+      titleEl.className = 'wd-step-title';
+      if (opts.editable) {
+        titleEl.contentEditable = 'true';
+        titleEl.textContent = opts.label;
+        titleEl.addEventListener('blur', function () {
+          opts.onRename(titleEl.textContent);
+        });
+      } else {
+        var amtText = '';
+        if (opts.amount) amtText += ' — ' + opts.amount;
+        if (opts.curated) amtText += ' (+' + opts.curated + ' curated)';
+        if (opts.timeframe) amtText += ' · ' + opts.timeframe;
+        titleEl.textContent = opts.label + amtText;
+      }
+      header.appendChild(titleEl);
+
+      if (opts.onDelete) {
+        var delBtn = document.createElement('button');
+        delBtn.className = 'wd-step-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.title = 'Delete block';
+        delBtn.addEventListener('click', function () { opts.onDelete(); });
+        header.appendChild(delBtn);
+      }
+
+      stepEl.appendChild(header);
+      if (opts.done) stepEl.classList.add('wd-step-done');
+
+      stepEl.appendChild(buildUploadArea(deliverable.id, opts.files, save, 'Upload ' + opts.label));
+      return stepEl;
+    }
+
+    function renderAll() {
+      while (stepsWrap.firstChild) stepsWrap.removeChild(stepsWrap.firstChild);
+      var counter = 1;
+
+      if (sectionConfig.length === 0 && meta.extra_sections.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'padding:20px;text-align:center;color:var(--text-muted,#94a3b8);';
+        empty.textContent = 'No sections. Click + Add Block to add one.';
+        stepsWrap.appendChild(empty);
+        return;
+      }
+
+      // Built-in sections
+      sectionConfig.forEach(function (sec) {
+        if (!meta.sections[sec.key]) meta.sections[sec.key] = { files: [], done: false };
+        (function (s) {
+          stepsWrap.appendChild(buildStep({
+            num: counter++,
+            label: s.label,
+            amount: s.amount, curated: s.curated, timeframe: s.timeframe,
+            files: meta.sections[s.key].files,
+            done: meta.sections[s.key].done,
+            editable: false,
+            onDone: function (v) { meta.sections[s.key].done = v; save(); }
+          }));
+        })(sec);
+      });
+
+      // Extra sections
+      meta.extra_sections.forEach(function (xs, idx) {
+        if (!xs.files) xs.files = [];
+        stepsWrap.appendChild(buildStep({
+          num: counter++,
+          label: xs.name || 'New Block',
+          files: xs.files,
+          done: xs.done,
+          editable: true,
+          onRename: function (v) { xs.name = v; save(); },
+          onDone: function (v) { xs.done = v; save(); },
+          onDelete: function () { meta.extra_sections.splice(idx, 1); renderAll(); save(); }
+        }));
+      });
+    }
+    renderAll();
   }
 
   // ══════ A4A IMAGE + DESCRIPTION DASHBOARD (product uploads, newsletters) ══════
@@ -2658,11 +2764,12 @@
     var meta = deliverable.metadata || {};
     if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
     if (!meta.article_text) meta.article_text = '';
+    if (!meta.extra_blocks) meta.extra_blocks = [];
 
     function save() {
       fetch(API_BASE + '/' + deliverable.id, {
         method: 'PATCH', headers: getHeaders(),
-        body: JSON.stringify({ metadata: { article_text: meta.article_text } })
+        body: JSON.stringify({ metadata: { article_text: meta.article_text, extra_blocks: meta.extra_blocks } })
       });
     }
 
@@ -2671,8 +2778,10 @@
       var wrap = document.createElement('div');
       wrap.style.padding = '0 16px';
       if (meta.article) addSidebarField(wrap, 'Article', 'Yes');
-      if (meta.company_campaign) addSidebarField(wrap, 'Campaign', 'Yes');
+      if (meta.company_campaign || meta.campaign) addSidebarField(wrap, 'Campaign', 'Yes');
+      if (meta.twitter_x_posts) addSidebarField(wrap, 'Posts', 'Yes');
       if (meta.amount) addSidebarField(wrap, 'Amount', meta.amount);
+      if (meta.timeframe) addSidebarField(wrap, 'Timeframe', meta.timeframe);
       nav.appendChild(wrap);
       addCountriesToSidebar(nav, meta.countries);
     });
@@ -2680,64 +2789,142 @@
     var wrapper = document.createElement('div');
     wrapper.className = 'oa-dashboard';
 
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
     var title = document.createElement('h2');
     title.className = 'cc-dashboard-title';
     title.textContent = deliverable.title || '';
-    title.style.marginBottom = '16px';
-    wrapper.appendChild(title);
-
-    var card = document.createElement('div');
-    card.className = 'oa-editor-card';
-
-    // Toolbar
-    var toolbar = document.createElement('div');
-    toolbar.className = 'a4a-rt-toolbar';
-    var insertImgBtn = document.createElement('label');
-    insertImgBtn.className = 'a4a-rt-btn';
-    insertImgBtn.textContent = '+ Image';
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.style.display = 'none';
-    fileInput.addEventListener('change', function () {
-      if (!fileInput.files || fileInput.files.length === 0) return;
-      var fd = new FormData();
-      Array.from(fileInput.files).forEach(function (f) { fd.append('images', f); });
-      fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
-        method: 'POST',
-        headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
-        body: fd
-      }).then(function (r) { return r.json(); })
-        .then(function (result) {
-          if (result.urls) {
-            result.urls.forEach(function (u) {
-              var img = '<img src="' + u + '" style="max-width:100%;margin:8px 0;border-radius:6px;">';
-              editor.focus();
-              document.execCommand('insertHTML', false, img);
-            });
-            meta.article_text = editor.innerHTML;
-            save();
-          }
-        });
-      fileInput.value = '';
-    });
-    insertImgBtn.appendChild(fileInput);
-    toolbar.appendChild(insertImgBtn);
-    card.appendChild(toolbar);
-
-    var editor = document.createElement('div');
-    editor.className = 'oa-article-editor';
-    editor.contentEditable = 'true';
-    editor.innerHTML = meta.article_text || '';
-    editor.setAttribute('placeholder', 'Write LinkedIn content here...');
-    editor.addEventListener('blur', function () {
-      meta.article_text = editor.innerHTML;
+    titleRow.appendChild(title);
+    var addBlockBtn = document.createElement('button');
+    addBlockBtn.className = 'cc-add-row-btn';
+    addBlockBtn.textContent = '+ Add Block';
+    addBlockBtn.addEventListener('click', function () {
+      meta.extra_blocks.push({ name: 'New Block', text: '', done: false });
+      renderAll();
       save();
     });
-    card.appendChild(editor);
-    wrapper.appendChild(card);
+    titleRow.appendChild(addBlockBtn);
+    wrapper.appendChild(titleRow);
 
+    var blocksWrap = document.createElement('div');
+    wrapper.appendChild(blocksWrap);
     container.appendChild(wrapper);
+
+    function buildRichBlock(opts) {
+      var card = document.createElement('div');
+      card.className = 'oa-editor-card';
+
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'wd-step-checkbox';
+      cb.checked = !!opts.done;
+      cb.addEventListener('change', function () {
+        opts.onDone(cb.checked);
+        card.classList.toggle('wd-step-done', cb.checked);
+      });
+      header.appendChild(cb);
+
+      var titleEl = document.createElement(opts.editable ? 'span' : 'h3');
+      titleEl.className = opts.editable ? 'wd-step-title' : 'oa-card-title';
+      titleEl.style.margin = '0';
+      titleEl.style.flex = '1';
+      if (opts.editable) {
+        titleEl.contentEditable = 'true';
+        titleEl.textContent = opts.label;
+        titleEl.addEventListener('blur', function () { opts.onRename(titleEl.textContent); });
+      } else {
+        titleEl.textContent = opts.label;
+      }
+      header.appendChild(titleEl);
+
+      if (opts.onDelete) {
+        var delBtn = document.createElement('button');
+        delBtn.className = 'wd-step-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.addEventListener('click', function () { opts.onDelete(); });
+        header.appendChild(delBtn);
+      }
+      card.appendChild(header);
+      if (opts.done) card.classList.add('wd-step-done');
+
+      // Toolbar with insert image
+      var toolbar = document.createElement('div');
+      toolbar.className = 'a4a-rt-toolbar';
+      var insertImgBtn = document.createElement('label');
+      insertImgBtn.className = 'a4a-rt-btn';
+      insertImgBtn.textContent = '+ Image';
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.style.display = 'none';
+      fileInput.addEventListener('change', function () {
+        if (!fileInput.files || fileInput.files.length === 0) return;
+        var fd = new FormData();
+        Array.from(fileInput.files).forEach(function (f) { fd.append('images', f); });
+        fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.urls) {
+              result.urls.forEach(function (u) {
+                var img = '<img src="' + u + '" style="max-width:100%;margin:8px 0;border-radius:6px;">';
+                editor.focus();
+                document.execCommand('insertHTML', false, img);
+              });
+              opts.onTextChange(editor.innerHTML);
+            }
+          });
+        fileInput.value = '';
+      });
+      insertImgBtn.appendChild(fileInput);
+      toolbar.appendChild(insertImgBtn);
+      card.appendChild(toolbar);
+
+      var editor = document.createElement('div');
+      editor.className = 'oa-article-editor';
+      editor.contentEditable = 'true';
+      editor.innerHTML = opts.text || '';
+      editor.setAttribute('placeholder', opts.placeholder || 'Write content here...');
+      editor.addEventListener('blur', function () { opts.onTextChange(editor.innerHTML); });
+      card.appendChild(editor);
+
+      return card;
+    }
+
+    function renderAll() {
+      while (blocksWrap.firstChild) blocksWrap.removeChild(blocksWrap.firstChild);
+
+      // Main block
+      blocksWrap.appendChild(buildRichBlock({
+        label: 'Main Content',
+        text: meta.article_text,
+        done: meta.main_done,
+        editable: false,
+        placeholder: 'Write content here...',
+        onDone: function (v) { meta.main_done = v; save(); },
+        onTextChange: function (v) { meta.article_text = v; save(); }
+      }));
+
+      // Extra blocks
+      meta.extra_blocks.forEach(function (xb, idx) {
+        blocksWrap.appendChild(buildRichBlock({
+          label: xb.name || 'New Block',
+          text: xb.text,
+          done: xb.done,
+          editable: true,
+          placeholder: 'Write content here...',
+          onRename: function (v) { xb.name = v; save(); },
+          onDone: function (v) { xb.done = v; save(); },
+          onTextChange: function (v) { xb.text = v; save(); },
+          onDelete: function () { meta.extra_blocks.splice(idx, 1); renderAll(); save(); }
+        }));
+      });
+    }
+    renderAll();
   }
 
 })();
