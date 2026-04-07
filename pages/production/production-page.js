@@ -918,41 +918,30 @@
     }, deptSlug, sharedRefresh);
   }
 
-  // ── Follow Ups Tab — 50/50 layout, uses renderClientGroupedSheet ──
+  // ── Follow Ups Tab — single full-width Materials Requested sheet ──
+  // The "Sent for Approval" view lives in the Approvals tab; keeping it
+  // here was just duplicating that sheet. Follow Ups now focuses solely
+  // on material requests that are waiting on the client.
   function renderFollowUpsTab(container) {
-    renderSplitSheetTab(container, {
-      prefix: 'fu',
-      left: {
-        title: 'Materials Requested',
-        filter: function (d) {
-          // Canonical status after form publish + legacy stragglers
-          return d.status === 'materials_requested' ||
-            d.status === 'waiting_for_materials' ||
-            d.status === 'upload_materials';
-        },
-        columns: [
-          colTitle(),
-          colType(),
-          colStatus(),
-          colStatusChanged('Date Requested'),
-          colFollowUpCount(),
-          colActionAdvance('materials_received', 'Advance to Materials Received')
-        ],
-        emptyMessage: 'No materials requested'
+    renderClientGroupedSheet(container, {
+      title: 'Materials Requested',
+      searchPlaceholder: 'Search materials requested...',
+      statusFilter: function (d) {
+        // Canonical status after form publish + legacy stragglers
+        return d.status === 'materials_requested' ||
+          d.status === 'waiting_for_materials' ||
+          d.status === 'upload_materials';
       },
-      right: {
-        title: 'Sent for Approval',
-        filter: function (d) { return d.status === 'sent_for_approval'; },
-        columns: [
-          colTitle(),
-          colType(),
-          colStatus(),
-          colStatusChanged('Date Sent'),
-          colFollowUpCount(),
-          colActionAdvance('auto')
-        ],
-        emptyMessage: 'No items sent for approval'
-      }
+      columns: [
+        colTitle(),
+        colType(),
+        colStatus(),
+        colStatusChanged('Date Requested'),
+        colFollowUpCount(),
+        colActionAdvance('materials_received', 'Advance to Materials Received')
+      ],
+      emptyMessage: 'No materials requested',
+      showClientButtons: true
     });
   }
 
