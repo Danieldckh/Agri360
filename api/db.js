@@ -201,6 +201,45 @@ async function runMigrations() {
       await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS ${col} INT REFERENCES employees(id)`);
     }
 
+    // Change request counter per deliverable (3 max enforced at API level)
+    await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS change_request_count INTEGER DEFAULT 0`);
+
+    // Client Portal Tokens — public access for clients
+    await client.query(`CREATE TABLE IF NOT EXISTS client_portal_tokens (
+      id SERIAL PRIMARY KEY,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      token VARCHAR(64) UNIQUE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      last_accessed_at TIMESTAMPTZ
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_client_portal_token ON client_portal_tokens(token)`);
+
+    // Request Forms — built by production, completed by client
+    await client.query(`CREATE TABLE IF NOT EXISTS request_forms (
+      id SERIAL PRIMARY KEY,
+      token VARCHAR(64) UNIQUE NOT NULL,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      deliverable_id INT REFERENCES deliverables(id) ON DELETE SET NULL,
+      name VARCHAR(255),
+      fields JSONB DEFAULT '[]',
+      responses JSONB DEFAULT '{}',
+      status VARCHAR(20) DEFAULT 'draft',
+      created_by INT REFERENCES employees(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_request_forms_token ON request_forms(token)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_request_forms_client ON request_forms(client_id)`);
+
+    // Request Form Templates — reusable form structures
+    await client.query(`CREATE TABLE IF NOT EXISTS request_form_templates (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      fields JSONB DEFAULT '[]',
+      created_by INT REFERENCES employees(id),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {

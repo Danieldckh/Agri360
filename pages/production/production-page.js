@@ -467,11 +467,13 @@
             return res.json();
           })
           .then(function (deliverables) {
+            var materialStatuses = ['materials_requested', 'request_client_materials', 'waiting_for_materials'];
+            var approvalStatuses = ['sent_for_approval'];
             leftItems = deliverables.filter(function (d) {
-              return d.status === 'materials_requested';
+              return materialStatuses.indexOf(d.status) !== -1;
             });
             rightItems = deliverables.filter(function (d) {
-              return d.status === 'sent_for_approval';
+              return approvalStatuses.indexOf(d.status) !== -1;
             });
             leftCount.textContent = leftItems.length;
             rightCount.textContent = rightItems.length;
@@ -1481,6 +1483,20 @@
   }
 
   // Build the 7-avatar cell for a deliverable row
+  // Get the "send back" target status for a review/approval status
+  // Returns null if not a review status
+  function getSendBackTarget(status) {
+    var map = {
+      'design_review': 'design_changes',
+      'editorial_review': 'editorial_changes',
+      'ready_for_approval': 'design_changes',
+      'sent_for_approval': 'client_changes',
+      'client_approved': 'client_changes',
+      'review': 'changes_requested'
+    };
+    return map[status] || null;
+  }
+
   // Map dept slug to slot (for filtering by context)
   function getSlotForDeptSlug(slug) {
     // Match slug variations: 'production' → production slot, 'social-media' → socialMedia, etc.
@@ -1672,6 +1688,42 @@
         clientCount.textContent = group.items.length;
         clientRow.appendChild(clientCount);
 
+        // Client action buttons: Request Materials + Open Portal
+        if (group.clientId) {
+          var spacer = document.createElement('span');
+          spacer.style.flex = '1';
+          clientRow.appendChild(spacer);
+
+          var reqBtn = document.createElement('button');
+          reqBtn.className = 'prod-client-btn';
+          reqBtn.textContent = 'Request Materials';
+          (function (cid) {
+            reqBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              window.open('/form-builder.html?clientId=' + cid, '_blank');
+            });
+          })(group.clientId);
+          clientRow.appendChild(reqBtn);
+
+          var portalBtn = document.createElement('button');
+          portalBtn.className = 'prod-client-btn prod-client-btn-primary';
+          portalBtn.textContent = 'Open Portal';
+          (function (cid) {
+            portalBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              // Get or create portal token
+              fetch('/api/portal/get-or-create-token', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ clientId: cid })
+              }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.token) window.open('/client-portal.html?token=' + data.token, '_blank');
+              });
+            });
+          })(group.clientId);
+          clientRow.appendChild(portalBtn);
+        }
+
         clientRow.addEventListener('click', function () {
           collapsedClients[group.clientName] = !collapsedClients[group.clientName];
           renderTable();
@@ -1803,9 +1855,27 @@
 
           row.appendChild(statusCell);
 
-          // Advance button
+          // Send-back button (only for review/approval statuses)
+          var sendBackTarget = getSendBackTarget(item.status);
           var actCol = document.createElement('div');
           actCol.className = 'prod-deliv-cell prod-deliv-act';
+          if (sendBackTarget) {
+            var backBtn = document.createElement('button');
+            backBtn.className = 'proagri-sheet-row-action-btn action-undo';
+            backBtn.type = 'button';
+            backBtn.title = 'Send back for changes (' + formatStatus(sendBackTarget) + ')';
+            backBtn.appendChild(makeSvgIcon('M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z'));
+            (function (it, target) {
+              backBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fetch(API_BASE + '/' + it.id, {
+                  method: 'PATCH', headers: getHeaders(),
+                  body: JSON.stringify({ status: target })
+                }).then(function (res) { if (res.ok) fetchData(currentYM); });
+              });
+            })(item, sendBackTarget);
+            actCol.appendChild(backBtn);
+          }
           var advBtn = document.createElement('button');
           advBtn.className = 'proagri-sheet-row-action-btn action-advance';
           advBtn.type = 'button';
@@ -2863,17 +2933,6 @@
       var header = document.createElement('div');
       header.className = 'wd-step-header';
 
-      // Checkbox
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.className = 'wd-step-checkbox';
-      cb.checked = !!opts.done;
-      cb.addEventListener('change', function () {
-        opts.onDone(cb.checked);
-        stepEl.classList.toggle('wd-step-done', cb.checked);
-      });
-      header.appendChild(cb);
-
       var num = document.createElement('span');
       num.className = 'wd-step-num';
       num.textContent = opts.num;
@@ -3147,15 +3206,6 @@
 
       var header = document.createElement('div');
       header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.className = 'wd-step-checkbox';
-      cb.checked = !!opts.done;
-      cb.addEventListener('change', function () {
-        opts.onDone(cb.checked);
-        card.classList.toggle('wd-step-done', cb.checked);
-      });
-      header.appendChild(cb);
 
       var titleEl = document.createElement(opts.editable ? 'span' : 'h3');
       titleEl.className = opts.editable ? 'wd-step-title' : 'oa-card-title';
@@ -3347,21 +3397,10 @@
       meta.stages.forEach(function (stage, idx) {
         if (!stage.files) stage.files = [];
         var stepEl = document.createElement('div');
-        stepEl.className = 'wd-step' + (stage.done ? ' wd-step-done' : '');
+        stepEl.className = 'wd-step';
 
         var header = document.createElement('div');
         header.className = 'wd-step-header';
-
-        var cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.className = 'wd-step-checkbox';
-        cb.checked = !!stage.done;
-        cb.addEventListener('change', function () {
-          stage.done = cb.checked;
-          stepEl.classList.toggle('wd-step-done', cb.checked);
-          save();
-        });
-        header.appendChild(cb);
 
         var num = document.createElement('span');
         num.className = 'wd-step-num';
