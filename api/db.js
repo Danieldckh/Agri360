@@ -253,6 +253,46 @@ async function runMigrations() {
     )`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_portal_messages_client ON portal_messages(client_id, created_at)`);
 
+    // Social Media Scheduler — scheduled posts for content calendars, agri4all, own SM
+    await client.query(`CREATE TABLE IF NOT EXISTS scheduled_posts (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255),
+      content TEXT,
+      platforms JSONB DEFAULT '[]',
+      scheduled_at TIMESTAMPTZ,
+      status VARCHAR(20) DEFAULT 'draft',
+      source_type VARCHAR(30) NOT NULL,
+      source_id INT,
+      client_id INT REFERENCES clients(id) ON DELETE SET NULL,
+      media_urls JSONB DEFAULT '[]',
+      link_url TEXT,
+      hashtags TEXT,
+      notes TEXT,
+      created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+      posted_at TIMESTAMPTZ,
+      post_error TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_scheduled_at ON scheduled_posts(scheduled_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_source ON scheduled_posts(source_type)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_posts_status ON scheduled_posts(status)`);
+
+    // Social credentials — per-platform account credentials used by the scheduler
+    await client.query(`CREATE TABLE IF NOT EXISTS social_credentials (
+      id SERIAL PRIMARY KEY,
+      platform VARCHAR(30) NOT NULL,
+      account_name VARCHAR(255) NOT NULL,
+      account_handle VARCHAR(255),
+      credentials JSONB DEFAULT '{}',
+      is_active BOOLEAN DEFAULT TRUE,
+      last_verified_at TIMESTAMPTZ,
+      created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_social_credentials_platform ON social_credentials(platform)`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {

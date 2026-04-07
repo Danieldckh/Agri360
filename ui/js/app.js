@@ -979,6 +979,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Social Media > Scheduling to the full scheduler
+    if (page === 'social-media' && viewName === 'Scheduling' && window.renderSocialSchedulerPage) {
+      dashboardContent.style.display = 'block';
+      dashboardContent.style.padding = '0';
+      dashboardContent.style.height = '100%';
+      window.renderSocialSchedulerPage(dashboardContent);
+      return;
+    }
+
     // Route department tabs to generic type-filtered view
     var deptTypeViews = ['Content Calendars', 'Agri for All', 'Magazine', 'Banners', 'Online Articles',
       'Briefs', 'Production', 'Editing', 'Review', 'Posts', 'Newsletters', 'Links', 'Stats', 'Scheduling'];
