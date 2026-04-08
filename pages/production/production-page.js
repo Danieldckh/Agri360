@@ -775,7 +775,9 @@
       var ampm = h >= 12 ? 'PM' : 'AM';
       var hr12 = h % 12;
       if (hr12 === 0) hr12 = 12;
-      return hr12 + ampm + ' ' + MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
+      var min = d.getMinutes();
+      var minStr = min < 10 ? '0' + min : String(min);
+      return hr12 + ':' + minStr + ampm + ' ' + MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
     }};
   }
 
@@ -880,8 +882,16 @@
       wrap.style.display = 'inline-flex';
       wrap.style.gap = '4px';
 
-      // Back button (only if workflow has a send-back target)
-      var backTarget = getSendBackTarget(item.status);
+      // Back button — in Follow Ups / Approvals we want literal "previous
+      // status in the workflow chain" semantics (undo one step), not the
+      // design_changes/client_changes branch that getSendBackTarget returns
+      // for the Deliverables tab.
+      var backTarget = null;
+      if (workflows && workflows.getStatusChain) {
+        var chain = workflows.getStatusChain(item.type) || [];
+        var idx = chain.indexOf(item.status);
+        if (idx > 0) backTarget = chain[idx - 1];
+      }
       if (backTarget) {
         var backBtn = document.createElement('button');
         backBtn.className = 'proagri-sheet-row-action-btn action-undo';
@@ -1057,9 +1067,10 @@
           return d.status === 'request_client_materials' ||
             d.status === 'request_focus_points';
         },
+        // Left sheet: no "Sent" date — the form hasn't been sent yet.
         columns: [
+          colEye(container),
           colType(),
-          colShortDate('statusChangedAt', 'Sent'),
           colFollowUpCount(),
           colStatus(),
           colActionAdvanceBack('auto')
@@ -1078,7 +1089,9 @@
             d.status === 'upload_materials' ||
             d.status === 'focus_points_requested';
         },
+        // Right sheet: show "Sent" date — the form has been sent to the client.
         columns: [
+          colEye(container),
           colType(),
           colShortDate('statusChangedAt', 'Sent'),
           colFollowUpCount(),
@@ -1098,9 +1111,10 @@
       left: {
         title: 'Send for Approval',
         filter: function (d) { return d.status === 'ready_for_approval'; },
+        // Left sheet: no "Sent" date — not yet sent to the client.
         columns: [
+          colEye(container),
           colType(),
-          colShortDate('statusChangedAt', 'Sent'),
           colFollowUpCount(),
           colStatus(),
           colActionAdvanceBack('auto')
@@ -1110,7 +1124,9 @@
       right: {
         title: 'Sent for Approval',
         filter: function (d) { return d.status === 'sent_for_approval'; },
+        // Right sheet: show "Sent" date — the deliverable is with the client.
         columns: [
+          colEye(container),
           colType(),
           colShortDate('statusChangedAt', 'Sent'),
           colFollowUpCount(),
