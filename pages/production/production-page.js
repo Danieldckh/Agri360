@@ -2224,7 +2224,12 @@
     chatInputWrap.appendChild(chatInput);
     chatInputWrap.appendChild(chatSend);
     chat.appendChild(chatInputWrap);
-    wrapper.appendChild(chat);
+
+    // Bottom row: chat (left) | posts card (right)
+    var bottomRow = document.createElement('div');
+    bottomRow.className = 'cc-bottom-row';
+    bottomRow.appendChild(chat);
+    wrapper.appendChild(bottomRow);
 
     var ccChannelId = null;
     var ccLastMessageId = 0;
@@ -2393,7 +2398,7 @@
     table.appendChild(tbody);
     tableWrap.appendChild(table);
     card.appendChild(tableWrap);
-    wrapper.appendChild(card);
+    bottomRow.appendChild(card);
     container.appendChild(wrapper);
 
     function renderAllRows() {
@@ -2429,20 +2434,51 @@
     dateCell.appendChild(dateInput);
     row.appendChild(dateCell);
 
-    // Caption
+    // Caption — Quill rich text editor (with contentEditable fallback)
     var captionCell = document.createElement('div');
     captionCell.className = 'cc-posts-cell cc-posts-caption';
-    var captionEditor = document.createElement('div');
-    captionEditor.className = 'cc-caption-editor';
-    captionEditor.contentEditable = 'true';
-    captionEditor.innerHTML = post.caption || '';
-    captionEditor.setAttribute('placeholder', 'Write caption...');
-    captionEditor.addEventListener('blur', function () {
-      post.caption = captionEditor.innerHTML;
-      savePostData(deliverable.id, posts);
-    });
-    captionCell.appendChild(captionEditor);
+    var capWrap = document.createElement('div');
+    capWrap.className = 'cc-caption-quill';
+    captionCell.appendChild(capWrap);
     row.appendChild(captionCell);
+
+    if (window.Quill) {
+      // Defer instantiation until the wrapper is in the DOM (Quill needs it).
+      setTimeout(function () {
+        var quill = new Quill(capWrap, {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline'],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              ['link', 'clean']
+            ]
+          },
+          placeholder: 'Write caption...'
+        });
+        quill.root.innerHTML = post.caption || '';
+        var saveTimer = null;
+        quill.on('text-change', function () {
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(function () {
+            post.caption = quill.root.innerHTML;
+            savePostData(deliverable.id, posts);
+          }, 300);
+        });
+      }, 0);
+    } else {
+      // Fallback: contentEditable div with blur-save
+      var captionEditor = document.createElement('div');
+      captionEditor.className = 'cc-caption-editor';
+      captionEditor.contentEditable = 'true';
+      captionEditor.innerHTML = post.caption || '';
+      captionEditor.setAttribute('placeholder', 'Write caption...');
+      captionEditor.addEventListener('blur', function () {
+        post.caption = captionEditor.innerHTML;
+        savePostData(deliverable.id, posts);
+      });
+      capWrap.appendChild(captionEditor);
+    }
 
     // Images
     var imgCell = document.createElement('div');

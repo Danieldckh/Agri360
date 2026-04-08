@@ -219,6 +219,14 @@
 .cc-caption-editor:focus { border-color:var(--accent-color,#3b82f6); background:var(--card-bg,#fff); }
 .cc-caption-editor:empty::before { content:attr(placeholder); color:var(--text-muted,#94a3b8); }
 
+/* Quill rich text caption editor */
+.cc-caption-quill { min-height:50px; font-size:13px; }
+.cc-caption-quill .ql-toolbar { padding:2px 4px; border:1px solid var(--border-color,#e2e8f0); border-radius:4px 4px 0 0; background:var(--card-bg,#fff); }
+.cc-caption-quill .ql-toolbar button { width:22px; height:22px; }
+.cc-caption-quill .ql-container { min-height:40px; font-family:inherit; font-size:13px; border:1px solid var(--border-color,#e2e8f0); border-top:none; border-radius:0 0 4px 4px; }
+.cc-caption-quill .ql-editor { padding:4px 6px; min-height:32px; }
+.cc-caption-quill .ql-editor.ql-blank::before { left:6px; right:6px; font-size:13px; color:var(--text-muted,#94a3b8); font-style:normal; }
+
 .cc-img-grid { display:flex; flex-wrap:wrap; gap:4px; }
 .cc-img-thumb { position:relative; width:40px; height:40px; border-radius:4px; overflow:hidden; cursor:pointer; border:1px solid var(--border-color,#e2e8f0); }
 .cc-img-thumb img { width:100%; height:100%; object-fit:cover; }
@@ -451,3 +459,8 @@
 .cc-chat-send { padding:8px 16px; background:var(--color-accent,#3b82f6); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer; }
 .cc-chat-send:hover { filter:brightness(1.1); }
 .cc-chat-send:disabled { opacity:0.5; cursor:not-allowed; }
+
+/* Bottom row layout: chat (left ~30%) | posts card (right ~70%) */
+.cc-bottom-row { display:flex; gap:16px; flex:1; min-height:0; margin-top:16px; }
+.cc-bottom-row .cc-chat-box { flex:0 0 30%; margin:0; max-height:none; min-height:0; }
+.cc-bottom-row .cc-posts-card { flex:1; margin:0; }
