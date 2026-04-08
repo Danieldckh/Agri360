@@ -64,6 +64,43 @@ router.get('/by-department/:deptSlug', async (req, res) => {
   }
 });
 
+// GET /by-type/:typeSlug - list deliverables by type family with optional status filter
+// When typeSlug is a DEPT_MAP_ALIASES parent (e.g. 'magazine'), expand to all aliased sub-types.
+// Optional ?status=approved query param filters by deliverable status.
+router.get('/by-type/:typeSlug', async (req, res) => {
+  try {
+    const typeSlug = req.params.typeSlug;
+    // Expand to all sub-types that alias to this family
+    const types = [typeSlug];
+    for (const alias in DEPT_MAP_ALIASES) {
+      if (DEPT_MAP_ALIASES[alias] === typeSlug) types.push(alias);
+    }
+
+    const params = [types];
+    let statusClause = '';
+    if (req.query.status) {
+      params.push(req.query.status);
+      statusClause = ` AND d.status = $${params.length}`;
+    }
+
+    const result = await pool.query(
+      `SELECT d.*, dept.name AS department_name, dept.slug AS department_slug,
+              bf.title AS booking_form_title, c.name AS client_name, c.id AS client_id
+       FROM deliverables d
+       LEFT JOIN departments dept ON dept.id = d.department_id
+       LEFT JOIN booking_forms bf ON bf.id = d.booking_form_id
+       LEFT JOIN clients c ON c.id = bf.client_id
+       WHERE d.type = ANY($1)${statusClause}
+       ORDER BY d.delivery_month DESC NULLS LAST, d.updated_at DESC`,
+      params
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('List deliverables by type error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /:id - single deliverable with department + booking form info
 router.get('/:id', async (req, res) => {
   try {

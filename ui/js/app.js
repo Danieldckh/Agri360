@@ -1080,7 +1080,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'components': function () { if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent); },
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
     'client-list': function () { window.insertTemplate(dashboardContent, '/pages/client-list/client-list.html', window.initClientListPage); },
-    'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); }
+    'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); },
+    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); }
   };
 
   function finishPageEnter() {
