@@ -93,6 +93,28 @@
     return order.map(function (name) { return groups[name]; });
   }
 
+  var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function formatCCMonthYear(deliverable) {
+    var dm = deliverable && deliverable.deliveryMonth;
+    if (dm) {
+      var s = String(dm);
+      // YYYY-MM or YYYY-MM-DD
+      var m = s.match(/^(\d{4})-(\d{2})/);
+      if (m) {
+        var mi = parseInt(m[2], 10) - 1;
+        if (mi >= 0 && mi < 12) return MONTH_NAMES[mi] + ' ' + m[1];
+      }
+      // Try Date parse
+      var d = new Date(s);
+      if (!isNaN(d.getTime())) return MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+    }
+    // Fallback: parse from title ("... - Content Calendar - May 2026")
+    var t = (deliverable && deliverable.title) || '';
+    var tm = t.match(/([A-Za-z]+)\s+(\d{4})\s*$/);
+    if (tm) return tm[1].charAt(0).toUpperCase() + tm[1].slice(1).toLowerCase() + ' ' + tm[2];
+    return '';
+  }
+
   function makeSvgIcon(pathD) {
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', '16');
@@ -2141,7 +2163,7 @@
     titleRow.className = 'cc-dashboard-title-row';
     var title = document.createElement('h2');
     title.className = 'cc-dashboard-title';
-    title.textContent = deliverable.title || 'Content Calendar';
+    title.textContent = 'Content Calendar, ' + formatCCMonthYear(deliverable);
     titleRow.appendChild(title);
     var addRowBtn = document.createElement('button');
     addRowBtn.className = 'cc-add-row-btn';
@@ -2154,7 +2176,10 @@
     titleRow.appendChild(addRowBtn);
     wrapper.appendChild(titleRow);
 
-    // Table
+    // Table wrapped in a card
+    var card = document.createElement('div');
+    card.className = 'cc-posts-card';
+
     var tableWrap = document.createElement('div');
     tableWrap.className = 'cc-posts-table-wrap';
 
@@ -2169,12 +2194,17 @@
       { label: 'Date', cls: 'cc-posts-th-date' },
       { label: 'Caption', cls: 'cc-posts-th-caption' },
       { label: 'Images', cls: 'cc-posts-th-images' },
-      { label: 'Changes', cls: 'cc-posts-th-changes' },
+      { icon: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z', cls: 'cc-posts-th-changes', title: 'Changes' },
       { label: '', cls: 'cc-posts-th-act' }
     ].forEach(function (h) {
       var th = document.createElement('div');
       th.className = 'cc-posts-th ' + h.cls;
-      th.textContent = h.label;
+      if (h.icon) {
+        th.appendChild(makeSvgIcon(h.icon));
+        if (h.title) th.title = h.title;
+      } else {
+        th.textContent = h.label;
+      }
       thead.appendChild(th);
     });
     table.appendChild(thead);
@@ -2183,7 +2213,8 @@
     tbody.className = 'cc-posts-body';
     table.appendChild(tbody);
     tableWrap.appendChild(table);
-    wrapper.appendChild(tableWrap);
+    card.appendChild(tableWrap);
+    wrapper.appendChild(card);
     container.appendChild(wrapper);
 
     function renderAllRows() {
@@ -2354,7 +2385,7 @@
     var delBtn = document.createElement('button');
     delBtn.className = 'cc-row-delete';
     delBtn.title = 'Remove post';
-    delBtn.textContent = '\u00D7';
+    delBtn.appendChild(makeSvgIcon('M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'));
     delBtn.addEventListener('click', function () {
       posts.splice(idx, 1);
       // Re-render all rows (re-indexes)
@@ -2448,150 +2479,172 @@
     nav.appendChild(headerEl);
 
     var detailsWrap = document.createElement('div');
-    detailsWrap.style.padding = '0 16px';
+    detailsWrap.style.padding = '0 16px 4px';
 
-    function addDetail(label, value) {
-      if (!value) return;
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-size:11px;';
-      var lbl = document.createElement('span');
-      lbl.style.color = 'var(--text-secondary,#64748b)';
-      lbl.textContent = label;
-      row.appendChild(lbl);
-      var val = document.createElement('span');
-      val.style.cssText = 'color:var(--text-primary,#1e293b);font-weight:500;text-align:right;';
-      val.textContent = value;
-      row.appendChild(val);
-      detailsWrap.appendChild(row);
+    // Monthly Posts (read-only)
+    var mpVal = (meta && (meta.monthly_posts != null ? meta.monthly_posts : meta.posts_per_month));
+    if (mpVal != null && mpVal !== '') {
+      var mpRow = document.createElement('div');
+      mpRow.style.cssText = 'display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-size:11px;';
+      var mpLbl = document.createElement('span');
+      mpLbl.style.color = 'var(--text-secondary,#64748b)';
+      mpLbl.textContent = 'Monthly Posts';
+      mpRow.appendChild(mpLbl);
+      var mpVl = document.createElement('span');
+      mpVl.style.cssText = 'color:var(--text-primary,#1e293b);font-weight:600;text-align:right;';
+      mpVl.textContent = String(mpVal);
+      mpRow.appendChild(mpVl);
+      detailsWrap.appendChild(mpRow);
     }
 
-    // Monthly Posts — editable input
-    var mpRow = document.createElement('div');
-    mpRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;font-size:11px;';
-    var mpLbl = document.createElement('span');
-    mpLbl.style.color = 'var(--text-secondary,#64748b)';
-    mpLbl.textContent = 'Monthly Posts';
-    mpRow.appendChild(mpLbl);
-    var mpInput = document.createElement('input');
-    mpInput.type = 'number';
-    mpInput.min = '0';
-    mpInput.step = '1';
-    mpInput.placeholder = '0';
-    mpInput.className = 'cc-input';
-    mpInput.style.cssText = 'width:64px;text-align:right;font-size:11px;font-weight:500;padding:2px 6px;border:1px solid rgba(128,128,128,0.2);border-radius:4px;background:var(--bg-primary,#fff);color:var(--text-primary,#1e293b);';
-    var initialMp = (deliverable.metadata && (deliverable.metadata.monthly_posts != null ? deliverable.metadata.monthly_posts : deliverable.metadata.posts_per_month));
-    mpInput.value = (initialMp != null && initialMp !== '') ? initialMp : '';
-    mpInput.addEventListener('change', function () {
-      fetch(API_BASE + '/' + deliverable.id, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify({ metadata: { monthly_posts: Number(mpInput.value) || 0 } })
-      }).then(function () {
-        if (!deliverable.metadata) deliverable.metadata = {};
-        deliverable.metadata.monthly_posts = Number(mpInput.value) || 0;
-      });
+    // Platforms (read-only pill list). Stories only if instagram present.
+    var platforms = (meta && Array.isArray(meta.platforms)) ? meta.platforms : [];
+    var hasFB = false, hasIG = false, hasStories = false;
+    platforms.forEach(function (p) {
+      if (!p) return;
+      var k = p.key || '';
+      if (k === 'facebook') hasFB = true;
+      else if (k === 'instagram') hasIG = true;
+      else if (k === 'instagram_stories' || k === 'stories') hasStories = true;
     });
-    mpRow.appendChild(mpInput);
-    detailsWrap.appendChild(mpRow);
+    // Rule: Stories shown only if instagram present
+    var showStories = hasIG && (hasStories || hasIG);
+    // Per spec: "Stories" appears ONLY if an entry with key === 'instagram' exists
+    showStories = hasIG;
 
-    addDetail('Type', 'Content Calendar');
+    var platformLabels = [];
+    if (hasFB) platformLabels.push('Facebook');
+    if (hasIG) platformLabels.push('Instagram');
+    if (showStories) platformLabels.push('Stories');
+
+    if (platformLabels.length > 0) {
+      var platRow = document.createElement('div');
+      platRow.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:4px 0;font-size:11px;';
+      var platLbl = document.createElement('span');
+      platLbl.style.color = 'var(--text-secondary,#64748b)';
+      platLbl.textContent = 'Platforms';
+      platRow.appendChild(platLbl);
+      var pillWrap = document.createElement('span');
+      pillWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;';
+      platformLabels.forEach(function (lbl) {
+        var pill = document.createElement('span');
+        pill.textContent = lbl;
+        pill.style.cssText = 'display:inline-block;padding:2px 8px;font-size:10px;font-weight:600;color:var(--text-primary,#1e293b);background:rgba(128,128,128,0.10);border-radius:10px;';
+        pillWrap.appendChild(pill);
+      });
+      platRow.appendChild(pillWrap);
+      detailsWrap.appendChild(platRow);
+    }
 
     nav.appendChild(detailsWrap);
 
-    // Platforms — Facebook, Instagram, Stories
-    var sep4 = document.createElement('div');
-    sep4.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
-    nav.appendChild(sep4);
-    var platHeader = document.createElement('div');
-    platHeader.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
-    platHeader.textContent = 'Platforms';
-    nav.appendChild(platHeader);
-
-    var platWrap = document.createElement('div');
-    platWrap.style.padding = '0 16px';
-    // Shape preserved: [{ platform, key, link }]
-    var platforms = (meta && meta.platforms) ? meta.platforms.slice() : [];
-    function findIdx(key) {
-      for (var i = 0; i < platforms.length; i++) {
-        if (platforms[i] && platforms[i].key === key) return i;
-      }
-      return -1;
+    // Website + social links — populated once client fetched
+    var linksHeader = null, linksWrap = null;
+    function ensureLinksSection() {
+      if (linksHeader) return;
+      var sep4 = document.createElement('div');
+      sep4.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+      nav.appendChild(sep4);
+      linksHeader = document.createElement('div');
+      linksHeader.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+      linksHeader.textContent = 'Links';
+      nav.appendChild(linksHeader);
+      linksWrap = document.createElement('div');
+      linksWrap.style.padding = '0 16px 6px';
+      nav.appendChild(linksWrap);
     }
-    var platformMeta = {
-      facebook: { label: 'Facebook', platform: 'Facebook' },
-      instagram: { label: 'Instagram', platform: 'Instagram' },
-      instagram_stories: { label: 'Instagram Stories', platform: 'Instagram Stories' }
-    };
+    function addLinkRow(label, href) {
+      if (!href) return;
+      ensureLinksSection();
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:6px;padding:2px 0;font-size:11px;align-items:baseline;';
+      var lbl = document.createElement('span');
+      lbl.style.cssText = 'color:var(--text-secondary,#64748b);flex-shrink:0;';
+      lbl.textContent = label + ':';
+      row.appendChild(lbl);
+      var a = document.createElement('a');
+      a.href = /^https?:\/\//i.test(href) ? href : ('https://' + href);
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = href;
+      a.style.cssText = 'color:var(--accent,#3b82f6);text-decoration:none;word-break:break-all;font-weight:500;';
+      row.appendChild(a);
+      linksWrap.appendChild(row);
+    }
 
-    var fbCb, igCb, storiesCb;
+    // Social links from meta.platforms
+    platforms.forEach(function (p) {
+      if (!p || !p.link) return;
+      var k = p.key || '';
+      var label = p.platform || k;
+      if (k === 'facebook') label = 'Facebook';
+      else if (k === 'instagram') label = 'Instagram';
+      else if (k === 'instagram_stories' || k === 'stories') return; // stories never has a link
+      addLinkRow(label, p.link);
+    });
 
-    function savePlatforms() {
-      fetch(API_BASE + '/' + deliverable.id, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify({ metadata: { platforms: platforms } })
-      }).then(function () {
-        if (!deliverable.metadata) deliverable.metadata = {};
-        deliverable.metadata.platforms = platforms;
+    // Fetch client to get website
+    if (deliverable.clientId) {
+      fetch('/api/clients/' + deliverable.clientId, { headers: getHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (client) {
+          if (!client || client.error) return;
+          if (client.website) {
+            // Insert Website as first link row — rebuild wrap so Website appears first
+            ensureLinksSection();
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:6px;padding:2px 0;font-size:11px;align-items:baseline;';
+            var lbl = document.createElement('span');
+            lbl.style.cssText = 'color:var(--text-secondary,#64748b);flex-shrink:0;';
+            lbl.textContent = 'Website:';
+            row.appendChild(lbl);
+            var a = document.createElement('a');
+            a.href = /^https?:\/\//i.test(client.website) ? client.website : ('https://' + client.website);
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.textContent = client.website;
+            a.style.cssText = 'color:var(--accent,#3b82f6);text-decoration:none;word-break:break-all;font-weight:500;';
+            row.appendChild(a);
+            if (linksWrap.firstChild) linksWrap.insertBefore(row, linksWrap.firstChild);
+            else linksWrap.appendChild(row);
+          }
+        })
+        .catch(function () {});
+    }
+
+    // Assigned Team section — show only assigned slots
+    var teamSlots = DEPT_SLOTS.filter(function (s) { return deliverable[s.field]; });
+    if (teamSlots.length > 0) {
+      var sepT = document.createElement('div');
+      sepT.style.cssText = 'height:1px;background:rgba(128,128,128,0.12);margin:6px 16px;';
+      nav.appendChild(sepT);
+      var teamHdr = document.createElement('div');
+      teamHdr.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary,#94a3b8);padding:4px 16px;';
+      teamHdr.textContent = 'Team';
+      nav.appendChild(teamHdr);
+      var teamWrap = document.createElement('div');
+      teamWrap.style.padding = '0 16px 6px';
+      teamSlots.forEach(function (slot) {
+        var emp = window._employeeCacheLookup ? window._employeeCacheLookup(deliverable[slot.field]) : null;
+        if (!emp) return;
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;';
+        row.appendChild(buildAvatar(emp, 22, slot.color));
+        var info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        var name = document.createElement('div');
+        name.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-primary,#1e293b);';
+        name.textContent = empFullName(emp) || emp.username;
+        info.appendChild(name);
+        var role = document.createElement('div');
+        role.style.cssText = 'font-size:10px;color:var(--text-secondary,#64748b);';
+        role.textContent = slot.label;
+        info.appendChild(role);
+        row.appendChild(info);
+        teamWrap.appendChild(row);
       });
+      nav.appendChild(teamWrap);
     }
-
-    function setKey(key, on) {
-      var idx = findIdx(key);
-      if (on && idx === -1) {
-        platforms.push({ platform: platformMeta[key].platform, key: key, link: '' });
-      } else if (!on && idx !== -1) {
-        platforms.splice(idx, 1);
-      }
-    }
-
-    function makeCbRow(key) {
-      var row = document.createElement('label');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text-primary,#1e293b);cursor:pointer;';
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.style.cssText = 'margin:0;cursor:pointer;';
-      cb.checked = findIdx(key) !== -1;
-      row.appendChild(cb);
-      var txt = document.createElement('span');
-      txt.textContent = platformMeta[key].label;
-      row.appendChild(txt);
-      platWrap.appendChild(row);
-      return cb;
-    }
-
-    fbCb = makeCbRow('facebook');
-    igCb = makeCbRow('instagram');
-    storiesCb = makeCbRow('instagram_stories');
-
-    function syncStoriesDisabled() {
-      storiesCb.disabled = !igCb.checked;
-      storiesCb.parentNode.style.opacity = igCb.checked ? '1' : '0.5';
-      storiesCb.parentNode.style.cursor = igCb.checked ? 'pointer' : 'not-allowed';
-    }
-    syncStoriesDisabled();
-
-    fbCb.addEventListener('change', function () {
-      setKey('facebook', fbCb.checked);
-      savePlatforms();
-    });
-    igCb.addEventListener('change', function () {
-      if (!igCb.checked && storiesCb.checked) {
-        // Remove both in same PATCH
-        storiesCb.checked = false;
-        setKey('instagram_stories', false);
-      }
-      setKey('instagram', igCb.checked);
-      syncStoriesDisabled();
-      savePlatforms();
-    });
-    storiesCb.addEventListener('change', function () {
-      if (storiesCb.disabled) { storiesCb.checked = false; return; }
-      setKey('instagram_stories', storiesCb.checked);
-      savePlatforms();
-    });
-
-    nav.appendChild(platWrap);
   }
 
   // Lightbox
