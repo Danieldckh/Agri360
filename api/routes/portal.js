@@ -189,15 +189,16 @@ router.get('/:token/approvals', async (req, res) => {
   }
 });
 
-// POST /:token/approvals/:deliverableId/approve — client approves a deliverable
+// POST /:token/approvals/:deliverableId/approve — client approves a deliverable.
+// Scoped by client_id so a valid token can only approve its own client's rows.
 router.post('/:token/approvals/:deliverableId/approve', async (req, res) => {
   try {
     const client = await fetchClientByToken(req.params.token);
     if (!client) return res.status(404).json({ error: 'Invalid token' });
     const result = await pool.query(
       `UPDATE deliverables SET status = 'approved', updated_at = NOW()
-       WHERE id = $1 RETURNING *`,
-      [req.params.deliverableId]
+       WHERE id = $1 AND client_id = $2 RETURNING *`,
+      [req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
     res.json(toCamelCase(result.rows[0]));
@@ -214,8 +215,11 @@ router.post('/:token/approvals/:deliverableId/request-changes', async (req, res)
     if (!client) return res.status(404).json({ error: 'Invalid token' });
     const { change_notes, post_updates } = toSnakeBody(req.body);
 
-    // Check count
-    const existing = await pool.query('SELECT change_request_count, metadata FROM deliverables WHERE id = $1', [req.params.deliverableId]);
+    // Check count — scoped by client_id so a token can only touch its own rows.
+    const existing = await pool.query(
+      'SELECT change_request_count, metadata FROM deliverables WHERE id = $1 AND client_id = $2',
+      [req.params.deliverableId, client.id]
+    );
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
     const currentCount = existing.rows[0].change_request_count || 0;
     if (currentCount >= 3) {
@@ -234,9 +238,10 @@ router.post('/:token/approvals/:deliverableId/request-changes', async (req, res)
 
     const result = await pool.query(
       `UPDATE deliverables SET status = 'client_changes', change_request_count = change_request_count + 1,
-       metadata = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
-      [JSON.stringify(metadata), req.params.deliverableId]
+       metadata = $1, updated_at = NOW() WHERE id = $2 AND client_id = $3 RETURNING *`,
+      [JSON.stringify(metadata), req.params.deliverableId, client.id]
     );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Portal request changes error:', err);

@@ -760,6 +760,25 @@
     }};
   }
 
+  // Short date column — renders item[fieldName] as "2PM July 1" style.
+  // Hour (12h, no minutes) + AM/PM attached, single space, full month name,
+  // space, day of month (no leading zero). Empty string if field missing.
+  function colShortDate(fieldName, labelText) {
+    var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    return { label: labelText || 'Sent', render: function (item) {
+      var raw = item && item[fieldName];
+      if (!raw) return '';
+      var d = new Date(raw);
+      if (isNaN(d.getTime())) return '';
+      var h = d.getHours();
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var hr12 = h % 12;
+      if (hr12 === 0) hr12 = 12;
+      return hr12 + ampm + ' ' + MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
+    }};
+  }
+
   function colFollowUpCount() {
     return { label: 'Follow Ups', render: function (item, refresh) {
       var count = item.followUpCount || 0;
@@ -849,6 +868,67 @@
         }).then(function (res) { if (res.ok && refresh) refresh(); });
       });
       return btn;
+    }};
+  }
+
+  // Combined advance-arrows column — renders a send-back button (when the
+  // current status has a send-back target) alongside the forward advance
+  // button in a single cell. Mirrors the Deliverables tab row renderer.
+  function colActionAdvanceBack(nextStatusOrAuto, tooltipText) {
+    return { label: '', className: 'prod-deliv-act', render: function (item, refresh) {
+      var wrap = document.createElement('div');
+      wrap.style.display = 'inline-flex';
+      wrap.style.gap = '4px';
+
+      // Back button (only if workflow has a send-back target)
+      var backTarget = getSendBackTarget(item.status);
+      if (backTarget) {
+        var backBtn = document.createElement('button');
+        backBtn.className = 'proagri-sheet-row-action-btn action-undo';
+        backBtn.type = 'button';
+        backBtn.title = 'Send back for changes (' + formatStatus(backTarget) + ')';
+        backBtn.appendChild(makeSvgIcon('M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z'));
+        (function (it, target) {
+          backBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            fetch('/api/deliverables/' + it.id, {
+              method: 'PATCH', headers: getHeaders(),
+              body: JSON.stringify({ status: target })
+            }).then(function (res) { if (res.ok && refresh) refresh(); });
+          });
+        })(item, backTarget);
+        wrap.appendChild(backBtn);
+      }
+
+      // Forward advance button — same semantics as colActionAdvance
+      var target, tooltip;
+      if (nextStatusOrAuto === 'auto') {
+        var wf = workflows && workflows.getNextStatus(item.type, item.status);
+        if (!wf) {
+          // No advance — return just the back button (or empty string).
+          return backTarget ? wrap : '';
+        }
+        target = wf.next;
+        tooltip = tooltipText || wf.tooltip;
+      } else {
+        target = nextStatusOrAuto;
+        tooltip = tooltipText || ('Advance to: ' + formatStatus(target));
+      }
+      var advBtn = document.createElement('button');
+      advBtn.className = 'proagri-sheet-row-action-btn action-advance';
+      advBtn.type = 'button';
+      advBtn.title = tooltip;
+      advBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
+      advBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        fetch('/api/deliverables/' + item.id, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status: target })
+        }).then(function (res) { if (res.ok && refresh) refresh(); });
+      });
+      wrap.appendChild(advBtn);
+      return wrap;
     }};
   }
 
@@ -978,11 +1058,11 @@
             d.status === 'request_focus_points';
         },
         columns: [
-          colEye(container),
-          colTitle(),
           colType(),
+          colShortDate('statusChangedAt', 'Sent'),
+          colFollowUpCount(),
           colStatus(),
-          colStatusChanged('Waiting Since')
+          colActionAdvanceBack('auto')
         ],
         emptyMessage: 'No items waiting for a materials request',
         showClientButtons: true
@@ -999,13 +1079,11 @@
             d.status === 'focus_points_requested';
         },
         columns: [
-          colEye(container),
-          colTitle(),
           colType(),
-          colStatus(),
-          colStatusChanged('Date Requested'),
+          colShortDate('statusChangedAt', 'Sent'),
           colFollowUpCount(),
-          colActionAdvance('materials_received', 'Advance to Materials Received')
+          colStatus(),
+          colActionAdvanceBack('auto')
         ],
         emptyMessage: 'No materials requested',
         showClientButtons: true
@@ -1021,11 +1099,11 @@
         title: 'Send for Approval',
         filter: function (d) { return d.status === 'ready_for_approval'; },
         columns: [
-          colTitle(),
           colType(),
+          colShortDate('statusChangedAt', 'Sent'),
+          colFollowUpCount(),
           colStatus(),
-          colStatusChanged('Ready Since'),
-          colActionAdvance('sent_for_approval', 'Send for Approval')
+          colActionAdvanceBack('auto')
         ],
         emptyMessage: 'No items ready for approval'
       },
@@ -1033,12 +1111,11 @@
         title: 'Sent for Approval',
         filter: function (d) { return d.status === 'sent_for_approval'; },
         columns: [
-          colTitle(),
           colType(),
-          colStatus(),
-          colStatusChanged('Date Sent'),
+          colShortDate('statusChangedAt', 'Sent'),
           colFollowUpCount(),
-          colActionAdvance('auto')
+          colStatus(),
+          colActionAdvanceBack('auto')
         ],
         emptyMessage: 'No items sent for approval'
       }
