@@ -19,14 +19,22 @@ For any prompt that touches application code (frontend, backend, routes, migrati
 
 3. **Delegate to dev agents** — hand the task list to `dev-frontend` and `dev-backend` in parallel where possible. Each agent owns only the files in its lane. The task descriptions passed to the agents must be self-contained (they don't see this conversation). Update tasks to `in_progress` when dispatched and `completed` when the agent returns clean.
 
-4. **Deploy via Coolify agent** — as soon as the dev agents return clean and any syntax/parity checks pass, dispatch the `coolify-dev` agent to deploy to production. This is the only agent allowed to trigger Coolify deploys or modify deployment config. Confirm the deploy succeeded before reporting the work complete to the user.
+4. **Check on localhost** — before deploying, start the API locally (`cd api && npm start`, runs on :3001 serving the static frontend from the repo root) and open the affected page(s) in a browser via the Playwright MCP. Exercise the new/changed behavior end-to-end: navigate to the page, click through the flow, hover tooltips, confirm any DB writes took effect, and confirm nothing adjacent looks broken. If issues surface, re-dispatch the relevant dev agent with a focused fix prompt and re-check. Stop the background API server before moving on. Only proceed to deploy once the localhost check is clean.
+
+5. **Merge, commit, and push — let Coolify auto-deploy** — once the localhost check is clean:
+   - If any work was done in a git worktree, merge it back into `master` first (`git checkout master && git merge <branch>`). Do not leave worktrees dangling.
+   - Stage the affected files explicitly by name (no `git add -A` / `git add .`, per the safety rules in CLAUDE.md).
+   - Commit with a HEREDOC message following the `Co-Authored-By: Claude Opus 4.6 (1M context)` footer convention used in this repo.
+   - `git push origin master`. Coolify is configured to auto-deploy on push to master — no explicit API trigger is needed.
+   - Do NOT dispatch the `coolify-dev` agent for routine deploys. Only invoke it when you need to modify deployment config (Dockerfile, env vars, Coolify settings) or when the auto-deploy fails and you need to manually re-trigger or inspect the deploy.
+   - Confirm the push succeeded and report the commit SHA to the user so they can watch the auto-deploy land.
 
 ### Why this shape
 
 - **Research before planning** prevents task lists built on wrong assumptions about where code lives or how it connects.
 - **Task list before delegation** gives the user a checkpoint to catch scope creep or misunderstanding before any code is written.
-- **No browser verification step** — the user verifies in production themselves. Local browser tests via Playwright are skipped to keep the iteration loop tight.
-- **Coolify-only deploys** keep deployment in one agent's hands, so the audit trail and env-var surface stay predictable.
+- **Localhost check before deploy** catches obviously-broken UI changes (fixed-width CSS on variable-width content, misplaced popups, missing data bindings) that syntax checks miss — without burning the user's time verifying in production.
+- **Auto-deploy on push to master** removes an unnecessary agent hop — every routine deploy was going through `coolify-dev` just to make an HTTP POST that Coolify would have done anyway when it saw the push. The `coolify-dev` agent stays reserved for its real job: editing `Dockerfile` / `api/db.js` schema / env vars, and handling deploy failures.
 
 ## § 2. Exceptions — when to skip the pipeline
 
