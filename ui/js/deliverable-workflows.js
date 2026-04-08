@@ -15,7 +15,7 @@
   var CHAINS = {
     // Content Calendar (sm-content-calendar)
     'sm-content-calendar': [
-      'request_materials', 'materials_requested', 'materials_received',
+      'request_focus_points', 'focus_points_requested', 'focus_points_received',
       'design', 'design_review',
       'editorial', 'editorial_review',
       'ready_for_approval', 'approved',
@@ -99,13 +99,13 @@
 
   var DEPT_MAPS = {
     'sm-content-calendar': {
-      'request_materials': 'production',
-      'materials_requested': 'production',
-      'materials_received': 'production',
-      // legacy aliases — pre-rename rows still route until db.js migration runs
       'request_focus_points': 'production',
       'focus_points_requested': 'production',
       'focus_points_received': 'production',
+      // legacy aliases — post-rollback rows still route until db.js migration runs
+      'request_materials': 'production',
+      'materials_requested': 'production',
+      'materials_received': 'production',
       'design': 'design',
       'design_review': 'design',
       'design_changes': 'design',

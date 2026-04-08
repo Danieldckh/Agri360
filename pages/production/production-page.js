@@ -921,14 +921,19 @@
 
   // ── Follow Ups Tab — 50/50 split: Request Materials | Materials Requested ──
   // Left  : items still in `request_client_materials` (a form needs to be sent)
-  // Right : items already requested and waiting on the client
+  //         OR content calendars at `request_focus_points` (the CC-chain equivalent).
+  // Right : items already requested and waiting on the client.
+  //         Includes content calendars at `focus_points_requested` (CC-chain equivalent).
   function renderFollowUpsTab(container) {
     renderSplitSheetTab(container, {
       prefix: 'fu',
       left: {
         title: 'Request Materials',
         searchPlaceholder: 'Search request materials...',
-        filter: function (d) { return d.status === 'request_client_materials'; },
+        filter: function (d) {
+          return d.status === 'request_client_materials' ||
+            d.status === 'request_focus_points';
+        },
         columns: [
           colTitle(),
           colType(),
@@ -942,10 +947,12 @@
         title: 'Materials Requested',
         searchPlaceholder: 'Search materials requested...',
         filter: function (d) {
-          // Canonical status after form publish + legacy stragglers
+          // Canonical status after form publish + legacy stragglers +
+          // CC-chain's focus_points_requested.
           return d.status === 'materials_requested' ||
             d.status === 'waiting_for_materials' ||
-            d.status === 'upload_materials';
+            d.status === 'upload_materials' ||
+            d.status === 'focus_points_requested';
         },
         columns: [
           colTitle(),

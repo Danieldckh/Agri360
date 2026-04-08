@@ -376,6 +376,28 @@ async function runMigrations() {
       console.error('Content calendar status rename migration error:', e.message);
     }
 
+    // 2026-04-08 — Content calendar status rename rollback:
+    // Per user request, revert to legacy focus_points_* naming for CC chain.
+    // Idempotent via the WHERE status IN (...) guard — no-op after first run.
+    try {
+      const ccRollback = await client.query(`
+        UPDATE deliverables
+           SET status = CASE status
+             WHEN 'request_materials'   THEN 'request_focus_points'
+             WHEN 'materials_requested' THEN 'focus_points_requested'
+             WHEN 'materials_received'  THEN 'focus_points_received'
+             ELSE status
+           END
+         WHERE type = 'sm-content-calendar'
+           AND status IN ('request_materials','materials_requested','materials_received')
+      `);
+      if (ccRollback.rowCount > 0) {
+        console.log('Rolled back ' + ccRollback.rowCount + ' content-calendar statuses to focus_points_*');
+      }
+    } catch (e) {
+      console.error('Content calendar status rename rollback error:', e.message);
+    }
+
     console.log('All migrations applied successfully');
   } catch (err) {
     console.error('Migration error:', err.message);

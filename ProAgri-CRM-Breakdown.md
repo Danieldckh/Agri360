@@ -498,7 +498,7 @@ Base URL: `/api`. Auth: `Authorization: Bearer <JWT>`. Responses: JSON with came
 | sm-google-ads | Social Media | request_client_materials |
 | sm-linkedin | Social Media | request_client_materials |
 | sm-twitter | Social Media | request_client_materials |
-| sm-content-calendar | Social Media | request_focus_points |
+| sm-content-calendar | Social Media | request_materials |
 | agri4all-posts | Agri4All | request_client_materials |
 | agri4all-videos | Agri4All | request_client_materials |
 | agri4all-product-uploads | Agri4All | request_client_materials |
@@ -513,7 +513,7 @@ Base URL: `/api`. Auth: `Authorization: Bearer <JWT>`. Responses: JSON with came
 ### Status Chains
 
 **sm-content-calendar:**
-`request_focus_points → focus_points_requested → focus_points_received → design → design_review → proofread → approved → scheduled → posted`
+`request_materials → materials_requested → materials_received → design → design_review → proofread → approved → scheduled → posted`
 Branches: design_changes→design, client_changes→design
 
 **sm-posts (also sm-videos, sm-google-ads, sm-linkedin, sm-twitter):**
@@ -549,7 +549,7 @@ Branches: changes_requested→editing
 Each status in each deliverable type maps to a department. When a deliverable's status changes via PATCH, the backend auto-looks up the responsible department and updates `department_id` accordingly.
 
 Example for sm-content-calendar:
-- request_focus_points, focus_points_requested, focus_points_received → **Production**
+- request_materials, materials_requested, materials_received → **Production**
 - design, design_review, design_changes → **Design**
 - proofread → **Editorial**
 - approved, client_changes, scheduled, posted → **Social Media**
