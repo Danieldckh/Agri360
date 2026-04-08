@@ -145,6 +145,23 @@ router.post('/:token/forms/:formToken/submit', async (req, res) => {
       [JSON.stringify(responses || {}), req.params.formToken, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
+
+    // Global auto-advance: any in-flight deliverable owned by this client that
+    // is waiting on materials/focus points transitions to materials_received.
+    // Scoped strictly to this client; no-op if nothing matches.
+    const advance = await pool.query(
+      `UPDATE deliverables
+         SET status = 'materials_received',
+             status_changed_at = NOW(),
+             updated_at = NOW()
+       WHERE client_id = $1
+         AND status IN ('materials_requested', 'request_focus_points', 'focus_points_requested', 'request_materials')`,
+      [client.id]
+    );
+    if (advance.rowCount > 0) {
+      console.log('Auto-advanced', advance.rowCount, 'deliverables to materials_received for client', client.id);
+    }
+
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Portal form submit error:', err);

@@ -780,6 +780,49 @@
     }};
   }
 
+  // Eye icon column — opens the deliverable dashboard for the row.
+  // Mirrors the eye button in the Deliverables tab (see row renderer for
+  // the canonical if/else chain). `tabContainer` is the tab's root element,
+  // which the dashboard-open functions clear + take over.
+  function colEye(tabContainer) {
+    return { label: '', className: 'prod-deliv-act', render: function (item) {
+      var dashboardTypes = ['sm-content-calendar', 'website-design', 'online-articles',
+        'agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads',
+        'agri4all-newsletter-feature', 'agri4all-newsletter-banner', 'agri4all-linkedin',
+        'own-social-posts', 'own-social-videos', 'own-social-linkedin', 'own-social-twitter',
+        'agri4all-banners', 'video',
+        'magazine-sa-digital', 'magazine-africa-print', 'magazine-africa-digital', 'magazine-coffee-table'];
+      if (dashboardTypes.indexOf(item.type) === -1) return '';
+      var btn = document.createElement('button');
+      btn.className = 'proagri-sheet-row-action-btn action-view';
+      btn.type = 'button';
+      btn.title = 'View dashboard';
+      btn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var it = item;
+        var c = tabContainer;
+        if (it.type === 'sm-content-calendar') openContentCalendarDashboard(c, it);
+        else if (it.type === 'website-design') openWebsiteDesignDashboard(c, it);
+        else if (it.type === 'online-articles') openOnlineArticlesDashboard(c, it);
+        else if (it.type === 'agri4all-posts') openA4AMultiSectionDashboard(c, it, 'posts');
+        else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(c, it, 'videos');
+        else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(c, it, 'own-posts');
+        else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(c, it, 'own-videos');
+        else if (it.type === 'agri4all-product-uploads') openA4AImageDescriptionDashboard(c, it);
+        else if (it.type === 'agri4all-newsletter-feature') openA4AImageDescriptionDashboard(c, it);
+        else if (it.type === 'agri4all-newsletter-banner') openA4AImageDescriptionDashboard(c, it);
+        else if (it.type === 'agri4all-banners') openA4AImageDescriptionDashboard(c, it);
+        else if (it.type && it.type.indexOf('magazine') === 0) openA4AImageDescriptionDashboard(c, it);
+        else if (it.type === 'agri4all-linkedin') openA4ARichTextDashboard(c, it);
+        else if (it.type === 'own-social-linkedin') openA4ARichTextDashboard(c, it);
+        else if (it.type === 'own-social-twitter') openA4ARichTextDashboard(c, it);
+        else if (it.type === 'video') openVideoDashboard(c, it);
+      });
+      return btn;
+    }};
+  }
+
   function colActionAdvance(nextStatusOrAuto, tooltipText) {
     return { label: '', className: 'prod-deliv-act', render: function (item, refresh) {
       var target, tooltip;
@@ -935,6 +978,7 @@
             d.status === 'request_focus_points';
         },
         columns: [
+          colEye(container),
           colTitle(),
           colType(),
           colStatus(),
@@ -955,6 +999,7 @@
             d.status === 'focus_points_requested';
         },
         columns: [
+          colEye(container),
           colTitle(),
           colType(),
           colStatus(),
