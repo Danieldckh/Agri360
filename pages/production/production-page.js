@@ -1024,7 +1024,29 @@
       dropdown.appendChild(option);
     });
 
-    cell.appendChild(dropdown);
+    // Append first so we can measure, then clamp to viewport.
+    dropdown.style.position = 'fixed';
+    dropdown.style.visibility = 'hidden';
+    dropdown.style.top = '0px';
+    dropdown.style.left = '0px';
+    document.body.appendChild(dropdown);
+    var rect = cell.getBoundingClientRect();
+    var ddRect = dropdown.getBoundingClientRect();
+    var ddH = ddRect.height;
+    var ddW = ddRect.width;
+    var top;
+    if (rect.bottom + 4 + ddH > window.innerHeight && rect.top - 4 - ddH >= 0) {
+      top = rect.top - 4 - ddH;
+    } else {
+      top = rect.bottom + 4;
+    }
+    var left = rect.left;
+    if (left + ddW > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - ddW - 8);
+    }
+    dropdown.style.top = top + 'px';
+    dropdown.style.left = left + 'px';
+    dropdown.style.visibility = 'visible';
 
     function closeDropdown(e) {
       if (!dropdown.contains(e.target) && e.target !== badge) {
@@ -1764,6 +1786,32 @@
           typeCell.textContent = isContentCalendar ? 'Content Calendar' : formatStatus(item.type || '');
           row.appendChild(typeCell);
 
+          // CC-only: inline read-only platforms chips + monthly posts count.
+          if (isContentCalendar) {
+            var platCell = document.createElement('div');
+            platCell.className = 'prod-deliv-cell prod-deliv-platforms';
+            var platforms = (item.metadata && item.metadata.platforms) || [];
+            var platLabels = {
+              facebook: 'Facebook',
+              instagram: 'Instagram',
+              instagram_stories: 'Stories'
+            };
+            platforms.forEach(function (p) {
+              if (!p || !platLabels[p.key]) return;
+              var chip = document.createElement('span');
+              chip.className = 'prod-deliv-platform-tag';
+              chip.textContent = platLabels[p.key];
+              platCell.appendChild(chip);
+            });
+            row.appendChild(platCell);
+
+            var postsCell = document.createElement('div');
+            postsCell.className = 'prod-deliv-cell prod-deliv-posts';
+            var mp = item.metadata && item.metadata.monthly_posts;
+            postsCell.textContent = (mp != null && mp !== '') ? ('Posts: ' + mp) : '';
+            row.appendChild(postsCell);
+          }
+
           // Status — clickable dropdown
           var statusCell = document.createElement('div');
           statusCell.className = 'prod-deliv-cell prod-deliv-status-cell';
@@ -1806,11 +1854,29 @@
                 dropdown.appendChild(opt);
               });
 
+              // Append first so we can measure, then clamp to viewport.
+              dropdown.style.position = 'fixed';
+              dropdown.style.visibility = 'hidden';
+              dropdown.style.top = '0px';
+              dropdown.style.left = '0px';
               document.body.appendChild(dropdown);
               var rect = cellEl.getBoundingClientRect();
-              dropdown.style.position = 'fixed';
-              dropdown.style.top = rect.bottom + 4 + 'px';
-              dropdown.style.left = rect.left + 'px';
+              var ddRect = dropdown.getBoundingClientRect();
+              var ddH = ddRect.height;
+              var ddW = ddRect.width;
+              var top;
+              if (rect.bottom + 4 + ddH > window.innerHeight && rect.top - 4 - ddH >= 0) {
+                top = rect.top - 4 - ddH;
+              } else {
+                top = rect.bottom + 4;
+              }
+              var left = rect.left;
+              if (left + ddW > window.innerWidth - 8) {
+                left = Math.max(8, window.innerWidth - ddW - 8);
+              }
+              dropdown.style.top = top + 'px';
+              dropdown.style.left = left + 'px';
+              dropdown.style.visibility = 'visible';
 
               setTimeout(function () {
                 document.addEventListener('click', function closeDD() {
