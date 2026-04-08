@@ -1,19 +1,7 @@
 {
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
   "permissions": {
     "allow": [
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/docs/proagri-workflow.html)",
-      "mcp__playwright__browser_navigate",
-      "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_click",
-      "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_evaluate",
-      "Bash(curl -s -X GET -H 'Authorization: Bearer $COOLIFY_API_TOKEN' $COOLIFY_BASE_URL/api/v1/applications/tows08oogko8k4wk84g40oo4)",
-      "Bash(done)",
-      "Bash(curl -s -X POST -H \"Authorization: Bearer $COOLIFY_API_TOKEN\" \"$COOLIFY_BASE_URL/api/v1/applications/tows08oogko8k4wk84g40oo4/restart\")",
-      "Bash(claude mcp:*)"
+      "Bash(git add:*)"
     ]
   }
 }
