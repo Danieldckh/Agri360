@@ -42,7 +42,7 @@ If frontend thinks a status belongs to `editorial` but backend routes it to `des
 Content calendars are the most elaborate deliverable type. Their status chain:
 
 ```
-request_focus_points → focus_points_requested → focus_points_received
+request_materials → materials_requested → materials_received
   → design → design_review → proofread → approved → scheduled → posted
 ```
 

@@ -15,7 +15,7 @@
   var CHAINS = {
     // Content Calendar (sm-content-calendar)
     'sm-content-calendar': [
-      'request_focus_points', 'focus_points_requested', 'focus_points_received',
+      'request_materials', 'materials_requested', 'materials_received',
       'design', 'design_review',
       'editorial', 'editorial_review',
       'ready_for_approval', 'approved',
@@ -99,6 +99,10 @@
 
   var DEPT_MAPS = {
     'sm-content-calendar': {
+      'request_materials': 'production',
+      'materials_requested': 'production',
+      'materials_received': 'production',
+      // legacy aliases — pre-rename rows still route until db.js migration runs
       'request_focus_points': 'production',
       'focus_points_requested': 'production',
       'focus_points_received': 'production',
@@ -284,7 +288,7 @@
         var cur = chain[i];
         var nxt = chain[i + 1];
         var label = nxt.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-        map[cur] = { next: nxt, tooltip: 'Advance to ' + label };
+        map[cur] = { next: nxt, tooltip: 'Advance to: ' + label };
       } else {
         map[chain[i]] = null; // terminal
       }
@@ -303,7 +307,7 @@
     if (branches[status]) {
       var target = branches[status];
       var label = target.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-      return { next: target, tooltip: 'Return to ' + label };
+      return { next: target, tooltip: 'Return to: ' + label };
     }
     var chain = getChain(type);
     var map = buildNextMap(chain);
@@ -350,12 +354,40 @@
     return chain[0] || 'pending';
   }
 
+  // Human-readable status label (snake_case → Title Case)
+  function formatStatusLabel(status) {
+    if (!status) return '';
+    return String(status).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
+  /**
+   * Build the dynamic tooltip text for an advance arrow given a deliverable.
+   * Returns "Advance to: {Next Status Label}" or "Return to: {Label}" for branch
+   * statuses, or empty string if there is no next status.
+   * Used by all department views via the shared sheet component.
+   * @param {string} type   - deliverable type
+   * @param {string} status - current status
+   * @returns {string}
+   */
+  function getAdvanceTooltip(type, status) {
+    var wf = getNextStatus(type, status);
+    if (!wf || !wf.next) return '';
+    var label = formatStatusLabel(wf.next);
+    // Branch statuses use "Return to" prefix from getNextStatus, preserve that intent
+    if (wf.tooltip && wf.tooltip.indexOf('Return to') === 0) {
+      return 'Return to: ' + label;
+    }
+    return 'Advance to: ' + label;
+  }
+
   // Expose on window
   window.DELIVERABLE_WORKFLOWS = {
     getNextStatus: getNextStatus,
     getStatusChain: getStatusChain,
     getDepartmentForStatus: getDepartmentForStatus,
     getInitialStatus: getInitialStatus,
-    getDeptMap: getDeptMap
+    getDeptMap: getDeptMap,
+    formatStatusLabel: formatStatusLabel,
+    getAdvanceTooltip: getAdvanceTooltip
   };
 })();

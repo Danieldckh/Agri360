@@ -355,6 +355,27 @@ async function runMigrations() {
       `);
     }
 
+    // Content Calendar status rename: focus_points → materials (idempotent)
+    // Iteration: 2026-04-08. Safe to re-run — UPDATE is a no-op once applied.
+    try {
+      const ccRename = await client.query(`
+        UPDATE deliverables
+           SET status = CASE status
+             WHEN 'request_focus_points'   THEN 'request_materials'
+             WHEN 'focus_points_requested' THEN 'materials_requested'
+             WHEN 'focus_points_received'  THEN 'materials_received'
+             ELSE status
+           END
+         WHERE type = 'sm-content-calendar'
+           AND status IN ('request_focus_points','focus_points_requested','focus_points_received')
+      `);
+      if (ccRename.rowCount > 0) {
+        console.log('Migrated ' + ccRename.rowCount + ' content-calendar deliverables to new materials_* statuses');
+      }
+    } catch (e) {
+      console.error('Content calendar status rename migration error:', e.message);
+    }
+
     console.log('All migrations applied successfully');
   } catch (err) {
     console.error('Migration error:', err.message);

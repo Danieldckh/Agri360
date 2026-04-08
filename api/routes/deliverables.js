@@ -134,6 +134,8 @@ const DEPT_MAPS = {
     'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media'
   },
   'sm-content-calendar': {
+    'request_materials': 'production', 'materials_requested': 'production', 'materials_received': 'production',
+    // legacy aliases — pre-rename rows still route until db.js migration runs
     'request_focus_points': 'production', 'focus_points_requested': 'production', 'focus_points_received': 'production',
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
     'editorial': 'editorial', 'editorial_review': 'editorial',
@@ -281,7 +283,7 @@ router.post('/bulk', async (req, res) => {
       const smMonths = fd.page2ActiveMonths && fd.page2ActiveMonths.length ? fd.page2ActiveMonths : allMonths;
       addType('sm-posts', 'SM Posts', 'request_client_materials', smMonths);
       if (fd.socialMediaManagement.contentCalendar) {
-        addType('sm-content-calendar', 'Content Calendar', 'request_focus_points', smMonths);
+        addType('sm-content-calendar', 'Content Calendar', 'request_materials', smMonths);
       }
       if (fd.socialMediaManagement.googleAds) {
         addType('sm-google-ads', 'Google Ads', 'request_client_materials', smMonths);
@@ -439,7 +441,7 @@ router.post('/create-content-calendars', async (req, res) => {
       created.push(await createDeliv(
         'sm-content-calendar',
         clientName + ' - Content Calendar - ' + ml,
-        'request_focus_points', 'production', dm,
+        'request_materials', 'production', dm,
         {
           platforms: (entry.platforms || []).map(p => ({ platform: p.platform, key: p.key, link: p.link })),
           monthly_posts: entry.monthly_posts || entry.posts_per_month || null

@@ -664,7 +664,7 @@ html, body {
   height: 100%;
   background: var(--color-secondary);
   border-radius: 20px;
-  padding: 10px;
+  padding: 0 10px 10px;
   overflow-y: auto;
   color: var(--text-primary);
   font-size: var(--font-size-body);
@@ -1507,7 +1507,7 @@ html, body {
     --sidebar-width: 240px;
   }
   .card {
-    padding: 10px;
+    padding: 0 10px 10px;
   }
 }
 
@@ -1520,7 +1520,7 @@ html, body {
     font-size: 18px;
   }
   .card {
-    padding: 30px;
+    padding: 0 30px 30px;
     border-radius: 18px;
   }
   .content-area {
@@ -1537,7 +1537,7 @@ html, body {
     font-size: 17px;
   }
   .card {
-    padding: 24px;
+    padding: 0 24px 24px;
     border-radius: 16px;
   }
 }
@@ -1583,7 +1583,7 @@ html, body {
     pointer-events: auto;
   }
   .card {
-    padding: 20px;
+    padding: 0 20px 20px;
     border-radius: 14px;
   }
   .content-area {
@@ -1612,7 +1612,7 @@ html, body {
     padding: 10px 0 10px 6px;
   }
   .card {
-    padding: 16px;
+    padding: 0 16px 16px;
     border-radius: 12px;
   }
   .content-area {
@@ -1639,7 +1639,7 @@ html, body {
     padding: 8px 0 8px 4px;
   }
   .card {
-    padding: 12px;
+    padding: 0 12px 12px;
     border-radius: 10px;
   }
   .content-area {

@@ -907,7 +907,11 @@
         leadingActions.forEach(function (action) {
           var btn = document.createElement('button');
           btn.className = 'proagri-sheet-row-action-btn' + (action.className ? ' ' + action.className : '');
-          btn.title = action.tooltip || '';
+          // action.tooltip may be a string (static) or a function (rowData) → string
+          // allowing dynamic per-row tooltips such as "Advance to: {Next Status}".
+          btn.title = (typeof action.tooltip === 'function')
+            ? (action.tooltip(rowData) || '')
+            : (action.tooltip || '');
           btn.type = 'button';
           if (action.icon) {
             btn.appendChild(makeSvgEl(action.icon, 14));
@@ -966,7 +970,10 @@
         rowActions.forEach(function (action) {
           var btn = document.createElement('button');
           btn.className = 'proagri-sheet-row-action-btn' + (action.className ? ' ' + action.className : '');
-          btn.title = action.tooltip || '';
+          // action.tooltip may be a string or a function (rowData) → string
+          btn.title = (typeof action.tooltip === 'function')
+            ? (action.tooltip(rowData) || '')
+            : (action.tooltip || '');
           btn.type = 'button';
           if (action.icon) {
             btn.appendChild(makeSvgEl(action.icon, 14));

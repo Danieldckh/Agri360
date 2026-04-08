@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'AGRI360 PROCESS REMINDER (docs/CLAUDE_PROCESSES.md § 1): Default pipeline for any code-touching prompt: (1) researcher agent produces a written report, (2) build a TaskCreate task list from it, (3) delegate tasks to dev-frontend + dev-backend in parallel, (4) deploy via coolify-dev agent as soon as the dev agents return clean. No local browser verification — user verifies in production. Skip ONLY if the prompt is one of: (a) question/status check, (b) docs/spec/process file edit, (c) explicit \"do this inline\" instruction, (d) research-only/audit request, (e) trivial cosmetic single-file edit.'"
+          }
+        ]
+      }
+    ]
+  }
+}

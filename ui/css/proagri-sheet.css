@@ -403,7 +403,10 @@
   color: #27ae60;
 }
 
-/* Content calendar pipeline statuses */
+/* Content calendar legacy statuses (pre-2026-04-08 rename: focus_points → materials).
+   These selectors are retained for any rows in flight that haven't migrated yet.
+   New rows use `request_materials` / `materials_requested` / `materials_received`
+   which inherit the standard "materials" palette defined above. */
 .proagri-sheet-status-request_focus_points {
   background: rgba(142, 68, 173, 0.15);
   color: #8e44ad;
@@ -417,6 +420,14 @@
 .proagri-sheet-status-focus_points_received {
   background: rgba(52, 152, 219, 0.15);
   color: #3498db;
+}
+
+/* Content calendar — request_materials gets its own purple accent so the
+   pipeline reads visually like a kickoff (the other two materials_* classes
+   inherit the orange/teal palette from earlier in this file). */
+.proagri-sheet-status-request_materials {
+  background: rgba(142, 68, 173, 0.15);
+  color: #8e44ad;
 }
 
 .proagri-sheet-status-editorial {

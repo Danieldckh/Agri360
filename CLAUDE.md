@@ -68,7 +68,7 @@ Each page is a self-contained module under `pages/{name}/` with three files:
 
 ### Department routing and deliverable workflows
 
-The app has seven fixed departments — `admin`, `production`, `design`, `editorial`, `video`, `agri4all`, `social-media` — seeded in `api/db.js`. Deliverables flow between them according to status chains. The content calendar is the most elaborate example: `request_focus_points → focus_points_requested → focus_points_received → design → design_review → proofread → approved → scheduled → posted`, with branch statuses (`design_changes`, `client_changes`) that route back to earlier stages.
+The app has seven fixed departments — `admin`, `production`, `design`, `editorial`, `video`, `agri4all`, `social-media` — seeded in `api/db.js`. Deliverables flow between them according to status chains. The content calendar is the most elaborate example: `request_materials → materials_requested → materials_received → design → design_review → proofread → approved → scheduled → posted`, with branch statuses (`design_changes`, `client_changes`) that route back to earlier stages.
 
 **These chains exist in two places** and **must not drift**:
 - `ui/js/deliverable-workflows.js` (frontend — used to render department tabs and valid transitions)

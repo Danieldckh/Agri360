@@ -790,7 +790,7 @@
         tooltip = tooltipText || wf.tooltip;
       } else {
         target = nextStatusOrAuto;
-        tooltip = tooltipText || ('Advance to ' + formatStatus(target));
+        tooltip = tooltipText || ('Advance to: ' + formatStatus(target));
       }
       var btn = document.createElement('button');
       btn.className = 'proagri-sheet-row-action-btn action-advance';
@@ -1694,6 +1694,11 @@
         group.items.forEach(function (item) {
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
+          // Content calendar rows in Production are simplified: they show
+          // ONLY eye, avatar, the literal label "Content Calendar", status,
+          // and the advance arrow. Any other column (title, send-back button)
+          // is intentionally hidden for this type in this department.
+          var isContentCalendar = (item.type === 'sm-content-calendar');
 
           // Eye icon — open deliverable dashboard
           var eyeCell = document.createElement('div');
@@ -1743,16 +1748,20 @@
           }, 'production'));
           row.appendChild(teamCell);
 
-          // Title
-          var titleCell = document.createElement('div');
-          titleCell.className = 'prod-deliv-cell prod-deliv-title';
-          titleCell.textContent = item.title || '';
-          row.appendChild(titleCell);
+          // Title — completely omitted for content-calendar rows in production
+          // (spec: CC rows render exactly 5 cells — eye, avatar, label, status, advance).
+          if (!isContentCalendar) {
+            var titleCell = document.createElement('div');
+            titleCell.className = 'prod-deliv-cell prod-deliv-title';
+            titleCell.textContent = item.title || '';
+            row.appendChild(titleCell);
+          }
 
-          // Type
+          // Type — for content calendar rows this cell shows the literal
+          // label "Content Calendar" instead of the raw type slug.
           var typeCell = document.createElement('div');
           typeCell.className = 'prod-deliv-cell prod-deliv-type';
-          typeCell.textContent = formatStatus(item.type || '');
+          typeCell.textContent = isContentCalendar ? 'Content Calendar' : formatStatus(item.type || '');
           row.appendChild(typeCell);
 
           // Status — clickable dropdown
@@ -1814,8 +1823,9 @@
 
           row.appendChild(statusCell);
 
-          // Send-back button (only for review/approval statuses)
-          var sendBackTarget = getSendBackTarget(item.status);
+          // Send-back button (only for review/approval statuses).
+          // Suppressed for content-calendar rows per the 5-property spec.
+          var sendBackTarget = isContentCalendar ? null : getSendBackTarget(item.status);
           var actCol = document.createElement('div');
           actCol.className = 'prod-deliv-cell prod-deliv-act';
           if (sendBackTarget) {
@@ -1838,7 +1848,16 @@
           var advBtn = document.createElement('button');
           advBtn.className = 'proagri-sheet-row-action-btn action-advance';
           advBtn.type = 'button';
-          advBtn.title = 'Advance status';
+          // Dynamic tooltip — shows the human-readable name of the target status
+          // (e.g. "Advance to: Materials Requested"). Falls back to generic label
+          // when there is no workflow entry for the current type/status.
+          var advTip = (workflows && workflows.getAdvanceTooltip)
+            ? workflows.getAdvanceTooltip(item.type, item.status)
+            : '';
+          advBtn.title = advTip;
+          // Hide the advance button entirely on terminal statuses so it doesn't
+          // look like a dead action.
+          if (!advTip) advBtn.style.visibility = 'hidden';
           advBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
           advBtn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -2234,7 +2253,35 @@
       detailsWrap.appendChild(row);
     }
 
-    addDetail('Monthly Posts', meta.monthly_posts || meta.posts_per_month || '');
+    // Monthly Posts — editable input
+    var mpRow = document.createElement('div');
+    mpRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;font-size:11px;';
+    var mpLbl = document.createElement('span');
+    mpLbl.style.color = 'var(--text-secondary,#64748b)';
+    mpLbl.textContent = 'Monthly Posts';
+    mpRow.appendChild(mpLbl);
+    var mpInput = document.createElement('input');
+    mpInput.type = 'number';
+    mpInput.min = '0';
+    mpInput.step = '1';
+    mpInput.placeholder = '0';
+    mpInput.className = 'cc-input';
+    mpInput.style.cssText = 'width:64px;text-align:right;font-size:11px;font-weight:500;padding:2px 6px;border:1px solid rgba(128,128,128,0.2);border-radius:4px;background:var(--bg-primary,#fff);color:var(--text-primary,#1e293b);';
+    var initialMp = (deliverable.metadata && (deliverable.metadata.monthly_posts != null ? deliverable.metadata.monthly_posts : deliverable.metadata.posts_per_month));
+    mpInput.value = (initialMp != null && initialMp !== '') ? initialMp : '';
+    mpInput.addEventListener('change', function () {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ metadata: { monthly_posts: Number(mpInput.value) || 0 } })
+      }).then(function () {
+        if (!deliverable.metadata) deliverable.metadata = {};
+        deliverable.metadata.monthly_posts = Number(mpInput.value) || 0;
+      });
+    });
+    mpRow.appendChild(mpInput);
+    detailsWrap.appendChild(mpRow);
+
     addDetail('Type', 'Content Calendar');
 
     nav.appendChild(detailsWrap);
@@ -2250,19 +2297,88 @@
 
     var platWrap = document.createElement('div');
     platWrap.style.padding = '0 16px';
-    var platforms = meta.platforms || [];
-    var hasFb = platforms.some(function (p) { return p.key === 'facebook'; });
-    var hasIg = platforms.some(function (p) { return p.key === 'instagram'; });
-    // Stories is derived from Instagram being present
-    var hasStories = hasIg;
+    // Shape preserved: [{ platform, key, link }]
+    var platforms = (meta && meta.platforms) ? meta.platforms.slice() : [];
+    function findIdx(key) {
+      for (var i = 0; i < platforms.length; i++) {
+        if (platforms[i] && platforms[i].key === key) return i;
+      }
+      return -1;
+    }
+    var platformMeta = {
+      facebook: { label: 'Facebook', platform: 'Facebook' },
+      instagram: { label: 'Instagram', platform: 'Instagram' },
+      instagram_stories: { label: 'Instagram Stories', platform: 'Instagram Stories' }
+    };
 
-    [{ name: 'Facebook', active: hasFb }, { name: 'Instagram', active: hasIg }, { name: 'Stories', active: hasStories }].forEach(function (pl) {
-      if (!pl.active) return;
-      var tag = document.createElement('div');
-      tag.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px 4px 2px 0;border-radius:12px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.1);color:#3b82f6;';
-      tag.textContent = pl.name;
-      platWrap.appendChild(tag);
+    var fbCb, igCb, storiesCb;
+
+    function savePlatforms() {
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ metadata: { platforms: platforms } })
+      }).then(function () {
+        if (!deliverable.metadata) deliverable.metadata = {};
+        deliverable.metadata.platforms = platforms;
+      });
+    }
+
+    function setKey(key, on) {
+      var idx = findIdx(key);
+      if (on && idx === -1) {
+        platforms.push({ platform: platformMeta[key].platform, key: key, link: '' });
+      } else if (!on && idx !== -1) {
+        platforms.splice(idx, 1);
+      }
+    }
+
+    function makeCbRow(key) {
+      var row = document.createElement('label');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text-primary,#1e293b);cursor:pointer;';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.style.cssText = 'margin:0;cursor:pointer;';
+      cb.checked = findIdx(key) !== -1;
+      row.appendChild(cb);
+      var txt = document.createElement('span');
+      txt.textContent = platformMeta[key].label;
+      row.appendChild(txt);
+      platWrap.appendChild(row);
+      return cb;
+    }
+
+    fbCb = makeCbRow('facebook');
+    igCb = makeCbRow('instagram');
+    storiesCb = makeCbRow('instagram_stories');
+
+    function syncStoriesDisabled() {
+      storiesCb.disabled = !igCb.checked;
+      storiesCb.parentNode.style.opacity = igCb.checked ? '1' : '0.5';
+      storiesCb.parentNode.style.cursor = igCb.checked ? 'pointer' : 'not-allowed';
+    }
+    syncStoriesDisabled();
+
+    fbCb.addEventListener('change', function () {
+      setKey('facebook', fbCb.checked);
+      savePlatforms();
     });
+    igCb.addEventListener('change', function () {
+      if (!igCb.checked && storiesCb.checked) {
+        // Remove both in same PATCH
+        storiesCb.checked = false;
+        setKey('instagram_stories', false);
+      }
+      setKey('instagram', igCb.checked);
+      syncStoriesDisabled();
+      savePlatforms();
+    });
+    storiesCb.addEventListener('change', function () {
+      if (storiesCb.disabled) { storiesCb.checked = false; return; }
+      setKey('instagram_stories', storiesCb.checked);
+      savePlatforms();
+    });
+
     nav.appendChild(platWrap);
   }
 
