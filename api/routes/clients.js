@@ -65,7 +65,8 @@ router.post('/', async (req, res) => {
     'trading_name', 'company_reg_no', 'vat_number', 'website',
     'industry_expertise', 'physical_address', 'physical_postal_code',
     'postal_address', 'postal_code',
-    'primary_contact', 'material_contact', 'accounts_contact'
+    'primary_contact', 'material_contact', 'accounts_contact',
+    'instagram', 'facebook', 'linkedin', 'twitter_x'
   ];
 
   const insertCols = ['created_by'];
@@ -104,7 +105,8 @@ router.patch('/:id', async (req, res) => {
     'trading_name', 'company_reg_no', 'vat_number', 'website',
     'industry_expertise', 'physical_address', 'physical_postal_code',
     'postal_address', 'postal_code',
-    'primary_contact', 'material_contact', 'accounts_contact'
+    'primary_contact', 'material_contact', 'accounts_contact',
+    'instagram', 'facebook', 'linkedin', 'twitter_x'
   ];
   const jsonbFields = ['primary_contact', 'material_contact', 'accounts_contact'];
   const updates = [];

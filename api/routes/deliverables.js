@@ -101,6 +101,61 @@ router.get('/by-type/:typeSlug', async (req, res) => {
   }
 });
 
+// GET /:id/request-form - Phase 5 materials recap
+// Returns the latest completed request_forms row tied to this deliverable
+// (or to the deliverable's client if no per-deliverable form exists), plus
+// any client_assets of kind=form_upload for that client.
+router.get('/:id/request-form', async (req, res) => {
+  try {
+    const delivRes = await pool.query(
+      'SELECT id, client_id FROM deliverables WHERE id = $1',
+      [req.params.id]
+    );
+    if (delivRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Deliverable not found' });
+    }
+    const { client_id } = delivRes.rows[0];
+
+    const formRes = await pool.query(
+      `SELECT *
+         FROM request_forms
+        WHERE status = 'completed'
+          AND (
+            deliverable_id = $1
+            OR (client_id = $2 AND deliverable_id IS NULL)
+          )
+        ORDER BY completed_at DESC NULLS LAST, created_at DESC
+        LIMIT 1`,
+      [req.params.id, client_id]
+    );
+
+    if (formRes.rows.length === 0) {
+      return res.status(404).json({
+        error: 'No completed request form found for this deliverable or client'
+      });
+    }
+
+    let assets = [];
+    if (client_id) {
+      const assetsRes = await pool.query(
+        `SELECT * FROM client_assets
+          WHERE client_id = $1 AND kind = 'form_upload'
+          ORDER BY uploaded_at DESC`,
+        [client_id]
+      );
+      assets = assetsRes.rows.map(toCamelCase);
+    }
+
+    res.json({
+      form: toCamelCase(formRes.rows[0]),
+      assets: assets
+    });
+  } catch (err) {
+    console.error('Get request-form recap error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /:id - single deliverable with department + booking form info
 router.get('/:id', async (req, res) => {
   try {
@@ -955,6 +1010,37 @@ const imgUpload = multer({ storage: imgStorage, limits: { fileSize: 10 * 1024 * 
 router.post('/:id/upload-images', imgUpload.array('images', 10), async (req, res) => {
   try {
     var urls = (req.files || []).map(f => '/uploads/deliverable-images/' + f.filename);
+
+    // Phase 4 — silently mirror uploads into client_assets (kind=cc_post_image).
+    // Failure here must NOT fail the upload response.
+    (async () => {
+      try {
+        if (!urls.length) return;
+        const delivRes = await pool.query(
+          'SELECT client_id FROM deliverables WHERE id = $1',
+          [req.params.id]
+        );
+        const clientId = delivRes.rows[0] && delivRes.rows[0].client_id;
+        if (!clientId) return;
+        const uploaderId = (req.user && req.user.id) || null;
+        for (let i = 0; i < urls.length; i++) {
+          const f = (req.files || [])[i] || {};
+          try {
+            await pool.query(
+              `INSERT INTO client_assets
+                 (client_id, deliverable_id, kind, url, mime_type, uploaded_by)
+               VALUES ($1, $2, 'cc_post_image', $3, $4, $5)`,
+              [clientId, req.params.id, urls[i], f.mimetype || null, uploaderId]
+            );
+          } catch (innerErr) {
+            console.error('client_assets insert failed for deliverable ' + req.params.id + ':', innerErr.message);
+          }
+        }
+      } catch (mirrorErr) {
+        console.error('client_assets mirror error:', mirrorErr.message);
+      }
+    })();
+
     res.json({ urls: urls });
   } catch (err) {
     console.error('Image upload error:', err);

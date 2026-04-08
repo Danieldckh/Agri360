@@ -2176,6 +2176,16 @@
     titleRow.appendChild(addRowBtn);
     wrapper.appendChild(titleRow);
 
+    // Materials recap (request-form responses + assets) — fetched async
+    var recap = document.createElement('div');
+    recap.className = 'cc-materials-recap';
+    var recapEmpty = document.createElement('div');
+    recapEmpty.className = 'cc-recap-loading';
+    recapEmpty.textContent = 'Loading materials...';
+    recap.appendChild(recapEmpty);
+    wrapper.appendChild(recap);
+    fetchRequestFormRecap(deliverable.id, recap);
+
     // Table wrapped in a card
     var card = document.createElement('div');
     card.className = 'cc-posts-card';
@@ -2325,56 +2335,27 @@
     imgCell.appendChild(imgGrid);
     row.appendChild(imgCell);
 
-    // Change Requests (per row)
+    // Change Requests (per row) — clickable cell opens modal
     if (!post.change_requests) post.change_requests = [];
     var crCell = document.createElement('div');
     crCell.className = 'cc-posts-cell cc-posts-changes';
 
     function renderCR() {
       while (crCell.firstChild) crCell.removeChild(crCell.firstChild);
-      post.change_requests.forEach(function (cr, crIdx) {
-        var item = document.createElement('div');
-        item.className = 'cc-cr-item';
-        var cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = !!cr.done;
-        cb.addEventListener('change', function () {
-          cr.done = cb.checked;
-          text.className = 'cc-cr-text' + (cr.done ? ' done' : '');
-          savePostData(deliverable.id, posts);
-        });
-        item.appendChild(cb);
-        var text = document.createElement('span');
-        text.className = 'cc-cr-text' + (cr.done ? ' done' : '');
-        text.contentEditable = 'true';
-        text.textContent = cr.text || '';
-        text.addEventListener('blur', function () {
-          cr.text = text.textContent;
-          savePostData(deliverable.id, posts);
-        });
-        item.appendChild(text);
-        var del = document.createElement('button');
-        del.className = 'cc-cr-delete';
-        del.textContent = '\u00D7';
-        del.addEventListener('click', function () {
-          post.change_requests.splice(crIdx, 1);
-          renderCR();
-          savePostData(deliverable.id, posts);
-        });
-        item.appendChild(del);
-        crCell.appendChild(item);
+      var trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'cc-cr-trigger';
+      trigger.title = 'Open change requests';
+      trigger.appendChild(makeSvgIcon('M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'));
+      var badge = document.createElement('span');
+      badge.className = 'cc-cr-count';
+      badge.textContent = String(post.change_requests.length);
+      if (post.change_requests.length === 0) badge.classList.add('is-empty');
+      trigger.appendChild(badge);
+      trigger.addEventListener('click', function () {
+        openChangeRequestModal(post, deliverable, posts, renderCR);
       });
-      var addBtn = document.createElement('button');
-      addBtn.className = 'cc-cr-add-inline';
-      addBtn.textContent = '+';
-      addBtn.title = 'Add change request';
-      addBtn.addEventListener('click', function () {
-        post.change_requests.push({ text: '', done: false });
-        renderCR();
-        var lastText = crCell.querySelector('.cc-cr-item:last-child .cc-cr-text');
-        if (lastText) lastText.focus();
-      });
-      crCell.appendChild(addBtn);
+      crCell.appendChild(trigger);
     }
     renderCR();
     row.appendChild(crCell);
@@ -2408,6 +2389,412 @@
       headers: getHeaders(),
       body: JSON.stringify({ metadata: { posts: posts } })
     });
+  }
+
+  // Materials Recap — fetches the client's submitted request-form and renders it
+  function fetchRequestFormRecap(deliverableId, container) {
+    fetch('/api/deliverables/' + deliverableId + '/request-form', { headers: getHeaders() })
+      .then(function (r) {
+        if (r.status === 404) return { __notFound: true };
+        return r.json();
+      })
+      .then(function (data) {
+        while (container.firstChild) container.removeChild(container.firstChild);
+        if (!data || data.__notFound || data.error) {
+          var empty = document.createElement('div');
+          empty.className = 'cc-recap-empty';
+          empty.textContent = 'No materials request submitted yet.';
+          container.appendChild(empty);
+          return;
+        }
+        renderRequestFormRecap(container, data);
+      })
+      .catch(function () {
+        while (container.firstChild) container.removeChild(container.firstChild);
+        var empty = document.createElement('div');
+        empty.className = 'cc-recap-empty';
+        empty.textContent = 'No materials request submitted yet.';
+        container.appendChild(empty);
+      });
+  }
+
+  function renderRequestFormRecap(container, data) {
+    var form = (data && data.form) || {};
+    var fields = Array.isArray(form.fields) ? form.fields : [];
+    var responses = form.responses || {};
+    if (typeof responses === 'string') {
+      try { responses = JSON.parse(responses); } catch (e) { responses = {}; }
+    }
+    var assets = Array.isArray(data.assets) ? data.assets : [];
+
+    var header = document.createElement('div');
+    header.className = 'cc-recap-header';
+    var title = document.createElement('h3');
+    title.className = 'cc-recap-title';
+    title.textContent = 'Materials Request';
+    header.appendChild(title);
+    if (form.completedAt) {
+      var ts = document.createElement('span');
+      ts.className = 'cc-recap-timestamp';
+      try {
+        ts.textContent = 'Submitted ' + new Date(form.completedAt).toLocaleString();
+      } catch (e) { ts.textContent = ''; }
+      header.appendChild(ts);
+    }
+    container.appendChild(header);
+
+    // Responses
+    if (fields.length > 0 || (responses && typeof responses === 'object' && Object.keys(responses).length > 0)) {
+      var respWrap = document.createElement('div');
+      respWrap.className = 'cc-recap-responses';
+      if (fields.length > 0) {
+        fields.forEach(function (field) {
+          if (!field) return;
+          var key = field.id != null ? field.id : field.name;
+          var altKey = field.name != null ? field.name : field.id;
+          var value = responses[key];
+          if (value == null || value === '') value = responses[altKey];
+          respWrap.appendChild(buildRecapQA(field.label || field.name || field.id || '', value));
+        });
+      } else {
+        // No field defs — dump raw responses keyed by string
+        Object.keys(responses).forEach(function (k) {
+          respWrap.appendChild(buildRecapQA(k, responses[k]));
+        });
+      }
+      container.appendChild(respWrap);
+    }
+
+    // Attached assets
+    if (assets.length > 0) {
+      var assetsHdr = document.createElement('div');
+      assetsHdr.className = 'cc-recap-assets-header';
+      assetsHdr.textContent = 'Attached files';
+      container.appendChild(assetsHdr);
+      var strip = document.createElement('div');
+      strip.className = 'cc-recap-assets';
+      assets.forEach(function (asset) {
+        if (!asset || !asset.url) return;
+        var thumb = document.createElement('button');
+        thumb.type = 'button';
+        thumb.className = 'cc-recap-thumb';
+        var img = document.createElement('img');
+        img.src = asset.thumbnailUrl || asset.url;
+        img.alt = '';
+        thumb.appendChild(img);
+        thumb.addEventListener('click', function () {
+          openLightbox(asset.url);
+        });
+        strip.appendChild(thumb);
+      });
+      container.appendChild(strip);
+    }
+  }
+
+  function buildRecapQA(question, answer) {
+    var row = document.createElement('div');
+    row.className = 'cc-recap-qa';
+    var q = document.createElement('div');
+    q.className = 'cc-recap-question';
+    q.textContent = question || '';
+    row.appendChild(q);
+    var a = document.createElement('div');
+    a.className = 'cc-recap-answer';
+    var text = '';
+    if (answer == null || answer === '') {
+      text = '\u2014';
+    } else if (Array.isArray(answer)) {
+      text = answer.filter(function (v) { return v != null && v !== ''; }).join(', ') || '\u2014';
+    } else if (typeof answer === 'object') {
+      try { text = JSON.stringify(answer); } catch (e) { text = String(answer); }
+    } else {
+      text = String(answer);
+    }
+    a.textContent = text;
+    row.appendChild(a);
+    return row;
+  }
+
+  // Change Request Modal — opens for a single post
+  function openChangeRequestModal(post, deliverable, posts, onClose) {
+    if (!post.change_requests) post.change_requests = [];
+    var selectedIdx = post.change_requests.length > 0 ? 0 : -1;
+    var carouselIdx = 0;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'cc-cr-modal-overlay';
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeModal();
+    });
+
+    var panel = document.createElement('div');
+    panel.className = 'cc-cr-modal-panel';
+    overlay.appendChild(panel);
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'cc-cr-modal-header';
+    var h = document.createElement('h3');
+    h.textContent = 'Change Requests';
+    header.appendChild(h);
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'cc-cr-modal-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.textContent = '\u00D7';
+    closeBtn.addEventListener('click', closeModal);
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    // Body (two columns)
+    var body = document.createElement('div');
+    body.className = 'cc-cr-modal-body';
+    panel.appendChild(body);
+
+    var carouselSide = document.createElement('div');
+    carouselSide.className = 'cc-cr-modal-carousel';
+    body.appendChild(carouselSide);
+
+    var formSide = document.createElement('div');
+    formSide.className = 'cc-cr-modal-form';
+    body.appendChild(formSide);
+
+    // List (below body)
+    var listWrap = document.createElement('div');
+    listWrap.className = 'cc-cr-modal-list';
+    panel.appendChild(listWrap);
+
+    document.body.appendChild(overlay);
+
+    function closeModal() {
+      overlay.remove();
+      if (typeof onClose === 'function') onClose();
+    }
+
+    function isLegacy(cr) {
+      // Legacy checklist entries: {text, done} with no id/images/created_at
+      return cr && (cr.id == null) && !Array.isArray(cr.images);
+    }
+
+    function renderCarousel() {
+      while (carouselSide.firstChild) carouselSide.removeChild(carouselSide.firstChild);
+      var images = [];
+      if (selectedIdx >= 0 && post.change_requests[selectedIdx]) {
+        var cr = post.change_requests[selectedIdx];
+        if (Array.isArray(cr.images)) images = cr.images.slice();
+      }
+      if (images.length === 0) {
+        var placeholder = document.createElement('div');
+        placeholder.className = 'cc-cr-carousel-placeholder';
+        placeholder.textContent = 'No attachments';
+        carouselSide.appendChild(placeholder);
+        return;
+      }
+      if (carouselIdx >= images.length) carouselIdx = 0;
+      var stage = document.createElement('div');
+      stage.className = 'cc-cr-carousel-stage';
+      var img = document.createElement('img');
+      img.src = images[carouselIdx];
+      img.className = 'cc-cr-carousel-img';
+      stage.appendChild(img);
+      if (images.length > 1) {
+        var prev = document.createElement('button');
+        prev.type = 'button';
+        prev.className = 'cc-cr-carousel-nav cc-cr-carousel-prev';
+        prev.textContent = '\u2039';
+        prev.addEventListener('click', function () {
+          carouselIdx = (carouselIdx - 1 + images.length) % images.length;
+          renderCarousel();
+        });
+        stage.appendChild(prev);
+        var next = document.createElement('button');
+        next.type = 'button';
+        next.className = 'cc-cr-carousel-nav cc-cr-carousel-next';
+        next.textContent = '\u203A';
+        next.addEventListener('click', function () {
+          carouselIdx = (carouselIdx + 1) % images.length;
+          renderCarousel();
+        });
+        stage.appendChild(next);
+        var counter = document.createElement('div');
+        counter.className = 'cc-cr-carousel-counter';
+        counter.textContent = (carouselIdx + 1) + ' / ' + images.length;
+        stage.appendChild(counter);
+      }
+      carouselSide.appendChild(stage);
+    }
+
+    function renderForm() {
+      while (formSide.firstChild) formSide.removeChild(formSide.firstChild);
+      if (selectedIdx === -1) {
+        // New change request form
+        var ta = document.createElement('textarea');
+        ta.className = 'cc-cr-form-textarea';
+        ta.placeholder = 'Describe the change request...';
+        formSide.appendChild(ta);
+
+        var fileLabel = document.createElement('label');
+        fileLabel.className = 'cc-cr-form-file-label';
+        fileLabel.textContent = 'Attach images';
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.multiple = true;
+        fileInput.className = 'cc-cr-form-file';
+        fileLabel.appendChild(fileInput);
+        formSide.appendChild(fileLabel);
+
+        var selectedFilesEl = document.createElement('div');
+        selectedFilesEl.className = 'cc-cr-form-selected';
+        formSide.appendChild(selectedFilesEl);
+        fileInput.addEventListener('change', function () {
+          var files = Array.from(fileInput.files || []);
+          selectedFilesEl.textContent = files.length
+            ? files.length + ' file' + (files.length === 1 ? '' : 's') + ' selected'
+            : '';
+        });
+
+        var submit = document.createElement('button');
+        submit.type = 'button';
+        submit.className = 'cc-cr-form-submit';
+        submit.textContent = 'Submit';
+        submit.addEventListener('click', function () {
+          var text = (ta.value || '').trim();
+          if (!text && (!fileInput.files || fileInput.files.length === 0)) return;
+          submit.disabled = true;
+          submit.textContent = 'Uploading...';
+
+          function appendCR(urls) {
+            var cr = {
+              id: Date.now() + Math.random(),
+              text: text,
+              images: urls || [],
+              created_at: new Date().toISOString(),
+              created_by: (window.getCurrentUser && window.getCurrentUser()) ? window.getCurrentUser().username : null
+            };
+            post.change_requests.push(cr);
+            selectedIdx = post.change_requests.length - 1;
+            carouselIdx = 0;
+            savePostData(deliverable.id, posts);
+            renderAll();
+          }
+
+          var files = Array.from(fileInput.files || []);
+          if (files.length === 0) {
+            appendCR([]);
+            return;
+          }
+          var fd = new FormData();
+          files.forEach(function (f) { fd.append('images', f); });
+          fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+            method: 'POST',
+            headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+            body: fd
+          }).then(function (r) { return r.json(); })
+            .then(function (result) {
+              appendCR((result && result.urls) ? result.urls : []);
+            })
+            .catch(function () {
+              submit.disabled = false;
+              submit.textContent = 'Submit';
+            });
+        });
+        formSide.appendChild(submit);
+      } else {
+        // Read-only view of existing change request
+        var cr = post.change_requests[selectedIdx];
+        if (!cr) {
+          selectedIdx = -1;
+          renderForm();
+          return;
+        }
+        var meta = document.createElement('div');
+        meta.className = 'cc-cr-form-meta';
+        var metaBits = [];
+        if (cr.created_by) metaBits.push(cr.created_by);
+        if (cr.created_at) {
+          try { metaBits.push(new Date(cr.created_at).toLocaleString()); } catch (e) {}
+        }
+        meta.textContent = metaBits.join(' \u2022 ');
+        if (metaBits.length) formSide.appendChild(meta);
+
+        var textView = document.createElement('div');
+        textView.className = 'cc-cr-form-text-view';
+        textView.textContent = cr.text || '';
+        formSide.appendChild(textView);
+
+        if (isLegacy(cr)) {
+          var legacyNote = document.createElement('div');
+          legacyNote.className = 'cc-cr-form-legacy-note';
+          legacyNote.textContent = 'Legacy checklist item';
+          formSide.appendChild(legacyNote);
+        }
+
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'cc-cr-form-delete';
+        delBtn.appendChild(makeSvgIcon('M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'));
+        var delLbl = document.createElement('span');
+        delLbl.textContent = 'Delete';
+        delBtn.appendChild(delLbl);
+        delBtn.addEventListener('click', function () {
+          if (!window.confirm('Delete this change request?')) return;
+          post.change_requests.splice(selectedIdx, 1);
+          savePostData(deliverable.id, posts);
+          if (post.change_requests.length === 0) {
+            selectedIdx = -1;
+          } else if (selectedIdx >= post.change_requests.length) {
+            selectedIdx = post.change_requests.length - 1;
+          }
+          carouselIdx = 0;
+          renderAll();
+        });
+        formSide.appendChild(delBtn);
+
+        var newBtn = document.createElement('button');
+        newBtn.type = 'button';
+        newBtn.className = 'cc-cr-form-new';
+        newBtn.textContent = '+ New change request';
+        newBtn.addEventListener('click', function () {
+          selectedIdx = -1;
+          carouselIdx = 0;
+          renderAll();
+        });
+        formSide.appendChild(newBtn);
+      }
+    }
+
+    function renderList() {
+      while (listWrap.firstChild) listWrap.removeChild(listWrap.firstChild);
+      if (post.change_requests.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'cc-cr-modal-list-empty';
+        empty.textContent = 'No change requests yet';
+        listWrap.appendChild(empty);
+        return;
+      }
+      post.change_requests.forEach(function (cr, i) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'cc-cr-chip' + (i === selectedIdx ? ' is-selected' : '');
+        var preview = (cr.text || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+        chip.textContent = '#' + (i + 1) + (preview ? ' - ' + preview : '');
+        chip.addEventListener('click', function () {
+          selectedIdx = i;
+          carouselIdx = 0;
+          renderAll();
+        });
+        listWrap.appendChild(chip);
+      });
+    }
+
+    function renderAll() {
+      renderCarousel();
+      renderForm();
+      renderList();
+    }
+
+    renderAll();
   }
 
   function setupCCSidebar(deliverable, meta) {
@@ -2572,44 +2959,51 @@
       linksWrap.appendChild(row);
     }
 
-    // Social links from meta.platforms
-    platforms.forEach(function (p) {
-      if (!p || !p.link) return;
-      var k = p.key || '';
-      var label = p.platform || k;
-      if (k === 'facebook') label = 'Facebook';
-      else if (k === 'instagram') label = 'Instagram';
-      else if (k === 'instagram_stories' || k === 'stories') return; // stories never has a link
-      addLinkRow(label, p.link);
-    });
+    // Helper: look up a meta.platforms[].link for a given key as a fallback
+    function platformLinkFallback(key) {
+      for (var i = 0; i < platforms.length; i++) {
+        var p = platforms[i];
+        if (!p || !p.link) continue;
+        if ((p.key || '').toLowerCase() === key) return p.link;
+      }
+      return null;
+    }
 
-    // Fetch client to get website
+    // Fetch client once and render Links section with website + social URLs
     if (deliverable.clientId) {
       fetch('/api/clients/' + deliverable.clientId, { headers: getHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (client) {
-          if (!client || client.error) return;
-          if (client.website) {
-            // Insert Website as first link row — rebuild wrap so Website appears first
-            ensureLinksSection();
-            var row = document.createElement('div');
-            row.style.cssText = 'display:flex;gap:6px;padding:2px 0;font-size:11px;align-items:baseline;';
-            var lbl = document.createElement('span');
-            lbl.style.cssText = 'color:var(--text-secondary,#64748b);flex-shrink:0;';
-            lbl.textContent = 'Website:';
-            row.appendChild(lbl);
-            var a = document.createElement('a');
-            a.href = /^https?:\/\//i.test(client.website) ? client.website : ('https://' + client.website);
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            a.textContent = client.website;
-            a.style.cssText = 'color:var(--accent,#3b82f6);text-decoration:none;word-break:break-all;font-weight:500;';
-            row.appendChild(a);
-            if (linksWrap.firstChild) linksWrap.insertBefore(row, linksWrap.firstChild);
-            else linksWrap.appendChild(row);
-          }
+          if (!client || client.error) client = {};
+          // Order: Website, Instagram, Facebook, LinkedIn, X
+          var website = client.website || null;
+          var instagram = (client.instagram != null && client.instagram !== '')
+            ? client.instagram : platformLinkFallback('instagram');
+          var facebook = (client.facebook != null && client.facebook !== '')
+            ? client.facebook : platformLinkFallback('facebook');
+          var linkedin = (client.linkedin != null && client.linkedin !== '')
+            ? client.linkedin : platformLinkFallback('linkedin');
+          var twitterX = (client.twitterX != null && client.twitterX !== '')
+            ? client.twitterX : (platformLinkFallback('twitter_x') || platformLinkFallback('twitter') || platformLinkFallback('x'));
+          addLinkRow('Website', website);
+          addLinkRow('Instagram', instagram);
+          addLinkRow('Facebook', facebook);
+          addLinkRow('LinkedIn', linkedin);
+          addLinkRow('X', twitterX);
         })
-        .catch(function () {});
+        .catch(function () {
+          // On fetch failure, still render whatever we can from meta.platforms
+          addLinkRow('Instagram', platformLinkFallback('instagram'));
+          addLinkRow('Facebook', platformLinkFallback('facebook'));
+          addLinkRow('LinkedIn', platformLinkFallback('linkedin'));
+          addLinkRow('X', platformLinkFallback('twitter_x') || platformLinkFallback('twitter') || platformLinkFallback('x'));
+        });
+    } else {
+      // No client id — render fallback social links synchronously
+      addLinkRow('Instagram', platformLinkFallback('instagram'));
+      addLinkRow('Facebook', platformLinkFallback('facebook'));
+      addLinkRow('LinkedIn', platformLinkFallback('linkedin'));
+      addLinkRow('X', platformLinkFallback('twitter_x') || platformLinkFallback('twitter') || platformLinkFallback('x'));
     }
 
     // Assigned Team section — show only assigned slots

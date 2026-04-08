@@ -145,6 +145,64 @@ async function runMigrations() {
     await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS primary_contact JSONB`);
     await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS material_contact JSONB`);
     await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS accounts_contact JSONB`);
+
+    // Phase 2 — Client social URL columns
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS instagram VARCHAR(500)`);
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS facebook VARCHAR(500)`);
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS linkedin VARCHAR(500)`);
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS twitter_x VARCHAR(500)`);
+
+    // Phase 2 — Backfill client social URL columns from deliverables.metadata->'platforms'.
+    // Idempotent: only updates NULL columns. Safe to re-run.
+    try {
+      const socialBackfill = await client.query(`
+        WITH plats AS (
+          SELECT
+            d.client_id,
+            LOWER(COALESCE(p->>'key', p->>'platform', '')) AS k,
+            p->>'link' AS link
+          FROM deliverables d
+          CROSS JOIN LATERAL jsonb_array_elements(
+            COALESCE(d.metadata->'platforms', '[]'::jsonb)
+          ) AS p
+          WHERE d.client_id IS NOT NULL
+            AND (p->>'link') IS NOT NULL
+            AND (p->>'link') <> ''
+        ),
+        ranked AS (
+          SELECT
+            client_id,
+            CASE
+              WHEN k IN ('facebook', 'fb') THEN 'facebook'
+              WHEN k IN ('instagram', 'ig', 'insta') THEN 'instagram'
+              WHEN k IN ('linkedin', 'li') THEN 'linkedin'
+              WHEN k IN ('twitter', 'twitter_x', 'x') THEN 'twitter_x'
+              ELSE NULL
+            END AS col,
+            link
+          FROM plats
+        ),
+        pick AS (
+          SELECT DISTINCT ON (client_id, col) client_id, col, link
+          FROM ranked
+          WHERE col IS NOT NULL
+        )
+        UPDATE clients c SET
+          facebook  = COALESCE(c.facebook,  (SELECT link FROM pick WHERE pick.client_id = c.id AND pick.col = 'facebook')),
+          instagram = COALESCE(c.instagram, (SELECT link FROM pick WHERE pick.client_id = c.id AND pick.col = 'instagram')),
+          linkedin  = COALESCE(c.linkedin,  (SELECT link FROM pick WHERE pick.client_id = c.id AND pick.col = 'linkedin')),
+          twitter_x = COALESCE(c.twitter_x, (SELECT link FROM pick WHERE pick.client_id = c.id AND pick.col = 'twitter_x'))
+        WHERE (c.facebook  IS NULL AND EXISTS (SELECT 1 FROM pick WHERE pick.client_id = c.id AND pick.col = 'facebook'))
+           OR (c.instagram IS NULL AND EXISTS (SELECT 1 FROM pick WHERE pick.client_id = c.id AND pick.col = 'instagram'))
+           OR (c.linkedin  IS NULL AND EXISTS (SELECT 1 FROM pick WHERE pick.client_id = c.id AND pick.col = 'linkedin'))
+           OR (c.twitter_x IS NULL AND EXISTS (SELECT 1 FROM pick WHERE pick.client_id = c.id AND pick.col = 'twitter_x'))
+      `);
+      if (socialBackfill.rowCount > 0) {
+        console.log('Backfilled social URLs on ' + socialBackfill.rowCount + ' client rows from deliverable metadata');
+      }
+    } catch (e) {
+      console.error('Client social URL backfill error:', e.message);
+    }
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS campaign_month_start VARCHAR(7)`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS campaign_month_end VARCHAR(7)`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS form_data JSONB`);
@@ -268,6 +326,22 @@ async function runMigrations() {
     )`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_request_forms_token ON request_forms(token)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_request_forms_client ON request_forms(client_id)`);
+
+    // Phase 4 — Client Assets (form uploads, CC post images, designs, videos, banners)
+    // Allowed `kind` values (documentation, not enforced):
+    // form_upload | cc_post_image | design | video | banner | other
+    await client.query(`CREATE TABLE IF NOT EXISTS client_assets (
+      id SERIAL PRIMARY KEY,
+      client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+      deliverable_id INT REFERENCES deliverables(id) ON DELETE SET NULL,
+      kind VARCHAR(50) NOT NULL,
+      url VARCHAR(1000) NOT NULL,
+      thumbnail_url VARCHAR(1000),
+      mime_type VARCHAR(100),
+      uploaded_by INT REFERENCES employees(id),
+      uploaded_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS client_assets_client_kind_idx ON client_assets(client_id, kind)`);
 
     // Request Form Templates — reusable form structures
     await client.query(`CREATE TABLE IF NOT EXISTS request_form_templates (
