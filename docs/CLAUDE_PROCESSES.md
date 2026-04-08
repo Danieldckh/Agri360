@@ -21,20 +21,26 @@ For any prompt that touches application code (frontend, backend, routes, migrati
 
 4. **Check on localhost** — before deploying, start the API locally (`cd api && npm start`, runs on :3001 serving the static frontend from the repo root) and open the affected page(s) in a browser via the Playwright MCP. Exercise the new/changed behavior end-to-end: navigate to the page, click through the flow, hover tooltips, confirm any DB writes took effect, and confirm nothing adjacent looks broken. If issues surface, re-dispatch the relevant dev agent with a focused fix prompt and re-check. Stop the background API server before moving on. Only proceed to deploy once the localhost check is clean.
 
-5. **Merge, commit, and push — let Coolify auto-deploy** — once the localhost check is clean:
+5. **Merge, commit, push, then trigger the Coolify deploy** — once the localhost check is clean:
    - If any work was done in a git worktree, merge it back into `master` first (`git checkout master && git merge <branch>`). Do not leave worktrees dangling.
    - Stage the affected files explicitly by name (no `git add -A` / `git add .`, per the safety rules in CLAUDE.md).
    - Commit with a HEREDOC message following the `Co-Authored-By: Claude Opus 4.6 (1M context)` footer convention used in this repo.
-   - `git push origin master`. Coolify is configured to auto-deploy on push to master — no explicit API trigger is needed.
-   - Do NOT dispatch the `coolify-dev` agent for routine deploys. Only invoke it when you need to modify deployment config (Dockerfile, env vars, Coolify settings) or when the auto-deploy fails and you need to manually re-trigger or inspect the deploy.
-   - Confirm the push succeeded and report the commit SHA to the user so they can watch the auto-deploy land.
+   - `git push origin master`.
+   - **Coolify does NOT auto-deploy on push** — you must trigger the deploy explicitly. Either dispatch the `coolify-dev` agent, or POST to the Coolify API directly:
+     ```bash
+     set -a; source .env; set +a
+     curl -sS -X POST "${COOLIFY_BASE_URL}/api/v1/deploy?uuid=tows08oogko8k4wk84g40oo4" \
+       -H "Authorization: Bearer ${COOLIFY_API_TOKEN}"
+     ```
+     A successful trigger returns `HTTP 200` with a `deployment_uuid` in the JSON body. Report both to the user.
+   - Do not poll the deploy to completion — the user watches it land in production.
 
 ### Why this shape
 
 - **Research before planning** prevents task lists built on wrong assumptions about where code lives or how it connects.
 - **Task list before delegation** gives the user a checkpoint to catch scope creep or misunderstanding before any code is written.
 - **Localhost check before deploy** catches obviously-broken UI changes (fixed-width CSS on variable-width content, misplaced popups, missing data bindings) that syntax checks miss — without burning the user's time verifying in production.
-- **Auto-deploy on push to master** removes an unnecessary agent hop — every routine deploy was going through `coolify-dev` just to make an HTTP POST that Coolify would have done anyway when it saw the push. The `coolify-dev` agent stays reserved for its real job: editing `Dockerfile` / `api/db.js` schema / env vars, and handling deploy failures.
+- **Explicit Coolify trigger** — this instance is NOT wired to auto-deploy on push. Pushing to master alone does nothing visible in production; the `POST /api/v1/deploy` call is what actually kicks off the build-and-deploy cycle. Forgetting it leads to "I pushed but nothing changed" surprises.
 
 ## § 2. Exceptions — when to skip the pipeline
 

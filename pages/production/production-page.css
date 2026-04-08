@@ -77,9 +77,31 @@
 }
 
 .prod-deliv-posts {
-  flex: 0.4;
-  text-align: center;
+  flex: 0 0 auto;
+  padding: 0 8px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Content calendar rows: left-stack eye/avatar/label/platforms/posts,
+   push status + advance arrow to the right edge. All cells in the
+   CC row are content-sized so that margin-left:auto on the status
+   cell can absorb ALL the remaining horizontal space. The base
+   .prod-deliv-cell rule sets flex:1, which stretches cells and makes
+   margin-left:auto a no-op — overriding to 0 0 auto is what makes
+   the right-alignment actually work. */
+.prod-deliv-row-cc .prod-deliv-cell {
+  flex: 0 0 auto;
+}
+.prod-deliv-row-cc .prod-deliv-type {
+  flex: 0 0 auto;
+}
+.prod-deliv-row-cc .prod-deliv-platforms {
+  flex: 0 0 auto;
+}
+.prod-deliv-row-cc .prod-deliv-status-cell {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .prod-deliv-act {

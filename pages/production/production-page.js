@@ -1721,6 +1721,7 @@
           // and the advance arrow. Any other column (title, send-back button)
           // is intentionally hidden for this type in this department.
           var isContentCalendar = (item.type === 'sm-content-calendar');
+          if (isContentCalendar) row.classList.add('prod-deliv-row-cc');
 
           // Eye icon — open deliverable dashboard
           var eyeCell = document.createElement('div');
