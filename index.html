@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="pages/messaging/messaging.css">
   <link rel="stylesheet" href="dev/css/dev.css">
   <link rel="stylesheet" href="pages/production/production-page.css">
+  <link rel="stylesheet" href="pages/design/design-page.css">
   <link rel="stylesheet" href="pages/client-list/client-list.css">
   <link rel="stylesheet" href="ui/css/proagri-sheet.css">
   <link rel="stylesheet" href="ui/css/radial-menu.css">
@@ -19,7 +20,25 @@
   <link rel="stylesheet" href="pages/social-scheduler/social-scheduler.css">
   <link rel="stylesheet" href="pages/magazine-overview/magazine-overview.css">
 
-
+  <style>
+    /* Phase 6 — Nav unread badge for Messaging */
+    .nav-item { position: relative; }
+    .nav-unread-badge {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: #ef4444;
+      color: #fff;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      min-width: 18px;
+      height: 16px;
+      margin-left: auto;
+      line-height: 1;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -54,6 +73,7 @@
             <a class="nav-item" data-page="messaging" tabindex="0">
               <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></span>
               <span class="nav-label">Messaging</span>
+              <span class="nav-unread-badge" id="messagingUnreadBadge" style="display:none;">0</span>
             </a>
             <a class="nav-item" data-page="employees" tabindex="0">
               <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
@@ -166,6 +186,7 @@
   <script src="ui/js/deliverable-workflows.js"></script>
   <script src="pages/admin/proposal-page.js"></script>
   <script src="pages/production/production-page.js"></script>
+  <script src="pages/design/design-page.js"></script>
   <script src="ui/js/radial-menu.js"></script>
   <script src="ui/js/proagri-sheet.js"></script>
   <script src="pages/client-list/client-list.js"></script>

@@ -1081,7 +1081,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
     'client-list': function () { window.insertTemplate(dashboardContent, '/pages/client-list/client-list.html', window.initClientListPage); },
     'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); },
-    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); }
+    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); },
+    'design': function () { if (window.renderDesignPage) window.renderDesignPage(dashboardContent); }
   };
 
   function finishPageEnter() {
@@ -1347,4 +1348,22 @@ document.addEventListener('DOMContentLoaded', () => {
       savedItem.click();
     }
   }
+
+  // ── Phase 6: Global nav unread badge for Messaging ──────────
+  function pollUnreadBadge() {
+    var headers = window.getAuthHeaders ? window.getAuthHeaders() : {};
+    fetch((window.API_URL || '/api') + '/messaging/unread-count-total', { headers: headers })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        var total = (data && typeof data.total === 'number') ? data.total : 0;
+        var badges = document.querySelectorAll('.nav-unread-badge');
+        badges.forEach(function (b) {
+          b.textContent = total > 99 ? '99+' : String(total);
+          b.style.display = total > 0 ? 'inline-flex' : 'none';
+        });
+      })
+      .catch(function () {});
+  }
+  pollUnreadBadge();
+  setInterval(pollUnreadBadge, 60000);
 });

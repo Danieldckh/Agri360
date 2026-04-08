@@ -95,6 +95,81 @@ router.post('/channels', async (req, res) => {
   }
 });
 
+// POST /channels/for-deliverable - idempotent lookup or creation of a
+// chat channel tied to a specific deliverable. Members are the union of
+// all department assignees on the deliverable plus the current user.
+router.post('/channels/for-deliverable', async (req, res) => {
+  try {
+    const { deliverableId } = req.body || {};
+    if (!deliverableId) return res.status(400).json({ error: 'deliverableId required' });
+
+    // 1. Return existing channel if one is already linked
+    const existing = await pool.query(
+      'SELECT * FROM channels WHERE deliverable_id = $1',
+      [deliverableId]
+    );
+    if (existing.rows.length > 0) {
+      // Ensure current user is a member so they can read/post
+      if (req.user && req.user.id) {
+        await pool.query(
+          `INSERT INTO channel_members (channel_id, employee_id, role)
+           VALUES ($1, $2, 'member') ON CONFLICT (channel_id, employee_id) DO NOTHING`,
+          [existing.rows[0].id, req.user.id]
+        );
+      }
+      return res.json(existing.rows[0]);
+    }
+
+    // 2. Load the deliverable + client (clients table uses `name`, no company_name)
+    const delivRes = await pool.query(
+      `SELECT d.*, c.name AS client_name, c.trading_name AS client_trading_name
+       FROM deliverables d
+       LEFT JOIN clients c ON c.id = d.client_id
+       WHERE d.id = $1`,
+      [deliverableId]
+    );
+    if (delivRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Deliverable not found' });
+    }
+    const d = delivRes.rows[0];
+
+    // 3. Build member list: union of all 7 department assignees + creator
+    const memberIds = new Set();
+    const assigneeCols = ['assigned_admin', 'assigned_production', 'assigned_design',
+      'assigned_editorial', 'assigned_video', 'assigned_agri4all', 'assigned_social_media'];
+    for (const col of assigneeCols) {
+      if (d[col]) memberIds.add(d[col]);
+    }
+    if (req.user && req.user.id) memberIds.add(req.user.id);
+
+    // 4. Create the channel
+    const clientName = d.client_trading_name || d.client_name || 'Unknown Client';
+    const name = clientName + ' - Content Calendar';
+
+    const inserted = await pool.query(
+      `INSERT INTO channels (name, description, type, deliverable_id, created_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, 'Content calendar thread for ' + clientName, 'deliverable', deliverableId, (req.user && req.user.id) || null]
+    );
+    const channel = inserted.rows[0];
+
+    // 5. Add members (creator gets owner, others get member)
+    for (const memberId of memberIds) {
+      const role = (req.user && memberId === req.user.id) ? 'owner' : 'member';
+      await pool.query(
+        `INSERT INTO channel_members (channel_id, employee_id, role, last_read_at)
+         VALUES ($1, $2, $3, NOW()) ON CONFLICT (channel_id, employee_id) DO NOTHING`,
+        [channel.id, memberId, role]
+      );
+    }
+
+    res.status(201).json(channel);
+  } catch (err) {
+    console.error('for-deliverable channel error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /channels - list user's channels
 router.get('/channels', async (req, res) => {
   const userId = req.user.id;
@@ -903,6 +978,31 @@ router.get('/unread-counts', async (req, res) => {
     res.json(result.rows.map(r => ({ channelId: r.channel_id, count: parseInt(r.count, 10) })));
   } catch (err) {
     console.error('Unread counts error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /unread-count-total - sum of unread messages across all channels
+// for the current user. Used by the global nav badge.
+router.get('/unread-count-total', async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const result = await pool.query(
+      `SELECT COALESCE(SUM(unread), 0)::int AS total FROM (
+         SELECT COUNT(*) AS unread
+         FROM channel_members cm
+         JOIN messages m ON m.channel_id = cm.channel_id
+           AND m.created_at > COALESCE(cm.last_read_at, '1970-01-01'::timestamptz)
+           AND m.sender_id <> $1
+           AND m.is_deleted = false
+         WHERE cm.employee_id = $1
+         GROUP BY cm.channel_id
+       ) sub`,
+      [userId]
+    );
+    res.json({ total: result.rows[0].total });
+  } catch (err) {
+    console.error('unread-count-total error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

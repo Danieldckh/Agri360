@@ -300,6 +300,10 @@ async function runMigrations() {
     // Change request counter per deliverable (3 max enforced at API level)
     await client.query(`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS change_request_count INTEGER DEFAULT 0`);
 
+    // Phase 6 — Per-deliverable chat channel link (one channel per deliverable)
+    await client.query(`ALTER TABLE channels ADD COLUMN IF NOT EXISTS deliverable_id INT REFERENCES deliverables(id) ON DELETE SET NULL`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS channels_deliverable_id_unique_idx ON channels(deliverable_id) WHERE deliverable_id IS NOT NULL`);
+
     // Client Portal Tokens — public access for clients
     await client.query(`CREATE TABLE IF NOT EXISTS client_portal_tokens (
       id SERIAL PRIMARY KEY,

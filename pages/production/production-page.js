@@ -2136,6 +2136,14 @@
   var _savedProdSidebar = null;
   var _ccContainer = null;
   var _ccRefreshFn = null;
+  var _ccChatPoll = null;
+
+  function stopCCChatPoll() {
+    if (_ccChatPoll) {
+      clearInterval(_ccChatPoll);
+      _ccChatPoll = null;
+    }
+  }
 
   function openContentCalendarDashboard(container, deliverable) {
     _ccContainer = container;
@@ -2185,6 +2193,167 @@
     recap.appendChild(recapEmpty);
     wrapper.appendChild(recap);
     fetchRequestFormRecap(deliverable.id, recap);
+
+    // ── Team chat box (per-deliverable channel) ──────────────
+    stopCCChatPoll();
+    var chat = document.createElement('div');
+    chat.className = 'cc-chat-box';
+    var chatHeader = document.createElement('div');
+    chatHeader.className = 'cc-chat-header';
+    chatHeader.textContent = 'Team Chat';
+    chat.appendChild(chatHeader);
+
+    var chatList = document.createElement('div');
+    chatList.className = 'cc-chat-list';
+    var chatLoading = document.createElement('div');
+    chatLoading.className = 'cc-chat-msg-header';
+    chatLoading.textContent = 'Loading chat...';
+    chatList.appendChild(chatLoading);
+    chat.appendChild(chatList);
+
+    var chatInputWrap = document.createElement('div');
+    chatInputWrap.className = 'cc-chat-input-wrap';
+    var chatInput = document.createElement('textarea');
+    chatInput.className = 'cc-chat-input';
+    chatInput.placeholder = 'Type a message...';
+    chatInput.disabled = true;
+    var chatSend = document.createElement('button');
+    chatSend.className = 'cc-chat-send';
+    chatSend.textContent = 'Send';
+    chatSend.disabled = true;
+    chatInputWrap.appendChild(chatInput);
+    chatInputWrap.appendChild(chatSend);
+    chat.appendChild(chatInputWrap);
+    wrapper.appendChild(chat);
+
+    var ccChannelId = null;
+    var ccLastMessageId = 0;
+    var ccKnownIds = Object.create(null);
+
+    function fmtChatTime(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        var now = new Date();
+        var opts = (d.toDateString() === now.toDateString())
+          ? { hour: '2-digit', minute: '2-digit' }
+          : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return d.toLocaleString(undefined, opts);
+      } catch (e) { return ''; }
+    }
+
+    function renderChatMessage(m) {
+      if (!m || ccKnownIds[m.id]) return;
+      ccKnownIds[m.id] = true;
+      if (m.id > ccLastMessageId) ccLastMessageId = m.id;
+      var row = document.createElement('div');
+      row.className = 'cc-chat-msg';
+      var hdr = document.createElement('div');
+      hdr.className = 'cc-chat-msg-header';
+      var who = document.createElement('strong');
+      var first = m.sender_first_name || m.senderFirstName || '';
+      var last = m.sender_last_name || m.senderLastName || '';
+      who.textContent = (first + ' ' + last).trim() || 'Unknown';
+      hdr.appendChild(who);
+      var ts = document.createElement('span');
+      ts.textContent = fmtChatTime(m.created_at || m.createdAt);
+      hdr.appendChild(ts);
+      row.appendChild(hdr);
+      var body = document.createElement('div');
+      body.className = 'cc-chat-msg-body';
+      body.textContent = m.content || '';
+      row.appendChild(body);
+      chatList.appendChild(row);
+    }
+
+    function scrollChatToBottom() {
+      chatList.scrollTop = chatList.scrollHeight;
+    }
+
+    function loadInitialMessages() {
+      if (!ccChannelId) return;
+      fetch('/api/messaging/channels/' + ccChannelId + '/messages?limit=50', { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          ccKnownIds = Object.create(null);
+          ccLastMessageId = 0;
+          (msgs || []).forEach(renderChatMessage);
+          scrollChatToBottom();
+        })
+        .catch(function () {});
+    }
+
+    function pollNewMessages() {
+      if (!ccChannelId) return;
+      var url = '/api/messaging/channels/' + ccChannelId + '/messages?after=' + ccLastMessageId;
+      fetch(url, { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          if (!msgs || !msgs.length) return;
+          var before = chatList.scrollHeight;
+          msgs.forEach(renderChatMessage);
+          // Auto-scroll only if user was near bottom
+          if (chatList.scrollTop + chatList.clientHeight >= before - 40) {
+            scrollChatToBottom();
+          }
+        })
+        .catch(function () {});
+    }
+
+    function sendChatMessage() {
+      var content = (chatInput.value || '').trim();
+      if (!content || !ccChannelId) return;
+      chatSend.disabled = true;
+      fetch('/api/messaging/channels/' + ccChannelId + '/messages', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content: content })
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (m) {
+          chatSend.disabled = false;
+          if (m) {
+            chatInput.value = '';
+            renderChatMessage(m);
+            scrollChatToBottom();
+          }
+        })
+        .catch(function () { chatSend.disabled = false; });
+    }
+
+    chatSend.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+
+    // Resolve (or create) the channel for this deliverable
+    fetch('/api/messaging/channels/for-deliverable', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ deliverableId: deliverable.id })
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (ch) {
+        if (!ch || !ch.id) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          var errRow = document.createElement('div');
+          errRow.className = 'cc-chat-msg-header';
+          errRow.textContent = 'Chat unavailable';
+          chatList.appendChild(errRow);
+          return;
+        }
+        ccChannelId = ch.id;
+        chatInput.disabled = false;
+        chatSend.disabled = false;
+        loadInitialMessages();
+        stopCCChatPoll();
+        _ccChatPoll = setInterval(pollNewMessages, 15000);
+      })
+      .catch(function () {});
 
     // Table wrapped in a card
     var card = document.createElement('div');
@@ -2818,6 +2987,7 @@
     backLabel.textContent = 'Back';
     backItem.appendChild(backLabel);
     backItem.addEventListener('click', function () {
+      stopCCChatPoll();
       nav.style.overflowY = '';
       while (nav.firstChild) nav.removeChild(nav.firstChild);
       nav.appendChild(_savedProdSidebar);
@@ -3091,6 +3261,7 @@
     backLabel.textContent = 'Back';
     backItem.appendChild(backLabel);
     backItem.addEventListener('click', function () {
+      stopCCChatPoll();
       nav.style.overflowY = '';
       while (nav.firstChild) nav.removeChild(nav.firstChild);
       nav.appendChild(_savedProdSidebar);
