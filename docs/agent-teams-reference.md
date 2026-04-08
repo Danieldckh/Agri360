@@ -1,82 +1,136 @@
 # Agent Teams — Master Reference Guide
 
-> **Version**: Claude Code v2.1.32+
-> **Status**: Experimental (disabled by default)
-> **Last Updated**: 2026-03-30
-> **Source**: [Official Docs](https://code.claude.com/docs/en/agent-teams)
+> **Audience**: Future Claude Code sessions working in this project.
+> **Purpose**: Fast, actionable reference for deciding whether to use an agent team, how to structure one, and how to avoid known pitfalls.
+> **Source of truth**: [https://code.claude.com/docs/en/agent-teams](https://code.claude.com/docs/en/agent-teams)
+> **Claude Code version required**: v2.1.32+
+> **Status**: Experimental — already enabled in `.claude/settings.local.json` via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+
+---
+
+## How to use this guide
+
+This file is a **reference**, not a script. Skim the decision tree first, then jump to the section you need. The sections are ordered roughly from "deciding" to "running" to "finishing" a team.
+
+### Decision tree: should I use an agent team right now?
+
+```
+Does the task genuinely benefit from multiple independent investigations
+or independent file-ownership workstreams?
+│
+├── NO → Don't use a team. Use a single session or a subagent.
+│        (Teams multiply token cost ~3–6x. Coordination overhead is real.)
+│
+└── YES
+    │
+    ├── Do the workers need to talk to each other or challenge each other?
+    │   │
+    │   ├── NO → Use subagents. They report back to the main agent only.
+    │   │        Cheaper, simpler, lower coordination cost.
+    │   │
+    │   └── YES → Use an agent team.
+    │
+    └── Can the work be split so no two workers edit the same file?
+        │
+        ├── NO → Reconsider. Same-file edits cause overwrites in teams.
+        │        Restructure the task, or use sequential work.
+        │
+        └── YES → Proceed. Define file ownership explicitly in the spawn prompt.
+```
+
+### When the answer is clearly YES
+
+Strong use cases (from official docs):
+- **Research and review** — parallel investigation of different aspects
+- **New modules or features** — each teammate owns separate files
+- **Debugging with competing hypotheses** — adversarial investigators
+- **Cross-layer coordination** — frontend + backend + tests owned separately
+
+### When the answer is clearly NO
+
+- Sequential tasks with many dependencies
+- Same-file edits (causes overwrites)
+- Routine / simple tasks where one session suffices
+- Tasks where coordination overhead > parallel benefit
 
 ---
 
 ## Table of Contents
 
-1. [What Are Agent Teams?](#1-what-are-agent-teams)
+1. [What Agent Teams Are](#1-what-agent-teams-are)
 2. [Agent Teams vs Subagents](#2-agent-teams-vs-subagents)
 3. [Enabling Agent Teams](#3-enabling-agent-teams)
 4. [Architecture](#4-architecture)
 5. [Starting a Team](#5-starting-a-team)
-6. [Display Modes](#6-display-modes)
-7. [Controlling Your Team](#7-controlling-your-team)
-8. [Task System](#8-task-system)
-9. [Communication & Messaging](#9-communication--messaging)
-10. [Permissions](#10-permissions)
-11. [Hooks & Quality Gates](#11-hooks--quality-gates)
-12. [Best Practices](#12-best-practices)
-13. [Use Case Examples](#13-use-case-examples)
-14. [Troubleshooting](#14-troubleshooting)
-15. [Known Limitations](#15-known-limitations)
-16. [Quick Reference Cheat Sheet](#16-quick-reference-cheat-sheet)
+6. [Subagent Definitions as Teammates](#6-subagent-definitions-as-teammates)
+7. [Display Modes](#7-display-modes)
+8. [Controlling the Team](#8-controlling-the-team)
+9. [Task System](#9-task-system)
+10. [Communication & Messaging](#10-communication--messaging)
+11. [Permissions](#11-permissions)
+12. [Hooks & Quality Gates](#12-hooks--quality-gates)
+13. [Best Practices](#13-best-practices)
+14. [Anti-Patterns](#14-anti-patterns)
+15. [Use Case Examples](#15-use-case-examples)
+16. [Troubleshooting](#16-troubleshooting)
+17. [Known Limitations](#17-known-limitations)
+18. [Quick Reference Cheat Sheet](#18-quick-reference-cheat-sheet)
 
 ---
 
-## 1. What Are Agent Teams?
+## 1. What Agent Teams Are
 
-Agent teams let you coordinate **multiple Claude Code instances** working together on a shared task. One session acts as the **team lead**, coordinating work, assigning tasks, and synthesizing results. **Teammates** work independently, each in its own context window, and can communicate directly with each other.
+An agent team lets one Claude Code session (the **team lead**) coordinate multiple other Claude Code sessions (**teammates**) working together on a shared task. Each teammate is a **full, independent Claude Code instance** with its own context window.
 
-### Key Properties
+### Core properties
 
-- Each teammate is a **full, independent Claude Code session**
-- Teammates share a **task list** but have **separate context windows**
-- The lead's conversation history does **not** carry over to teammates
-- Teammates load project context automatically (CLAUDE.md, MCP servers, skills)
-- You can interact with individual teammates directly (not just through the lead)
+- **Each teammate is a separate Claude Code session** — full project context, full tool access, independent conversation
+- **Teammates share a task list** but have **separate context windows**
+- **The lead's conversation history does NOT carry over** to teammates — you must brief them in the spawn prompt
+- **Teammates auto-load project context**: CLAUDE.md, MCP servers, skills, project settings
+- **Teammates can message each other directly** — not just report back to the lead
+- **You can talk to any teammate directly** — not just through the lead
 
-### When to Use Agent Teams
+### How a team gets started
 
-| Good For | Not Good For |
-|----------|-------------|
-| Research & review (parallel investigation) | Sequential tasks with many dependencies |
-| New modules/features (separate file ownership) | Same-file edits |
-| Debugging with competing hypotheses | Routine/simple tasks |
-| Cross-layer coordination (frontend + backend + tests) | Tasks where coordination overhead > benefit |
+Two paths, both require your explicit approval:
+
+1. **User-requested**: you describe a task and explicitly ask for an agent team
+2. **Claude-proposed**: Claude suggests a team for a task that would benefit from parallel work; you confirm before it proceeds
+
+Claude **never** creates a team without user approval.
 
 ---
 
 ## 2. Agent Teams vs Subagents
 
-Both parallelize work, but they operate differently. **Choose based on whether workers need to communicate with each other.**
+Both parallelize work, but the mechanism differs. Choose based on **whether workers need to communicate with each other**.
 
-| | Subagents | Agent Teams |
-|:--|:--|:--|
-| **Context** | Own context window; results return to caller | Own context window; fully independent |
-| **Communication** | Report results back to main agent only | Teammates message each other directly |
-| **Coordination** | Main agent manages all work | Shared task list with self-coordination |
-| **Best for** | Focused tasks where only the result matters | Complex work requiring discussion & collaboration |
-| **Token cost** | Lower: results summarized back to main context | Higher: each teammate is a separate Claude instance |
+|                | Subagents                                     | Agent Teams                                      |
+|:---------------|:----------------------------------------------|:-------------------------------------------------|
+| **Context**    | Own context window; results return to caller  | Own context window; fully independent            |
+| **Communication** | Report back to main agent only              | Teammates message each other directly            |
+| **Coordination** | Main agent manages all work                 | Shared task list with self-coordination          |
+| **Best for**   | Focused tasks where only the result matters   | Complex work requiring discussion & collaboration |
+| **Token cost** | Lower — results summarized back to main       | Higher — each teammate is a separate Claude      |
+| **User interaction** | Only with main agent                    | Can interact with any teammate directly          |
+| **Lifetime**   | Short-lived, single purpose                   | Long-lived, multi-task                           |
 
-**Rule of thumb:**
-- Use **subagents** for quick, focused workers that report back
-- Use **agent teams** when teammates need to share findings, challenge each other, and coordinate independently
+**Rule of thumb**:
+- **Subagents** → quick, focused workers that report back. Use for research sweeps, verification, parallel lookups.
+- **Agent teams** → teammates that need to share findings, challenge each other, and coordinate work independently. Use for cross-layer features, adversarial debugging, multi-reviewer PRs.
 
 ---
 
 ## 3. Enabling Agent Teams
 
-Agent teams are disabled by default. Enable via environment variable:
+> **Already enabled in this project** via `.claude/settings.local.json`.
 
-### Option A: Project Settings (recommended for this project)
+To enable elsewhere, set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in any of:
 
-File: `.claude/settings.local.json`
+### Option A: Project-local settings (per-user, gitignored)
 
+`.claude/settings.local.json`:
 ```json
 {
   "env": {
@@ -85,10 +139,9 @@ File: `.claude/settings.local.json`
 }
 ```
 
-### Option B: User-Level Settings
+### Option B: User-global settings
 
-File: `~/.claude/settings.json`
-
+`~/.claude/settings.json`:
 ```json
 {
   "env": {
@@ -97,52 +150,59 @@ File: `~/.claude/settings.json`
 }
 ```
 
-### Option C: Shell Environment
+### Option C: Shell environment
 
 ```bash
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 ```
 
-> **Note**: Restart Claude Code after changing settings for the variable to take effect.
+> **Restart required**: env vars are read at Claude Code startup. Changing the setting does nothing until you restart.
 
 ---
 
 ## 4. Architecture
 
-An agent team consists of four components:
+An agent team has four components:
 
-| Component | Role |
-|:--|:--|
-| **Team Lead** | The main Claude Code session that creates the team, spawns teammates, and coordinates work |
-| **Teammates** | Separate Claude Code instances that each work on assigned tasks |
-| **Task List** | Shared list of work items that teammates claim and complete |
-| **Mailbox** | Messaging system for communication between agents |
+| Component     | Role                                                                                       |
+|:--------------|:-------------------------------------------------------------------------------------------|
+| **Team Lead** | The Claude Code session that creates the team, spawns teammates, and coordinates work     |
+| **Teammates** | Separate Claude Code instances, each working on assigned tasks                             |
+| **Task List** | Shared list of work items that teammates claim and complete                                |
+| **Mailbox**   | Messaging system for communication between the lead and teammates, and teammates to each other |
 
-### Storage Locations
+### Storage locations
 
-| Data | Path |
-|:--|:--|
-| Team config | `~/.claude/teams/{team-name}/config.json` |
-| Task list | `~/.claude/tasks/{team-name}/` |
+| Data             | Path                                          |
+|:-----------------|:----------------------------------------------|
+| Team config      | `~/.claude/teams/{team-name}/config.json`     |
+| Task list        | `~/.claude/tasks/{team-name}/`                |
 
-The team config contains a `members` array with each teammate's **name**, **agent ID**, and **agent type**. Teammates can read this file to discover other team members.
+The team config holds runtime state — session IDs, tmux pane IDs, a `members` array with each teammate's **name**, **agent ID**, and **agent type**. Teammates can read this file to discover other team members.
 
-### How Teams Get Started
+> **Critical**: Do NOT edit or pre-author the team config by hand. Claude Code overwrites it on the next state update.
 
-Two ways:
+> **No project-level team config exists.** A file like `.claude/teams/teams.json` in a project directory is **not** recognized as configuration — Claude treats it as an ordinary file. Only `~/.claude/teams/` is real.
 
-1. **You request a team**: Describe the task and explicitly ask for an agent team
-2. **Claude proposes a team**: Claude determines your task would benefit from parallel work and suggests creating one — you confirm before it proceeds
+### Lead vs teammate: who does what
 
-Claude **never** creates a team without your approval.
+| Capability                                | Lead | Teammate |
+|:------------------------------------------|:----:|:--------:|
+| Create the team                           |  Y   |    N     |
+| Spawn teammates                           |  Y   |    N     |
+| Assign tasks                              |  Y   |  Y (self-claim) |
+| Message other members                     |  Y   |    Y     |
+| Approve/reject teammate plans             |  Y   |    N     |
+| Clean up the team                         |  Y   |  **NEVER** |
+| Spawn nested teams                        |  N   |    N     |
 
 ---
 
 ## 5. Starting a Team
 
-Tell Claude to create an agent team in natural language. Describe the task and team structure you want.
+Tell Claude in **natural language**. Describe the task, the structure, and (optionally) team size and models.
 
-### Basic Example
+### Minimum viable spawn prompt
 
 ```
 I'm designing a CLI tool that helps developers track TODO comments across
@@ -150,83 +210,136 @@ their codebase. Create an agent team to explore this from different angles:
 one teammate on UX, one on technical architecture, one playing devil's advocate.
 ```
 
-### What Happens
+### What Claude does
 
-1. Claude creates a team with a shared task list
-2. Spawns teammates for each role
-3. Teammates explore the problem independently
-4. Lead synthesizes findings
-5. Team cleans up when finished
+1. Creates a team with a shared task list
+2. Spawns one teammate per role
+3. Teammates work independently (may message each other)
+4. Lead synthesizes findings as they come in
+5. Team is cleaned up when finished (lead runs cleanup)
 
-### Specifying Team Size and Models
+### Specifying team size and models
 
 ```
 Create a team with 4 teammates to refactor these modules in parallel.
 Use Sonnet for each teammate.
 ```
 
+### Giving teammates predictable names
+
+The lead assigns each teammate a name at spawn time. To get names **you can reference in later prompts**, specify them in the spawn instruction:
+
+```
+Create a team with three teammates named "backend", "frontend", and "tests".
+Backend owns api/routes/notifications.js. Frontend owns notifications/js/ and
+notifications/css/. Tests owns all __tests__ files.
+```
+
+This lets you later say "ask **frontend** to add a loading state" without ambiguity.
+
 ---
 
-## 6. Display Modes
+## 6. Subagent Definitions as Teammates
 
-### In-Process Mode (Default)
+**This is a powerful pattern**: instead of writing the full role from scratch in the spawn prompt, reference a **subagent definition** by name. The teammate will honor that definition's configuration.
 
-All teammates run inside your main terminal.
+### How to use
 
-| Action | Shortcut |
-|:--|:--|
-| Cycle through teammates | `Shift+Down` |
-| View teammate session | `Enter` |
-| Interrupt teammate's turn | `Escape` |
-| Toggle task list | `Ctrl+T` |
-| Wrap to lead | `Shift+Down` (after last teammate) |
+```
+Spawn a teammate using the security-reviewer agent type to audit the auth module.
+```
 
-Works in **any terminal**, no extra setup required.
+Claude spawns a teammate that loads the `security-reviewer` subagent definition (from any scope: project, user, plugin, or CLI-defined).
 
-### Split-Pane Mode
+### What the subagent definition contributes
 
-Each teammate gets its own pane. You see everyone's output at once.
+When a subagent definition is used as a teammate:
 
-**Requirements**: `tmux` or iTerm2 with [`it2` CLI](https://github.com/mkusaka/it2)
+| Field                    | Applied? | Notes                                                    |
+|:-------------------------|:--------:|:---------------------------------------------------------|
+| `tools` allowlist        |   Yes    | Teammate is restricted to these tools                    |
+| `model`                  |   Yes    | Teammate runs on the specified model                     |
+| Body (system prompt)     |   Yes    | **Appended** to the teammate's system prompt, not replacing it |
+| `skills` frontmatter     | **NO**   | Teammate loads skills from project/user settings instead |
+| `mcpServers` frontmatter | **NO**   | Teammate loads MCP servers from project/user settings    |
 
-> **Note**: `tmux` works best on macOS. Using `tmux -CC` in iTerm2 is the suggested entry point.
-> Split-pane mode is **not supported** in VS Code terminal, Windows Terminal, or Ghostty.
+### Team coordination tools are always available
+
+Regardless of what the `tools` allowlist restricts, teammates **always** have access to:
+- `SendMessage` — for inter-teammate and teammate-to-lead messaging
+- Task management tools — create, claim, update, complete tasks
+
+You do not need to add these to a subagent definition's `tools` list.
+
+### Why this matters
+
+Define a role **once** in a subagent file, then reuse it:
+- As a delegated subagent in a normal session
+- As an agent team teammate
+
+No duplication of prompts, tools, or model choice.
+
+---
+
+## 7. Display Modes
+
+### In-process mode (default, works anywhere)
+
+All teammates run inside the main terminal. Use keyboard shortcuts to navigate between them.
+
+| Action                          | Shortcut                          |
+|:--------------------------------|:----------------------------------|
+| Cycle through teammates         | `Shift+Down`                      |
+| View teammate session           | `Enter`                           |
+| Interrupt teammate's turn       | `Escape`                          |
+| Toggle task list                | `Ctrl+T`                          |
+| Wrap to lead after last teammate| `Shift+Down`                      |
+
+Works in **any terminal** — no setup required.
+
+### Split-pane mode
+
+Each teammate gets its own pane. See all output simultaneously.
+
+**Requires**: `tmux` OR iTerm2 with the [`it2` CLI](https://github.com/mkusaka/it2).
+
+> `tmux` traditionally works best on macOS. Using `tmux -CC` in iTerm2 is the suggested entry point.
+>
+> **Not supported**: VS Code terminal, Windows Terminal, Ghostty.
 
 ### Configuration
 
-**Global config** (`~/.claude.json`):
-
+**Global config** — `~/.claude.json`:
 ```json
 {
   "teammateMode": "in-process"
 }
 ```
 
-Options: `"auto"` (default), `"in-process"`, `"tmux"`
-
-- `"auto"`: Uses split panes if already in a tmux session, otherwise in-process
-- `"tmux"`: Auto-detects whether to use tmux or iTerm2
+Values:
+- `"auto"` (default) — split panes if already inside a tmux session, otherwise in-process
+- `"in-process"` — force single-terminal mode
+- `"tmux"` — force split panes, auto-detecting tmux vs iTerm2
 
 **Per-session override**:
-
 ```bash
 claude --teammate-mode in-process
 ```
 
-### Installing tmux / iTerm2
+### Installing tmux / iTerm2 integrations
 
-- **tmux**: Install through your system's package manager ([tmux wiki](https://github.com/tmux/tmux/wiki/Installing))
-- **iTerm2**: Install [`it2` CLI](https://github.com/mkusaka/it2), then enable Python API in **iTerm2 → Settings → General → Magic → Enable Python API**
+- **tmux**: package manager install — [tmux wiki](https://github.com/tmux/tmux/wiki/Installing)
+- **iTerm2**: install [`it2` CLI](https://github.com/mkusaka/it2), then enable in **iTerm2 → Settings → General → Magic → Enable Python API**
 
 ---
 
-## 7. Controlling Your Team
+## 8. Controlling the Team
 
-All control happens through **natural language** to the lead.
+All control happens through **natural language to the lead**.
 
-### Require Plan Approval
+### Require plan approval
 
-For complex/risky tasks, require teammates to plan before implementing:
+For complex or risky work, force teammates to plan before implementing:
 
 ```
 Spawn an architect teammate to refactor the authentication module.
@@ -235,140 +348,175 @@ Require plan approval before they make any changes.
 
 **Flow**:
 1. Teammate works in **read-only plan mode**
-2. Finishes planning → sends plan approval request to lead
-3. Lead reviews and **approves** or **rejects with feedback**
-4. If rejected → teammate revises and resubmits
+2. When done planning → sends a plan approval request to the lead
+3. Lead reviews, **approves** OR **rejects with feedback**
+4. If rejected → teammate revises in plan mode and resubmits
 5. If approved → teammate exits plan mode, begins implementation
 
-**Influence approval criteria**:
+**Influence the lead's approval criteria** in your original prompt:
 ```
 Only approve plans that include test coverage
 Reject plans that modify the database schema
+Reject plans that touch more than 5 files
 ```
 
-### Talk to Teammates Directly
+The lead makes approval decisions autonomously based on these criteria.
 
-Each teammate is a full, independent session. You can:
-- Give additional instructions
+### Talk to teammates directly
+
+Each teammate is a full independent session. You can:
+- Give additional instructions mid-task
 - Ask follow-up questions
 - Redirect their approach
 
 **In-process**: `Shift+Down` to cycle, then type
-**Split-pane**: Click into the pane
+**Split-pane**: click into the pane
 
-### Shut Down a Teammate
+### Shut down a teammate gracefully
 
 ```
 Ask the researcher teammate to shut down
 ```
 
-The teammate can approve (exits gracefully) or reject with an explanation.
+The teammate can **approve** (exits gracefully) or **reject with explanation** (if still mid-work).
 
-### Clean Up the Team
+### Clean up the team
 
 ```
 Clean up the team
 ```
 
-> **Important**: Always use the **lead** to clean up. Teammates should NOT run cleanup — their team context may not resolve correctly. Shut down all teammates before cleaning up.
+> **Critical**: Always use the **lead** to clean up. Teammates should NEVER run cleanup — their team context may not resolve correctly, leaving resources in an inconsistent state.
+
+> **Shut down all teammates first**. Cleanup fails if any teammates are still running.
 
 ---
 
-## 8. Task System
+## 9. Task System
 
-The shared task list coordinates work across the team.
+The shared task list is the coordination mechanism. The lead creates tasks; teammates work them.
 
-### Task States
+### Task states
 
-| State | Description |
-|:--|:--|
-| **Pending** | Not yet started |
-| **In Progress** | Claimed by a teammate |
-| **Completed** | Work finished |
+| State            | Description                          |
+|:-----------------|:-------------------------------------|
+| **Pending**      | Not yet started                      |
+| **In Progress**  | Claimed by a teammate                |
+| **Completed**    | Work finished                        |
 
-### Task Dependencies
+### Dependencies
 
 - Tasks can depend on other tasks
-- A pending task with unresolved dependencies **cannot be claimed** until those dependencies are completed
-- When a teammate completes a task, blocked tasks unblock **automatically**
+- A pending task with **unresolved dependencies cannot be claimed** until dependencies complete
+- When a teammate completes a blocking task, dependents unblock **automatically**
 
-### Task Assignment
+### Assignment modes
 
-Two modes:
-1. **Lead assigns**: Tell the lead which task to give to which teammate
-2. **Self-claim**: After finishing a task, a teammate picks up the next unassigned, unblocked task
+1. **Lead-assigned** — tell the lead which task goes to which teammate
+2. **Self-claim** — after finishing a task, a teammate picks the next unassigned, unblocked task
 
 > Task claiming uses **file locking** to prevent race conditions when multiple teammates try to claim the same task simultaneously.
 
-### Sizing Tasks
+### Sizing tasks
 
-| Size | Problem |
-|:--|:--|
-| Too small | Coordination overhead exceeds the benefit |
-| Too large | Teammates work too long without check-ins, increasing wasted effort risk |
-| Just right | Self-contained units with a clear deliverable (a function, a test file, a review) |
+| Size         | Problem                                                                              |
+|:-------------|:-------------------------------------------------------------------------------------|
+| **Too small** | Coordination overhead exceeds the benefit                                           |
+| **Too large** | Teammates work too long without check-ins, increasing wasted-effort risk            |
+| **Just right** | Self-contained units with a clear deliverable (a function, a test file, a review) |
 
-**Guideline**: Aim for **5-6 tasks per teammate** to keep everyone productive without excessive context switching.
+**Guideline**: Aim for **5–6 tasks per teammate**. Keeps everyone productive without excessive context switching.
 
----
+If the lead isn't creating enough tasks, say:
+```
+Split the work into smaller tasks so each teammate has 5-6 things to do
+```
 
-## 9. Communication & Messaging
+### Task status can lag (known issue)
 
-### How Teammates Share Information
-
-| Mechanism | Description |
-|:--|:--|
-| **Automatic message delivery** | Messages are delivered automatically to recipients — lead doesn't need to poll |
-| **Idle notifications** | When a teammate finishes and stops, they automatically notify the lead |
-| **Shared task list** | All agents can see task status and claim available work |
-
-### Messaging Types
-
-| Type | Description | Usage Note |
-|:--|:--|:--|
-| **message** | Send to one specific teammate | Standard communication |
-| **broadcast** | Send to all teammates simultaneously | Use sparingly — costs scale with team size |
-
-### Context at Spawn
-
-Teammates automatically receive:
-- ✅ CLAUDE.md project context
-- ✅ MCP servers
-- ✅ Skills
-- ✅ Spawn prompt from lead
-- ❌ Lead's conversation history (does NOT carry over)
+Teammates sometimes fail to mark tasks completed, blocking dependents. If a task seems stuck:
+1. Verify the work is actually done (read their output)
+2. Manually update the task, OR
+3. Tell the lead to nudge the teammate
 
 ---
 
-## 10. Permissions
+## 10. Communication & Messaging
+
+### How teammates share information
+
+| Mechanism                    | Description                                                           |
+|:-----------------------------|:----------------------------------------------------------------------|
+| **Automatic message delivery** | Messages delivered automatically — lead doesn't need to poll        |
+| **Idle notifications**       | When a teammate finishes and stops, they auto-notify the lead         |
+| **Shared task list**         | All agents see task status and claim available work                   |
+
+### Message types
+
+| Type          | Description                                             | Cost note                           |
+|:--------------|:--------------------------------------------------------|:------------------------------------|
+| **message**   | Send to one specific teammate                           | Standard, cheap                     |
+| **broadcast** | Send to all teammates simultaneously                    | Costs scale with team size — use sparingly |
+
+### Naming convention
+
+The lead assigns teammate names at spawn. Any teammate can message any other **by name**. For predictable addressing, specify names in the spawn prompt (see section 5).
+
+### Context that IS shared at spawn
+
+- CLAUDE.md (project conventions)
+- MCP servers
+- Skills
+- The spawn prompt the lead writes for this teammate
+
+### Context that is NOT shared at spawn
+
+- **The lead's conversation history** (biggest gotcha)
+- Prior teammate discussions (unless messaged)
+- Uncommitted state from the lead's session context
+
+> **Implication**: Write spawn prompts as if briefing a new colleague who just walked in — include all relevant files, decisions already made, constraints, and what "done" looks like.
+
+---
+
+## 11. Permissions
 
 - Teammates start with the **lead's permission settings**
 - If the lead runs with `--dangerously-skip-permissions`, all teammates do too
-- After spawning, you **can** change individual teammate modes
+- You **can** change individual teammate modes after spawning
 - You **cannot** set per-teammate modes at spawn time
+- Teammate permission requests bubble up to the lead — which can create friction
 
-**Tip**: Pre-approve common operations in your permission settings before spawning teammates to reduce interruptions.
-
----
-
-## 11. Hooks & Quality Gates
-
-Use [hooks](https://code.claude.com/docs/en/hooks) to enforce rules when teammates finish work or tasks change:
-
-| Hook | When It Fires | Exit Code 2 Effect |
-|:--|:--|:--|
-| `TeammateIdle` | When a teammate is about to go idle | Sends feedback, keeps teammate working |
-| `TaskCreated` | When a task is being created | Prevents creation, sends feedback |
-| `TaskCompleted` | When a task is being marked complete | Prevents completion, sends feedback |
+**Tip**: Pre-approve common operations in your permission settings **before** spawning teammates, to reduce interruptions.
 
 ---
 
-## 12. Best Practices
+## 12. Hooks & Quality Gates
 
-### 1. Give Teammates Enough Context
+Use hooks to enforce rules when teammates finish work or tasks change state. See [hooks docs](https://code.claude.com/docs/en/hooks).
 
-Teammates don't inherit the lead's conversation history. Include task-specific details in the spawn prompt:
+| Hook             | When it fires                              | Exit code 2 effect                       |
+|:-----------------|:-------------------------------------------|:-----------------------------------------|
+| `TeammateIdle`   | Teammate is about to go idle               | Sends feedback, keeps teammate working  |
+| `TaskCreated`    | A task is being created                    | Prevents creation, sends feedback       |
+| `TaskCompleted`  | A task is being marked complete            | Prevents completion, sends feedback     |
 
+**Example use**: a `TaskCompleted` hook that runs tests and blocks completion if they fail.
+
+---
+
+## 13. Best Practices
+
+### 1. Brief teammates thoroughly
+
+Teammates don't inherit the lead's conversation history. The spawn prompt is the **only** context they get beyond CLAUDE.md and project settings.
+
+**Weak prompt**:
+```
+Review the auth module for security issues.
+```
+
+**Strong prompt**:
 ```
 Spawn a security reviewer teammate with the prompt: "Review the authentication
 module at src/auth/ for security vulnerabilities. Focus on token handling,
@@ -376,41 +524,107 @@ session management, and input validation. The app uses JWT tokens stored in
 httpOnly cookies. Report any issues with severity ratings."
 ```
 
-### 2. Choose an Appropriate Team Size
+### 2. Right-size the team
 
-- Start with **3-5 teammates** for most workflows
-- 5-6 tasks per teammate keeps everyone productive
-- Scale up only when work genuinely benefits from parallel execution
-- Three focused teammates often **outperform** five scattered ones
+- Start with **3–5 teammates**
+- 5–6 tasks per teammate keeps everyone productive
+- Scale up only when work **genuinely** benefits from parallelism
+- **Three focused teammates often outperform five scattered ones**
 
-### 3. Avoid File Conflicts
+### 3. Prevent file conflicts
 
-Two teammates editing the same file leads to overwrites. **Break work so each teammate owns different files.**
+Two teammates editing the same file → overwrites. **Break work so each teammate owns different files**. State ownership explicitly in the spawn prompt.
 
-### 4. Wait for Teammates to Finish
+### 4. Wait for teammates to finish
 
-If the lead starts implementing instead of delegating:
-
+If the lead starts implementing instead of delegating, say:
 ```
-Wait for your teammates to complete their tasks before proceeding
+Wait for your teammates to complete their tasks before proceeding.
 ```
 
-### 5. Start with Research and Review
+### 5. Start with research/review if new to teams
 
-If new to agent teams, start with non-coding tasks:
+Lower coordination risk than parallel implementation:
 - Reviewing a PR
 - Researching a library
 - Investigating a bug
 
-### 6. Monitor and Steer
+### 6. Monitor and steer
 
-Check in on progress, redirect approaches that aren't working, and synthesize findings as they come in. Don't let a team run unattended too long.
+- Check in on progress
+- Redirect approaches that aren't working
+- Synthesize findings as they come in
+- **Don't let a team run unattended for too long** — wasted effort compounds
+
+### 7. Use predictable names
+
+Pre-specify teammate names so you can address them later without ambiguity (see section 5).
+
+### 8. Define ownership boundaries explicitly
+
+Don't assume the lead will figure out file ownership. State it:
+```
+Backend owns api/routes/X.js and migrations.
+Frontend owns module/js/ and module/css/.
+Tests owns all __tests__ files.
+No teammate should touch files outside their ownership.
+```
 
 ---
 
-## 13. Use Case Examples
+## 14. Anti-Patterns
 
-### Parallel Code Review
+Things to **actively avoid**.
+
+### Anti-pattern: Using a team for same-file work
+**Problem**: Overwrites are inevitable.
+**Fix**: Either restructure the work so each teammate owns a different file, or use sequential single-session work.
+
+### Anti-pattern: Vague spawn prompts
+**Problem**: Teammate wastes tokens rediscovering context the lead already knows.
+**Fix**: Inline all relevant files, decisions, constraints, and success criteria.
+
+### Anti-pattern: Using a team for trivial work
+**Problem**: Teams cost ~3–6x tokens. A team for a task that fits in one session is pure overhead.
+**Fix**: Use a single session for routine work; reserve teams for parallel investigations and cross-layer features.
+
+### Anti-pattern: Letting teammates run cleanup
+**Problem**: Teammate team context may not resolve correctly — corrupts team state.
+**Fix**: Only the lead runs cleanup. Shut down teammates first, then lead runs cleanup.
+
+### Anti-pattern: Editing `~/.claude/teams/{team}/config.json` by hand
+**Problem**: Claude Code overwrites it on the next state update — your edits vanish.
+**Fix**: Never edit it. To change team shape, ask the lead to spawn or remove teammates.
+
+### Anti-pattern: Creating `.claude/teams/teams.json` in a project
+**Problem**: Project-level team configs **don't exist**. Claude treats the file as ordinary content.
+**Fix**: Use subagent definitions for reusable roles (section 6).
+
+### Anti-pattern: Assuming `skills` frontmatter works on subagent-as-teammate
+**Problem**: The `skills` field in a subagent definition is **ignored** when that definition is used as a teammate. Same for `mcpServers`.
+**Fix**: Teammates load skills/MCP from project+user settings. Don't rely on per-subagent skill scoping.
+
+### Anti-pattern: Broadcast-heavy communication
+**Problem**: Broadcast cost scales with team size; noisy conversations burn tokens fast.
+**Fix**: Prefer direct `message` to one teammate. Reserve `broadcast` for truly team-wide announcements.
+
+### Anti-pattern: Unattended teams
+**Problem**: Teams can drift from the goal. Wasted teammate effort is wasted $ and time.
+**Fix**: Monitor regularly. Steer when approaches aren't working. Shut down dead branches.
+
+### Anti-pattern: Spawning before enabling flag
+**Problem**: Without `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, team creation silently falls back to non-team behavior or errors.
+**Fix**: Verify enablement, and **restart Claude Code** after toggling the flag.
+
+### Anti-pattern: Team + active git worktrees without planning
+**Problem**: If each teammate needs file isolation AND the project uses worktrees, you get a combinatorial mess.
+**Fix**: Either use a team (file ownership by path) OR worktrees (full working-copy isolation), not both, unless you've explicitly planned the interaction.
+
+---
+
+## 15. Use Case Examples
+
+### Parallel code review (3 reviewers)
 
 ```
 Create an agent team to review PR #142. Spawn three reviewers:
@@ -420,20 +634,20 @@ Create an agent team to review PR #142. Spawn three reviewers:
 Have them each review and report findings.
 ```
 
-**Why it works**: Each reviewer applies a different filter to the same PR. The lead synthesizes findings across all three.
+**Why it works**: Each reviewer applies a different filter to the same PR. The lead synthesizes across all three, avoiding the "single reviewer gravitates to one issue type" failure mode.
 
-### Competing Hypothesis Debugging
+### Competing-hypothesis debugging (adversarial)
 
 ```
 Users report the app exits after one message instead of staying connected.
-Spawn 5 agent teammates to investigate different hypotheses. Have them talk to
-each other to try to disprove each other's theories, like a scientific debate.
-Update the findings doc with whatever consensus emerges.
+Spawn 5 agent teammates to investigate different hypotheses. Have them talk
+to each other to try to disprove each other's theories, like a scientific
+debate. Update the findings doc with whatever consensus emerges.
 ```
 
-**Why it works**: Multiple investigators actively trying to disprove each other avoids the anchoring bias of sequential investigation. The theory that survives is more likely to be the actual root cause.
+**Why it works**: Sequential investigation anchors on the first plausible theory. Parallel adversarial investigation forces each theory to survive active attempts to disprove it. The surviving theory is more likely the actual root cause.
 
-### Cross-Layer Feature Build
+### Cross-layer feature build (file ownership)
 
 ```
 Create an agent team to build the new notifications feature:
@@ -441,146 +655,178 @@ Create an agent team to build the new notifications feature:
 - Frontend teammate: owns notifications/js/ and notifications/css/
 - Test teammate: owns all test files
 Have them coordinate on the API contract first, then build in parallel.
+No teammate should touch files outside their ownership.
 ```
 
-### Research from Multiple Angles
+**Why it works**: File ownership prevents overwrites. The "API contract first" step forces early coordination on the shared interface before independent parallel work.
+
+### Multi-angle research
 
 ```
-Create an agent team to explore this from different angles:
-- One teammate on UX
-- One on technical architecture
-- One playing devil's advocate
+I'm designing a CLI tool that tracks TODO comments. Create an agent team to
+explore this from different angles: one teammate on UX, one on technical
+architecture, one playing devil's advocate.
 ```
+
+**Why it works**: Roles are **orthogonal**. No teammate is blocked waiting for another's output.
 
 ---
 
-## 14. Troubleshooting
+## 16. Troubleshooting
 
-### Teammates Not Appearing
+### Teammates not appearing
 
-| Check | Solution |
-|:--|:--|
-| In-process mode | Press `Shift+Down` — teammates may be running but not visible |
-| Task complexity | Claude only spawns teams for complex tasks. Ask explicitly if needed |
-| Split pane setup | Verify tmux is installed: `which tmux` |
-| iTerm2 | Verify `it2` CLI is installed and Python API is enabled |
+| Check                 | Solution                                                              |
+|:----------------------|:----------------------------------------------------------------------|
+| In-process mode       | Press `Shift+Down` — teammates may be running but not visible         |
+| Task complexity       | Claude only spawns teams for complex tasks. Ask explicitly if needed  |
+| Split pane setup      | `which tmux` — verify installed                                       |
+| iTerm2                | Verify `it2` CLI installed + Python API enabled                       |
+| Flag enabled?         | `echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` — should be `1`          |
+| Claude Code restarted?| Env var changes require restart                                       |
 
-### Too Many Permission Prompts
+### Too many permission prompts
 
-Pre-approve common operations in your permission settings before spawning teammates.
+Teammate permission requests bubble to the lead. Pre-approve common operations in permission settings **before** spawning.
 
-### Teammates Stopping on Errors
+### Teammates stopping on errors
 
-1. Check their output (`Shift+Down` or click pane)
+1. Check their output (`Shift+Down` in in-process, click pane in split)
 2. Give additional instructions directly, OR
 3. Spawn a replacement teammate
 
-### Lead Shuts Down Too Early
+### Lead shuts down before work is done
 
-Tell the lead:
+Lead may decide the team is finished prematurely. Tell it:
 ```
 Keep going — wait for all teammates to finish before wrapping up.
 ```
 
-### Orphaned tmux Sessions
+If the lead is doing work instead of delegating:
+```
+Wait for your teammates to complete their tasks before proceeding.
+```
+
+### Orphaned tmux sessions
 
 ```bash
 tmux ls
 tmux kill-session -t <session-name>
 ```
 
----
+### Task appears stuck
 
-## 15. Known Limitations
-
-| Limitation | Details |
-|:--|:--|
-| **No session resumption** | `/resume` and `/rewind` do not restore in-process teammates. Tell the lead to spawn new ones. |
-| **Task status can lag** | Teammates sometimes fail to mark tasks completed, blocking dependents. Manually update or nudge. |
-| **Slow shutdown** | Teammates finish current request/tool call before shutting down. |
-| **One team per session** | Clean up the current team before starting a new one. |
-| **No nested teams** | Teammates cannot spawn their own teams. Only the lead manages the team. |
-| **Fixed lead** | The session that creates the team is the lead for its lifetime. No promotion/transfer. |
-| **Permissions at spawn** | All teammates start with lead's permission mode. Change individually after spawning. |
-| **Split panes limited** | Not supported in VS Code terminal, Windows Terminal, or Ghostty. |
+Likely cause: teammate failed to mark it completed. Either:
+1. Manually update the task status, OR
+2. Tell the lead to nudge the teammate to confirm completion
 
 ---
 
-## 16. Quick Reference Cheat Sheet
+## 17. Known Limitations
 
-### Keyboard Shortcuts (In-Process Mode)
+| Limitation                          | Details                                                                                    |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|
+| **No session resumption**           | `/resume` and `/rewind` do not restore in-process teammates. Spawn new ones after resume.  |
+| **Task status can lag**             | Teammates sometimes fail to mark tasks completed, blocking dependents. Manually nudge.     |
+| **Slow shutdown**                   | Teammates finish current request/tool call before shutting down.                           |
+| **One team per session**            | Clean up the current team before starting a new one.                                       |
+| **No nested teams**                 | Teammates cannot spawn their own teams or sub-teammates. Only the lead manages the team.   |
+| **Fixed lead**                      | The session that creates the team is lead for its lifetime. No promotion/transfer.         |
+| **Permissions at spawn**            | All teammates start with lead's mode. Change individually after spawning.                  |
+| **Split panes limited**             | Not supported in VS Code terminal, Windows Terminal, or Ghostty.                           |
+| **No project-level team config**    | `~/.claude/teams/` is the only recognized location. Project-level configs are ignored.    |
+| **Subagent `skills`/`mcpServers` ignored on teammates** | Teammates load from project+user settings, not subagent frontmatter.     |
 
-| Shortcut | Action |
-|:--|:--|
-| `Shift+Down` | Cycle through teammates |
-| `Enter` | View teammate session |
-| `Escape` | Interrupt teammate's turn |
-| `Ctrl+T` | Toggle task list |
+---
 
-### Common Commands (Natural Language to Lead)
+## 18. Quick Reference Cheat Sheet
+
+### Keyboard shortcuts (in-process mode)
+
+| Shortcut       | Action                          |
+|:---------------|:--------------------------------|
+| `Shift+Down`   | Cycle through teammates         |
+| `Enter`        | View teammate session           |
+| `Escape`       | Interrupt teammate's turn       |
+| `Ctrl+T`       | Toggle task list                |
+
+### Common natural-language commands (to the lead)
 
 ```
 Create a team with 3 teammates to [task description]
+Create a team with teammates named "X", "Y", "Z" to [task]
 Use Sonnet for each teammate
+Spawn a teammate using the [subagent-name] agent type
 Require plan approval before they make changes
+Only approve plans that include test coverage
 Wait for your teammates to complete their tasks
 Ask the [name] teammate to shut down
 Clean up the team
 ```
 
-### Settings Quick Reference
+### Settings quick reference
 
-| Setting | File | Value |
-|:--|:--|:--|
-| Enable agent teams | `.claude/settings.local.json` | `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` |
-| Display mode | `~/.claude.json` | `"teammateMode": "in-process" \| "tmux" \| "auto"` |
-| CLI override | — | `claude --teammate-mode in-process` |
+| Setting                | File                              | Value                                                      |
+|:-----------------------|:----------------------------------|:-----------------------------------------------------------|
+| Enable agent teams     | `.claude/settings.local.json`     | `"env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" }`   |
+| Display mode           | `~/.claude.json`                  | `"teammateMode": "in-process" \| "tmux" \| "auto"`          |
+| CLI override           | —                                 | `claude --teammate-mode in-process`                        |
 
-### Token Cost Awareness
+### Token cost awareness
 
-| Team Size | Cost Multiplier | Notes |
-|:--|:--|:--|
-| 1 (no team) | 1× | Baseline |
-| 3 teammates | ~4× | Lead + 3 teammates, each with own context |
-| 5 teammates | ~6× | Diminishing returns beyond this |
+| Team size      | Rough cost multiplier | Notes                                          |
+|:---------------|:----------------------|:-----------------------------------------------|
+| 1 (no team)    | 1x                    | Baseline                                       |
+| 3 teammates    | ~4x                   | Lead + 3, each with own context                |
+| 5 teammates    | ~6x                   | Diminishing returns beyond this                |
 
-### File Locations
+Each teammate has its own context window. Token usage scales **linearly** with active teammates. For research/review/new-feature work, extra tokens are usually worthwhile. For routine tasks, a single session is more cost-effective.
 
-| Data | Path |
-|:--|:--|
-| Team config | `~/.claude/teams/{team-name}/config.json` |
-| Task list | `~/.claude/tasks/{team-name}/` |
-| Project settings | `.claude/settings.local.json` |
-| Global config | `~/.claude.json` |
+### File locations
+
+| Data                | Path                                         |
+|:--------------------|:---------------------------------------------|
+| Team config         | `~/.claude/teams/{team-name}/config.json`   |
+| Task list           | `~/.claude/tasks/{team-name}/`               |
+| Project settings    | `.claude/settings.local.json`                |
+| Global config       | `~/.claude.json`                             |
+
+### Related docs
+
+- Subagents: https://code.claude.com/docs/en/sub-agents
+- Hooks: https://code.claude.com/docs/en/hooks
+- Settings: https://code.claude.com/docs/en/settings
+- Permissions: https://code.claude.com/docs/en/permissions
+- Token costs: https://code.claude.com/docs/en/costs
+- Interactive mode (task list): https://code.claude.com/docs/en/interactive-mode
+- Git worktrees: https://code.claude.com/docs/en/common-workflows
+- Agent teams (this page's source): https://code.claude.com/docs/en/agent-teams
 
 ---
 
-## ProAgri CRM — Project-Specific Notes
+## Appendix: Decision framework for future Claude
 
-This project already has agent teams enabled in `.claude/settings.local.json`.
+When a task arrives, before doing anything, answer these four questions:
 
-When using agent teams for ProAgri CRM development, consider these team structures:
+1. **Is the task complex enough to benefit from parallelism?**
+   - If it fits in a single focused session → single session.
+   - Otherwise → continue.
 
-### Feature Development Team
-```
-Create an agent team to build [feature]:
-- Backend teammate: owns api/routes/ files and migrations
-- Frontend teammate: owns [module]/js/ and [module]/css/ files
-- Integration teammate: owns index.html script tags and app.js routing
-```
+2. **Can the work be split into genuinely independent units?**
+   - If units have tight sequential dependencies → single session or sequential subagents.
+   - Otherwise → continue.
 
-### Bug Investigation Team
-```
-Create an agent team to investigate [bug]:
-- Database teammate: checks migrations, queries, and db.js
-- API teammate: checks route handlers and middleware
-- Frontend teammate: checks DOM manipulation and API calls
-```
+3. **Do the workers need to talk to each other?**
+   - No → subagents (cheaper, simpler).
+   - Yes → agent team.
 
-### Code Review Team
-```
-Create an agent team to review recent changes:
-- Security reviewer: auth middleware, JWT handling, input validation
-- Performance reviewer: database queries, N+1 problems, caching
-- UX reviewer: frontend responsiveness, accessibility, error states
-```
+4. **Can file ownership be cleanly assigned so no two workers touch the same file?**
+   - No → restructure or drop the team approach.
+   - Yes → spawn the team with explicit ownership in the prompt.
+
+If all four check out, spawn with:
+- **Named teammates** (for later addressability)
+- **Explicit file ownership** per teammate
+- **Success criteria** per teammate (what "done" looks like)
+- **Coordination point** if there's a shared interface (e.g., "agree on the API contract first, then build in parallel")
+- **Plan approval gate** if the work is risky or reversibility is low
