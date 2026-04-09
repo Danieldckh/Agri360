@@ -862,7 +862,7 @@
         if (it.type === 'sm-content-calendar') openContentCalendarDashboard(c, it);
         else if (it.type === 'website-design') openWebsiteDesignDashboard(c, it);
         else if (it.type === 'online-articles') openOnlineArticlesDashboard(c, it);
-        else if (it.type === 'agri4all-posts') openA4AMultiSectionDashboard(c, it, 'posts');
+        else if (it.type === 'agri4all-posts') openAgri4AllPostsDashboard(c, it);
         else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(c, it, 'videos');
         else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(c, it, 'own-posts');
         else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(c, it, 'own-videos');
@@ -2128,7 +2128,7 @@
                 if (it.type === 'sm-content-calendar') openContentCalendarDashboard(container, it);
                 else if (it.type === 'website-design') openWebsiteDesignDashboard(container, it);
                 else if (it.type === 'online-articles') openOnlineArticlesDashboard(container, it);
-                else if (it.type === 'agri4all-posts') openA4AMultiSectionDashboard(container, it, 'posts');
+                else if (it.type === 'agri4all-posts') openAgri4AllPostsDashboard(container, it);
                 else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(container, it, 'videos');
                 else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(container, it, 'own-posts');
                 else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(container, it, 'own-videos');
@@ -4693,6 +4693,303 @@
     });
     nav.appendChild(wrap);
   }
+
+  // ══════ AGRI4ALL POSTS PER-POST-TYPE DASHBOARD ══════
+  // Dedicated dashboard for `agri4all-posts` deliverables. Renders one row
+  // per enabled post type (Facebook Post, Instagram Post, Instagram Story),
+  // each with an upload block on the right and a completeness indicator on
+  // the left that turns green once the uploaded file count reaches the
+  // contracted amount. Includes a materials-recap at the top and an action
+  // bar at the bottom with Resize + Send-for-Approval transitions.
+  function openAgri4AllPostsDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    if (!meta.sections) meta.sections = {};
+    deliverable.metadata = meta;
+
+    // Scoped styles (kept inline so the whole dashboard lives in one place).
+    var styleBlock = document.createElement('style');
+    styleBlock.textContent = [
+      '.a4a-posts-dashboard { display:flex; flex-direction:column; gap:18px; padding:20px 24px 120px; }',
+      '.a4a-posts-header { display:flex; align-items:center; justify-content:space-between; gap:16px; }',
+      '.a4a-posts-title { font-size:20px; font-weight:800; color:var(--text-primary,#1e293b); margin:0; }',
+      '.a4a-posts-recap { border-radius:12px; background:var(--surface-alt,#f8fafc); border:1px solid var(--border-color,#e2e8f0); padding:14px 18px; min-height:40px; }',
+      '.a4a-posts-dashboard-grid { display:grid; grid-template-columns:minmax(260px,1fr) minmax(320px,1.35fr); gap:22px; align-items:start; }',
+      '.a4a-posts-col { display:flex; flex-direction:column; gap:14px; }',
+      '.a4a-posts-col-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary,#94a3b8); margin:0 0 6px 2px; }',
+      '.a4a-section-row { display:flex; align-items:center; gap:12px; padding:14px 16px; border:1px solid var(--border-color,#e2e8f0); border-radius:12px; background:var(--surface,#ffffff); transition:border-color 0.18s, background 0.18s; }',
+      '.a4a-section-row.a4a-section-complete { border-color:#10B981; background:rgba(16,185,129,0.06); }',
+      '.a4a-section-check { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#e2e8f0; color:#94a3b8; font-size:13px; font-weight:800; }',
+      '.a4a-section-row.a4a-section-complete .a4a-section-check { background:#10B981; color:#ffffff; }',
+      '.a4a-pill { display:inline-flex; align-items:center; padding:5px 12px; border-radius:999px; font-size:11px; font-weight:700; color:#ffffff; letter-spacing:0.02em; white-space:nowrap; }',
+      '.a4a-pill-fb { background:#1877F2; }',
+      '.a4a-pill-ig { background:linear-gradient(135deg,#833ab4 0%,#fd1d1d 50%,#fcb045 100%); }',
+      '.a4a-pill-ig-story { background:#E1306C; }',
+      '.a4a-section-meta { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }',
+      '.a4a-section-amount { font-size:12px; color:var(--text-secondary,#64748b); font-weight:600; }',
+      '.a4a-section-amount strong { color:var(--text-primary,#1e293b); font-weight:800; }',
+      '.a4a-section-row.a4a-section-complete .a4a-section-amount strong { color:#10B981; }',
+      '.a4a-upload-block { border:1px solid var(--border-color,#e2e8f0); border-radius:12px; background:var(--surface,#ffffff); padding:14px 16px; display:flex; flex-direction:column; gap:10px; }',
+      '.a4a-upload-header { display:flex; align-items:center; justify-content:space-between; gap:10px; }',
+      '.a4a-upload-label { font-size:12px; font-weight:700; color:var(--text-primary,#1e293b); }',
+      '.a4a-upload-counter { font-size:11px; color:var(--text-secondary,#64748b); font-weight:600; }',
+      '.a4a-posts-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; gap:12px; padding:16px 0 0; margin-top:8px; background:linear-gradient(180deg,rgba(255,255,255,0) 0%,var(--bg-color,#f1f5f9) 40%); }',
+      '.a4a-posts-actions button { padding:10px 22px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid transparent; transition:all 0.18s; }',
+      '.a4a-posts-actions .a4a-btn-secondary { background:var(--surface,#ffffff); color:var(--text-primary,#1e293b); border-color:var(--border-color,#cbd5e1); }',
+      '.a4a-posts-actions .a4a-btn-secondary:hover:not(:disabled) { background:var(--surface-alt,#f1f5f9); }',
+      '.a4a-posts-actions .a4a-btn-primary { background:#10B981; color:#ffffff; border-color:#10B981; }',
+      '.a4a-posts-actions .a4a-btn-primary:hover:not(:disabled) { filter:brightness(1.06); }',
+      '.a4a-posts-actions button:disabled { opacity:0.5; cursor:not-allowed; }',
+      '.a4a-posts-toast { position:fixed; left:50%; bottom:32px; transform:translateX(-50%); background:#10B981; color:#ffffff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:700; box-shadow:0 10px 30px rgba(16,185,129,0.35); z-index:5000; }'
+    ].join('\n');
+    container.appendChild(styleBlock);
+
+    // Sidebar — reuse the multi-section sidebar layout (post amounts + countries).
+    var POST_TYPES = [
+      { key: 'facebook_posts',    label: 'Facebook Post',    pillClass: 'a4a-pill-fb' },
+      { key: 'instagram_posts',   label: 'Instagram Post',   pillClass: 'a4a-pill-ig' },
+      { key: 'instagram_stories', label: 'Instagram Story',  pillClass: 'a4a-pill-ig-story' }
+    ];
+    var enabledTypes = POST_TYPES.filter(function (t) { return meta[t.key] === true; });
+
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Post Amounts');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      enabledTypes.forEach(function (t) {
+        var amt = meta[t.key + '_amount'];
+        var curated = meta[t.key + '_curated_amount'];
+        var parts = [];
+        if (amt) parts.push(String(amt));
+        if (curated) parts.push('(+' + curated + ' curated)');
+        addSidebarField(wrap, t.label, parts.join(' '));
+      });
+      nav.appendChild(wrap);
+      addCountriesToSidebar(nav, meta.countries);
+    });
+
+    // Main pane
+    var wrapper = document.createElement('div');
+    wrapper.className = 'a4a-posts-dashboard';
+
+    var headerRow = document.createElement('div');
+    headerRow.className = 'a4a-posts-header';
+    var title = document.createElement('h2');
+    title.className = 'a4a-posts-title';
+    title.textContent = deliverable.title || 'Agri4All Posts';
+    headerRow.appendChild(title);
+    wrapper.appendChild(headerRow);
+
+    // Materials recap
+    var recap = document.createElement('div');
+    recap.className = 'a4a-posts-recap';
+    var recapLoading = document.createElement('div');
+    recapLoading.className = 'cc-recap-loading';
+    recapLoading.textContent = 'Loading materials...';
+    recap.appendChild(recapLoading);
+    wrapper.appendChild(recap);
+    fetchRequestFormRecap(deliverable.id, recap);
+
+    // Two-column grid
+    var grid = document.createElement('div');
+    grid.className = 'a4a-posts-dashboard-grid';
+
+    var leftCol = document.createElement('div');
+    leftCol.className = 'a4a-posts-col';
+    var leftTitle = document.createElement('div');
+    leftTitle.className = 'a4a-posts-col-title';
+    leftTitle.textContent = 'Deliverables';
+    leftCol.appendChild(leftTitle);
+
+    var rightCol = document.createElement('div');
+    rightCol.className = 'a4a-posts-col';
+    var rightTitle = document.createElement('div');
+    rightTitle.className = 'a4a-posts-col-title';
+    rightTitle.textContent = 'Uploads';
+    rightCol.appendChild(rightTitle);
+
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    wrapper.appendChild(grid);
+
+    // Empty-state guard
+    if (enabledTypes.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'padding:24px;text-align:center;color:var(--text-muted,#94a3b8);font-size:13px;';
+      empty.textContent = 'No post types enabled on this deliverable.';
+      leftCol.appendChild(empty);
+    }
+
+    // PATCH helper — persists the whole metadata object.
+    function saveMetadata() {
+      return fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ metadata: meta })
+      });
+    }
+
+    // Track per-type DOM so we can update the complete state after uploads.
+    var rowRefs = {};
+
+    enabledTypes.forEach(function (t) {
+      if (!meta.sections[t.key]) meta.sections[t.key] = { files: [], status: 'pending', change_request_count: 0 };
+      if (!Array.isArray(meta.sections[t.key].files)) meta.sections[t.key].files = [];
+      var section = meta.sections[t.key];
+
+      var amountInt = parseInt(meta[t.key + '_amount'] || 0, 10) || 0;
+      var curatedRaw = meta[t.key + '_curated_amount'];
+
+      // ── Left col: summary row ────────────────────────────
+      var row = document.createElement('div');
+      row.className = 'a4a-section-row';
+
+      var check = document.createElement('span');
+      check.className = 'a4a-section-check';
+      check.textContent = '\u2713';
+      row.appendChild(check);
+
+      var metaWrap = document.createElement('div');
+      metaWrap.className = 'a4a-section-meta';
+
+      var pillRow = document.createElement('div');
+      pillRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      var pill = document.createElement('span');
+      pill.className = 'a4a-pill ' + t.pillClass;
+      pill.textContent = t.label;
+      pillRow.appendChild(pill);
+      metaWrap.appendChild(pillRow);
+
+      var amtLine = document.createElement('div');
+      amtLine.className = 'a4a-section-amount';
+      var amtBits = ['Amount: <strong>' + (amountInt || '0') + '</strong>'];
+      if (curatedRaw) amtBits.push('Curated: <strong>' + curatedRaw + '</strong>');
+      amtLine.innerHTML = amtBits.join(' &middot; ');
+      metaWrap.appendChild(amtLine);
+
+      var progressLine = document.createElement('div');
+      progressLine.className = 'a4a-section-amount';
+      metaWrap.appendChild(progressLine);
+
+      row.appendChild(metaWrap);
+      leftCol.appendChild(row);
+
+      // ── Right col: upload block ──────────────────────────
+      var block = document.createElement('div');
+      block.className = 'a4a-upload-block';
+      var blockHeader = document.createElement('div');
+      blockHeader.className = 'a4a-upload-header';
+      var blockLabel = document.createElement('div');
+      blockLabel.className = 'a4a-upload-label';
+      blockLabel.textContent = t.label + (amountInt ? ' — ' + amountInt : '');
+      blockHeader.appendChild(blockLabel);
+      var blockCounter = document.createElement('div');
+      blockCounter.className = 'a4a-upload-counter';
+      blockHeader.appendChild(blockCounter);
+      block.appendChild(blockHeader);
+
+      // Upload area: wraps buildUploadArea and refreshes the row state
+      // after any upload/delete finishes saving.
+      var uploadArea = buildUploadArea(deliverable.id, section.files, function () {
+        saveMetadata();
+        refreshRow(t.key);
+      }, 'Upload ' + t.label);
+      block.appendChild(uploadArea);
+      rightCol.appendChild(block);
+
+      rowRefs[t.key] = {
+        row: row,
+        progress: progressLine,
+        counter: blockCounter,
+        amount: amountInt
+      };
+
+      refreshRow(t.key);
+    });
+
+    function refreshRow(key) {
+      var ref = rowRefs[key];
+      if (!ref) return;
+      var section = meta.sections[key] || { files: [] };
+      var count = (section.files || []).length;
+      var target = ref.amount || 0;
+      var complete = target > 0 && count >= target;
+      ref.row.classList.toggle('a4a-section-complete', complete);
+      ref.progress.innerHTML = 'Uploaded: <strong>' + count + '</strong>' + (target ? ' / ' + target : '');
+      ref.counter.textContent = count + (target ? ' / ' + target : '') + ' uploaded';
+    }
+
+    // ── Action bar ────────────────────────────────────
+    var actions = document.createElement('div');
+    actions.className = 'a4a-posts-actions';
+
+    var resizeBtn = document.createElement('button');
+    resizeBtn.type = 'button';
+    resizeBtn.className = 'a4a-btn-secondary';
+    resizeBtn.textContent = 'Resize';
+    resizeBtn.title = 'Mark resizing as complete and move to ready for approval.';
+    resizeBtn.disabled = deliverable.status !== 'design_review';
+    resizeBtn.addEventListener('click', function () {
+      resizeBtn.disabled = true;
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'ready_for_approval' })
+      }).then(function (r) { return r.json(); })
+        .then(function (updated) {
+          if (updated && updated.id) {
+            deliverable.status = updated.status || 'ready_for_approval';
+            showA4aToast('Marked as ready for approval');
+            openAgri4AllPostsDashboard(container, deliverable);
+          } else {
+            resizeBtn.disabled = false;
+          }
+        })
+        .catch(function () { resizeBtn.disabled = false; });
+    });
+    actions.appendChild(resizeBtn);
+
+    var sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'a4a-btn-primary';
+    sendBtn.textContent = 'Send for Approval';
+    sendBtn.title = 'Send to the client portal for approval.';
+    sendBtn.disabled = deliverable.status !== 'ready_for_approval';
+    sendBtn.addEventListener('click', function () {
+      sendBtn.disabled = true;
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'sent_for_approval' })
+      }).then(function (r) { return r.json(); })
+        .then(function (updated) {
+          if (updated && updated.id) {
+            deliverable.status = updated.status || 'sent_for_approval';
+            showA4aToast('Sent to client portal');
+            openAgri4AllPostsDashboard(container, deliverable);
+          } else {
+            sendBtn.disabled = false;
+          }
+        })
+        .catch(function () { sendBtn.disabled = false; });
+    });
+    actions.appendChild(sendBtn);
+
+    wrapper.appendChild(actions);
+    container.appendChild(wrapper);
+
+    function showA4aToast(msg) {
+      var t = document.createElement('div');
+      t.className = 'a4a-posts-toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2400);
+    }
+  }
+  window.openAgri4AllPostsDashboard = openAgri4AllPostsDashboard;
 
   // ══════ A4A MULTI-SECTION FILE UPLOAD DASHBOARD (posts/videos) ══════
   function openA4AMultiSectionDashboard(container, deliverable, kind) {

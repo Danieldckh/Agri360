@@ -510,6 +510,72 @@ async function runMigrations() {
       console.error('Content calendar per-post status migration error:', e.message);
     }
 
+    // 2026-04-09 — Agri4all posts per-post-type sections init.
+    // agri4all-posts deliverables track uploads/approvals per post type
+    // (facebook_posts, instagram_posts, instagram_stories) under
+    // metadata.sections[postTypeKey]. This migration ensures each ENABLED
+    // post type has a section with the canonical shape
+    //   { files:[], status:'pending', change_requests:[], change_request_count:0 }
+    // WITHOUT clobbering existing files/change_requests that were written by
+    // the pre-existing openA4AMultiSectionDashboard upload flow. Idempotent:
+    // preserves whatever is already there via COALESCE on each sub-field,
+    // and only defaults status to 'pending' when missing.
+    try {
+      const a4aRows = await client.query(
+        `SELECT id, metadata FROM deliverables
+          WHERE type = 'agri4all-posts'
+            AND metadata IS NOT NULL`
+      );
+      const POST_TYPE_KEYS = ['facebook_posts', 'instagram_posts', 'instagram_stories'];
+      let a4aUpdated = 0;
+      for (const row of a4aRows.rows) {
+        let meta = row.metadata || {};
+        if (typeof meta === 'string') {
+          try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+        }
+        const sectionsIn = (meta && typeof meta.sections === 'object' && meta.sections) ? meta.sections : {};
+        const sectionsOut = Object.assign({}, sectionsIn);
+        let changed = false;
+        for (const key of POST_TYPE_KEYS) {
+          if (meta[key] !== true) continue; // only enabled types
+          const prev = (sectionsOut[key] && typeof sectionsOut[key] === 'object') ? sectionsOut[key] : {};
+          const nextFiles = Array.isArray(prev.files) ? prev.files : [];
+          const nextCRs = Array.isArray(prev.change_requests) ? prev.change_requests : [];
+          const nextStatus = (typeof prev.status === 'string' && prev.status) ? prev.status : 'pending';
+          const nextCount = (typeof prev.change_request_count === 'number')
+            ? prev.change_request_count
+            : nextCRs.length;
+          const nextSection = {
+            files: nextFiles,
+            status: nextStatus,
+            change_requests: nextCRs,
+            change_request_count: nextCount
+          };
+          // Detect whether anything actually changed to avoid pointless writes.
+          const prevKeys = Object.keys(prev);
+          const sameShape = prevKeys.length === 4
+            && Array.isArray(prev.files)
+            && typeof prev.status === 'string'
+            && Array.isArray(prev.change_requests)
+            && typeof prev.change_request_count === 'number';
+          if (!sameShape) changed = true;
+          sectionsOut[key] = nextSection;
+        }
+        if (!changed && meta.sections && typeof meta.sections === 'object') continue;
+        meta.sections = sectionsOut;
+        await client.query(
+          `UPDATE deliverables SET metadata = $1 WHERE id = $2`,
+          [JSON.stringify(meta), row.id]
+        );
+        a4aUpdated++;
+      }
+      if (a4aUpdated > 0) {
+        console.log('Initialised metadata.sections on ' + a4aUpdated + ' agri4all-posts deliverables');
+      }
+    } catch (e) {
+      console.warn('Agri4all-posts sections init migration error:', e.message);
+    }
+
     // Online Articles: ensure metadata has default fields so the production
     // dashboard rendering doesn't crash on null reads. Idempotent — only sets
     // fields that don't already exist.

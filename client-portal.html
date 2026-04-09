@@ -1001,6 +1001,94 @@
     cursor: not-allowed;
     filter: none;
   }
+  /* ── Agri4All Posts per-post-type approval UX ── */
+  .cp-a4a-wrap { display:flex; flex-direction:column; gap:16px; margin-bottom:18px; }
+  .cp-a4a-wrap-title {
+    font-size:17px;
+    font-weight:800;
+    color:var(--cp-text);
+    margin:0 0 4px;
+  }
+  .cp-a4a-card[data-status="approved"] { border-color: var(--cp-success); }
+  .cp-a4a-card[data-status="changes_requested"] { border-color: var(--cp-warn); }
+  .cp-a4a-pill {
+    display:inline-flex;
+    align-items:center;
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:800;
+    color:#ffffff;
+    letter-spacing:0.02em;
+  }
+  .cp-a4a-pill-fb { background:#1877F2; }
+  .cp-a4a-pill-ig { background:linear-gradient(135deg,#833ab4 0%,#fd1d1d 50%,#fcb045 100%); }
+  .cp-a4a-pill-ig-story { background:#E1306C; }
+  .cp-a4a-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:10px;
+    margin:14px 0;
+  }
+  .cp-a4a-thumb {
+    aspect-ratio:1 / 1;
+    overflow:hidden;
+    border-radius:var(--cp-radius-sm);
+    background:var(--cp-surface-soft);
+    border:1px solid var(--cp-border);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .cp-a4a-thumb img {
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .cp-a4a-file-link {
+    font-size:11px;
+    color:var(--cp-text-secondary);
+    padding:6px;
+    text-align:center;
+    text-decoration:none;
+    word-break:break-all;
+  }
+  .cp-a4a-empty {
+    grid-column:1 / -1;
+    text-align:center;
+    color:var(--cp-text-muted);
+    font-size:12px;
+    padding:20px;
+  }
+  .cp-a4a-status-row {
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .cp-a4a-status-badge {
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    background:var(--cp-surface-soft);
+    color:var(--cp-text-muted);
+  }
+  .cp-a4a-card[data-status="approved"] .cp-a4a-status-badge {
+    background:var(--cp-success-soft);
+    color:var(--cp-success);
+  }
+  .cp-a4a-card[data-status="changes_requested"] .cp-a4a-status-badge {
+    background:var(--cp-warn-soft);
+    color:var(--cp-warn);
+  }
+  .cp-a4a-request-panel { max-width:560px; }
+  .cp-a4a-request-panel .cp-cc-modal-form { flex:1 1 100%; }
+
   @media (max-width: 720px) {
     .cp-cc-modal-body { flex-direction: column; }
     .cp-cc-modal-media { min-height: 240px; }
@@ -1521,6 +1609,11 @@
             el.appendChild(buildCcApprovalCard(d));
             return;
           }
+          // Branch: agri4all-posts gets its own per-post-type approval UX
+          if (d.type === 'agri4all-posts') {
+            el.appendChild(buildA4aPostsApprovalCard(d));
+            return;
+          }
 
           var card = document.createElement('div');
           card.className = 'cp-approval-card';
@@ -1949,6 +2042,383 @@
     if (!state.revisionsEl) return;
     state.revisionsEl.textContent = state.changesLeft + ' of 3 change requests remaining';
     state.revisionsEl.classList.toggle('exhausted', state.changesLeft <= 0);
+  }
+
+  // ========== AGRI4ALL POSTS PER-POST-TYPE APPROVAL UX ==========
+  var A4A_POST_TYPES = [
+    { key: 'facebook_posts',    label: 'Facebook Post',    pillClass: 'cp-a4a-pill-fb' },
+    { key: 'instagram_posts',   label: 'Instagram Post',   pillClass: 'cp-a4a-pill-ig' },
+    { key: 'instagram_stories', label: 'Instagram Story',  pillClass: 'cp-a4a-pill-ig-story' }
+  ];
+
+  function a4aStatusLabel(s) {
+    if (s === 'approved') return 'Approved';
+    if (s === 'changes_requested') return 'Changes Requested';
+    return 'Pending';
+  }
+
+  function buildA4aPostsApprovalCard(d) {
+    var meta = d.metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) { meta = {}; } }
+    var sections = meta.sections || {};
+
+    var wrap = document.createElement('div');
+    wrap.className = 'cp-a4a-wrap';
+
+    var title = document.createElement('h3');
+    title.className = 'cp-a4a-wrap-title';
+    var clientName = d.clientName || meta.clientName || '';
+    title.textContent = (clientName ? clientName + ' — ' : '') + (d.title || 'Agri4All Posts');
+    wrap.appendChild(title);
+
+    var enabled = A4A_POST_TYPES.filter(function (t) { return meta[t.key] === true; });
+    if (enabled.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'cp-empty';
+      empty.textContent = 'No post types enabled on this deliverable.';
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    enabled.forEach(function (t) {
+      wrap.appendChild(buildA4aSectionCard(d, t, sections[t.key] || {}));
+    });
+    return wrap;
+  }
+
+  function buildA4aSectionCard(deliverable, typeDef, section) {
+    var state = {
+      deliverable: deliverable,
+      typeDef: typeDef,
+      section: section,
+      files: Array.isArray(section.files) ? section.files.slice() : [],
+      changeCount: parseInt(section.change_request_count || 0, 10) || 0,
+      status: section.status || 'pending'
+    };
+    state.changesLeft = Math.max(0, 3 - state.changeCount);
+
+    var card = document.createElement('div');
+    card.className = 'cp-cc-card cp-a4a-card';
+    card.setAttribute('data-a4a-key', typeDef.key);
+    card.setAttribute('data-status', state.status);
+
+    var header = document.createElement('div');
+    header.className = 'cp-cc-header';
+
+    var pill = document.createElement('span');
+    pill.className = 'cp-a4a-pill ' + typeDef.pillClass;
+    pill.textContent = typeDef.label;
+    header.appendChild(pill);
+
+    var revisions = document.createElement('div');
+    revisions.className = 'cp-cc-revisions' + (state.changesLeft <= 0 ? ' exhausted' : '');
+    revisions.textContent = state.changesLeft + ' of 3 change requests remaining';
+    header.appendChild(revisions);
+    state.revisionsEl = revisions;
+
+    card.appendChild(header);
+
+    // Image grid
+    var grid = document.createElement('div');
+    grid.className = 'cp-a4a-grid';
+    if (state.files.length === 0) {
+      var none = document.createElement('div');
+      none.className = 'cp-a4a-empty';
+      none.textContent = 'No files uploaded yet.';
+      grid.appendChild(none);
+    } else {
+      state.files.forEach(function (url, idx) {
+        var isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
+        var thumb = document.createElement('div');
+        thumb.className = 'cp-a4a-thumb';
+        if (isImage) {
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = '';
+          thumb.appendChild(img);
+          thumb.addEventListener('click', function () { openA4aLightbox(state.files, idx); });
+        } else {
+          var link = document.createElement('a');
+          link.href = url;
+          link.target = '_blank';
+          link.textContent = url.split('/').pop();
+          link.className = 'cp-a4a-file-link';
+          thumb.appendChild(link);
+        }
+        grid.appendChild(thumb);
+      });
+    }
+    card.appendChild(grid);
+
+    // Status badge row
+    var statusRow = document.createElement('div');
+    statusRow.className = 'cp-a4a-status-row';
+    var statusBadge = document.createElement('span');
+    statusBadge.className = 'cp-a4a-status-badge';
+    statusBadge.textContent = a4aStatusLabel(state.status);
+    statusRow.appendChild(statusBadge);
+    card.appendChild(statusRow);
+    state.statusBadgeEl = statusBadge;
+
+    // Actions
+    var actions = document.createElement('div');
+    actions.className = 'cp-cc-modal-actions';
+
+    var requestBtn = document.createElement('button');
+    requestBtn.className = 'cp-cc-request-btn';
+    var approveBtn = document.createElement('button');
+    approveBtn.className = 'cp-cc-approve-btn';
+    approveBtn.textContent = 'Approve Section';
+
+    function refreshButtons() {
+      if (state.status === 'approved') {
+        approveBtn.disabled = true;
+        approveBtn.textContent = 'Approved';
+        requestBtn.disabled = true;
+        requestBtn.textContent = 'Changes Unavailable';
+        return;
+      }
+      approveBtn.disabled = false;
+      approveBtn.textContent = 'Approve Section';
+      if (state.changesLeft <= 0) {
+        requestBtn.disabled = true;
+        requestBtn.textContent = 'No changes remaining';
+      } else {
+        requestBtn.disabled = false;
+        requestBtn.textContent = 'Request Changes (' + state.changesLeft + ' of 3 remaining)';
+      }
+    }
+    refreshButtons();
+
+    var errBox = document.createElement('div');
+    errBox.className = 'cp-cc-modal-error';
+    function showErr(msg) { errBox.textContent = msg; errBox.classList.add('open'); }
+    function clearErr() { errBox.classList.remove('open'); errBox.textContent = ''; }
+
+    approveBtn.addEventListener('click', function () {
+      clearErr();
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Approving...';
+      fetch('/api/portal/' + token + '/approvals/' + state.deliverable.id + '/sections/' + state.typeDef.key + '/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).then(function (r) {
+        return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+      }).then(function (res) {
+        if (!res.ok) {
+          refreshButtons();
+          showErr((res.body && res.body.error) || 'Failed to approve section');
+          return;
+        }
+        state.status = 'approved';
+        card.setAttribute('data-status', 'approved');
+        state.statusBadgeEl.textContent = a4aStatusLabel('approved');
+        refreshButtons();
+        if (res.body && res.body.deliverable && res.body.deliverable.status === 'approved') {
+          renderTab();
+        }
+      }).catch(function () {
+        refreshButtons();
+        showErr('Network error');
+      });
+    });
+
+    requestBtn.addEventListener('click', function () {
+      if (state.changesLeft <= 0 || state.status === 'approved') return;
+      openA4aRequestChangesModal(state, card, refreshButtons);
+    });
+
+    actions.appendChild(requestBtn);
+    actions.appendChild(approveBtn);
+    card.appendChild(errBox);
+    card.appendChild(actions);
+
+    return card;
+  }
+
+  function openA4aLightbox(files, startIdx) {
+    var images = files.filter(function (u) { return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(u); });
+    if (images.length === 0) return;
+    var current = Math.max(0, images.indexOf(files[startIdx]));
+    if (current < 0) current = 0;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'cp-cc-modal-overlay';
+    var panel = document.createElement('div');
+    panel.className = 'cp-cc-modal-panel';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'cp-cc-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    panel.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.className = 'cp-cc-modal-body';
+    var media = document.createElement('div');
+    media.className = 'cp-cc-modal-media';
+    var mainImg = document.createElement('img');
+    function renderImg() { mainImg.src = images[current]; }
+    media.appendChild(mainImg);
+    renderImg();
+
+    if (images.length > 1) {
+      var prev = document.createElement('button');
+      prev.className = 'cp-cc-nav prev';
+      prev.innerHTML = '&#8249;';
+      prev.addEventListener('click', function (e) {
+        e.stopPropagation();
+        current = (current - 1 + images.length) % images.length;
+        renderImg();
+      });
+      var next = document.createElement('button');
+      next.className = 'cp-cc-nav next';
+      next.innerHTML = '&#8250;';
+      next.addEventListener('click', function (e) {
+        e.stopPropagation();
+        current = (current + 1) % images.length;
+        renderImg();
+      });
+      media.appendChild(prev);
+      media.appendChild(next);
+    }
+    body.appendChild(media);
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  function openA4aRequestChangesModal(state, card, refreshButtons) {
+    var overlay = document.createElement('div');
+    overlay.className = 'cp-cc-modal-overlay';
+    var panel = document.createElement('div');
+    panel.className = 'cp-cc-modal-panel cp-a4a-request-panel';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'cp-cc-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    panel.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.className = 'cp-cc-modal-body';
+    var form = document.createElement('div');
+    form.className = 'cp-cc-modal-form';
+
+    var heading = document.createElement('label');
+    heading.textContent = 'Request changes — ' + state.typeDef.label;
+    form.appendChild(heading);
+
+    var chArea = document.createElement('textarea');
+    chArea.className = 'cp-cc-modal-changes';
+    chArea.placeholder = "Describe the changes you'd like...";
+    form.appendChild(chArea);
+
+    var imgLabel = document.createElement('label');
+    imgLabel.textContent = 'Attach reference images (optional)';
+    form.appendChild(imgLabel);
+
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    form.appendChild(fileInput);
+
+    var uploadedUrls = [];
+    var uploadStatus = document.createElement('div');
+    uploadStatus.style.cssText = 'font-size:11px;color:var(--cp-text-muted);';
+    form.appendChild(uploadStatus);
+
+    fileInput.addEventListener('change', function () {
+      var files = Array.from(fileInput.files || []);
+      if (files.length === 0) return;
+      var fd = new FormData();
+      files.forEach(function (f) { fd.append('images', f); });
+      uploadStatus.textContent = 'Uploading ' + files.length + ' file(s)...';
+      fetch('/api/deliverables/' + state.deliverable.id + '/upload-images', {
+        method: 'POST',
+        body: fd
+      }).then(function (r) { return r.json(); })
+        .then(function (result) {
+          if (result && result.urls) {
+            uploadedUrls = uploadedUrls.concat(result.urls);
+            uploadStatus.textContent = uploadedUrls.length + ' file(s) ready to attach.';
+          } else {
+            uploadStatus.textContent = 'Upload failed.';
+          }
+        })
+        .catch(function () { uploadStatus.textContent = 'Upload failed.'; });
+    });
+
+    var errBox = document.createElement('div');
+    errBox.className = 'cp-cc-modal-error';
+    form.appendChild(errBox);
+    function showErr(msg) { errBox.textContent = msg; errBox.classList.add('open'); }
+    function clearErr() { errBox.classList.remove('open'); errBox.textContent = ''; }
+
+    var actions = document.createElement('div');
+    actions.className = 'cp-cc-modal-actions';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'cp-cc-request-btn';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () { overlay.remove(); });
+
+    var sendBtn = document.createElement('button');
+    sendBtn.className = 'cp-cc-approve-btn';
+    sendBtn.textContent = 'Send Request';
+    sendBtn.addEventListener('click', function () {
+      clearErr();
+      var text = chArea.value.trim();
+      if (!text) { showErr('Please describe the changes you would like.'); return; }
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+      fetch('/api/portal/' + token + '/approvals/' + state.deliverable.id + '/sections/' + state.typeDef.key + '/request-changes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, images: uploadedUrls })
+      }).then(function (r) {
+        return r.json().then(function (body) { return { ok: r.ok, status: r.status, body: body }; });
+      }).then(function (res) {
+        if (!res.ok) {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Send Request';
+          if (res.status === 400 && res.body && /Maximum change requests/i.test(res.body.error || '')) {
+            state.changesLeft = 0;
+          }
+          showErr((res.body && res.body.error) || 'Failed to request changes');
+          if (state.revisionsEl) {
+            state.revisionsEl.textContent = state.changesLeft + ' of 3 change requests remaining';
+            state.revisionsEl.classList.toggle('exhausted', state.changesLeft <= 0);
+          }
+          refreshButtons();
+          return;
+        }
+        state.status = 'changes_requested';
+        state.changeCount = state.changeCount + 1;
+        state.changesLeft = Math.max(0, 3 - state.changeCount);
+        card.setAttribute('data-status', 'changes_requested');
+        if (state.statusBadgeEl) state.statusBadgeEl.textContent = a4aStatusLabel('changes_requested');
+        if (state.revisionsEl) {
+          state.revisionsEl.textContent = state.changesLeft + ' of 3 change requests remaining';
+          state.revisionsEl.classList.toggle('exhausted', state.changesLeft <= 0);
+        }
+        refreshButtons();
+        overlay.remove();
+      }).catch(function () {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Request';
+        showErr('Network error');
+      });
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(sendBtn);
+    form.appendChild(actions);
+    body.appendChild(form);
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
   }
 
   function openLightbox(url) {

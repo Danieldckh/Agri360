@@ -424,6 +424,199 @@ router.post('/:token/approvals/:deliverableId/posts/:postIdx/request-changes', a
   }
 });
 
+// ─── Agri4all posts per-post-type approval ───────────────
+// Agri4all posts deliverables approve per post-type key (facebook_posts,
+// instagram_posts, instagram_stories) rather than per post index. State
+// lives in metadata.sections[postTypeKey] = { files, status, change_requests,
+// change_request_count }. When EVERY enabled post type reaches status
+// 'approved', the deliverable itself flips to 'approved' and a single
+// scheduled_posts row (source_type='agri4all') is enqueued.
+const AGRI4ALL_POST_TYPE_KEYS = ['facebook_posts', 'instagram_posts', 'instagram_stories'];
+
+function deriveAgri4allPlatforms(metadata) {
+  const set = {};
+  for (const key of AGRI4ALL_POST_TYPE_KEYS) {
+    if (metadata && metadata[key] === true) {
+      if (key.indexOf('facebook') === 0) set['facebook'] = true;
+      else if (key.indexOf('instagram') === 0) set['instagram'] = true;
+    }
+  }
+  return Object.keys(set);
+}
+
+// POST /:token/approvals/:deliverableId/sections/:postTypeKey/approve
+router.post('/:token/approvals/:deliverableId/sections/:postTypeKey/approve', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+
+    const postTypeKey = req.params.postTypeKey;
+    if (AGRI4ALL_POST_TYPE_KEYS.indexOf(postTypeKey) === -1) {
+      return res.status(400).json({ error: 'Invalid postTypeKey' });
+    }
+
+    const existing = await pool.query(
+      'SELECT * FROM deliverables WHERE id = $1 AND client_id = $2',
+      [req.params.deliverableId, client.id]
+    );
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    const deliverable = existing.rows[0];
+    if (deliverable.type !== 'agri4all-posts') {
+      return res.status(404).json({ error: 'Deliverable not found' });
+    }
+
+    let metadata = deliverable.metadata || {};
+    if (typeof metadata === 'string') try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+
+    if (metadata[postTypeKey] !== true) {
+      return res.status(400).json({ error: 'Post type not enabled on this deliverable' });
+    }
+
+    const sections = (metadata.sections && typeof metadata.sections === 'object') ? metadata.sections : {};
+    const prev = (sections[postTypeKey] && typeof sections[postTypeKey] === 'object') ? sections[postTypeKey] : {};
+    const nextSection = {
+      files: Array.isArray(prev.files) ? prev.files : [],
+      status: 'approved',
+      change_requests: Array.isArray(prev.change_requests) ? prev.change_requests : [],
+      change_request_count: typeof prev.change_request_count === 'number' ? prev.change_request_count : 0
+    };
+    sections[postTypeKey] = nextSection;
+    metadata.sections = sections;
+
+    // All-enabled-approved check: every enabled post type must have status 'approved'
+    let allApproved = true;
+    let anyEnabled = false;
+    for (const key of AGRI4ALL_POST_TYPE_KEYS) {
+      if (metadata[key] === true) {
+        anyEnabled = true;
+        const s = metadata.sections[key];
+        if (!s || s.status !== 'approved') { allApproved = false; break; }
+      }
+    }
+    const newStatus = (anyEnabled && allApproved) ? 'approved' : deliverable.status;
+
+    const result = await pool.query(
+      `UPDATE deliverables SET metadata = $1, status = $2, updated_at = NOW()
+       WHERE id = $3 AND client_id = $4 RETURNING *`,
+      [JSON.stringify(metadata), newStatus, req.params.deliverableId, client.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+
+    // Best-effort scheduled_posts enqueue. Agri4all has no per-post dates, so
+    // insert a single 'unscheduled' row only when the entire deliverable just
+    // flipped to approved. Failure must not break the approval contract.
+    if (anyEnabled && allApproved && deliverable.status !== 'approved') {
+      try {
+        const title = deliverable.title || 'Agri4All Posts';
+        const platforms = deriveAgri4allPlatforms(metadata);
+        await pool.query(
+          `INSERT INTO scheduled_posts
+             (title, content, platforms, scheduled_at, status, source_type, source_id, client_id, created_at, updated_at)
+           VALUES ($1, $2, $3::jsonb, NULL, 'unscheduled', 'agri4all', $4, $5, NOW(), NOW())`,
+          [
+            title,
+            '',
+            JSON.stringify(platforms),
+            deliverable.id,
+            deliverable.client_id
+          ]
+        );
+      } catch (spErr) {
+        console.warn('scheduled_posts insert failed for agri4all-posts approval:', spErr.message);
+      }
+    }
+
+    res.json({ ok: true, deliverable: toCamelCase(result.rows[0]) });
+  } catch (err) {
+    console.error('Portal agri4all section approve error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:token/approvals/:deliverableId/sections/:postTypeKey/request-changes
+router.post('/:token/approvals/:deliverableId/sections/:postTypeKey/request-changes', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+
+    const postTypeKey = req.params.postTypeKey;
+    if (AGRI4ALL_POST_TYPE_KEYS.indexOf(postTypeKey) === -1) {
+      return res.status(400).json({ error: 'Invalid postTypeKey' });
+    }
+
+    const body = req.body || {};
+    const text = typeof body.text === 'string' ? body.text : '';
+    const images = Array.isArray(body.images) ? body.images : [];
+    if (!text) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    const existing = await pool.query(
+      'SELECT * FROM deliverables WHERE id = $1 AND client_id = $2',
+      [req.params.deliverableId, client.id]
+    );
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    const deliverable = existing.rows[0];
+    if (deliverable.type !== 'agri4all-posts') {
+      return res.status(404).json({ error: 'Deliverable not found' });
+    }
+
+    let metadata = deliverable.metadata || {};
+    if (typeof metadata === 'string') try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+
+    if (metadata[postTypeKey] !== true) {
+      return res.status(400).json({ error: 'Post type not enabled on this deliverable' });
+    }
+
+    const sections = (metadata.sections && typeof metadata.sections === 'object') ? metadata.sections : {};
+    const prev = (sections[postTypeKey] && typeof sections[postTypeKey] === 'object') ? sections[postTypeKey] : {};
+    const currentCount = typeof prev.change_request_count === 'number'
+      ? prev.change_request_count
+      : (Array.isArray(prev.change_requests) ? prev.change_requests.length : 0);
+    if (currentCount >= 3) {
+      return res.status(400).json({ error: 'change_request_limit' });
+    }
+
+    const nextCRs = (Array.isArray(prev.change_requests) ? prev.change_requests.slice() : []);
+    nextCRs.push({
+      id: Date.now(),
+      text: text,
+      images: images,
+      created_at: new Date().toISOString(),
+      created_by: 'client'
+    });
+    const newCount = currentCount + 1;
+
+    const nextSection = {
+      files: Array.isArray(prev.files) ? prev.files : [],
+      status: 'changes_requested',
+      change_requests: nextCRs,
+      change_request_count: newCount
+    };
+    sections[postTypeKey] = nextSection;
+    metadata.sections = sections;
+
+    const result = await pool.query(
+      `UPDATE deliverables
+          SET metadata = $1,
+              status = 'design_changes',
+              updated_at = NOW()
+        WHERE id = $2 AND client_id = $3 RETURNING *`,
+      [JSON.stringify(metadata), req.params.deliverableId, client.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+
+    res.json({
+      ok: true,
+      deliverable: toCamelCase(result.rows[0]),
+      remaining: Math.max(0, 3 - newCount)
+    });
+  } catch (err) {
+    console.error('Portal agri4all section request-changes error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ─── Portal Chat Messages ────────────────────────────────
 // A lightweight chat thread per client, stored in portal_messages.
 // The portal side (public, token-based) and the CRM side (authenticated)
