@@ -81,9 +81,11 @@
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
   ];
 
-  var PROPOSAL_COLUMNS = BASE_COLUMNS.concat([
-    { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' }
-  ]);
+  var PROPOSAL_COLUMNS = [
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
+  ];
 
   // The Booking Form sheet is a signing-lifecycle hub. Three columns,
   // one per artifact:
@@ -247,24 +249,11 @@
 
     var rowActions = [
       {
-        icon: ICON_UNDO,
-        tooltip: 'Previous status',
-        className: 'action-undo',
-        onClick: function (rowData) {
-          var prev = getPrevStatus(rowData.status);
-          if (!prev) return;
-          fetch(API_BASE + '/' + rowData.id, {
-            method: 'PATCH',
-            headers: getHeaders(),
-            body: JSON.stringify({ status: prev })
-          }).then(function (res) {
-            if (res.ok) refreshFn();
-          });
-        }
-      },
-      {
         icon: ICON_ADVANCE,
-        tooltip: 'Next status',
+        tooltip: function (rowData) {
+          var next = getNextStatus(rowData.status);
+          return next ? 'Advance to ' + next.replace(/_/g, ' ') : 'No next status';
+        },
         className: 'action-advance',
         onClick: function (rowData) {
           var next = getNextStatus(rowData.status);

@@ -125,3 +125,23 @@
 .proagri-sheet-cell .lifecycle-badge {
   margin: 2px 0;
 }
+
+/* --- Proposal grid: make sub-sheets scrollable --- */
+.proposal-grid {
+  overflow-y: auto;
+}
+.proposal-grid-left,
+.proposal-grid-right {
+  overflow-y: auto;
+}
+
+/* --- View button for Checklist column: black, blue on hover --- */
+.proposal-grid .proagri-sheet-link {
+  color: #111;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.proposal-grid .proagri-sheet-link:hover {
+  color: #1565c0;
+  background: rgba(21, 101, 192, 0.08);
+  border-color: rgba(21, 101, 192, 0.3);
+}
