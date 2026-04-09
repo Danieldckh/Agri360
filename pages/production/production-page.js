@@ -68,6 +68,69 @@
     return status.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
+  // Maps deliverable type slugs to human-readable labels.
+  // Special-cases proper-noun acronyms that title-case wouldn't handle.
+  function formatTypeLabel(type) {
+    if (!type) return '';
+    var s = String(type).toLowerCase();
+    var map = {
+      'sm-content-calendar': 'Content Calendar',
+      'agri4all-posts': 'Agri4All Posts',
+      'agri4all-videos': 'Agri4All Videos',
+      'agri4all-product-uploads': 'Agri4All Product Uploads',
+      'agri4all-newsletters': 'Agri4All Newsletters',
+      'agri4all-newsletter-feature': 'Agri4All Newsletter Feature',
+      'agri4all-newsletter-banner': 'Agri4All Newsletter Banner',
+      'agri4all-linkedin': 'Agri4All LinkedIn',
+      'agri4all-banners': 'Agri4All Banners',
+      'own-social-posts': 'Own Social Posts',
+      'own-social-videos': 'Own Social Videos',
+      'own-social-linkedin': 'Own Social LinkedIn',
+      'own-social-twitter': 'Own Social Twitter',
+      'sm-posts': 'Social Media Posts',
+      'sm-videos': 'Social Media Videos',
+      'sm-google-ads': 'Google Ads',
+      'sm-linkedin': 'Social Media LinkedIn',
+      'sm-twitter': 'Social Media Twitter',
+      'online-articles': 'Online Article',
+      'website-design': 'Website Design',
+      'video': 'Video',
+      'magazine': 'Magazine',
+      'magazine-sa-digital': 'Magazine SA Digital',
+      'magazine-africa-print': 'Magazine Africa Print',
+      'magazine-africa-digital': 'Magazine Africa Digital',
+      'magazine-coffee-table': 'Magazine Coffee Table'
+    };
+    if (map[s]) return map[s];
+    return s.split(/[-_]/).map(function (w) {
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(' ');
+  }
+
+  // Which deliverable types render a platforms cell in the standard row.
+  var SOCIAL_MEDIA_TYPES_WITH_PLATFORMS = {
+    'agri4all-posts': true,
+    'agri4all-videos': true,
+    'own-social-posts': true,
+    'own-social-videos': true,
+    'sm-posts': true,
+    'sm-videos': true
+  };
+
+  function formatPlatformLabel(key, deliverableType) {
+    var k = String(key || '').toLowerCase();
+    var suffix = '';
+    if (deliverableType && deliverableType.indexOf('videos') !== -1) suffix = ' Videos';
+    else if (deliverableType && deliverableType.indexOf('posts') !== -1) suffix = ' Posts';
+    if (k === 'facebook') return 'Facebook' + suffix;
+    if (k === 'instagram') return 'Instagram' + suffix;
+    if (k === 'instagram_stories') return 'Instagram Stories';
+    if (k === 'linkedin') return 'LinkedIn' + suffix;
+    if (k === 'twitter' || k === 'twitter_x' || k === 'x') return 'X' + suffix;
+    if (k === 'tiktok') return 'TikTok' + suffix;
+    return k.charAt(0).toUpperCase() + k.slice(1) + suffix;
+  }
+
   function formatDate(dateStr) {
     if (!dateStr) return '\u2014';
     var d = new Date(dateStr);
@@ -715,7 +778,7 @@
     return { label: 'Type', className: 'prod-deliv-type', render: function (item) {
       var badge = document.createElement('span');
       badge.className = 'production-type-badge';
-      badge.textContent = formatStatus(item.type || '');
+      badge.textContent = formatTypeLabel(item.type || '');
       return badge;
     }};
   }
@@ -1335,7 +1398,7 @@
 
         var thead = document.createElement('thead');
         var headerRow = document.createElement('tr');
-        ['Title', 'Type', 'Status', 'Assigned To', 'Due Date', ''].forEach(function (col) {
+        ['Title', 'Type', 'Platforms', 'Status', 'Assigned To', 'Due Date', ''].forEach(function (col) {
           var th = document.createElement('th');
           th.textContent = col;
           if (col === '') th.style.width = '40px';
@@ -1362,7 +1425,7 @@
           clientRow.style.cursor = 'pointer';
 
           var clientCell = document.createElement('td');
-          clientCell.colSpan = 6;
+          clientCell.colSpan = 7;
 
           var clientWrap = document.createElement('div');
           clientWrap.style.display = 'flex';
@@ -1395,7 +1458,7 @@
 
             var tdTitle = document.createElement('td');
             tdTitle.className = 'production-indented';
-            tdTitle.textContent = item.title || '\u2014';
+            tdTitle.textContent = formatTypeLabel(item.type);
             row.appendChild(tdTitle);
 
             var tdType = document.createElement('td');
@@ -1404,6 +1467,33 @@
             typeBadge.textContent = item.type || '\u2014';
             tdType.appendChild(typeBadge);
             row.appendChild(tdType);
+
+            // Platforms cell — agri4all-posts stores flat booleans
+            // (facebook_posts / instagram_posts / instagram_stories) in metadata;
+            // other types in the Posts tab may use metadata.platforms[].
+            var tdPlatforms = document.createElement('td');
+            var deptMeta = item.metadata || {};
+            var deptPlatformKeys = [];
+            if (item.type === 'agri4all-posts') {
+              if (deptMeta.facebook_posts) deptPlatformKeys.push('facebook');
+              if (deptMeta.instagram_posts) deptPlatformKeys.push('instagram');
+              if (deptMeta.instagram_stories) deptPlatformKeys.push('instagram_stories');
+            } else if (Array.isArray(deptMeta.platforms)) {
+              deptMeta.platforms.forEach(function (p) {
+                var key = (typeof p === 'string') ? p : (p && p.key) || '';
+                if (key) deptPlatformKeys.push(key);
+              });
+            }
+            deptPlatformKeys.forEach(function (key) {
+              var label = formatPlatformLabel(key, item.type);
+              if (!label) return;
+              var pill = document.createElement('span');
+              pill.className = 'prod-deliv-platform-tag';
+              pill.style.marginRight = '4px';
+              pill.textContent = label;
+              tdPlatforms.appendChild(pill);
+            });
+            row.appendChild(tdPlatforms);
 
             var tdStatus = document.createElement('td');
             tdStatus.style.position = 'relative';
@@ -1819,7 +1909,6 @@
       var headerCols = [
         { label: '', cls: 'prod-deliv-cell prod-deliv-act' },
         { label: 'Team', cls: 'prod-deliv-cell prod-deliv-team' },
-        { label: 'Title', cls: 'prod-deliv-cell prod-deliv-title' },
         { label: 'Type', cls: 'prod-deliv-cell prod-deliv-type' },
         { label: 'Status', cls: 'prod-deliv-cell' }
       ];
@@ -2155,21 +2244,42 @@
           }, 'production'));
           row.appendChild(teamCell);
 
-          // Title — completely omitted for content-calendar rows in production
-          // (spec: CC rows render exactly 5 cells — eye, avatar, label, status, advance).
-          if (!isContentCalendar) {
-            var titleCell = document.createElement('div');
-            titleCell.className = 'prod-deliv-cell prod-deliv-title';
-            titleCell.textContent = item.title || '';
-            row.appendChild(titleCell);
-          }
-
+          // Title column has been dropped from the production sheet per spec.
           // Type — for content calendar rows this cell shows the literal
           // label "Content Calendar" instead of the raw type slug.
           var typeCell = document.createElement('div');
           typeCell.className = 'prod-deliv-cell prod-deliv-type';
-          typeCell.textContent = isContentCalendar ? 'Content Calendar' : formatStatus(item.type || '');
+          typeCell.textContent = isContentCalendar ? 'Content Calendar' : formatTypeLabel(item.type);
           row.appendChild(typeCell);
+
+          // Platforms cell — standard rows for social-media deliverable types only.
+          // CC and OA rows have their own platform handling below / in custom branches.
+          if (!isContentCalendar && SOCIAL_MEDIA_TYPES_WITH_PLATFORMS[item.type]) {
+            var stdPlatCell = document.createElement('div');
+            stdPlatCell.className = 'prod-deliv-cell prod-deliv-platforms';
+            var stdMeta = item.metadata || {};
+            var stdPlatformKeys = [];
+            if (Array.isArray(stdMeta.platforms) && stdMeta.platforms.length > 0) {
+              stdMeta.platforms.forEach(function (p) {
+                var key = (typeof p === 'string') ? p : (p && p.key) || '';
+                if (key) stdPlatformKeys.push(key);
+              });
+            } else if (item.type === 'agri4all-posts') {
+              // agri4all-posts stores flat booleans instead of a platforms[] array
+              if (stdMeta.facebook_posts) stdPlatformKeys.push('facebook');
+              if (stdMeta.instagram_posts) stdPlatformKeys.push('instagram');
+              if (stdMeta.instagram_stories) stdPlatformKeys.push('instagram_stories');
+            }
+            stdPlatformKeys.forEach(function (key) {
+              var label = formatPlatformLabel(key, item.type);
+              if (!label) return;
+              var pill = document.createElement('span');
+              pill.className = 'prod-deliv-platform-tag';
+              pill.textContent = label;
+              stdPlatCell.appendChild(pill);
+            });
+            row.appendChild(stdPlatCell);
+          }
 
           // Per-deliverable "Request Materials" button — standard rows only
           // (CC rows use the simplified 5-cell layout and don't get this;
@@ -5056,7 +5166,7 @@
     titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
     var title = document.createElement('h2');
     title.className = 'cc-dashboard-title';
-    title.textContent = deliverable.title || '';
+    title.textContent = formatTypeLabel(deliverable.type);
     titleRow.appendChild(title);
 
     var addBlockBtn = document.createElement('button');
@@ -5069,6 +5179,16 @@
     });
     titleRow.appendChild(addBlockBtn);
     wrapper.appendChild(titleRow);
+
+    // Materials recap (request-form responses + assets) — fetched async
+    var a4aMsRecap = document.createElement('div');
+    a4aMsRecap.className = 'cc-materials-recap';
+    var a4aMsRecapLoading = document.createElement('div');
+    a4aMsRecapLoading.className = 'cc-recap-loading';
+    a4aMsRecapLoading.textContent = 'Loading materials...';
+    a4aMsRecap.appendChild(a4aMsRecapLoading);
+    wrapper.appendChild(a4aMsRecap);
+    fetchRequestFormRecap(deliverable.id, a4aMsRecap);
 
     var stepsWrap = document.createElement('div');
     stepsWrap.className = 'wd-steps';
@@ -5236,6 +5356,16 @@
     titleRow.appendChild(addBtn);
     wrapper.appendChild(titleRow);
 
+    // Materials recap (request-form responses + assets) — fetched async
+    var a4aImgRecap = document.createElement('div');
+    a4aImgRecap.className = 'cc-materials-recap';
+    var a4aImgRecapLoading = document.createElement('div');
+    a4aImgRecapLoading.className = 'cc-recap-loading';
+    a4aImgRecapLoading.textContent = 'Loading materials...';
+    a4aImgRecap.appendChild(a4aImgRecapLoading);
+    wrapper.appendChild(a4aImgRecap);
+    fetchRequestFormRecap(deliverable.id, a4aImgRecap);
+
     var itemsWrap = document.createElement('div');
     itemsWrap.className = 'a4a-items';
 
@@ -5345,6 +5475,16 @@
     });
     titleRow.appendChild(addBlockBtn);
     wrapper.appendChild(titleRow);
+
+    // Materials recap (request-form responses + assets) — fetched async
+    var a4aRtRecap = document.createElement('div');
+    a4aRtRecap.className = 'cc-materials-recap';
+    var a4aRtRecapLoading = document.createElement('div');
+    a4aRtRecapLoading.className = 'cc-recap-loading';
+    a4aRtRecapLoading.textContent = 'Loading materials...';
+    a4aRtRecap.appendChild(a4aRtRecapLoading);
+    wrapper.appendChild(a4aRtRecap);
+    fetchRequestFormRecap(deliverable.id, a4aRtRecap);
 
     var blocksWrap = document.createElement('div');
     wrapper.appendChild(blocksWrap);

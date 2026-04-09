@@ -584,3 +584,170 @@
   min-height: 0;
   overflow: hidden;
 }
+
+/* ===== Production Sheet Table (renderDeptTypeTab + renderClientGroupedSheet) ===== */
+/* Used by all dept-type tab views: Posts, Newsletters, Links, Stats, Briefs,
+   Production, Editing, Review, Scheduling, Google Ads, Proposals, etc. */
+
+.production-sheet-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  table-layout: auto;
+}
+
+.production-sheet-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 14px;
+  background: var(--bg-secondary, #fafafa);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.production-sheet-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+/* Client group header row (collapsible parent) */
+.production-sheet-table tr.production-client-row > td {
+  background: rgba(128, 128, 128, 0.05);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+  letter-spacing: 0.2px;
+}
+
+.production-sheet-table tr.production-client-row:hover > td {
+  background: rgba(128, 128, 128, 0.09);
+}
+
+.production-sheet-table tr.production-client-row .client-toggle,
+.production-sheet-table tr.production-client-row .client-count {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 11px;
+}
+
+/* Child (deliverable) rows */
+.production-sheet-table tr.production-child-row {
+  transition: background 0.15s ease;
+}
+
+.production-sheet-table tr.production-child-row:hover > td {
+  background: rgba(128, 128, 128, 0.04);
+}
+
+.production-sheet-table tr.production-child-row > td.production-indented {
+  padding-left: 32px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Type badge */
+.production-sheet-table .production-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-secondary);
+  text-transform: lowercase;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* Platforms cell — pills wrap nicely */
+.production-sheet-table td:has(.prod-deliv-platform-tag) {
+  white-space: normal;
+}
+
+.production-sheet-table .prod-deliv-platform-tag {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+}
+
+/* Action button cell (advance arrow, etc.) — keep tight, no ellipsis */
+.production-sheet-table tbody td:last-child {
+  text-align: right;
+  width: 48px;
+  padding-right: 14px;
+  overflow: visible;
+}
+
+.production-sheet-table .proagri-sheet-row-action-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.production-sheet-table .proagri-sheet-row-action-btn:hover {
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--color-accent-light, #f5a623);
+}
+
+/* Empty state already styled inline by JS, but normalize it just in case */
+.dept-sheet-container > div[style*="No items"] {
+  font-size: 13px;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .production-sheet-table thead th,
+.theme-dark .production-sheet-table thead th {
+  background: var(--bg-secondary, #1e1e1e);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .production-sheet-table tr.production-client-row > td,
+.theme-dark .production-sheet-table tr.production-client-row > td {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .production-sheet-table tr.production-client-row:hover > td,
+.theme-dark .production-sheet-table tr.production-client-row:hover > td {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .production-sheet-table tr.production-child-row:hover > td,
+.theme-dark .production-sheet-table tr.production-child-row:hover > td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .production-sheet-table tbody td,
+.theme-dark .production-sheet-table tbody td {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .production-sheet-table .production-type-badge,
+.theme-dark .production-sheet-table .production-type-badge {
+  background: rgba(255, 255, 255, 0.08);
+}
