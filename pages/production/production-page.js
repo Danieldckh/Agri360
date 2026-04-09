@@ -63,8 +63,17 @@
     return headers;
   }
 
+  var STATUS_LABELS = {
+    'agri4all-links': 'Agri4All Links',
+    'waiting_for_materials': 'Waiting for Materials',
+    'request_client_materials': 'Request Client Materials',
+    'ready_for_approval': 'Ready for Approval',
+    'sent_for_approval': 'Sent for Approval'
+  };
+
   function formatStatus(status) {
     if (!status) return 'Pending';
+    if (STATUS_LABELS[status]) return STATUS_LABELS[status];
     return status.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
