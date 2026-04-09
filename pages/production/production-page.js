@@ -2369,6 +2369,187 @@
 
   window.renderProductionDeliverablesTab = renderProductionDeliverablesTab;
 
+  // ── Production > Website Design tab ─────────────────────────────────
+  // Flat sheet of website-design deliverables currently on the Production
+  // side of the chain (before Design takes over at site_map). Mirrors the
+  // Design tab's `renderDesignWebDesignTab` implementation so both depts
+  // share the exact same UX — just a different status filter.
+  // ────────────────────────────────────────────────────────────────────
+  var WD_PROD_STATUSES = [
+    'request_client_materials', 'materials_requested', 'materials_received',
+    'ready_for_approval', 'sent_for_approval', 'approved'
+  ];
+
+  var WD_PROD_TYPE_LABELS = {
+    'website_design_development': 'Website Design and Development',
+    'website-design-development': 'Website Design and Development',
+    'web_redesign': 'Web Redesign',
+    'web-redesign': 'Web Redesign',
+    'monthly_website_management': 'Monthly Website Management',
+    'monthly-website-management': 'Monthly Website Management'
+  };
+
+  function formatWdProdTypeLabel(raw) {
+    if (raw == null || raw === '') return '\u2014';
+    var s = String(raw).trim();
+    if (WD_PROD_TYPE_LABELS[s]) return WD_PROD_TYPE_LABELS[s];
+    var norm = s.toLowerCase().replace(/[\s_]+/g, '-');
+    if (WD_PROD_TYPE_LABELS[norm]) return WD_PROD_TYPE_LABELS[norm];
+    // Already a human label? Pass through common display strings.
+    if (/website design/i.test(s)) return 'Website Design and Development';
+    if (/redesign/i.test(s)) return 'Web Redesign';
+    if (/monthly|management/i.test(s)) return 'Monthly Website Management';
+    return s;
+  }
+
+  function extractWdProdPages(d) {
+    var meta = d.metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) { meta = {}; } }
+    var bf = d.bookingForm || d.booking_form || {};
+    var fd = bf.formData || bf.form_data || {};
+    var candidates = [meta.pagesCount, meta.pages_count, meta.pages, meta.number_of_pages,
+      fd.pages, fd.pagesCount, fd.number_of_pages];
+    for (var i = 0; i < candidates.length; i++) {
+      var v = candidates[i];
+      if (v != null && v !== '') return v;
+    }
+    return '\u2014';
+  }
+
+  function extractWdProdType(d) {
+    var meta = d.metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) { meta = {}; } }
+    var bf = d.bookingForm || d.booking_form || {};
+    var fd = bf.formData || bf.form_data || {};
+    return meta.websiteType || meta.website_type
+      || fd.websiteType || fd.website_type
+      || null;
+  }
+
+  function resolveWdProdName(d) {
+    var id = d.assignedProduction || d.assigned_production || d.assignedTo || d.assigned_to;
+    if (!id) return '\u2014';
+    if (window._employeeCacheLookup) {
+      var emp = window._employeeCacheLookup(id);
+      if (emp) {
+        var nm = ((emp.first_name || emp.firstName || '') + ' ' + (emp.last_name || emp.lastName || '')).trim();
+        if (nm) return nm;
+      }
+    }
+    return '\u2014';
+  }
+
+  function renderProductionWebsiteDesignTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = '';
+    container.style.padding = '';
+
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card prod-wd-tab-card';
+
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = 'Website Design';
+    titleWrap.appendChild(h);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+    header.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search website design...';
+    header.appendChild(searchInput);
+    card.appendChild(header);
+
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    card.appendChild(sheetContainer);
+    container.appendChild(card);
+
+    var allRows = [];
+
+    var columns = [
+      { key: 'assigned', label: 'Production', sortable: true },
+      { key: 'client',   label: 'Client / Deliverable', sortable: true, isName: true },
+      { key: 'pages',    label: 'Pages', sortable: true, width: 'sm' },
+      { key: 'wdType',   label: 'Type', sortable: true },
+      { key: 'status',   label: 'Status', sortable: true, type: 'status', options: WD_PROD_STATUSES }
+    ];
+
+    var leadingActions = [{
+      icon: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
+      tooltip: 'View website design dashboard',
+      className: 'action-view',
+      onClick: function (rowData) {
+        if (rowData && rowData.__deliverable) {
+          openWebsiteDesignDashboard(container, rowData.__deliverable);
+        }
+      }
+    }];
+
+    function mapDeliverableToRow(d) {
+      return {
+        id: d.id,
+        assigned: resolveWdProdName(d),
+        client: (d.clientName || d.client_name || '') + (d.title ? ' \u2014 ' + d.title : ''),
+        pages: extractWdProdPages(d),
+        wdType: formatWdProdTypeLabel(extractWdProdType(d)),
+        status: d.status,
+        __deliverable: d
+      };
+    }
+
+    function render() {
+      var term = (searchInput.value || '').toLowerCase();
+      var filtered = term ? allRows.filter(function (r) {
+        return columns.some(function (c) {
+          var v = r[c.key];
+          return v != null && String(v).toLowerCase().indexOf(term) !== -1;
+        });
+      }) : allRows;
+      countBadge.textContent = filtered.length;
+      if (window.renderSheet) {
+        window.renderSheet(sheetContainer, {
+          columns: columns,
+          data: filtered,
+          searchable: false,
+          leadingActions: leadingActions
+        });
+      }
+    }
+    searchInput.addEventListener('input', render);
+
+    function fetchData() {
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch('/api/deliverables/by-type/website-design', { headers: getHeaders() })
+          .then(function (r) { return r.ok ? r.json() : []; })
+      ]).then(function (results) {
+        var items = Array.isArray(results[1]) ? results[1] : [];
+        var prodSide = items.filter(function (d) {
+          return WD_PROD_STATUSES.indexOf(d.status) !== -1;
+        });
+        allRows = prodSide.map(mapDeliverableToRow);
+        render();
+      }).catch(function (err) {
+        console.error('[production] Website Design tab fetch error:', err);
+        allRows = [];
+        render();
+      });
+    }
+    fetchData();
+  }
+
+  window.renderProductionWebsiteDesignTab = renderProductionWebsiteDesignTab;
+
   // ── Expose reusable helpers for sibling dept pages (design, editorial) ──
   // These mirror Production's deliverables sheet exactly, so any dept that
   // wants the same `.prod-deliv-*` DOM + same CC dashboard can reuse them
@@ -2376,6 +2557,7 @@
   window.openContentCalendarDashboard = openContentCalendarDashboard;
   window.openOnlineArticleDashboard = openOnlineArticleDashboard;
   window.openOnlineArticlesDashboard = openOnlineArticleDashboard;
+  window.openWebsiteDesignDashboard = openWebsiteDesignDashboard;
   window.renderClientGroupedSheet = renderClientGroupedSheet;
   window.renderSplitSheetTab = renderSplitSheetTab;
   window.prodCols = {
@@ -3929,18 +4111,227 @@
       }
     });
 
-    // Main content
+    // Rename legacy "Sitemap" label to "Site Map" for display (data key unchanged)
+    meta.steps.forEach(function (s) {
+      if (s && s.name === 'Sitemap') s.name = 'Site Map';
+    });
+
+    // Main content — two-column layout (materials + chat on left, steps on right)
     var wrapper = document.createElement('div');
     wrapper.className = 'wd-dashboard';
 
-    var title = document.createElement('h2');
-    title.className = 'cc-dashboard-title';
-    title.textContent = deliverable.title || 'Website Design';
-    title.style.marginBottom = '16px';
-    wrapper.appendChild(title);
+    // Header
+    var headerEl = document.createElement('div');
+    headerEl.className = 'wd-header';
+    var h2 = document.createElement('h2');
+    h2.className = 'wd-header-title';
+    h2.textContent = 'Website Design';
+    var sub = document.createElement('div');
+    sub.className = 'wd-header-sub';
+    sub.textContent = deliverable.clientName || deliverable.client_name || deliverable.title || '';
+    headerEl.appendChild(h2);
+    headerEl.appendChild(sub);
+    wrapper.appendChild(headerEl);
 
-    var stepsWrap = document.createElement('div');
-    stepsWrap.className = 'wd-steps';
+    // Body: left (70%) + right (30%)
+    var body = document.createElement('div');
+    body.className = 'wd-body';
+
+    var leftCol = document.createElement('div');
+    leftCol.className = 'wd-left';
+
+    // ── Materials recap ──
+    var recap = document.createElement('div');
+    recap.className = 'wd-materials-recap cc-materials-recap';
+    var recapLoading = document.createElement('div');
+    recapLoading.className = 'cc-recap-loading';
+    recapLoading.textContent = 'Loading materials...';
+    recap.appendChild(recapLoading);
+    leftCol.appendChild(recap);
+    fetchRequestFormRecap(deliverable.id, recap);
+
+    // ── Messages section with "show in main messages" toggle ──
+    var msgWrap = document.createElement('div');
+    msgWrap.className = 'wd-messages-wrap';
+
+    var linkLabel = document.createElement('label');
+    linkLabel.className = 'wd-link-messages';
+    var linkCb = document.createElement('input');
+    linkCb.type = 'checkbox';
+    var linkText = document.createElement('span');
+    linkText.textContent = 'Show in main messages';
+    linkLabel.appendChild(linkCb);
+    linkLabel.appendChild(linkText);
+    msgWrap.appendChild(linkLabel);
+
+    // Per-deliverable chat box — mirrors openOnlineArticleDashboard.
+    stopCCChatPoll();
+    var chat = document.createElement('div');
+    chat.className = 'cc-chat-box wd-chat-box';
+    var chatHeader = document.createElement('div');
+    chatHeader.className = 'cc-chat-header';
+    chatHeader.textContent = 'Team Chat';
+    chat.appendChild(chatHeader);
+
+    var chatList = document.createElement('div');
+    chatList.className = 'cc-chat-list';
+    var chatLoading = document.createElement('div');
+    chatLoading.className = 'cc-chat-msg-header';
+    chatLoading.textContent = 'Loading chat...';
+    chatList.appendChild(chatLoading);
+    chat.appendChild(chatList);
+
+    var chatInputWrap = document.createElement('div');
+    chatInputWrap.className = 'cc-chat-input-wrap';
+    var chatInput = document.createElement('textarea');
+    chatInput.className = 'cc-chat-input';
+    chatInput.placeholder = 'Type a message...';
+    chatInput.disabled = true;
+    var chatSend = document.createElement('button');
+    chatSend.className = 'cc-chat-send';
+    chatSend.textContent = 'Send';
+    chatSend.disabled = true;
+    chatInputWrap.appendChild(chatInput);
+    chatInputWrap.appendChild(chatSend);
+    chat.appendChild(chatInputWrap);
+    msgWrap.appendChild(chat);
+    leftCol.appendChild(msgWrap);
+
+    var wdChannelId = null;
+    var wdLastMessageId = 0;
+    var wdKnownIds = Object.create(null);
+
+    function wdFmtChatTime(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        var now = new Date();
+        var opts = (d.toDateString() === now.toDateString())
+          ? { hour: '2-digit', minute: '2-digit' }
+          : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return d.toLocaleString(undefined, opts);
+      } catch (e) { return ''; }
+    }
+
+    function wdRenderChatMessage(m) {
+      if (!m || wdKnownIds[m.id]) return;
+      wdKnownIds[m.id] = true;
+      if (m.id > wdLastMessageId) wdLastMessageId = m.id;
+      var row = document.createElement('div');
+      row.className = 'cc-chat-msg';
+      var hdr = document.createElement('div');
+      hdr.className = 'cc-chat-msg-header';
+      var who = document.createElement('strong');
+      var first = m.sender_first_name || m.senderFirstName || '';
+      var last = m.sender_last_name || m.senderLastName || '';
+      who.textContent = (first + ' ' + last).trim() || 'Unknown';
+      hdr.appendChild(who);
+      var ts = document.createElement('span');
+      ts.textContent = wdFmtChatTime(m.created_at || m.createdAt);
+      hdr.appendChild(ts);
+      row.appendChild(hdr);
+      var b = document.createElement('div');
+      b.className = 'cc-chat-msg-body';
+      b.textContent = m.content || '';
+      row.appendChild(b);
+      chatList.appendChild(row);
+    }
+
+    function wdScrollBottom() { chatList.scrollTop = chatList.scrollHeight; }
+
+    function wdLoadInitial() {
+      if (!wdChannelId) return;
+      fetch('/api/messaging/channels/' + wdChannelId + '/messages?limit=50', { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          wdKnownIds = Object.create(null);
+          wdLastMessageId = 0;
+          (msgs || []).forEach(wdRenderChatMessage);
+          wdScrollBottom();
+        })
+        .catch(function () {});
+    }
+
+    function wdPollNew() {
+      if (!wdChannelId) return;
+      fetch('/api/messaging/channels/' + wdChannelId + '/messages?after=' + wdLastMessageId, { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          if (!msgs || !msgs.length) return;
+          var before = chatList.scrollHeight;
+          msgs.forEach(wdRenderChatMessage);
+          if (chatList.scrollTop + chatList.clientHeight >= before - 40) wdScrollBottom();
+        })
+        .catch(function () {});
+    }
+
+    function wdSend() {
+      var content = (chatInput.value || '').trim();
+      if (!content || !wdChannelId) return;
+      chatSend.disabled = true;
+      fetch('/api/messaging/channels/' + wdChannelId + '/messages', {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({ content: content })
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (m) {
+          chatSend.disabled = false;
+          if (m) { chatInput.value = ''; wdRenderChatMessage(m); wdScrollBottom(); }
+        })
+        .catch(function () { chatSend.disabled = false; });
+    }
+
+    chatSend.addEventListener('click', wdSend);
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); wdSend(); }
+    });
+
+    fetch('/api/messaging/channels/for-deliverable', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ deliverableId: deliverable.id })
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (ch) {
+        if (!ch || !ch.id) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          var errRow = document.createElement('div');
+          errRow.className = 'cc-chat-msg-header';
+          errRow.textContent = 'Chat unavailable';
+          chatList.appendChild(errRow);
+          return;
+        }
+        wdChannelId = ch.id;
+        // Reflect any existing linkToMain state if the API returned it.
+        if (typeof ch.link_to_main !== 'undefined') linkCb.checked = !!ch.link_to_main;
+        else if (typeof ch.linkToMain !== 'undefined') linkCb.checked = !!ch.linkToMain;
+        chatInput.disabled = false;
+        chatSend.disabled = false;
+        wdLoadInitial();
+        stopCCChatPoll();
+        _ccChatPoll = setInterval(wdPollNew, 15000);
+      })
+      .catch(function () {});
+
+    linkCb.addEventListener('change', function () {
+      // TODO: backend may not yet support linkToMain on
+      // /api/messaging/channels/for-deliverable — if it returns non-OK we
+      // just log and leave the checkbox state in place.
+      fetch('/api/messaging/channels/for-deliverable', {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({ deliverableId: deliverable.id, linkToMain: linkCb.checked })
+      }).then(function (r) {
+        if (!r.ok) console.warn('[wd] linkToMain not supported by backend yet');
+      }).catch(function () {
+        console.warn('[wd] linkToMain request failed');
+      });
+    });
+
+    body.appendChild(leftCol);
+
+    // ── Right column: step cards ──
+    var rightCol = document.createElement('div');
+    rightCol.className = 'wd-right';
 
     meta.steps.forEach(function (step, idx) {
       var stepEl = document.createElement('div');
@@ -3971,10 +4362,11 @@
 
       stepEl.appendChild(buildUploadArea(deliverable.id, step.files, save, 'Upload ' + step.name + ' files'));
 
-      stepsWrap.appendChild(stepEl);
+      rightCol.appendChild(stepEl);
     });
 
-    wrapper.appendChild(stepsWrap);
+    body.appendChild(rightCol);
+    wrapper.appendChild(body);
     container.appendChild(wrapper);
   }
 

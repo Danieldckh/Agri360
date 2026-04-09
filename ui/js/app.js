@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   var deptMenuItems = {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
-    'production': ['Deliverables', 'Follow Ups', 'Approvals'],
+    'production': ['Deliverables', 'Website Design', 'Follow Ups', 'Approvals'],
     'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
     'editorial': ['Content Calendars', 'Online Articles', 'Magazine', 'Ready to Upload'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
@@ -952,6 +952,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Route Production > Deliverables to unified deliverables view
     if (page === 'production' && viewName === 'Deliverables' && window.renderProductionDeliverablesTab) {
       window.renderProductionDeliverablesTab(dashboardContent);
+      return;
+    }
+
+    // Route Production > Website Design to the website-design workflow view
+    if (page === 'production' && viewName === 'Website Design' && window.renderProductionWebsiteDesignTab) {
+      window.renderProductionWebsiteDesignTab(dashboardContent);
       return;
     }
 
