@@ -40,6 +40,8 @@
   // design/review/sent_to_client sequence for clients who don't need a
   // custom-designed proposal.
   var ICON_SKIP = 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z';
+  // edit/pencil — signals "changes requested, needs revision"
+  var ICON_CHANGE_REQUEST = 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
 
   // Track active container for back navigation
   var _activeContainer = null;
@@ -1369,7 +1371,23 @@
     designSheet.el.classList.add('design-proposals-sheet');
     leftCol.appendChild(designSheet.el);
 
-    var reviewSheet = buildSheet('Design Review', refreshAll);
+    var reviewSheet = buildSheet('Design Review', refreshAll, null, {
+      extraRowActions: [
+        {
+          icon: ICON_CHANGE_REQUEST,
+          tooltip: 'Request changes',
+          className: 'action-change-request',
+          visible: function (rowData) { return rowData.status === 'design_review'; },
+          onClick: function (rowData) {
+            fetch(API_BASE + '/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: 'design_changes' })
+            }).then(function (res) { if (res.ok) refreshAll(); });
+          }
+        }
+      ]
+    });
     rightCol.appendChild(reviewSheet.el);
 
     grid.appendChild(leftCol);
