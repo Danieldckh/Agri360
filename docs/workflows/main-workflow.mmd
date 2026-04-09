@@ -1,0 +1,332 @@
+%% =========================================================
+%% UNIFIED CRM WORKFLOW — ALL SERVICES
+%% Canonical source of truth for per-deliverable-type status flows.
+%% Provided by user 2026-04-08.
+%% Screenshots of the old flows are *outdated* — this document is authoritative.
+%% Spec reference: docs/PROJECT_SPEC.md → "Canonical Status Flows"
+%% =========================================================
+
+flowchart TB
+
+%% ==================== ENTRY POINT ====================
+START(("New Client / Deliverable"))
+
+START --> PROPOSALS
+START --> CC_START["Content Calendar"]
+START --> A4A_START["Agri4All"]
+START --> PRINT_START["Print Ad / Article"]
+START --> OA_START["Online Article"]
+START --> BAN_START["Banner"]
+START --> WEB_START["Web Design"]
+START --> VID_START["Video"]
+
+%% =========================================================
+%% 1. PROPOSALS → BOOKING → ONBOARDING (Client Pipeline)
+%% =========================================================
+
+subgraph PROPOSALS["ADMIN — PROPOSALS"]
+  direction TB
+  A_outline["Proposal Outline"]
+  A_ready["Proposal Ready"]
+  A_sent["Proposal Sent"]
+end
+
+subgraph DESIGN_PROP["DESIGN — PROPOSALS"]
+  direction TB
+  DP_design["Design Proposal"]
+  DP_review["Design Review"]
+  DP_changes["Design Changes"]
+end
+
+subgraph BOOKING["ADMIN — BOOKING FORM"]
+  direction TB
+  B_accept["Proposal Accepted"]
+  B_reviewed["Reviewed Booking Form"]
+  B_sent["Booking Form Sent"]
+end
+
+subgraph ONBOARDING["ADMIN — ONBOARDING"]
+  direction TB
+  O_onboard["Onboarding"]
+  O_create["Create Deliverables"]
+  O_done["Onboarded"]
+end
+
+A_outline -->|Send to design| DP_design
+DP_design --> DP_review
+DP_review -->|Approved| A_ready
+DP_review -->|Changes| DP_changes
+DP_changes --> DP_review
+A_ready -->|Send proposal| A_sent
+A_sent -->|Client changes| DP_changes
+A_sent -->|Client approves| B_accept
+B_accept --> B_reviewed -->|Send form| B_sent
+
+BF_decision{"Booking Form Response"}
+BF_declined["Declined"]
+B_sent --> BF_decision
+BF_decision -->|Declined| BF_declined
+BF_decision -->|Accepted| O_onboard
+O_onboard --> O_create --> O_done
+
+%% =========================================================
+%% 2. CONTENT CALENDAR
+%% =========================================================
+
+subgraph CC_PROD["PRODUCTION — Content Calendar"]
+  direction TB
+  CC_req["Request Client Materials"]
+  CC_upload["Upload Materials"]
+  CC_ready["Ready for Approval"]
+  CC_sent["Sent for Approval"]
+end
+
+subgraph CC_DESIGN["DESIGN — Content Calendar"]
+  direction TB
+  CC_art["Artwork Design"]
+  CC_dchanges["Design Changes"]
+end
+
+subgraph CC_EDIT["EDITORIAL — Content Calendar"]
+  direction TB
+  CC_caps["Create Captions"]
+  CC_ereview["Editorial Review"]
+end
+
+CC_cchanges["Client Changes"]
+
+subgraph CC_SM["SOCIAL MEDIA — Content Calendar"]
+  direction TB
+  CC_approved["Approved"]
+  CC_sready["Ready for Scheduling"]
+  CC_sched["Scheduled"]
+end
+
+CC_START --> CC_req --> CC_upload --> CC_art --> CC_caps --> CC_ereview
+
+CC_ereview_d{"Design changes needed?"}
+CC_ereview --> CC_ereview_d
+CC_ereview_d -->|Yes| CC_dchanges --> CC_ereview
+CC_ereview_d -->|No| CC_ready
+
+CC_ready --> CC_sent
+CC_client{"Client Response"}
+CC_sent --> CC_client
+CC_client -->|Changes| CC_cchanges --> CC_ready
+CC_client -->|Approved| CC_approved --> CC_sready --> CC_sched
+
+%% =========================================================
+%% 3. AGRI4ALL
+%% =========================================================
+
+subgraph A4_PROD["PRODUCTION — Agri4All"]
+  direction TB
+  A4_req["Request Client Material"]
+  A4_wait["Waiting for Materials"]
+  A4_mat["Materials Received"]
+  A4_ready["Ready for Approval"]
+  A4_sent["Sent for Approval"]
+end
+
+subgraph A4_DESIGN["DESIGN — Agri4All"]
+  direction TB
+  A4_design["Design"]
+  A4_review["Design Review"]
+end
+
+subgraph A4_POST["AGRI4ALL — Post-Approval"]
+  direction TB
+  A4_approved["Approved"]
+  A4_links["Create A4A Links"]
+  A4_stats["Create Stat Sheet"]
+  A4_complete["Complete"]
+end
+
+subgraph A4_SM["SOCIAL MEDIA — Agri4All"]
+  direction TB
+  A4_smready["Ready for Scheduling"]
+  A4_smsched["Scheduled"]
+end
+
+A4A_START --> A4_req --> A4_wait --> A4_mat --> A4_design --> A4_review
+
+A4_dr{"Design Review"}
+A4_review --> A4_dr
+A4_dr -->|Changes| A4_design
+A4_dr -->|Approved| A4_ready
+
+A4_ready --> A4_sent
+A4_cl{"Client Response"}
+A4_sent --> A4_cl
+A4_cl -->|Changes| A4_design
+A4_cl -->|Approved| A4_approved --> A4_links --> A4_smready --> A4_smsched --> A4_stats --> A4_complete
+
+%% =========================================================
+%% 4. PRINT AD / ARTICLE
+%% =========================================================
+
+subgraph PR_PROD["PRODUCTION — Print"]
+  direction TB
+  PR_req["Request Client Materials"]
+  PR_wait["Waiting for Materials"]
+  PR_mat["Material Received"]
+  PR_ready["Ready for Approval"]
+  PR_sent["Sent for Approval"]
+end
+
+subgraph PR_EDIT["EDITORIAL — Print"]
+  direction TB
+  PR_edit["Editing"]
+  PR_ereview["Editorial Review"]
+end
+
+subgraph PR_DESIGN["DESIGN — Print"]
+  direction TB
+  PR_design["Design"]
+  PR_dreview["Design Review"]
+end
+
+PR_type{"Article or Ad?"}
+
+PRINT_START --> PR_req --> PR_wait --> PR_mat --> PR_type
+PR_type -->|Article| PR_edit --> PR_design
+PR_type -->|Ad| PR_design
+
+PR_design --> PR_dreview
+PR_dreview -->|Changes| PR_design
+PR_dreview -->|Approved| PR_ereview
+PR_ereview -->|Changes| PR_design
+PR_ereview -->|Approved| PR_ready
+
+PR_ready --> PR_sent
+PR_cl{"Client Response"}
+PR_sent --> PR_cl
+PR_cl -->|Changes| PR_design
+PR_cl -->|Approved| PR_approved["Approved"]
+
+%% =========================================================
+%% 5. ONLINE ARTICLE
+%% =========================================================
+
+subgraph OA_PROD["PRODUCTION — Online Article"]
+  direction TB
+  OA_req["Request Client Materials"]
+  OA_wait["Waiting for Materials"]
+  OA_mat["Material Received"]
+  OA_ready["Ready for Approval"]
+  OA_sent["Sent for Approval"]
+end
+
+subgraph OA_EDIT["EDITORIAL — Online Article"]
+  direction TB
+  OA_edit["Editing"]
+  OA_change["Editorial Change"]
+end
+
+subgraph OA_POST["EDITORIAL — Post-Approval"]
+  direction TB
+  OA_approved["Approved"]
+  OA_translate["Translating"]
+  OA_upload["Ready to Upload"]
+  OA_posted["Posted"]
+end
+
+OA_START --> OA_req --> OA_wait --> OA_mat --> OA_edit --> OA_ready --> OA_sent
+
+OA_cl{"Client Response"}
+OA_sent --> OA_cl
+OA_cl -->|Changes| OA_change --> OA_edit
+OA_cl -->|Approved| OA_approved --> OA_translate --> OA_upload --> OA_posted
+
+%% =========================================================
+%% 6. BANNERS
+%% =========================================================
+
+subgraph BAN_DESIGN["DESIGN — Banners"]
+  direction TB
+  BAN_design["Design"]
+  BAN_review["Design Review"]
+end
+
+subgraph BAN_SM["SOCIAL MEDIA — Banners"]
+  direction TB
+  BAN_ready["Ready for Scheduling"]
+  BAN_sched["Scheduled"]
+  BAN_posted["Posted"]
+end
+
+BAN_START --> BAN_design --> BAN_review
+BAN_review -->|Changes| BAN_design
+BAN_review -->|Approved| BAN_ready --> BAN_sched --> BAN_posted --> BAN_stats["Create Stat Sheet"]
+
+%% =========================================================
+%% 7. WEB DESIGN
+%% =========================================================
+
+subgraph WEB_DESIGN["DESIGN — Web Design"]
+  direction TB
+  WEB_req["Request Client Materials"]
+  WEB_site["Sitemap"]
+  WEB_wire["Wireframe"]
+  WEB_proto["Prototype"]
+  WEB_changes["Design Changes"]
+  WEB_approved["Approved"]
+end
+
+subgraph WEB_APPROVE["CLIENT APPROVAL — Web"]
+  direction TB
+  WEB_ready["Ready for Approval"]
+  WEB_sent["Sent for Approval"]
+end
+
+subgraph WEB_DEV["DEVELOPMENT — Web"]
+  direction TB
+  WEB_build["Development"]
+  WEB_done["Site Developed"]
+  WEB_host["Hosting & SEO"]
+  WEB_complete["Complete"]
+end
+
+WEB_START --> WEB_req --> WEB_site --> WEB_wire --> WEB_proto --> WEB_ready --> WEB_sent
+
+WEB_cl{"Client Response"}
+WEB_sent --> WEB_cl
+WEB_cl -->|Changes| WEB_changes --> WEB_proto
+WEB_cl -->|Approved| WEB_approved --> WEB_build --> WEB_done --> WEB_host --> WEB_complete
+
+%% =========================================================
+%% 8. VIDEO
+%% =========================================================
+
+subgraph VID_BUFFER["PRODUCTION — Video Buffer"]
+  direction TB
+  VID_send["Send Request Form"]
+  VID_sent["Request Form Sent"]
+  VID_recv["Request Form Received"]
+  VID_pop["Populating Video Dept"]
+end
+
+subgraph VID_FORM["VIDEO REQUEST FORM"]
+  direction TB
+  VID_f1["Company & Contact"]
+  VID_f2["Video Type / Duration"]
+  VID_f3["Brief / Language / VO"]
+  VID_f4["Locations / Interviewees"]
+  VID_f5["Shoot Planning / Submit"]
+end
+
+subgraph VID_DEPT["VIDEO DEPARTMENT"]
+  direction TB
+  VID_brief["Brief Received"]
+  VID_assign["Assign & Schedule"]
+  VID_prod["Production"]
+  VID_edit["Editing"]
+  VID_review["Review"]
+  VID_vchanges["Changes Requested"]
+  VID_final["Final Delivery"]
+end
+
+VID_START --> VID_send --> VID_sent --> VID_recv --> VID_f1 --> VID_f2 --> VID_f3 --> VID_f4 --> VID_f5 --> VID_pop
+VID_pop --> VID_brief --> VID_assign --> VID_prod --> VID_edit --> VID_review
+VID_review -->|Changes| VID_vchanges --> VID_edit
+VID_review -->|Approved| VID_final

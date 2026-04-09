@@ -1,0 +1,127 @@
+/* ===== Admin Proposal Page — Ch. 8 additions ===== */
+
+/* --- Lifecycle badge (shared Ch. 8 color map — kept in sync with
+   pages/client-detail/client-detail.css) --- */
+.lifecycle-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(128, 128, 128, 0.15);
+  color: #6b6b6b;
+  white-space: nowrap;
+}
+.lifecycle-badge--draft              { background: rgba(128,128,128,0.15); color: #6b6b6b; }
+.lifecycle-badge--outline_proposal   { background: rgba(52,152,219,0.15);  color: #1e88e5; }
+.lifecycle-badge--proposal_ready     { background: rgba(245,166,35,0.18);  color: #b8690a; }
+.lifecycle-badge--proposal_sent      { background: rgba(155,89,182,0.18);  color: #7b3fa0; }
+.lifecycle-badge--proposal_approved  { background: rgba(46,204,113,0.18);  color: #2e7d32; }
+.lifecycle-badge--signed             { background: rgba(0,172,193,0.18);   color: #00838f; }
+.lifecycle-badge--onboarded          { background: rgba(27,94,32,0.22);    color: #1b5e20; }
+
+/* --- Skip-design filter chip --- */
+.proposal-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 10px;
+}
+.proposal-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: var(--color-secondary, #fff);
+  color: var(--text-secondary, #555);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: var(--font-family);
+}
+.proposal-filter-chip:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.proposal-filter-chip--active {
+  background: var(--color-accent-light, #f5a623);
+  border-color: var(--color-accent-dark, #d4791a);
+  color: #fff;
+}
+
+/* --- Prefill copy modal (shared with client-detail) --- */
+.bf-prefill-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+.bf-prefill-modal {
+  background: var(--color-secondary, #fff);
+  color: var(--text-primary, #222);
+  border-radius: 12px;
+  padding: 22px 24px;
+  min-width: 360px;
+  max-width: 560px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-family);
+}
+.bf-prefill-modal__title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.bf-prefill-modal__subtitle {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+}
+.bf-prefill-modal__url {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-family: monospace;
+  font-size: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-primary, #222);
+  word-break: break-all;
+  margin-bottom: 14px;
+}
+.bf-prefill-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.bf-prefill-modal__actions button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: var(--color-secondary, #fff);
+  color: var(--text-primary, #222);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-family);
+}
+.bf-prefill-modal__actions button.primary {
+  background: var(--color-accent-light, #f5a623);
+  border-color: var(--color-accent-dark, #d4791a);
+  color: #fff;
+}
+
+/* Proposal sheet lifecycle cell — lets the .lifecycle-badge breathe inside
+   a sheet cell. */
+.proagri-sheet-cell .lifecycle-badge {
+  margin: 2px 0;
+}

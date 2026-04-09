@@ -2052,7 +2052,7 @@
             // Amount
             var oaAmtCell = document.createElement('div');
             oaAmtCell.className = 'prod-deliv-cell prod-deliv-amount';
-            oaAmtCell.textContent = String((item.metadata && item.metadata.amount) || 0);
+            oaAmtCell.textContent = 'Amount: ' + String((item.metadata && item.metadata.amount) || 0);
             row.appendChild(oaAmtCell);
 
             // Curated amount
@@ -2098,6 +2098,11 @@
             });
             oaTransCell.appendChild(oaTransBtn);
             row.appendChild(oaTransCell);
+
+            // Spacer — pushes status + action to far right
+            var oaSpacer = document.createElement('div');
+            oaSpacer.className = 'prod-deliv-cell prod-deliv-spacer';
+            row.appendChild(oaSpacer);
 
             // Status — reuse the same cell + dropdown pattern as the
             // default row below. We inline it here (no shared helper) so
@@ -2296,6 +2301,13 @@
             aPUAmtCell.className = 'prod-deliv-cell prod-deliv-amount';
             aPUAmtCell.textContent = 'Amount: ' + String((item.metadata && item.metadata.amount) || 0);
             row.appendChild(aPUAmtCell);
+          }
+
+          // Spacer: pushes right cluster (req-mat + status + actions) to far right
+          if (!isContentCalendar) {
+            var spacerCell = document.createElement('div');
+            spacerCell.className = 'prod-deliv-cell prod-deliv-spacer';
+            row.appendChild(spacerCell);
           }
 
           // Per-deliverable "Request Materials" button — standard rows only

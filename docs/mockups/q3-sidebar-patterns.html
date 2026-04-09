@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Q3 — Sidebar sub-navigation patterns</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --canvas: #dce1e8;
+    --card: #ffffff;
+    --accent: #f5a623;
+    --accent-dark: #d4791a;
+    --text: #1f1f1f;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --topbar-h: 50px;
+    --sidebar-w: 240px;
+    --sidebar-w-secondary: 200px;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--text); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .picker { position: sticky; top: 0; z-index: 10; background: var(--canvas); padding: 16px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 16px; }
+  .picker h1 { margin: 0; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .picker .btns { display: flex; gap: 8px; }
+  .picker button { background: var(--card); border: 1px solid var(--line); padding: 8px 16px; border-radius: 8px; font: inherit; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .picker button:hover { border-color: var(--accent); }
+  .picker button.active { background: var(--accent); border-color: var(--accent-dark); color: white; }
+  .picker .desc { margin-left: auto; font-size: 12px; color: var(--muted); max-width: 480px; text-align: right; }
+
+  /* App shell */
+  .app { display: none; }
+  .app.active { display: block; }
+  .topbar { height: var(--topbar-h); background: transparent; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+  .topbar .logo { font-family: "Orbitron", sans-serif; font-weight: 700; font-size: 22px; }
+  .topbar .logo .agri { color: #1f1f1f; }
+  .topbar .logo .num { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .topbar .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: grid; place-items: center; color: white; font-weight: 600; cursor: pointer; }
+
+  .body { display: flex; gap: 16px; padding: 0 20px 20px; }
+
+  /* Primary sidebar */
+  .sidebar { width: var(--sidebar-w); flex-shrink: 0; }
+  .nav-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; cursor: pointer; color: #2a2a2a; transition: background 0.15s; }
+  .nav-item:hover { background: rgba(255,255,255,0.5); }
+  .nav-item.active { background: var(--card); box-shadow: var(--shadow); font-weight: 600; }
+  .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity 0.15s; }
+  .nav-item.active .dot { opacity: 1; }
+  .nav-item .chev { margin-left: auto; font-size: 10px; color: var(--muted); transition: transform 0.2s; }
+  .nav-item.expanded .chev { transform: rotate(90deg); }
+
+  /* Pattern B nested children */
+  .nav-children { list-style: none; padding: 4px 0 4px 28px; margin: 0; display: none; flex-direction: column; gap: 2px; }
+  .nav-item.expanded + .nav-children { display: flex; }
+  .nav-children li { padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #444; }
+  .nav-children li:hover { background: rgba(255,255,255,0.5); }
+  .nav-children li.active { background: var(--card); box-shadow: var(--shadow); color: var(--accent-dark); font-weight: 600; }
+
+  /* Secondary sidebar (Pattern C) */
+  .sidebar-secondary { width: var(--sidebar-w-secondary); flex-shrink: 0; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 12px; }
+  .sidebar-secondary .ss-title { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; padding: 0 12px 8px; }
+  .sidebar-secondary ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sidebar-secondary li { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .sidebar-secondary li:hover { background: rgba(245,166,35,0.08); }
+  .sidebar-secondary li.active { background: var(--accent); color: white; font-weight: 600; }
+
+  /* Main area */
+  .main { flex: 1; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; min-height: 600px; }
+  .main h2 { margin: 0 0 4px; font-size: 22px; }
+  .main .crumb { font-size: 12px; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Tab strip (Pattern A) */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .tab { padding: 10px 18px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent-dark); border-bottom-color: var(--accent); background: rgba(245,166,35,0.05); }
+
+  /* Mock content */
+  .mock-sheet { border: 1px dashed var(--line); border-radius: 12px; padding: 24px; color: var(--muted); text-align: center; }
+  .mock-sheet h3 { margin: 0 0 8px; color: var(--text); font-size: 14px; }
+  .mock-sheet code { background: var(--canvas); padding: 2px 8px; border-radius: 4px; font-size: 12px; color: var(--accent-dark); }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--accent); color: white; margin-left: 8px; vertical-align: middle; }
+
+  .legend { padding: 12px 24px; background: rgba(245,166,35,0.08); border-left: 3px solid var(--accent); margin: 0 24px 16px; border-radius: 8px; font-size: 13px; }
+  .legend strong { color: var(--accent-dark); }
+</style>
+</head>
+<body>
+
+  <div class="picker">
+    <h1>Q3 · Sidebar sub-navigation</h1>
+    <div class="btns">
+      <button data-pattern="a" class="active">(a) Tabs in main area</button>
+      <button data-pattern="b">(b) Nested sidebar tree</button>
+      <button data-pattern="c">(c) Hybrid + secondary sidebar</button>
+    </div>
+    <div class="desc" id="desc">Sidebar stays flat (13 items). Sub-pages appear as a tab strip inside the main content area.</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Pattern A: Tabs inside main area                              -->
+  <!-- ============================================================ -->
+  <section class="app active" data-pattern="a">
+    <div class="topbar">
+      <div class="logo"><span class="agri">Agri</span><span class="num">360</span></div>
+      <div class="avatar">P</div>
+    </div>
+    <div class="legend"><strong>Pattern A.</strong> Sidebar = flat list of 13 items, never changes. Click <em>Admin</em> → main area renders with a tab strip near the top showing the section's sub-pages. Switching tabs does not touch the sidebar at all.</div>
+    <div class="body">
+      <aside class="sidebar">
+        <ul class="nav-list">
+          <li class="nav-item"><span class="dot"></span>My View</li>
+          <li class="nav-item"><span class="dot"></span>Messaging</li>
+          <li class="nav-item"><span class="dot"></span>Clients</li>
+          <li class="nav-item active"><span class="dot"></span>Admin</li>
+          <li class="nav-item"><span class="dot"></span>Production</li>
+          <li class="nav-item"><span class="dot"></span>Design</li>
+          <li class="nav-item"><span class="dot"></span>Editorial</li>
+          <li class="nav-item"><span class="dot"></span>Video</li>
+          <li class="nav-item"><span class="dot"></span>Agri4All</li>
+          <li class="nav-item"><span class="dot"></span>Social Media</li>
+          <li class="nav-item"><span class="dot"></span>Magazine Overview</li>
+          <li class="nav-item"><span class="dot"></span>Employees</li>
+          <li class="nav-item"><span class="dot"></span>Settings</li>
+        </ul>
+      </aside>
+      <main class="main">
+        <div class="crumb">Admin</div>
+        <h2>Admin</h2>
+        <div class="tabs">
+          <div class="tab active">Proposals</div>
+          <div class="tab">Onboarding</div>
+          <div class="tab">Booking Forms</div>
+          <div class="tab">Sent to Client</div>
+          <div class="tab">Declined</div>
+        </div>
+        <div class="mock-sheet">
+          <h3>Sheet placeholder</h3>
+          Mock content for the <strong>Proposals</strong> tab inside Admin. Behaviour pass would render a real sheet here — for the mock walkthrough we just label what goes here. Sheet ID: <code>sh.admin.proposals.outline_queue</code>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Pattern B: Nested sidebar tree                                -->
+  <!-- ============================================================ -->
+  <section class="app" data-pattern="b">
+    <div class="topbar">
+      <div class="logo"><span class="agri">Agri</span><span class="num">360</span></div>
+      <div class="avatar">P</div>
+    </div>
+    <div class="legend"><strong>Pattern B.</strong> Sidebar items can expand. Click <em>Admin</em> → it expands inline to reveal nested children (<em>Proposals · Onboarding · Booking Forms…</em>). All navigation lives in one tree. No tab strip in the main area.</div>
+    <div class="body">
+      <aside class="sidebar">
+        <ul class="nav-list">
+          <li class="nav-item"><span class="dot"></span>My View</li>
+          <li class="nav-item"><span class="dot"></span>Messaging</li>
+          <li class="nav-item"><span class="dot"></span>Clients <span class="chev">▶</span></li>
+          <li class="nav-item active expanded"><span class="dot"></span>Admin <span class="chev">▶</span></li>
+          <ul class="nav-children">
+            <li class="active">Proposals</li>
+            <li>Onboarding</li>
+            <li>Booking Forms</li>
+            <li>Sent to Client</li>
+            <li>Declined</li>
+          </ul>
+          <li class="nav-item"><span class="dot"></span>Production <span class="chev">▶</span></li>
+          <li class="nav-item"><span class="dot"></span>Design <span class="chev">▶</span></li>
+          <li class="nav-item"><span class="dot"></span>Editorial <span class="chev">▶</span></li>
+          <li class="nav-item"><span class="dot"></span>Video <span class="chev">▶</span></li>
+          <li class="nav-item"><span class="dot"></span>Agri4All <span class="chev">▶</span></li>
+          <li class="nav-item"><span class="dot"></span>Social Media <span class="chev">▶</span></li>
+          <li class="nav-item"><span class="dot"></span>Magazine Overview</li>
+          <li class="nav-item"><span class="dot"></span>Employees</li>
+          <li class="nav-item"><span class="dot"></span>Settings</li>
+        </ul>
+      </aside>
+      <main class="main">
+        <div class="crumb">Admin / Proposals</div>
+        <h2>Proposals</h2>
+        <div class="mock-sheet">
+          <h3>Sheet placeholder</h3>
+          Mock content for the <strong>Proposals</strong> child page. No tab strip — sub-navigation already happened in the sidebar. Sheet ID: <code>sh.admin.proposals.outline_queue</code>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Pattern C: Hybrid + secondary sidebar                         -->
+  <!-- ============================================================ -->
+  <section class="app" data-pattern="c">
+    <div class="topbar">
+      <div class="logo"><span class="agri">Agri</span><span class="num">360</span></div>
+      <div class="avatar">P</div>
+    </div>
+    <div class="legend"><strong>Pattern C.</strong> Primary sidebar stays flat (13 items, never changes). When you click into a section like <em>Admin</em>, a <strong>secondary sidebar</strong> appears between the primary sidebar and the main content, showing that section's sub-pages. Three columns total.</div>
+    <div class="body">
+      <aside class="sidebar">
+        <ul class="nav-list">
+          <li class="nav-item"><span class="dot"></span>My View</li>
+          <li class="nav-item"><span class="dot"></span>Messaging</li>
+          <li class="nav-item"><span class="dot"></span>Clients</li>
+          <li class="nav-item active"><span class="dot"></span>Admin</li>
+          <li class="nav-item"><span class="dot"></span>Production</li>
+          <li class="nav-item"><span class="dot"></span>Design</li>
+          <li class="nav-item"><span class="dot"></span>Editorial</li>
+          <li class="nav-item"><span class="dot"></span>Video</li>
+          <li class="nav-item"><span class="dot"></span>Agri4All</li>
+          <li class="nav-item"><span class="dot"></span>Social Media</li>
+          <li class="nav-item"><span class="dot"></span>Magazine Overview</li>
+          <li class="nav-item"><span class="dot"></span>Employees</li>
+          <li class="nav-item"><span class="dot"></span>Settings</li>
+        </ul>
+      </aside>
+      <aside class="sidebar-secondary">
+        <div class="ss-title">Admin</div>
+        <ul>
+          <li class="active">Proposals</li>
+          <li>Onboarding</li>
+          <li>Booking Forms</li>
+          <li>Sent to Client</li>
+          <li>Declined</li>
+        </ul>
+      </aside>
+      <main class="main">
+        <div class="crumb">Admin / Proposals</div>
+        <h2>Proposals</h2>
+        <div class="mock-sheet">
+          <h3>Sheet placeholder</h3>
+          Mock content for the <strong>Proposals</strong> child page. Sub-navigation lives in the secondary sidebar to the left. Sheet ID: <code>sh.admin.proposals.outline_queue</code>
+        </div>
+      </main>
+    </div>
+  </section>
+
+<script>
+  const descriptions = {
+    a: "Sidebar stays flat (13 items). Sub-pages appear as a tab strip inside the main content area.",
+    b: "Sidebar items expand inline to reveal nested children. All navigation in one tree, no tab strip.",
+    c: "Primary sidebar stays flat. A secondary sidebar appears inside each section showing its sub-pages."
+  };
+  document.querySelectorAll('.picker button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.pattern;
+      document.querySelectorAll('.picker button').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.app').forEach(app => app.classList.toggle('active', app.dataset.pattern === p));
+      document.getElementById('desc').textContent = descriptions[p];
+    });
+  });
+</script>
+</body>
+</html>

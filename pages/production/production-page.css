@@ -253,14 +253,16 @@
 .cc-lightbox-close { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:28px; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .cc-lightbox-close:hover { background:rgba(255,255,255,0.3); }
 
-/* Type column — grows to push the right cluster (req-mat + status + actions) to the far right */
+/* Type column — content-sized, sits left next to metadata pills */
 .prod-deliv-type {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   font-size: 11px;
   color: var(--text-secondary,#64748b);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Invisible spacer injected after metadata, before the right cluster */
+.prod-deliv-spacer {
+  flex: 1 1 auto;
 }
 
 /* ===== Website Design Dashboard ===== */
@@ -315,8 +317,8 @@
 }
 .prod-deliv-translate-btn.is-on:hover { background:#059669; border-color:#059669; }
 
-/* Per-deliverable Request Materials button — pushed to right edge */
-.prod-deliv-req-mat { flex:0 0 auto; overflow:visible; margin-left: auto; }
+/* Per-deliverable Request Materials button */
+.prod-deliv-req-mat { flex:0 0 auto; overflow:visible; }
 .prod-deliv-req-mat-btn {
   padding:4px 10px; border:1px solid var(--border-color,#e2e8f0);
   background:var(--card-bg,#fff); color:var(--text-primary,#1e293b);
@@ -329,10 +331,6 @@
   background:rgba(59,130,246,0.04);
 }
 
-/* Rows that have no req-mat cell (OA rows and others) — push status to right */
-.prod-deliv-row:not(:has(.prod-deliv-req-mat)) .prod-deliv-status-cell {
-  margin-left: auto;
-}
 
 /* ===== Deliverable status badge colours ===== */
 .prod-deliv-status-agri4all-links { background: #16a34a; color: #fff; }
