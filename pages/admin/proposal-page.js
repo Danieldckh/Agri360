@@ -77,11 +77,13 @@
   // Each link is populated only when the corresponding artifact actually
   // exists on the row; otherwise the cell renders "—".
   var BASE_COLUMNS = [
+    { key: 'assignedAdmin', label: '', type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
   ];
 
   var PROPOSAL_COLUMNS = [
+    { key: 'assignedAdmin', label: '', type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
     { key: 'checklistUrl', label: 'Checklist', type: 'link', width: 'sm' },
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
@@ -122,6 +124,7 @@
   function mapFormToRow(form) {
     return {
       id: form.id,
+      assignedAdmin: form.assignedAdmin || null,
       client: form.clientName || form.title || 'Untitled',
       status: form.status || 'outline_proposal',
       // Prefilled checklist link — populated by the checklist app at
