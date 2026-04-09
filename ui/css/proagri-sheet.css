@@ -481,6 +481,12 @@
   color: #2ecc71;
 }
 
+/* Agri4All product-uploads pipeline statuses */
+.proagri-sheet-status-agri4all-links {
+  background: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
+}
+
 .proagri-sheet-status-posted {
   background: rgba(39, 174, 96, 0.15);
   color: #27ae60;

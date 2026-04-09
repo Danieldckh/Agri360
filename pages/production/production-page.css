@@ -751,3 +751,21 @@
 .theme-dark .production-sheet-table .production-type-badge {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* ===== Agri4All product-uploads status pills ===== */
+.status-agri4all-links {
+  background: #16a34a;
+  color: #fff;
+}
+.status-waiting_for_materials {
+  background: #f59e0b;
+  color: #fff;
+}
+.status-request_client_materials {
+  background: #6366f1;
+  color: #fff;
+}
+.status-ready_for_approval {
+  background: #0ea5e9;
+  color: #fff;
+}

@@ -13,4 +13,9 @@ module.exports = {
   PORT: parseInt(process.env.PORT || '3001', 10),
   UPLOAD_DIR: path.join(__dirname, 'uploads/photos'),
   ATTACHMENT_DIR: path.join(__dirname, 'uploads/attachments'),
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  ALPHA_AGRI4ALL_BASE_URL: process.env.ALPHA_AGRI4ALL_BASE_URL || 'https://alpha.agri4all.com',
+  ALPHA_AGRI4ALL_EMAIL: process.env.ALPHA_AGRI4ALL_EMAIL || '',
+  ALPHA_AGRI4ALL_PASSWORD: process.env.ALPHA_AGRI4ALL_PASSWORD || '',
+  ALPHA_AGRI4ALL_SELLER_ID: process.env.ALPHA_AGRI4ALL_SELLER_ID || '',
 };

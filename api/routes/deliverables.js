@@ -156,6 +156,94 @@ router.get('/:id/request-form', async (req, res) => {
   }
 });
 
+// POST /:id/post-to-alpha - upload approved agri4all-product-uploads deliverable to Alpha Agri4All
+router.post('/:id/post-to-alpha', async (req, res) => {
+  const { getCategories, postProduct } = require('../lib/alpha-agri4all');
+  const { autofillProductFields } = require('../lib/openai-autofill');
+  const { toIsoAlpha2 } = require('../lib/country-codes');
+  const { UPLOAD_DIR } = require('../config');
+  const path = require('path');
+
+  try {
+    // 1. Fetch deliverable; verify type and status
+    const delivRes = await pool.query(
+      `SELECT d.*, bf.form_data AS booking_form_data
+       FROM deliverables d
+       LEFT JOIN booking_forms bf ON bf.id = d.booking_form_id
+       WHERE d.id = $1`,
+      [req.params.id]
+    );
+    if (delivRes.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Deliverable not found' });
+    }
+    const deliverable = delivRes.rows[0];
+    if (deliverable.type !== 'agri4all-product-uploads') {
+      return res.status(400).json({ data: null, error: 'Deliverable is not of type agri4all-product-uploads' });
+    }
+    if (deliverable.status !== 'approved') {
+      return res.status(400).json({ data: null, error: 'Deliverable must be in approved status to post to Alpha' });
+    }
+
+    const metadata = deliverable.metadata || {};
+    const bookingFormData = deliverable.booking_form_data || {};
+
+    // 2. Fetch categories from Alpha
+    const categoriesTree = await getCategories();
+
+    // 3. Autofill product fields via OpenAI
+    const autofilled = await autofillProductFields({
+      requestFormData: bookingFormData,
+      categoriesTree,
+    });
+
+    // 4. Collect media file paths from metadata.sections
+    const mediaFilePaths = [];
+    const sections = metadata.sections || [];
+    for (const section of sections) {
+      const files = section.files || [];
+      for (const file of files) {
+        const filename = file.filename || file.url;
+        if (filename) {
+          mediaFilePaths.push(path.join(UPLOAD_DIR, filename));
+        }
+      }
+    }
+
+    // 5. Build Alpha payload
+    const additionalLocations = (metadata.countries || [])
+      .map(c => ({ country: toIsoAlpha2(c) }))
+      .filter(l => l.country);
+
+    const alphaPayload = {
+      name: autofilled.name,
+      description: autofilled.description,
+      category_id: autofilled.category_id,
+      price: { type: 'price_on_request' },
+      location: {
+        country: 'ZA',
+        address: metadata.address || '',
+      },
+      additional_locations: additionalLocations,
+    };
+
+    // 6. Post to Alpha
+    const alphaResponse = await postProduct(alphaPayload, mediaFilePaths);
+
+    // 7. Update deliverable status and store alpha_product_id
+    const alphaProductId = (alphaResponse.data && alphaResponse.data.id) || alphaResponse.id || null;
+    const updatedMetadata = { ...metadata, alpha_product_id: alphaProductId };
+    await pool.query(
+      `UPDATE deliverables SET status = 'agri4all-links', metadata = $1, updated_at = NOW() WHERE id = $2`,
+      [JSON.stringify(updatedMetadata), req.params.id]
+    );
+
+    return res.json({ data: { success: true, alphaProduct: alphaResponse }, error: null });
+  } catch (err) {
+    console.error('post-to-alpha error:', err);
+    return res.status(502).json({ data: null, error: err.message || 'Failed to post product to Alpha Agri4All' });
+  }
+});
+
 // GET /:id - single deliverable with department + booking form info
 router.get('/:id', async (req, res) => {
   try {
@@ -206,6 +294,16 @@ const DEPT_MAPS = {
     'approved': 'agri4all', 'create_links': 'agri4all',
     'ready_for_scheduling': 'social-media', 'scheduled': 'social-media',
     'create_stat_sheet': 'agri4all', 'complete': 'agri4all'
+  },
+  'agri4all-product-uploads': {
+    'request_client_materials': 'production',
+    'waiting_for_materials': 'production',
+    'materials_received': 'production',
+    'design': 'design', 'design_review': 'design', 'design_changes': 'design',
+    'ready_for_approval': 'admin',
+    'sent_for_approval': 'admin',
+    'approved': 'admin',
+    'agri4all-links': 'agri4all'
   },
   'agri4all-banners': {
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
@@ -259,7 +357,7 @@ const DEPT_MAPS = {
 // Aliases: types that share dept maps
 const DEPT_MAP_ALIASES = {
   'sm-videos': 'sm-posts', 'sm-google-ads': 'sm-posts', 'sm-linkedin': 'sm-posts', 'sm-twitter': 'sm-posts',
-  'agri4all-videos': 'agri4all-posts', 'agri4all-product-uploads': 'agri4all-posts',
+  'agri4all-videos': 'agri4all-posts',
   'agri4all-newsletters': 'agri4all-posts',
   'agri4all-newsletter-feature': 'agri4all-posts', 'agri4all-newsletter-banner': 'agri4all-posts',
   'agri4all-linkedin': 'agri4all-posts',

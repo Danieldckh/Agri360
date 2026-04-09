@@ -30,6 +30,13 @@
       'create_stat_sheet', 'complete'
     ],
 
+    // Product Uploads — own chain with alpha upload terminal
+    'agri4all-product-uploads': [
+      'request_client_materials', 'waiting_for_materials', 'materials_received',
+      'design', 'design_review', 'ready_for_approval', 'sent_for_approval',
+      'approved', 'agri4all-links'
+    ],
+
     // Print / Magazine
     'magazine': [
       'request_client_materials', 'materials_requested', 'materials_received',
@@ -84,7 +91,6 @@
     'sm-linkedin': 'sm-posts',
     'sm-twitter': 'sm-posts',
     'agri4all-videos': 'agri4all-posts',
-    'agri4all-product-uploads': 'agri4all-posts',
     'agri4all-newsletters': 'agri4all-posts',
     'agri4all-newsletter-feature': 'agri4all-posts',
     'agri4all-newsletter-banner': 'agri4all-posts',
@@ -176,6 +182,19 @@
       'posted': 'editorial'
     },
 
+    'agri4all-product-uploads': {
+      'request_client_materials': 'production',
+      'waiting_for_materials': 'production',
+      'materials_received': 'production',
+      'design': 'design',
+      'design_review': 'design',
+      'design_changes': 'design',
+      'ready_for_approval': 'admin',
+      'sent_for_approval': 'admin',
+      'approved': 'admin',
+      'agri4all-links': 'agri4all'
+    },
+
     'agri4all-banners': {
       'design': 'design',
       'design_review': 'design',
@@ -239,7 +258,6 @@
     'sm-linkedin': 'sm-posts',
     'sm-twitter': 'sm-posts',
     'agri4all-videos': 'agri4all-posts',
-    'agri4all-product-uploads': 'agri4all-posts',
     'agri4all-newsletters': 'agri4all-posts',
     'agri4all-newsletter-feature': 'agri4all-posts',
     'agri4all-newsletter-banner': 'agri4all-posts',
@@ -261,6 +279,7 @@
     'sm-content-calendar': { 'design_changes': 'design', 'client_changes': 'design' },
     'sm-posts': { 'design_changes': 'artwork_design', 'client_changes': 'ready_for_approval' },
     'agri4all-posts': { 'design_changes': 'design' },
+    'agri4all-product-uploads': { 'design_changes': 'design_review' },
     'magazine': { 'design_changes': 'design', 'editorial_changes': 'design', 'client_changes': 'design' },
     'online-articles': { 'editorial_changes': 'editing', 'client_changes': 'editing' },
     'agri4all-banners': { 'design_changes': 'design' },

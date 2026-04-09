@@ -927,9 +927,9 @@
         else if (it.type === 'online-articles') openOnlineArticlesDashboard(c, it);
         else if (it.type === 'agri4all-posts') openAgri4AllPostsDashboard(c, it);
         else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(c, it, 'videos');
+        else if (it.type === 'agri4all-product-uploads') openA4AProductUploadsDashboard(c, it);
         else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(c, it, 'own-posts');
         else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(c, it, 'own-videos');
-        else if (it.type === 'agri4all-product-uploads') openA4AImageDescriptionDashboard(c, it);
         else if (it.type === 'agri4all-newsletter-feature') openA4AImageDescriptionDashboard(c, it);
         else if (it.type === 'agri4all-newsletter-banner') openA4AImageDescriptionDashboard(c, it);
         else if (it.type === 'agri4all-banners') openA4AImageDescriptionDashboard(c, it);
@@ -2221,7 +2221,7 @@
                 else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(container, it, 'videos');
                 else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(container, it, 'own-posts');
                 else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(container, it, 'own-videos');
-                else if (it.type === 'agri4all-product-uploads') openA4AImageDescriptionDashboard(container, it);
+                else if (it.type === 'agri4all-product-uploads') openA4AProductUploadsDashboard(container, it);
                 else if (it.type === 'agri4all-newsletter-feature') openA4AImageDescriptionDashboard(container, it);
                 else if (it.type === 'agri4all-newsletter-banner') openA4AImageDescriptionDashboard(container, it);
                 else if (it.type === 'agri4all-banners') openA4AImageDescriptionDashboard(container, it);
@@ -2279,6 +2279,14 @@
               stdPlatCell.appendChild(pill);
             });
             row.appendChild(stdPlatCell);
+          }
+
+          // Amount column — agri4all-product-uploads rows show the contracted amount.
+          if (item.type === 'agri4all-product-uploads') {
+            var aPUAmtCell = document.createElement('div');
+            aPUAmtCell.className = 'prod-deliv-cell prod-deliv-amount';
+            aPUAmtCell.textContent = 'Amount: ' + String((item.metadata && item.metadata.amount) || 0);
+            row.appendChild(aPUAmtCell);
           }
 
           // Per-deliverable "Request Materials" button — standard rows only
@@ -5100,6 +5108,329 @@
     }
   }
   window.openAgri4AllPostsDashboard = openAgri4AllPostsDashboard;
+
+  // ══════ A4A PRODUCT UPLOADS DASHBOARD ══════
+  // 30% left chat panel / 70% right file upload panel.
+  function openA4AProductUploadsDashboard(container, deliverable) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var meta = deliverable.metadata || {};
+    if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+    deliverable.metadata = meta;
+
+    // Scoped styles
+    var styleBlock = document.createElement('style');
+    styleBlock.textContent = [
+      '.a4apu-dashboard { display:flex; flex-direction:column; gap:0; height:100%; }',
+      '.a4apu-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px 16px; }',
+      '.a4apu-title { font-size:20px; font-weight:800; color:var(--text-primary,#1e293b); margin:0; }',
+      '.a4apu-status-badge { display:inline-flex; align-items:center; padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; background:var(--surface-alt,#f1f5f9); color:var(--text-secondary,#64748b); }',
+      '.a4apu-cr-counter { font-size:12px; color:var(--text-secondary,#64748b); font-weight:600; }',
+      '.a4apu-body { display:flex; flex:1; min-height:0; overflow:hidden; }',
+      '.a4apu-chat-panel { width:30%; border-right:1px solid var(--border-color,#e2e8f0); display:flex; flex-direction:column; overflow:hidden; }',
+      '.a4apu-right-panel { flex:1; display:flex; flex-direction:column; overflow-y:auto; padding:20px 24px 120px; gap:16px; }',
+      '.a4apu-recap { border-radius:12px; background:var(--surface-alt,#f8fafc); border:1px solid var(--border-color,#e2e8f0); padding:14px 18px; min-height:40px; }',
+      '.a4apu-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:16px 24px; background:linear-gradient(180deg,rgba(255,255,255,0) 0%,var(--bg-color,#f1f5f9) 40%); }',
+      '.a4apu-actions button { padding:10px 22px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid transparent; transition:all 0.18s; }',
+      '.a4apu-btn-secondary { background:var(--surface,#ffffff); color:var(--text-primary,#1e293b); border-color:var(--border-color,#cbd5e1) !important; }',
+      '.a4apu-btn-secondary:hover:not(:disabled) { background:var(--surface-alt,#f1f5f9); }',
+      '.a4apu-btn-primary { background:#10B981; color:#ffffff; border-color:#10B981 !important; }',
+      '.a4apu-btn-primary:hover:not(:disabled) { filter:brightness(1.06); }',
+      '.a4apu-btn-danger { background:#ef4444; color:#ffffff; border-color:#ef4444 !important; }',
+      '.a4apu-btn-danger:hover:not(:disabled) { filter:brightness(1.06); }',
+      '.a4apu-actions button:disabled { opacity:0.5; cursor:not-allowed; }',
+      '.a4apu-toast { position:fixed; left:50%; bottom:32px; transform:translateX(-50%); background:#10B981; color:#ffffff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:700; box-shadow:0 10px 30px rgba(16,185,129,0.35); z-index:5000; }'
+    ].join('\n');
+    container.appendChild(styleBlock);
+
+    function showToast(msg, color) {
+      var t = document.createElement('div');
+      t.className = 'a4apu-toast';
+      if (color) t.style.background = color;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2400);
+    }
+
+    // Sidebar
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Product Info');
+      var wrap = document.createElement('div');
+      wrap.style.padding = '0 16px';
+      addSidebarField(wrap, 'Amount', String(meta.amount || 0));
+      nav.appendChild(wrap);
+      addCountriesToSidebar(nav, meta.countries);
+    });
+
+    // Outer wrapper
+    var wrapper = document.createElement('div');
+    wrapper.className = 'a4apu-dashboard';
+
+    // Header
+    var headerRow = document.createElement('div');
+    headerRow.className = 'a4apu-header';
+
+    var titleEl = document.createElement('h2');
+    titleEl.className = 'a4apu-title';
+    titleEl.textContent = deliverable.title || 'Agri4All Product Uploads';
+    headerRow.appendChild(titleEl);
+
+    var headerRight = document.createElement('div');
+    headerRight.style.cssText = 'display:flex;align-items:center;gap:12px;';
+
+    var crCount = (meta.change_requests && meta.change_requests.length) || 0;
+    var crCounter = document.createElement('span');
+    crCounter.className = 'a4apu-cr-counter';
+    crCounter.textContent = crCount + ' / 3 change requests used';
+    headerRight.appendChild(crCounter);
+
+    var statusBadge = document.createElement('span');
+    statusBadge.className = 'a4apu-status-badge proagri-sheet-status ' + statusClass(deliverable.status);
+    statusBadge.textContent = formatStatus(deliverable.status);
+    headerRight.appendChild(statusBadge);
+
+    headerRow.appendChild(headerRight);
+    wrapper.appendChild(headerRow);
+
+    // Body (chat + right panel)
+    var body = document.createElement('div');
+    body.className = 'a4apu-body';
+
+    // ── Left: Chat (30%) ──────────────────────────────
+    var chatPanel = document.createElement('div');
+    chatPanel.className = 'a4apu-chat-panel';
+
+    var chatHeader = document.createElement('div');
+    chatHeader.className = 'cc-chat-header';
+    chatHeader.textContent = 'Team Chat';
+    chatPanel.appendChild(chatHeader);
+
+    var chatList = document.createElement('div');
+    chatList.className = 'cc-chat-list';
+    var chatLoading = document.createElement('div');
+    chatLoading.className = 'cc-chat-msg-header';
+    chatLoading.textContent = 'Loading chat...';
+    chatList.appendChild(chatLoading);
+    chatPanel.appendChild(chatList);
+
+    var chatInputWrap = document.createElement('div');
+    chatInputWrap.className = 'cc-chat-input-wrap';
+    var chatInput = document.createElement('textarea');
+    chatInput.className = 'cc-chat-input';
+    chatInput.placeholder = 'Type a message...';
+    chatInput.disabled = true;
+    var chatSend = document.createElement('button');
+    chatSend.className = 'cc-chat-send';
+    chatSend.textContent = 'Send';
+    chatSend.disabled = true;
+    chatInputWrap.appendChild(chatInput);
+    chatInputWrap.appendChild(chatSend);
+    chatPanel.appendChild(chatInputWrap);
+
+    body.appendChild(chatPanel);
+
+    // ── Right: Recap + Upload (70%) ───────────────────
+    var rightPanel = document.createElement('div');
+    rightPanel.className = 'a4apu-right-panel';
+
+    // Request form recap
+    var recap = document.createElement('div');
+    recap.className = 'a4apu-recap';
+    var recapLoading = document.createElement('div');
+    recapLoading.className = 'cc-recap-loading';
+    recapLoading.textContent = 'Loading materials...';
+    recap.appendChild(recapLoading);
+    rightPanel.appendChild(recap);
+    fetchRequestFormRecap(deliverable.id, recap);
+
+    // Upload area
+    if (!meta.product_images) meta.product_images = { files: [] };
+    if (!Array.isArray(meta.product_images.files)) meta.product_images.files = [];
+
+    function saveMetadata() {
+      return fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ metadata: meta })
+      });
+    }
+
+    var uploadArea = buildUploadArea(deliverable.id, meta.product_images.files, function () {
+      saveMetadata();
+    }, 'Upload Product Images');
+    rightPanel.appendChild(uploadArea);
+
+    body.appendChild(rightPanel);
+    wrapper.appendChild(body);
+
+    // ── Action bar ────────────────────────────────────
+    var actions = document.createElement('div');
+    actions.className = 'a4apu-actions';
+
+    var sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'a4apu-btn-secondary';
+    sendBtn.textContent = 'Send for Approval';
+    sendBtn.disabled = deliverable.status !== 'ready_for_approval';
+    sendBtn.addEventListener('click', function () {
+      sendBtn.disabled = true;
+      fetch(API_BASE + '/' + deliverable.id, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'sent_for_approval' })
+      }).then(function (r) { return r.json(); })
+        .then(function (updated) {
+          if (updated && updated.id) {
+            deliverable.status = updated.status || 'sent_for_approval';
+            showToast('Sent to client portal');
+            openA4AProductUploadsDashboard(container, deliverable);
+          } else {
+            sendBtn.disabled = false;
+          }
+        })
+        .catch(function () { sendBtn.disabled = false; });
+    });
+    actions.appendChild(sendBtn);
+
+    var postBtn = document.createElement('button');
+    postBtn.type = 'button';
+    postBtn.className = 'a4apu-btn-primary';
+    postBtn.textContent = 'Post to Agri4All';
+    postBtn.disabled = deliverable.status !== 'approved';
+    postBtn.addEventListener('click', function () {
+      postBtn.disabled = true;
+      fetch(API_BASE + '/' + deliverable.id + '/post-to-alpha', {
+        method: 'POST',
+        headers: getHeaders()
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (res) {
+          if (res) {
+            deliverable.status = res.status || deliverable.status;
+            statusBadge.className = 'a4apu-status-badge proagri-sheet-status ' + statusClass(deliverable.status);
+            statusBadge.textContent = formatStatus(deliverable.status);
+            showToast('Posted to Agri4All');
+          } else {
+            postBtn.disabled = false;
+          }
+        })
+        .catch(function () { postBtn.disabled = false; });
+    });
+    actions.appendChild(postBtn);
+
+    wrapper.appendChild(actions);
+    container.appendChild(wrapper);
+
+    // ── Chat bootstrap (same pattern as CC dashboard) ─
+    stopCCChatPoll();
+    var a4apuChannelId = null;
+    var a4apuLastId = 0;
+    var a4apuKnownIds = Object.create(null);
+
+    function fmtTime(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        var now = new Date();
+        var opts = (d.toDateString() === now.toDateString())
+          ? { hour: '2-digit', minute: '2-digit' }
+          : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return d.toLocaleString(undefined, opts);
+      } catch (e) { return ''; }
+    }
+
+    function renderMsg(m) {
+      if (!m || a4apuKnownIds[m.id]) return;
+      a4apuKnownIds[m.id] = true;
+      if (m.id > a4apuLastId) a4apuLastId = m.id;
+      var row = document.createElement('div');
+      row.className = 'cc-chat-msg';
+      var hdr = document.createElement('div');
+      hdr.className = 'cc-chat-msg-header';
+      var who = document.createElement('strong');
+      who.textContent = ((m.sender_first_name || m.senderFirstName || '') + ' ' + (m.sender_last_name || m.senderLastName || '')).trim() || 'Unknown';
+      hdr.appendChild(who);
+      var ts = document.createElement('span');
+      ts.textContent = fmtTime(m.created_at || m.createdAt);
+      hdr.appendChild(ts);
+      row.appendChild(hdr);
+      var body2 = document.createElement('div');
+      body2.className = 'cc-chat-msg-body';
+      body2.textContent = m.content || '';
+      row.appendChild(body2);
+      chatList.appendChild(row);
+    }
+
+    function scrollBottom() { chatList.scrollTop = chatList.scrollHeight; }
+
+    function loadMsgs() {
+      if (!a4apuChannelId) return;
+      fetch('/api/messaging/channels/' + a4apuChannelId + '/messages?limit=50', { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          a4apuKnownIds = Object.create(null);
+          a4apuLastId = 0;
+          (msgs || []).forEach(renderMsg);
+          scrollBottom();
+        }).catch(function () {});
+    }
+
+    function pollMsgs() {
+      if (!a4apuChannelId) return;
+      fetch('/api/messaging/channels/' + a4apuChannelId + '/messages?after=' + a4apuLastId, { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          if (!msgs || !msgs.length) return;
+          var before = chatList.scrollHeight;
+          msgs.forEach(renderMsg);
+          if (chatList.scrollTop + chatList.clientHeight >= before - 40) scrollBottom();
+        }).catch(function () {});
+    }
+
+    function sendMsg() {
+      var content = (chatInput.value || '').trim();
+      if (!content || !a4apuChannelId) return;
+      chatSend.disabled = true;
+      fetch('/api/messaging/channels/' + a4apuChannelId + '/messages', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content: content })
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (m) {
+          chatSend.disabled = false;
+          if (m) { chatInput.value = ''; renderMsg(m); scrollBottom(); }
+        }).catch(function () { chatSend.disabled = false; });
+    }
+
+    chatSend.addEventListener('click', sendMsg);
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    });
+
+    fetch('/api/messaging/channels/for-deliverable', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ deliverableId: deliverable.id })
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (ch) {
+        if (!ch || !ch.id) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          var errRow = document.createElement('div');
+          errRow.className = 'cc-chat-msg-header';
+          errRow.textContent = 'Chat unavailable';
+          chatList.appendChild(errRow);
+          return;
+        }
+        a4apuChannelId = ch.id;
+        chatInput.disabled = false;
+        chatSend.disabled = false;
+        loadMsgs();
+        stopCCChatPoll();
+        _ccChatPoll = setInterval(pollMsgs, 15000);
+      }).catch(function () {});
+  }
+  window.openA4AProductUploadsDashboard = openA4AProductUploadsDashboard;
 
   // ══════ A4A MULTI-SECTION FILE UPLOAD DASHBOARD (posts/videos) ══════
   function openA4AMultiSectionDashboard(container, deliverable, kind) {
