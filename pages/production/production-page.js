@@ -314,6 +314,7 @@
     var emptyMessage = options.emptyMessage || 'No items to display';
     var showClientButtons = !!options.showClientButtons;
     var skipMonthSelector = !!options.skipMonthSelector;
+    var hideClientGroups = !!options.hideClientGroups;
 
     while (container.firstChild) container.removeChild(container.firstChild);
 
@@ -431,60 +432,72 @@
       groups.forEach(function (group) {
         var isCollapsed = !!collapsedClients[group.clientName];
 
-        var clientRow = document.createElement('div');
-        clientRow.className = 'prod-deliv-client-row';
-        var chevron = document.createElement('span');
-        chevron.className = 'prod-deliv-chevron' + (isCollapsed ? ' collapsed' : '');
-        chevron.textContent = isCollapsed ? '\u25B6' : '\u25BC';
-        clientRow.appendChild(chevron);
-        var clientLabel = document.createElement('span');
-        clientLabel.className = 'prod-deliv-client-name';
-        clientLabel.textContent = group.clientName;
-        clientRow.appendChild(clientLabel);
-        var clientCount = document.createElement('span');
-        clientCount.className = 'prod-deliv-client-count';
-        clientCount.textContent = group.items.length;
-        clientRow.appendChild(clientCount);
+        // Client group header row — only rendered when hideClientGroups is false
+        if (!hideClientGroups) {
+          var clientRow = document.createElement('div');
+          clientRow.className = 'prod-deliv-client-row';
+          var chevron = document.createElement('span');
+          chevron.className = 'prod-deliv-chevron' + (isCollapsed ? ' collapsed' : '');
+          chevron.textContent = isCollapsed ? '\u25B6' : '\u25BC';
+          clientRow.appendChild(chevron);
+          var clientLabel = document.createElement('span');
+          clientLabel.className = 'prod-deliv-client-name';
+          clientLabel.textContent = group.clientName;
+          clientRow.appendChild(clientLabel);
+          var clientCount = document.createElement('span');
+          clientCount.className = 'prod-deliv-client-count';
+          clientCount.textContent = group.items.length;
+          clientRow.appendChild(clientCount);
 
-        if (showClientButtons && group.clientId) {
-          var spacer = document.createElement('span');
-          spacer.style.flex = '1';
-          clientRow.appendChild(spacer);
+          if (showClientButtons && group.clientId) {
+            var spacer = document.createElement('span');
+            spacer.style.flex = '1';
+            clientRow.appendChild(spacer);
 
-          // Per-deliverable "Request Materials" buttons now live inside each
-          // row via colRequestMaterials() — the per-client-group button has
-          // been removed so the form can be associated with a specific
-          // deliverableId. Only "Open Portal" remains at the client level.
+            // Per-deliverable "Request Materials" buttons now live inside each
+            // row via colRequestMaterials() — the per-client-group button has
+            // been removed so the form can be associated with a specific
+            // deliverableId. Only "Open Portal" remains at the client level.
 
-          var portalBtn = document.createElement('button');
-          portalBtn.className = 'prod-client-btn prod-client-btn-primary';
-          portalBtn.textContent = 'Open Portal';
-          (function (cid) {
-            portalBtn.addEventListener('click', function (e) {
-              e.stopPropagation();
-              fetch('/api/portal/get-or-create-token', {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ clientId: cid })
-              }).then(function (r) { return r.json(); }).then(function (data) {
-                if (data.token) window.open('/client-portal.html?token=' + data.token, '_blank');
+            var portalBtn = document.createElement('button');
+            portalBtn.className = 'prod-client-btn prod-client-btn-primary';
+            portalBtn.textContent = 'Open Portal';
+            (function (cid) {
+              portalBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fetch('/api/portal/get-or-create-token', {
+                  method: 'POST',
+                  headers: getHeaders(),
+                  body: JSON.stringify({ clientId: cid })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                  if (data.token) window.open('/client-portal.html?token=' + data.token, '_blank');
+                });
               });
-            });
-          })(group.clientId);
-          clientRow.appendChild(portalBtn);
+            })(group.clientId);
+            clientRow.appendChild(portalBtn);
+          }
+
+          clientRow.addEventListener('click', function () {
+            collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+            renderTable();
+          });
+          sheetBody.appendChild(clientRow);
+
+          // If collapsed, skip item rows for this group
+          if (isCollapsed) return;
         }
-
-        clientRow.addEventListener('click', function () {
-          collapsedClients[group.clientName] = !collapsedClients[group.clientName];
-          renderTable();
-        });
-        sheetBody.appendChild(clientRow);
-
-        if (isCollapsed) return;
 
         group.items.forEach(function (item) {
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
+
+          // When hideClientGroups is true, prepend a client name cell as the first cell
+          if (hideClientGroups) {
+            var clientNameCell = document.createElement('div');
+            clientNameCell.className = 'prod-deliv-cell prod-deliv-client-name';
+            clientNameCell.textContent = item.clientName || '';
+            row.appendChild(clientNameCell);
+          }
 
           columns.forEach(function (col) {
             var cell = document.createElement('div');
@@ -1123,6 +1136,7 @@
       columns: options.left.columns,
       emptyMessage: options.left.emptyMessage,
       showClientButtons: !!options.left.showClientButtons,
+      hideClientGroups: !!options.hideClientGroups,
       skipMonthSelector: true
     });
 
@@ -1133,6 +1147,7 @@
       columns: options.right.columns,
       emptyMessage: options.right.emptyMessage,
       showClientButtons: !!options.right.showClientButtons,
+      hideClientGroups: !!options.hideClientGroups,
       skipMonthSelector: true
     });
 
@@ -1392,7 +1407,20 @@
       function renderDeptTable(groups, filterTerm) {
         while (sheetContainer.firstChild) sheetContainer.removeChild(sheetContainer.firstChild);
 
-        if (groups.length === 0) {
+        // Flatten all items from all groups, applying the search filter
+        var flatItems = [];
+        groups.forEach(function (group) {
+          group.items.forEach(function (item) {
+            if (!filterTerm ||
+              (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
+              (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1) ||
+              (group.clientName && group.clientName.toLowerCase().indexOf(filterTerm) !== -1)) {
+              flatItems.push(item);
+            }
+          });
+        });
+
+        if (flatItems.length === 0) {
           var empty = document.createElement('div');
           empty.style.padding = '40px';
           empty.style.textAlign = 'center';
@@ -1402,185 +1430,154 @@
           return;
         }
 
-        var table = document.createElement('table');
-        table.className = 'production-sheet-table';
+        flatItems.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'prod-deliv-row';
 
-        var thead = document.createElement('thead');
-        var headerRow = document.createElement('tr');
-        ['Title', 'Type', 'Platforms', 'Status', 'Assigned To', 'Due Date', ''].forEach(function (col) {
-          var th = document.createElement('th');
-          th.textContent = col;
-          if (col === '') th.style.width = '40px';
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
+          // 1. Eye icon
+          var eyeCell = document.createElement('div');
+          eyeCell.className = 'prod-deliv-cell prod-deliv-act';
+          var dashboardTypes = ['sm-content-calendar', 'website-design', 'online-articles',
+            'agri4all-posts', 'agri4all-videos', 'agri4all-product-uploads',
+            'agri4all-newsletter-feature', 'agri4all-newsletter-banner', 'agri4all-linkedin',
+            'own-social-posts', 'own-social-videos', 'own-social-linkedin', 'own-social-twitter',
+            'agri4all-banners', 'video',
+            'magazine-sa-digital', 'magazine-africa-print', 'magazine-africa-digital', 'magazine-coffee-table'];
+          if (dashboardTypes.indexOf(item.type) !== -1) {
+            var eyeBtn = document.createElement('button');
+            eyeBtn.className = 'proagri-sheet-row-action-btn action-view';
+            eyeBtn.type = 'button';
+            eyeBtn.title = 'View dashboard';
+            eyeBtn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+            (function (it) {
+              eyeBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var c = container;
+                if (it.type === 'sm-content-calendar') openContentCalendarDashboard(c, it);
+                else if (it.type === 'website-design') openWebsiteDesignDashboard(c, it);
+                else if (it.type === 'online-articles') openOnlineArticleDashboard(c, it);
+                else if (it.type === 'agri4all-posts') openAgri4AllPostsDashboard(c, it);
+                else if (it.type === 'agri4all-videos') openA4AMultiSectionDashboard(c, it, 'videos');
+                else if (it.type === 'agri4all-product-uploads') openA4AProductUploadsDashboard(c, it);
+                else if (it.type === 'own-social-posts') openA4AMultiSectionDashboard(c, it, 'own-posts');
+                else if (it.type === 'own-social-videos') openA4AMultiSectionDashboard(c, it, 'own-videos');
+                else if (it.type === 'agri4all-newsletter-feature') openA4AImageDescriptionDashboard(c, it);
+                else if (it.type === 'agri4all-newsletter-banner') openA4AImageDescriptionDashboard(c, it);
+                else if (it.type === 'agri4all-banners') openA4AImageDescriptionDashboard(c, it);
+                else if (it.type && it.type.indexOf('magazine') === 0) openA4AImageDescriptionDashboard(c, it);
+                else if (it.type === 'agri4all-linkedin') openA4ARichTextDashboard(c, it);
+                else if (it.type === 'own-social-linkedin') openA4ARichTextDashboard(c, it);
+                else if (it.type === 'own-social-twitter') openA4ARichTextDashboard(c, it);
+                else if (it.type === 'video') openVideoDashboard(c, it);
+              });
+            })(item);
+            eyeCell.appendChild(eyeBtn);
+          } else {
+            // Invisible placeholder to preserve column alignment
+            var eyePlaceholder = document.createElement('button');
+            eyePlaceholder.className = 'proagri-sheet-row-action-btn action-view';
+            eyePlaceholder.type = 'button';
+            eyePlaceholder.disabled = true;
+            eyePlaceholder.style.visibility = 'hidden';
+            eyePlaceholder.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+            eyeCell.appendChild(eyePlaceholder);
+          }
+          row.appendChild(eyeCell);
 
-        var tbody = document.createElement('tbody');
+          // 2. Avatar
+          var teamCell = document.createElement('div');
+          teamCell.className = 'prod-deliv-cell prod-deliv-team';
+          teamCell.appendChild(buildDeptAvatarRow(item, function () {
+            refreshAll(monthCtrl.getCurrentMonth());
+          }, deptSlug));
+          row.appendChild(teamCell);
 
-        groups.forEach(function (group) {
-          var items = group.items;
-          if (filterTerm) {
-            items = items.filter(function (item) {
-              return (item.title && item.title.toLowerCase().indexOf(filterTerm) !== -1) ||
-                (item.type && item.type.toLowerCase().indexOf(filterTerm) !== -1) ||
-                (group.clientName.toLowerCase().indexOf(filterTerm) !== -1);
+          // 3. Client name
+          var clientCell = document.createElement('div');
+          clientCell.className = 'prod-deliv-cell prod-deliv-client-name';
+          clientCell.textContent = item.clientName || '';
+          row.appendChild(clientCell);
+
+          // 4. Type badge
+          var typeCell = document.createElement('div');
+          typeCell.className = 'prod-deliv-cell prod-deliv-type';
+          var typeBadge = document.createElement('span');
+          typeBadge.className = 'production-type-badge';
+          typeBadge.textContent = formatTypeLabel(item.type || '');
+          typeCell.appendChild(typeBadge);
+          row.appendChild(typeCell);
+
+          // 5. Platforms pills
+          var platformsCell = document.createElement('div');
+          platformsCell.className = 'prod-deliv-cell prod-deliv-platforms';
+          var deptMeta = item.metadata || {};
+          var deptPlatformKeys = [];
+          if (item.type === 'agri4all-posts') {
+            if (deptMeta.facebook_posts) deptPlatformKeys.push('facebook');
+            if (deptMeta.instagram_posts) deptPlatformKeys.push('instagram');
+            if (deptMeta.instagram_stories) deptPlatformKeys.push('instagram_stories');
+          } else if (Array.isArray(deptMeta.platforms)) {
+            deptMeta.platforms.forEach(function (p) {
+              var key = (typeof p === 'string') ? p : (p && p.key) || '';
+              if (key) deptPlatformKeys.push(key);
             });
           }
-          if (items.length === 0) return;
-
-          var clientRow = document.createElement('tr');
-          clientRow.className = 'production-client-row';
-          clientRow.style.cursor = 'pointer';
-
-          var clientCell = document.createElement('td');
-          clientCell.colSpan = 7;
-
-          var clientWrap = document.createElement('div');
-          clientWrap.style.display = 'flex';
-          clientWrap.style.alignItems = 'center';
-          clientWrap.style.gap = '8px';
-
-          var chevron = document.createElement('span');
-          chevron.className = 'production-chevron';
-          chevron.textContent = '\u25BC';
-
-          var nameSpan = document.createElement('span');
-          nameSpan.className = 'production-client-name';
-          nameSpan.textContent = group.clientName;
-
-          var badge = document.createElement('span');
-          badge.className = 'dept-sheet-count';
-          badge.textContent = items.length;
-
-          clientWrap.appendChild(chevron);
-          clientWrap.appendChild(nameSpan);
-          clientWrap.appendChild(badge);
-          clientCell.appendChild(clientWrap);
-          clientRow.appendChild(clientCell);
-          tbody.appendChild(clientRow);
-
-          var childRows = [];
-          items.forEach(function (item) {
-            var row = document.createElement('tr');
-            row.className = 'production-child-row';
-
-            var tdTitle = document.createElement('td');
-            tdTitle.className = 'production-indented';
-            tdTitle.textContent = formatTypeLabel(item.type);
-            row.appendChild(tdTitle);
-
-            var tdType = document.createElement('td');
-            var typeBadge = document.createElement('span');
-            typeBadge.className = 'production-type-badge';
-            typeBadge.textContent = item.type || '\u2014';
-            tdType.appendChild(typeBadge);
-            row.appendChild(tdType);
-
-            // Platforms cell — agri4all-posts stores flat booleans
-            // (facebook_posts / instagram_posts / instagram_stories) in metadata;
-            // other types in the Posts tab may use metadata.platforms[].
-            var tdPlatforms = document.createElement('td');
-            var deptMeta = item.metadata || {};
-            var deptPlatformKeys = [];
-            if (item.type === 'agri4all-posts') {
-              if (deptMeta.facebook_posts) deptPlatformKeys.push('facebook');
-              if (deptMeta.instagram_posts) deptPlatformKeys.push('instagram');
-              if (deptMeta.instagram_stories) deptPlatformKeys.push('instagram_stories');
-            } else if (Array.isArray(deptMeta.platforms)) {
-              deptMeta.platforms.forEach(function (p) {
-                var key = (typeof p === 'string') ? p : (p && p.key) || '';
-                if (key) deptPlatformKeys.push(key);
-              });
-            }
-            deptPlatformKeys.forEach(function (key) {
-              var label = formatPlatformLabel(key, item.type);
-              if (!label) return;
-              var pill = document.createElement('span');
-              pill.className = 'prod-deliv-platform-tag';
-              pill.style.marginRight = '4px';
-              pill.textContent = label;
-              tdPlatforms.appendChild(pill);
-            });
-            row.appendChild(tdPlatforms);
-
-            var tdStatus = document.createElement('td');
-            tdStatus.style.position = 'relative';
-            var statusBadge = document.createElement('span');
-            statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
-            statusBadge.textContent = formatStatus(item.status);
-            statusBadge.style.cursor = 'pointer';
-            statusBadge.addEventListener('click', (function (itm, bdg, cel) {
-              return function (e) {
-                e.stopPropagation();
-                showStatusDropdown(itm, bdg, cel, refreshAll);
-              };
-            })(item, statusBadge, tdStatus));
-            tdStatus.appendChild(statusBadge);
-            row.appendChild(tdStatus);
-
-            var tdAssigned = document.createElement('td');
-            var assignedId = item.assignedProduction || item.assignedTo;
-            if (assignedId && window._employeeCacheLookup) {
-              var emp = window._employeeCacheLookup(assignedId);
-              if (emp && emp.photo_url) {
-                var avatarImg = document.createElement('img');
-                avatarImg.style.cssText = 'width:28px;height:28px;border-radius:50%;object-fit:cover;';
-                avatarImg.src = emp.photo_url;
-                avatarImg.alt = (emp.first_name || '') + ' ' + (emp.last_name || '');
-                avatarImg.title = (emp.first_name || '') + ' ' + (emp.last_name || '');
-                tdAssigned.appendChild(avatarImg);
-              } else {
-                tdAssigned.textContent = assignedId;
-              }
-            } else {
-              tdAssigned.textContent = '\u2014';
-            }
-            row.appendChild(tdAssigned);
-
-            var tdDue = document.createElement('td');
-            tdDue.textContent = formatDate(item.dueDate);
-            row.appendChild(tdDue);
-
-            var tdAction = document.createElement('td');
-            var wf = workflows.getNextStatus(item.type, item.status);
-            if (wf) {
-              var btn = document.createElement('button');
-              btn.className = 'proagri-sheet-row-action-btn action-advance';
-              btn.title = wf.tooltip;
-              btn.appendChild(makeSvgIcon(ICON_ADVANCE));
-              btn.style.opacity = '1';
-              btn.addEventListener('click', (function (id, next) {
-                return function (e) {
-                  e.stopPropagation();
-                  fetch(API_BASE + '/' + id, {
-                    method: 'PATCH',
-                    headers: getHeaders(),
-                    body: JSON.stringify({ status: next })
-                  }).then(function (res) {
-                    if (res.ok) refreshAll(monthCtrl.getCurrentMonth());
-                  });
-                };
-              })(item.id, wf.next));
-              tdAction.appendChild(btn);
-            }
-            row.appendChild(tdAction);
-
-            tbody.appendChild(row);
-            childRows.push(row);
+          deptPlatformKeys.forEach(function (key) {
+            var label = formatPlatformLabel(key, item.type);
+            if (!label) return;
+            var pill = document.createElement('span');
+            pill.className = 'prod-deliv-platform-tag';
+            pill.style.marginRight = '4px';
+            pill.textContent = label;
+            platformsCell.appendChild(pill);
           });
+          row.appendChild(platformsCell);
 
-          clientRow.addEventListener('click', (function (rows, chev) {
-            return function () {
-              var isOpen = rows[0] && rows[0].style.display !== 'none';
-              rows.forEach(function (r) { r.style.display = isOpen ? 'none' : ''; });
-              chev.textContent = isOpen ? '\u25B6' : '\u25BC';
-            };
-          })(childRows, chevron));
+          // 6. Status badge (clickable)
+          var statusCell = document.createElement('div');
+          statusCell.className = 'prod-deliv-cell prod-deliv-status-cell';
+          statusCell.style.position = 'relative';
+          var statusBadge = document.createElement('span');
+          statusBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
+          statusBadge.textContent = formatStatus(item.status);
+          statusBadge.style.cursor = 'pointer';
+          (function (itm, bdg, cel) {
+            statusBadge.addEventListener('click', function (e) {
+              e.stopPropagation();
+              showStatusDropdown(itm, bdg, cel, refreshAll);
+            });
+          })(item, statusBadge, statusCell);
+          statusCell.appendChild(statusBadge);
+          row.appendChild(statusCell);
+
+          // 7. Advance arrow
+          var actionCell = document.createElement('div');
+          actionCell.className = 'prod-deliv-cell prod-deliv-act';
+          var wf = workflows && workflows.getNextStatus(item.type, item.status);
+          if (wf) {
+            var advBtn = document.createElement('button');
+            advBtn.className = 'proagri-sheet-row-action-btn action-advance';
+            advBtn.type = 'button';
+            advBtn.title = wf.tooltip;
+            advBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
+            (function (id, next, ctrl) {
+              advBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fetch(API_BASE + '/' + id, {
+                  method: 'PATCH',
+                  headers: getHeaders(),
+                  body: JSON.stringify({ status: next })
+                }).then(function (res) {
+                  if (res.ok) refreshAll(ctrl.getCurrentMonth());
+                });
+              });
+            })(item.id, wf.next, monthCtrl);
+            actionCell.appendChild(advBtn);
+          }
+          row.appendChild(actionCell);
+
+          sheetContainer.appendChild(row);
         });
-
-        table.appendChild(tbody);
-        sheetContainer.appendChild(table);
       }
 
       // initMonthSelector triggers the first fetch via onMonthChange callback
@@ -2578,116 +2575,7 @@
     return '\u2014';
   }
 
-  function renderProductionWebsiteDesignTab(container) {
-    while (container.firstChild) container.removeChild(container.firstChild);
-    container.style.display = '';
-    container.style.padding = '';
 
-    var card = document.createElement('div');
-    card.className = 'dept-sheet-card prod-wd-tab-card';
-
-    var header = document.createElement('div');
-    header.className = 'dept-sheet-header';
-    var titleWrap = document.createElement('div');
-    titleWrap.className = 'dept-sheet-title-wrap';
-    var h = document.createElement('h3');
-    h.className = 'dept-sheet-title';
-    h.textContent = 'Website Design';
-    titleWrap.appendChild(h);
-    var countBadge = document.createElement('span');
-    countBadge.className = 'dept-sheet-count';
-    countBadge.textContent = '0';
-    titleWrap.appendChild(countBadge);
-    header.appendChild(titleWrap);
-
-    var searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.className = 'dept-sheet-search';
-    searchInput.placeholder = 'Search website design...';
-    header.appendChild(searchInput);
-    card.appendChild(header);
-
-    var sheetContainer = document.createElement('div');
-    sheetContainer.className = 'dept-sheet-container';
-    card.appendChild(sheetContainer);
-    container.appendChild(card);
-
-    var allRows = [];
-
-    var columns = [
-      { key: 'assigned', label: 'Production', sortable: true },
-      { key: 'client',   label: 'Client / Deliverable', sortable: true, isName: true },
-      { key: 'pages',    label: 'Pages', sortable: true, width: 'sm' },
-      { key: 'wdType',   label: 'Type', sortable: true },
-      { key: 'status',   label: 'Status', sortable: true, type: 'status', options: WD_PROD_STATUSES }
-    ];
-
-    var leadingActions = [{
-      icon: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
-      tooltip: 'View website design dashboard',
-      className: 'action-view',
-      onClick: function (rowData) {
-        if (rowData && rowData.__deliverable) {
-          openWebsiteDesignDashboard(container, rowData.__deliverable);
-        }
-      }
-    }];
-
-    function mapDeliverableToRow(d) {
-      return {
-        id: d.id,
-        assigned: resolveWdProdName(d),
-        client: (d.clientName || d.client_name || '') + (d.title ? ' \u2014 ' + d.title : ''),
-        pages: extractWdProdPages(d),
-        wdType: formatWdProdTypeLabel(extractWdProdType(d)),
-        status: d.status,
-        __deliverable: d
-      };
-    }
-
-    function render() {
-      var term = (searchInput.value || '').toLowerCase();
-      var filtered = term ? allRows.filter(function (r) {
-        return columns.some(function (c) {
-          var v = r[c.key];
-          return v != null && String(v).toLowerCase().indexOf(term) !== -1;
-        });
-      }) : allRows;
-      countBadge.textContent = filtered.length;
-      if (window.renderSheet) {
-        window.renderSheet(sheetContainer, {
-          columns: columns,
-          data: filtered,
-          searchable: false,
-          leadingActions: leadingActions
-        });
-      }
-    }
-    searchInput.addEventListener('input', render);
-
-    function fetchData() {
-      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
-      Promise.all([
-        empPromise,
-        fetch('/api/deliverables/by-type/website-design', { headers: getHeaders() })
-          .then(function (r) { return r.ok ? r.json() : []; })
-      ]).then(function (results) {
-        var items = Array.isArray(results[1]) ? results[1] : [];
-        var prodSide = items.filter(function (d) {
-          return WD_PROD_STATUSES.indexOf(d.status) !== -1;
-        });
-        allRows = prodSide.map(mapDeliverableToRow);
-        render();
-      }).catch(function (err) {
-        console.error('[production] Website Design tab fetch error:', err);
-        allRows = [];
-        render();
-      });
-    }
-    fetchData();
-  }
-
-  window.renderProductionWebsiteDesignTab = renderProductionWebsiteDesignTab;
 
   // ── Expose reusable helpers for sibling dept pages (design, editorial) ──
   // These mirror Production's deliverables sheet exactly, so any dept that

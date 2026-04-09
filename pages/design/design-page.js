@@ -17,35 +17,14 @@
       return;
     }
     var C = window.prodCols;
-    // Marker class so design-page.css can (a) override the split ratio
-    // to 70/30 and (b) hide the per-client group header row so CCs
-    // render as a flat list.
+    // Marker class so design-page.css can override the split ratio to 70/30.
+    // Client group headers are hidden via hideClientGroups: true below.
     container.classList.add('design-cc-split-70-30');
-
-    // Custom "type" column that prepends the client name to the
-    // type label, giving us "Acme Farming Co — Content Calendar"
-    // without needing a separate client cell. Replaces typeWithClientPrefix()
-    // in the column array below.
-    function typeWithClientPrefix() {
-      return {
-        label: 'Type',
-        className: 'prod-deliv-type',
-        render: function (item) {
-          var span = document.createElement('span');
-          span.className = 'production-type-badge';
-          var typeLabel = item.type === 'sm-content-calendar'
-            ? 'Content Calendar'
-            : String(item.type || '').replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-          var client = item.clientName || 'Unknown client';
-          span.textContent = client + ' — ' + typeLabel;
-          return span;
-        }
-      };
-    }
 
     window.renderSplitSheetTab(container, {
       prefix: 'designCC',
       deptSlug: 'design',
+      hideClientGroups: true,
       left: {
         title: 'Design',
         searchPlaceholder: 'Search design...',
@@ -57,7 +36,7 @@
         columns: [
           C.eye(container),
           C.deptAvatar('design'),
-          typeWithClientPrefix(),
+          C.type(),
           C.status(),
           // Default chain-previous back + auto-advance forward.
           C.actionAdvanceBack('auto')
@@ -73,7 +52,7 @@
         columns: [
           C.eye(container),
           C.deptAvatar('design'),
-          typeWithClientPrefix(),
+          C.type(),
           C.status(),
           C.actionAdvanceBack('auto')
         ],

@@ -138,6 +138,14 @@
   color: var(--text-primary, #1e293b);
 }
 
+/* Client name as a data cell inside a deliverable row (hideClientGroups mode) */
+.prod-deliv-row .prod-deliv-client-name {
+  flex: 0 0 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .prod-deliv-client-count {
   display: inline-flex;
   align-items: center;

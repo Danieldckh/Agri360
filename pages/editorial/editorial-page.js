@@ -24,6 +24,7 @@
     window.renderSplitSheetTab(container, {
       prefix: 'editorialCC',
       deptSlug: 'editorial',
+      hideClientGroups: true,
       left: {
         title: 'Editorial',
         searchPlaceholder: 'Search editorial...',
@@ -60,31 +61,6 @@
 
   window.renderEditorialContentCalendarsTab = renderEditorialContentCalendarsTab;
 
-  // ── Shared helper: "Client — Type" badge column ─────────────────
-  // Renders "Acme Farming Co — Online Article" in place of a separate
-  // client column. Mirrors the design-page.js helper of the same name.
-  function typeWithClientPrefix() {
-    return {
-      label: 'Type',
-      className: 'prod-deliv-type',
-      render: function (item) {
-        var span = document.createElement('span');
-        span.className = 'production-type-badge';
-        var typeLabel;
-        if (item.type === 'online-articles') {
-          typeLabel = 'Online Article';
-        } else if (item.type === 'sm-content-calendar') {
-          typeLabel = 'Content Calendar';
-        } else {
-          typeLabel = String(item.type || '').replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-        }
-        var client = item.clientName || 'Unknown client';
-        span.textContent = client + ' \u2014 ' + typeLabel;
-        return span;
-      }
-    };
-  }
-
   // ── Editorial > Online Articles Tab ──────────────────────────────
   // 70/30 split: Editing (left) | Translating (right). Reuses the
   // Production split-sheet helper for styling parity. The marker class
@@ -102,6 +78,7 @@
     window.renderSplitSheetTab(container, {
       prefix: 'edOA',
       deptSlug: 'editorial',
+      hideClientGroups: true,
       left: {
         title: 'Editing',
         searchPlaceholder: 'Search editing...',
@@ -111,7 +88,7 @@
         columns: [
           C.eye(container),
           C.deptAvatar('editorial'),
-          typeWithClientPrefix(),
+          C.type(),
           C.status(),
           C.actionAdvanceBack('auto')
         ],
@@ -126,7 +103,7 @@
         columns: [
           C.eye(container),
           C.deptAvatar('editorial'),
-          typeWithClientPrefix(),
+          C.type(),
           C.status(),
           C.actionAdvanceBack('auto')
         ],
@@ -194,11 +171,12 @@
       columns: [
         C.eye(container),
         C.deptAvatar('editorial'),
-        typeWithClientPrefix(),
+        C.type(),
         C.status(),
         colMarkUploaded()
       ],
       emptyMessage: 'No online articles ready to upload',
+      hideClientGroups: true,
       skipMonthSelector: false
     });
   }
