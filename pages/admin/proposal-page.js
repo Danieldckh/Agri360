@@ -331,10 +331,8 @@
           apiEndpoint: API_BASE,
           leadingActions: leadingActions,
           rowActions: rowActions,
-          onCellEdit: function (rowData, key, newValue) {
-            if (key === 'status') {
-              setTimeout(function () { refreshFn(); }, 300);
-            }
+          onCellSaved: function (rowData, key) {
+            if (key === 'status') refreshFn();
           }
         });
       }

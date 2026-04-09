@@ -747,6 +747,7 @@
     var leadingActions = config.leadingActions || [];
     var searchable = config.searchable || false;
     var onCellEdit = config.onCellEdit || null;
+    var onCellSaved = config.onCellSaved || null;
     var apiEndpoint = config.apiEndpoint || null;
     var sortKey = config._sortKey || null;
     var sortDir = config._sortDir || 'asc';
@@ -877,8 +878,11 @@
         body[col.key] = newValue;
         fetch(url, { method: 'PATCH', headers: hdrs, body: JSON.stringify(body) })
           .then(function (res) {
-            if (res.ok) { cell.classList.add('cell-saved'); setTimeout(function () { cell.classList.remove('cell-saved'); }, 600); }
-            else { throw new Error('fail'); }
+            if (res.ok) {
+              cell.classList.add('cell-saved');
+              setTimeout(function () { cell.classList.remove('cell-saved'); }, 600);
+              if (onCellSaved) onCellSaved(rowData, col.key, newValue);
+            } else { throw new Error('fail'); }
           })
           .catch(function () {
             rowData[col.key] = oldValue;
