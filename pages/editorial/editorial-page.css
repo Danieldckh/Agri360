@@ -221,6 +221,30 @@
 .editorial-cc-back-btn:hover { color: #f59e0b; }
 .editorial-cc-fwd-btn:hover  { color: #10b981; }
 
+/* ── Online Articles tab — 70/30 split override ─────────── */
+/* Mirrors the design-cc-split-70-30 pattern: overrides the default
+   50/50 split-sheet layout and hides per-client group header rows so
+   the sheets render as a flat list. */
+.editorial-oa-split-70-30 .dept-dashboard-layout { gap: 12px; }
+.editorial-oa-split-70-30 .dept-dashboard-half:nth-child(1) { flex: 0 0 calc(70% - 6px); max-width: calc(70% - 6px); }
+.editorial-oa-split-70-30 .dept-dashboard-half:nth-child(2) { flex: 0 0 calc(30% - 6px); max-width: calc(30% - 6px); }
+.editorial-oa-split-70-30 .prod-deliv-client-row { display: none; }
+
+/* ── Ready to Upload tab ────────────────────────────────── */
+.editorial-ready-upload-tab .prod-deliv-client-row { display: none; }
+
+.editorial-upload-btn {
+  padding: 6px 14px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.editorial-upload-btn:hover { filter: brightness(1.08); }
+
 /* ── Stub cards ─────────────────────────────────────────── */
 .editorial-stub-card {
   flex: 1;

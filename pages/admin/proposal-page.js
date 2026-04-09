@@ -1333,5 +1333,5 @@
     refreshAll();
   };
 
-  window.renderDesignWebDesignTab = function (container) {};
+  // renderDesignWebDesignTab lives in pages/design/design-page.js
 })();

@@ -379,16 +379,10 @@
           spacer.style.flex = '1';
           clientRow.appendChild(spacer);
 
-          var reqBtn = document.createElement('button');
-          reqBtn.className = 'prod-client-btn';
-          reqBtn.textContent = 'Request Materials';
-          (function (cid) {
-            reqBtn.addEventListener('click', function (e) {
-              e.stopPropagation();
-              window.open('/form-builder.html?clientId=' + cid, '_blank');
-            });
-          })(group.clientId);
-          clientRow.appendChild(reqBtn);
+          // Per-deliverable "Request Materials" buttons now live inside each
+          // row via colRequestMaterials() — the per-client-group button has
+          // been removed so the form can be associated with a specific
+          // deliverableId. Only "Open Portal" remains at the client level.
 
           var portalBtn = document.createElement('button');
           portalBtn.className = 'prod-client-btn prod-client-btn-primary';
@@ -823,6 +817,26 @@
     }};
   }
 
+  // Per-deliverable "Request Materials" button column — opens the form
+  // builder pre-scoped to this specific deliverable (not just the client).
+  // The built form is then associated with deliverableId on submit so that
+  // request-form responses can be looked up from the deliverable's own
+  // dashboard (CC + online-article recap).
+  function colRequestMaterials() {
+    return { label: '', className: 'prod-deliv-req-mat', render: function (item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'prod-deliv-req-mat-btn';
+      btn.textContent = 'Request Materials';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var cid = item.clientId || '';
+        window.open('/form-builder.html?clientId=' + cid + '&deliverableId=' + item.id, '_blank');
+      });
+      return btn;
+    }};
+  }
+
   // Eye icon column — opens the deliverable dashboard for the row.
   // Mirrors the eye button in the Deliverables tab (see row renderer for
   // the canonical if/else chain). `tabContainer` is the tab's root element,
@@ -1090,9 +1104,12 @@
             d.status === 'request_focus_points';
         },
         // Left sheet: no "Sent" date — the form hasn't been sent yet.
+        // Per-deliverable Request Materials button lives here instead of
+        // on the client group header.
         columns: [
           colEye(container),
           colType(),
+          colRequestMaterials(),
           colFollowUpCount(),
           colStatus(),
           colActionAdvanceBack('auto')
@@ -1836,22 +1853,14 @@
         clientCount.textContent = group.items.length;
         clientRow.appendChild(clientCount);
 
-        // Client action buttons: Request Materials + Open Portal
+        // Client action button: Open Portal only.
+        // Per-deliverable "Request Materials" buttons live inside each row
+        // (added by the per-row reqMatBtn block below) so each form is
+        // associated with a specific deliverable.
         if (group.clientId) {
           var spacer = document.createElement('span');
           spacer.style.flex = '1';
           clientRow.appendChild(spacer);
-
-          var reqBtn = document.createElement('button');
-          reqBtn.className = 'prod-client-btn';
-          reqBtn.textContent = 'Request Materials';
-          (function (cid) {
-            reqBtn.addEventListener('click', function (e) {
-              e.stopPropagation();
-              window.open('/form-builder.html?clientId=' + cid, '_blank');
-            });
-          })(group.clientId);
-          clientRow.appendChild(reqBtn);
 
           var portalBtn = document.createElement('button');
           portalBtn.className = 'prod-client-btn prod-client-btn-primary';
@@ -1888,7 +1897,215 @@
           // and the advance arrow. Any other column (title, send-back button)
           // is intentionally hidden for this type in this department.
           var isContentCalendar = (item.type === 'sm-content-calendar');
+          var isOnlineArticles = (item.type === 'online-articles');
           if (isContentCalendar) row.classList.add('prod-deliv-row-cc');
+          if (isOnlineArticles) row.classList.add('prod-deliv-row-oa');
+
+          // ── Online Articles: fully custom row ────────────────────
+          // Spec row order:
+          //   eye | production avatar | "Online Article" label |
+          //   platforms pills | amount | curated amount |
+          //   Needs Translation toggle | status | advance/back arrows
+          if (isOnlineArticles) {
+            // Eye
+            var oaEyeCell = document.createElement('div');
+            oaEyeCell.className = 'prod-deliv-cell prod-deliv-act';
+            var oaEyeBtn = document.createElement('button');
+            oaEyeBtn.className = 'proagri-sheet-row-action-btn action-view';
+            oaEyeBtn.type = 'button';
+            oaEyeBtn.title = 'View online article';
+            oaEyeBtn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+            (function (it) {
+              oaEyeBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                openOnlineArticleDashboard(container, it);
+              });
+            })(item);
+            oaEyeCell.appendChild(oaEyeBtn);
+            row.appendChild(oaEyeCell);
+
+            // Production avatar
+            var oaTeamCell = document.createElement('div');
+            oaTeamCell.className = 'prod-deliv-cell prod-deliv-team';
+            oaTeamCell.appendChild(buildDeptAvatarRow(item, function () {
+              fetchData(currentYM);
+            }, 'production'));
+            row.appendChild(oaTeamCell);
+
+            // Label
+            var oaLabelCell = document.createElement('div');
+            oaLabelCell.className = 'prod-deliv-cell prod-deliv-type';
+            oaLabelCell.textContent = 'Online Article';
+            row.appendChild(oaLabelCell);
+
+            // Platforms — backend seeds metadata.platforms as [] (strings)
+            var oaPlatCell = document.createElement('div');
+            oaPlatCell.className = 'prod-deliv-cell prod-deliv-platforms';
+            var oaPlats = (item.metadata && Array.isArray(item.metadata.platforms)) ? item.metadata.platforms : [];
+            oaPlats.forEach(function (p) {
+              if (!p) return;
+              var chip = document.createElement('span');
+              chip.className = 'prod-deliv-platform-tag';
+              chip.textContent = String(p);
+              oaPlatCell.appendChild(chip);
+            });
+            row.appendChild(oaPlatCell);
+
+            // Amount
+            var oaAmtCell = document.createElement('div');
+            oaAmtCell.className = 'prod-deliv-cell prod-deliv-amount';
+            oaAmtCell.textContent = String((item.metadata && item.metadata.amount) || 0);
+            row.appendChild(oaAmtCell);
+
+            // Curated amount
+            var oaCurCell = document.createElement('div');
+            oaCurCell.className = 'prod-deliv-cell prod-deliv-curated';
+            oaCurCell.textContent = 'Curated: ' + String((item.metadata && item.metadata.curated_amount) || 0);
+            row.appendChild(oaCurCell);
+
+            // Needs Translation toggle
+            var oaTransCell = document.createElement('div');
+            oaTransCell.className = 'prod-deliv-cell prod-deliv-translate';
+            var oaTransBtn = document.createElement('button');
+            oaTransBtn.type = 'button';
+            oaTransBtn.className = 'prod-deliv-translate-btn';
+            oaTransBtn.textContent = 'Needs Translation';
+            function applyTransState(on) {
+              if (on) oaTransBtn.classList.add('is-on');
+              else oaTransBtn.classList.remove('is-on');
+            }
+            applyTransState(!!(item.metadata && item.metadata.needs_translation));
+            oaTransBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              var current = !!(item.metadata && item.metadata.needs_translation);
+              var next = !current;
+              // Optimistic toggle
+              if (!item.metadata) item.metadata = {};
+              item.metadata.needs_translation = next;
+              applyTransState(next);
+              fetch(API_BASE + '/' + item.id, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ metadata: { needs_translation: next } })
+              }).then(function (res) {
+                if (!res.ok) {
+                  // Rollback on failure
+                  item.metadata.needs_translation = current;
+                  applyTransState(current);
+                }
+              }).catch(function () {
+                item.metadata.needs_translation = current;
+                applyTransState(current);
+              });
+            });
+            oaTransCell.appendChild(oaTransBtn);
+            row.appendChild(oaTransCell);
+
+            // Status — reuse the same cell + dropdown pattern as the
+            // default row below. We inline it here (no shared helper) so
+            // the OA branch can stand alone.
+            var oaStatusCell = document.createElement('div');
+            oaStatusCell.className = 'prod-deliv-cell prod-deliv-status-cell';
+            var oaBadge = document.createElement('span');
+            oaBadge.className = 'proagri-sheet-status ' + statusClass(item.status);
+            oaBadge.textContent = formatStatus(item.status);
+            oaStatusCell.appendChild(oaBadge);
+            (function (cellEl, itemRef) {
+              cellEl.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var existing = document.querySelector('.prod-deliv-status-dropdown');
+                if (existing) existing.remove();
+                var chain = workflows ? workflows.getStatusChain(itemRef.type) : [];
+                if (chain.length === 0) return;
+                var dropdown = document.createElement('div');
+                dropdown.className = 'prod-deliv-status-dropdown';
+                chain.forEach(function (st) {
+                  var opt = document.createElement('div');
+                  opt.className = 'prod-deliv-status-opt' + (st === itemRef.status ? ' active' : '');
+                  var optBadge = document.createElement('span');
+                  optBadge.className = 'proagri-sheet-status ' + statusClass(st);
+                  optBadge.textContent = formatStatus(st);
+                  opt.appendChild(optBadge);
+                  opt.addEventListener('click', function (ev) {
+                    ev.stopPropagation();
+                    dropdown.remove();
+                    if (st === itemRef.status) return;
+                    fetch(API_BASE + '/' + itemRef.id, {
+                      method: 'PATCH', headers: getHeaders(),
+                      body: JSON.stringify({ status: st })
+                    }).then(function (res) { if (res.ok) fetchData(currentYM); });
+                  });
+                  dropdown.appendChild(opt);
+                });
+                dropdown.style.position = 'fixed';
+                dropdown.style.visibility = 'hidden';
+                dropdown.style.top = '0px';
+                dropdown.style.left = '0px';
+                document.body.appendChild(dropdown);
+                var rect = cellEl.getBoundingClientRect();
+                var ddRect = dropdown.getBoundingClientRect();
+                var top;
+                if (rect.bottom + 4 + ddRect.height > window.innerHeight && rect.top - 4 - ddRect.height >= 0) {
+                  top = rect.top - 4 - ddRect.height;
+                } else {
+                  top = rect.bottom + 4;
+                }
+                var left = rect.left;
+                if (left + ddRect.width > window.innerWidth - 8) {
+                  left = Math.max(8, window.innerWidth - ddRect.width - 8);
+                }
+                dropdown.style.top = top + 'px';
+                dropdown.style.left = left + 'px';
+                dropdown.style.visibility = 'visible';
+                setTimeout(function () {
+                  document.addEventListener('click', function closeDD() {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeDD);
+                  });
+                }, 0);
+              });
+            })(oaStatusCell, item);
+            row.appendChild(oaStatusCell);
+
+            // Advance + back arrows (reuse existing workflow helpers)
+            var oaActCol = document.createElement('div');
+            oaActCol.className = 'prod-deliv-cell prod-deliv-act';
+            var oaBackTarget = getSendBackTarget(item.status);
+            if (oaBackTarget) {
+              var oaBackBtn = document.createElement('button');
+              oaBackBtn.className = 'proagri-sheet-row-action-btn action-undo';
+              oaBackBtn.type = 'button';
+              oaBackBtn.title = 'Send back for changes (' + formatStatus(oaBackTarget) + ')';
+              oaBackBtn.appendChild(makeSvgIcon('M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z'));
+              (function (it, target) {
+                oaBackBtn.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  fetch(API_BASE + '/' + it.id, {
+                    method: 'PATCH', headers: getHeaders(),
+                    body: JSON.stringify({ status: target })
+                  }).then(function (res) { if (res.ok) fetchData(currentYM); });
+                });
+              })(item, oaBackTarget);
+              oaActCol.appendChild(oaBackBtn);
+            }
+            var oaAdvBtn = document.createElement('button');
+            oaAdvBtn.className = 'proagri-sheet-row-action-btn action-advance';
+            oaAdvBtn.type = 'button';
+            var oaAdvTip = (workflows && workflows.getAdvanceTooltip)
+              ? workflows.getAdvanceTooltip(item.type, item.status) : '';
+            oaAdvBtn.title = oaAdvTip;
+            if (!oaAdvTip) oaAdvBtn.style.visibility = 'hidden';
+            oaAdvBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
+            oaAdvBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              advanceStatus(item.id, item.type, item.status);
+            });
+            oaActCol.appendChild(oaAdvBtn);
+            row.appendChild(oaActCol);
+
+            sheetBody.appendChild(row);
+            return;
+          }
 
           // Eye icon — open deliverable dashboard
           var eyeCell = document.createElement('div');
@@ -1953,6 +2170,26 @@
           typeCell.className = 'prod-deliv-cell prod-deliv-type';
           typeCell.textContent = isContentCalendar ? 'Content Calendar' : formatStatus(item.type || '');
           row.appendChild(typeCell);
+
+          // Per-deliverable "Request Materials" button — standard rows only
+          // (CC rows use the simplified 5-cell layout and don't get this;
+          // OA rows are handled in the isOnlineArticles branch above).
+          if (!isContentCalendar) {
+            var reqMatCell = document.createElement('div');
+            reqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
+            var reqMatBtn = document.createElement('button');
+            reqMatBtn.type = 'button';
+            reqMatBtn.className = 'prod-deliv-req-mat-btn';
+            reqMatBtn.textContent = 'Request Materials';
+            (function (it) {
+              reqMatBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
+              });
+            })(item);
+            reqMatCell.appendChild(reqMatBtn);
+            row.appendChild(reqMatCell);
+          }
 
           // CC-only: inline read-only platforms chips + monthly posts count.
           if (isContentCalendar) {
@@ -2137,6 +2374,8 @@
   // wants the same `.prod-deliv-*` DOM + same CC dashboard can reuse them
   // without duplicating markup/CSS.
   window.openContentCalendarDashboard = openContentCalendarDashboard;
+  window.openOnlineArticleDashboard = openOnlineArticleDashboard;
+  window.openOnlineArticlesDashboard = openOnlineArticleDashboard;
   window.renderClientGroupedSheet = renderClientGroupedSheet;
   window.renderSplitSheetTab = renderSplitSheetTab;
   window.prodCols = {
@@ -2144,6 +2383,7 @@
     type: colType,
     status: colStatus,
     shortDate: colShortDate,
+    requestMaterials: colRequestMaterials,
     actionAdvance: colActionAdvance,
     actionAdvanceBack: colActionAdvanceBack,
     // New: dept-specific avatar column — renders the slot for the given
@@ -3738,33 +3978,28 @@
     container.appendChild(wrapper);
   }
 
-  // ══════ ONLINE ARTICLES DASHBOARD ═════════════════════════
-  function openOnlineArticlesDashboard(container, deliverable) {
+  // ══════ ONLINE ARTICLE DASHBOARD ═════════════════════════
+  // Mirrors openContentCalendarDashboard structure: materials recap +
+  // bottom row (team chat | Quill article editor). Backed by
+  // metadata.article_body (set/seeded by the backend).
+  function openOnlineArticleDashboard(container, deliverable) {
     _ccContainer = container;
     while (container.firstChild) container.removeChild(container.firstChild);
 
     var meta = deliverable.metadata || {};
     if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
-    if (!meta.article_text) meta.article_text = '';
-    if (!meta.article_images) meta.article_images = [];
 
-    function save() {
-      fetch(API_BASE + '/' + deliverable.id, {
-        method: 'PATCH', headers: getHeaders(),
-        body: JSON.stringify({ metadata: { article_text: meta.article_text, article_images: meta.article_images } })
-      });
-    }
-
-    // Sidebar
+    // Sidebar — reuse the generic dashboard sidebar (back button wired to
+    // renderProductionDeliverablesTab by setupDashboardSidebar).
     setupDashboardSidebar(deliverable, function (nav) {
       addSidebarSection(nav, 'Article Details');
       var wrap = document.createElement('div');
       wrap.style.padding = '0 16px';
       addSidebarField(wrap, 'Articles', meta.amount);
       addSidebarField(wrap, 'Curated', meta.curated_amount);
+      addSidebarField(wrap, 'Translation', meta.needs_translation ? 'Needed' : '');
       nav.appendChild(wrap);
 
-      // Publishing platforms
       if (meta.platforms && meta.platforms.length) {
         addSidebarSection(nav, 'Publish To');
         var pWrap = document.createElement('div');
@@ -3777,84 +4012,280 @@
         });
         nav.appendChild(pWrap);
       }
-
-      // Social links from booking form
-      if (deliverable.bookingFormId) {
-        fetchBookingFormData(deliverable.bookingFormId, function (fd) {
-          var ci = fd.client_information || {};
-          if (ci.website) {
-            addSidebarSection(nav, 'Client Website');
-            var wWrap = document.createElement('div');
-            wWrap.style.padding = '0 16px';
-            var link = document.createElement('a');
-            link.href = ci.website;
-            link.target = '_blank';
-            link.textContent = ci.website;
-            link.style.cssText = 'font-size:11px;color:var(--accent-color,#3b82f6);word-break:break-all;';
-            wWrap.appendChild(link);
-            nav.appendChild(wWrap);
-          }
-          var sm = (fd.social_media_management || [])[0];
-          if (sm && sm.platforms && sm.platforms.length > 0) {
-            addSidebarSection(nav, 'Social Media');
-            var sWrap = document.createElement('div');
-            sWrap.style.padding = '0 16px';
-            sm.platforms.forEach(function (p) {
-              if (!p.link) return;
-              var a = document.createElement('a');
-              a.href = p.link;
-              a.target = '_blank';
-              a.style.cssText = 'display:block;font-size:11px;color:var(--accent-color,#3b82f6);margin:2px 0;word-break:break-all;';
-              a.textContent = p.platform;
-              sWrap.appendChild(a);
-            });
-            nav.appendChild(sWrap);
-          }
-        });
-      }
     });
 
-    // Main content
     var wrapper = document.createElement('div');
     wrapper.className = 'oa-dashboard';
 
+    // Header
+    var header = document.createElement('div');
+    header.className = 'oa-header';
     var title = document.createElement('h2');
-    title.className = 'cc-dashboard-title';
-    title.textContent = deliverable.title || 'Online Article';
-    title.style.marginBottom = '16px';
-    wrapper.appendChild(title);
+    title.className = 'oa-title';
+    title.textContent = 'Online Article \u2014 ' + (deliverable.clientName || deliverable.title || '');
+    header.appendChild(title);
+    wrapper.appendChild(header);
 
-    // Article text editor
-    var editorCard = document.createElement('div');
-    editorCard.className = 'oa-editor-card';
-    var editorTitle = document.createElement('h3');
-    editorTitle.className = 'oa-card-title';
-    editorTitle.textContent = 'Article Text';
-    editorCard.appendChild(editorTitle);
-    var editor = document.createElement('div');
-    editor.className = 'oa-article-editor';
-    editor.contentEditable = 'true';
-    editor.innerHTML = meta.article_text || '';
-    editor.setAttribute('placeholder', 'Paste or write the article text here...');
-    editor.addEventListener('blur', function () {
-      meta.article_text = editor.innerHTML;
-      save();
+    // Materials recap — reuse the CC helper (fetches the request-form
+    // answers + uploaded assets tied to this deliverable).
+    var recap = document.createElement('div');
+    recap.className = 'oa-materials-recap cc-materials-recap';
+    var recapEmpty = document.createElement('div');
+    recapEmpty.className = 'cc-recap-loading';
+    recapEmpty.textContent = 'Loading materials...';
+    recap.appendChild(recapEmpty);
+    wrapper.appendChild(recap);
+    fetchRequestFormRecap(deliverable.id, recap);
+
+    // Bottom row: chat (left ~30%) | article card (right ~70%)
+    var bottomRow = document.createElement('div');
+    bottomRow.className = 'oa-bottom-row';
+
+    // ── Chat box (reuse cc-chat-* classes + polling logic) ──
+    stopCCChatPoll();
+    var chat = document.createElement('div');
+    chat.className = 'cc-chat-box oa-chat-box';
+    var chatHeader = document.createElement('div');
+    chatHeader.className = 'cc-chat-header';
+    chatHeader.textContent = 'Team Chat';
+    chat.appendChild(chatHeader);
+
+    var chatList = document.createElement('div');
+    chatList.className = 'cc-chat-list';
+    var chatLoading = document.createElement('div');
+    chatLoading.className = 'cc-chat-msg-header';
+    chatLoading.textContent = 'Loading chat...';
+    chatList.appendChild(chatLoading);
+    chat.appendChild(chatList);
+
+    var chatInputWrap = document.createElement('div');
+    chatInputWrap.className = 'cc-chat-input-wrap';
+    var chatInput = document.createElement('textarea');
+    chatInput.className = 'cc-chat-input';
+    chatInput.placeholder = 'Type a message...';
+    chatInput.disabled = true;
+    var chatSend = document.createElement('button');
+    chatSend.className = 'cc-chat-send';
+    chatSend.textContent = 'Send';
+    chatSend.disabled = true;
+    chatInputWrap.appendChild(chatInput);
+    chatInputWrap.appendChild(chatSend);
+    chat.appendChild(chatInputWrap);
+    bottomRow.appendChild(chat);
+
+    var oaChannelId = null;
+    var oaLastMessageId = 0;
+    var oaKnownIds = Object.create(null);
+
+    function fmtChatTime(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        var now = new Date();
+        var opts = (d.toDateString() === now.toDateString())
+          ? { hour: '2-digit', minute: '2-digit' }
+          : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return d.toLocaleString(undefined, opts);
+      } catch (e) { return ''; }
+    }
+
+    function renderChatMessage(m) {
+      if (!m || oaKnownIds[m.id]) return;
+      oaKnownIds[m.id] = true;
+      if (m.id > oaLastMessageId) oaLastMessageId = m.id;
+      var row = document.createElement('div');
+      row.className = 'cc-chat-msg';
+      var hdr = document.createElement('div');
+      hdr.className = 'cc-chat-msg-header';
+      var who = document.createElement('strong');
+      var first = m.sender_first_name || m.senderFirstName || '';
+      var last = m.sender_last_name || m.senderLastName || '';
+      who.textContent = (first + ' ' + last).trim() || 'Unknown';
+      hdr.appendChild(who);
+      var ts = document.createElement('span');
+      ts.textContent = fmtChatTime(m.created_at || m.createdAt);
+      hdr.appendChild(ts);
+      row.appendChild(hdr);
+      var body = document.createElement('div');
+      body.className = 'cc-chat-msg-body';
+      body.textContent = m.content || '';
+      row.appendChild(body);
+      chatList.appendChild(row);
+    }
+
+    function scrollChatToBottom() {
+      chatList.scrollTop = chatList.scrollHeight;
+    }
+
+    function loadInitialMessages() {
+      if (!oaChannelId) return;
+      fetch('/api/messaging/channels/' + oaChannelId + '/messages?limit=50', { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          oaKnownIds = Object.create(null);
+          oaLastMessageId = 0;
+          (msgs || []).forEach(renderChatMessage);
+          scrollChatToBottom();
+        })
+        .catch(function () {});
+    }
+
+    function pollNewMessages() {
+      if (!oaChannelId) return;
+      var url = '/api/messaging/channels/' + oaChannelId + '/messages?after=' + oaLastMessageId;
+      fetch(url, { headers: getHeaders() })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (msgs) {
+          if (!msgs || !msgs.length) return;
+          var before = chatList.scrollHeight;
+          msgs.forEach(renderChatMessage);
+          if (chatList.scrollTop + chatList.clientHeight >= before - 40) {
+            scrollChatToBottom();
+          }
+        })
+        .catch(function () {});
+    }
+
+    function sendChatMessage() {
+      var content = (chatInput.value || '').trim();
+      if (!content || !oaChannelId) return;
+      chatSend.disabled = true;
+      fetch('/api/messaging/channels/' + oaChannelId + '/messages', {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({ content: content })
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (m) {
+          chatSend.disabled = false;
+          if (m) {
+            chatInput.value = '';
+            renderChatMessage(m);
+            scrollChatToBottom();
+          }
+        })
+        .catch(function () { chatSend.disabled = false; });
+    }
+
+    chatSend.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
     });
-    editorCard.appendChild(editor);
-    wrapper.appendChild(editorCard);
 
-    // Image dump
-    var imgCard = document.createElement('div');
-    imgCard.className = 'oa-editor-card';
-    var imgTitle = document.createElement('h3');
-    imgTitle.className = 'oa-card-title';
-    imgTitle.textContent = 'Images';
-    imgCard.appendChild(imgTitle);
-    imgCard.appendChild(buildUploadArea(deliverable.id, meta.article_images, save, 'Upload images'));
-    wrapper.appendChild(imgCard);
+    fetch('/api/messaging/channels/for-deliverable', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ deliverableId: deliverable.id })
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (ch) {
+        if (!ch || !ch.id) {
+          while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
+          var errRow = document.createElement('div');
+          errRow.className = 'cc-chat-msg-header';
+          errRow.textContent = 'Chat unavailable';
+          chatList.appendChild(errRow);
+          return;
+        }
+        oaChannelId = ch.id;
+        chatInput.disabled = false;
+        chatSend.disabled = false;
+        loadInitialMessages();
+        stopCCChatPoll();
+        _ccChatPoll = setInterval(pollNewMessages, 15000);
+      })
+      .catch(function () {});
 
+    // ── Article card (right) ──
+    var articleCard = document.createElement('div');
+    articleCard.className = 'oa-article-card cc-posts-card';
+    var articleHeader = document.createElement('div');
+    articleHeader.className = 'oa-article-header';
+    articleHeader.textContent = 'Article';
+    articleCard.appendChild(articleHeader);
+
+    var editorEl = document.createElement('div');
+    editorEl.className = 'oa-article-editor';
+    articleCard.appendChild(editorEl);
+    bottomRow.appendChild(articleCard);
+
+    wrapper.appendChild(bottomRow);
     container.appendChild(wrapper);
+
+    // ── Quill init (deferred so editorEl is in the DOM) ──
+    if (window.Quill) {
+      setTimeout(function () {
+        var quill = new Quill(editorEl, {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              [{ 'header': [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              ['blockquote', 'link', 'image'],
+              ['clean']
+            ]
+          },
+          placeholder: 'Write or paste your article...'
+        });
+        quill.root.innerHTML = (meta && meta.article_body) || '';
+
+        var saveTimer = null;
+        quill.on('text-change', function () {
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(function () {
+            var html = quill.root.innerHTML;
+            fetch(API_BASE + '/' + deliverable.id, {
+              method: 'PATCH', headers: getHeaders(),
+              body: JSON.stringify({ metadata: { article_body: html } })
+            });
+          }, 500);
+        });
+
+        // Override the default "insert by URL" image handler so toolbar
+        // image clicks upload a local file and embed the returned URL.
+        quill.getModule('toolbar').addHandler('image', function () {
+          var input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = function () {
+            if (!input.files || !input.files[0]) return;
+            var fd = new FormData();
+            fd.append('images', input.files[0]);
+            fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+              method: 'POST',
+              headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+              body: fd
+            }).then(function (r) { return r.json(); }).then(function (data) {
+              var url = (data && data.urls && data.urls[0]) || null;
+              if (url) {
+                var range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'image', url);
+                quill.setSelection(range.index + 1);
+              }
+            }).catch(function () {});
+          };
+          input.click();
+        });
+      }, 0);
+    } else {
+      // Fallback — contenteditable div
+      editorEl.contentEditable = 'true';
+      editorEl.innerHTML = (meta && meta.article_body) || '';
+      editorEl.addEventListener('blur', function () {
+        fetch(API_BASE + '/' + deliverable.id, {
+          method: 'PATCH', headers: getHeaders(),
+          body: JSON.stringify({ metadata: { article_body: editorEl.innerHTML } })
+        });
+      });
+    }
   }
+
+  // Back-compat alias — older call sites (colEye, inline eye handlers for
+  // departments other than Production) still use the plural name.
+  var openOnlineArticlesDashboard = openOnlineArticleDashboard;
 
   // ══════ AGRI4ALL SHARED: Countries sidebar section ══════
   function addCountriesToSidebar(nav, countries) {

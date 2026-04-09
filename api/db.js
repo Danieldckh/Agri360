@@ -510,6 +510,68 @@ async function runMigrations() {
       console.error('Content calendar per-post status migration error:', e.message);
     }
 
+    // Online Articles: ensure metadata has default fields so the production
+    // dashboard rendering doesn't crash on null reads. Idempotent — only sets
+    // fields that don't already exist.
+    try {
+      const oaResult = await client.query(`
+        UPDATE deliverables
+        SET metadata = jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              jsonb_set(
+                jsonb_set(
+                  COALESCE(metadata, '{}'::jsonb),
+                  '{needs_translation}', COALESCE(metadata->'needs_translation', 'false'::jsonb), true
+                ),
+                '{amount}', COALESCE(metadata->'amount', '0'::jsonb), true
+              ),
+              '{curated_amount}', COALESCE(metadata->'curated_amount', '0'::jsonb), true
+            ),
+            '{platforms}', COALESCE(metadata->'platforms', '[]'::jsonb), true
+          ),
+          '{article_body}', COALESCE(metadata->'article_body', '""'::jsonb), true
+        )
+        WHERE type = 'online-articles'
+          AND (
+            NOT (metadata ? 'needs_translation') OR
+            NOT (metadata ? 'amount') OR
+            NOT (metadata ? 'curated_amount') OR
+            NOT (metadata ? 'platforms') OR
+            NOT (metadata ? 'article_body')
+          )
+      `);
+      if (oaResult.rowCount > 0) {
+        console.log(`Backfilled online-articles metadata defaults on ${oaResult.rowCount} rows`);
+      }
+    } catch (e) {
+      console.error('Online articles metadata backfill failed:', e.message);
+    }
+
+    // Website Design status rename: sitemap/wireframe/prototype → site_map, site_developed → site_development
+    try {
+      const wdSiteMap = await client.query(`
+        UPDATE deliverables
+        SET status = 'site_map', updated_at = NOW()
+        WHERE type = 'website-design'
+          AND status IN ('sitemap', 'wireframe', 'prototype')
+      `);
+      if (wdSiteMap.rowCount > 0) {
+        console.log('Website Design: renamed ' + wdSiteMap.rowCount + ' legacy sitemap/wireframe/prototype → site_map');
+      }
+      const wdSiteDev = await client.query(`
+        UPDATE deliverables
+        SET status = 'site_development', updated_at = NOW()
+        WHERE type = 'website-design'
+          AND status = 'site_developed'
+      `);
+      if (wdSiteDev.rowCount > 0) {
+        console.log('Website Design: renamed ' + wdSiteDev.rowCount + ' legacy site_developed → site_development');
+      }
+    } catch (e) {
+      console.error('Website Design status rename migration error:', e.message);
+    }
+
     console.log('All migrations applied successfully');
   } catch (err) {
     console.error('Migration error:', err.message);

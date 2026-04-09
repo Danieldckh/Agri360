@@ -50,12 +50,16 @@
       'scheduled', 'posted', 'create_stat_sheet'
     ],
 
-    // Web Design (existing)
+    // Web Design
+    // Materials/approval phases live in Production; site_map and
+    // design/dev phases live in Design. See DEPT_MAPS below for
+    // per-status routing — must stay in lockstep with the backend
+    // entries in api/routes/deliverables.js.
     'website-design': [
       'request_client_materials', 'materials_requested', 'materials_received',
-      'sitemap', 'wireframe', 'prototype',
+      'site_map',
       'ready_for_approval', 'sent_for_approval', 'approved',
-      'development', 'site_developed', 'hosting_seo', 'complete'
+      'development', 'site_development', 'hosting_seo', 'complete'
     ],
 
     // Video
@@ -159,8 +163,9 @@
       'request_client_materials': 'production',
       'materials_requested': 'production',
       'waiting_for_materials': 'production', // legacy alias
-      'materials_received': 'production',
+      'materials_received': 'editorial',
       'editing': 'editorial',
+      'editorial_review': 'editorial',
       'editorial_changes': 'editorial',
       'ready_for_approval': 'production',
       'sent_for_approval': 'production',
@@ -185,17 +190,15 @@
       'request_client_materials': 'production',
       'materials_requested': 'production',
       'materials_received': 'production',
-      'sitemap': 'design',
-      'wireframe': 'design',
-      'prototype': 'design',
-      'design_changes': 'design',
-      'approved': 'design',
+      'site_map': 'design',
       'ready_for_approval': 'production',
       'sent_for_approval': 'production',
-      'development': 'production',
-      'site_developed': 'production',
-      'hosting_seo': 'production',
-      'complete': 'production'
+      'approved': 'production',
+      'development': 'design',
+      'site_development': 'design',
+      'hosting_seo': 'design',
+      'design_changes': 'design',
+      'complete': 'design'
     },
 
     'video': {
@@ -254,7 +257,7 @@
   // ── Branch Statuses (loops back) ───────────────────────
 
   var BRANCH_STATUSES = {
-    'website-design': { 'design_changes': 'prototype' },
+    'website-design': { 'design_changes': 'development' },
     'sm-content-calendar': { 'design_changes': 'design', 'client_changes': 'design' },
     'sm-posts': { 'design_changes': 'artwork_design', 'client_changes': 'ready_for_approval' },
     'agri4all-posts': { 'design_changes': 'design' },
@@ -355,9 +358,17 @@
     return chain[0] || 'pending';
   }
 
+  // Special-case labels that don't fit Title Case (acronyms, ampersands).
+  var STATUS_LABEL_OVERRIDES = {
+    'hosting_seo': 'Hosting & SEO',
+    'site_map': 'Site Map',
+    'site_development': 'Site Development'
+  };
+
   // Human-readable status label (snake_case → Title Case)
   function formatStatusLabel(status) {
     if (!status) return '';
+    if (STATUS_LABEL_OVERRIDES[status]) return STATUS_LABEL_OVERRIDES[status];
     return String(status).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 

@@ -224,16 +224,30 @@ const DEPT_MAPS = {
   'online-articles': {
     'request_client_materials': 'production', 'materials_requested': 'production',
     'waiting_for_materials': 'production', // legacy alias
-    'materials_received': 'production',
-    'editing': 'editorial', 'editorial_changes': 'editorial',
+    'materials_received': 'editorial',
+    'editing': 'editorial', 'editorial_review': 'editorial', 'editorial_changes': 'editorial',
     'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'editorial',
     'approved': 'editorial', 'translating': 'editorial', 'ready_to_upload': 'editorial', 'posted': 'editorial'
   },
   'website-design': {
-    'request_client_materials': 'production', 'materials_requested': 'production', 'materials_received': 'production',
-    'sitemap': 'design', 'wireframe': 'design', 'prototype': 'design', 'design_changes': 'design', 'approved': 'design',
-    'ready_for_approval': 'production', 'sent_for_approval': 'production',
-    'development': 'production', 'site_developed': 'production', 'hosting_seo': 'production', 'complete': 'production'
+    'request_client_materials': 'production',
+    'materials_requested': 'production',
+    'materials_received': 'production',
+    'site_map': 'design',
+    'ready_for_approval': 'production',
+    'sent_for_approval': 'production',
+    'approved': 'production',
+    'development': 'design',
+    'site_development': 'design',
+    'hosting_seo': 'design',
+    'design_changes': 'design',
+    'complete': 'design',
+    // Legacy status aliases (in-flight rows from the pre-restructure schema).
+    // These must route to the same department as their canonical replacements.
+    'sitemap': 'design',          // legacy → site_map
+    'wireframe': 'design',        // legacy → site_map
+    'prototype': 'design',        // legacy → site_map
+    'site_developed': 'design'    // legacy → site_development
   },
   'video': {
     'send_request_form': 'production', 'request_form_sent': 'production', 'request_form_received': 'production', 'populating_video_dept': 'production',
@@ -901,6 +915,24 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update deliverable (auto-routes website-design by status)
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
+
+  // Online Articles: when advancing TO 'translating' from 'approved',
+  // honor the metadata.needs_translation flag. If false, skip translating
+  // and go straight to ready_to_upload.
+  if (body.status === 'translating') {
+    const existing = await pool.query('SELECT type, status, metadata FROM deliverables WHERE id = $1', [req.params.id]);
+    if (existing.rows.length > 0) {
+      const d = existing.rows[0];
+      if (d.type === 'online-articles' && d.status === 'approved') {
+        let meta = d.metadata || {};
+        if (typeof meta === 'string') try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+        if (meta.needs_translation !== true) {
+          // Skip translating — go straight to ready_to_upload.
+          body.status = 'ready_to_upload';
+        }
+      }
+    }
+  }
 
   // Auto-route deliverables to correct department on status change
   if (body.status) {

@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'admin': ['Proposal', 'Booking Form', 'Onboarding', 'Declined Proposal'],
     'production': ['Deliverables', 'Follow Ups', 'Approvals'],
     'design': ['Content Calendars', 'Agri for All', 'Magazine', 'Web Design', 'Banners', 'Proposals'],
-    'editorial': ['Content Calendars', 'Magazine', 'Online Articles'],
+    'editorial': ['Content Calendars', 'Online Articles', 'Magazine', 'Ready to Upload'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
     'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
     'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media', 'Google Ads']
@@ -977,6 +977,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (page === 'editorial' && viewName === 'Content Calendars' && window.renderEditorialContentCalendarsTab) {
       window.renderEditorialContentCalendarsTab(dashboardContent);
       return;
+    }
+
+    // Route Editorial > Online Articles to 70/30 split (Editing | Translating)
+    if (page === 'editorial' && viewName === 'Online Articles') {
+      if (window.renderEditorialOnlineArticlesTab) {
+        window.renderEditorialOnlineArticlesTab(dashboardContent);
+        return;
+      }
+    }
+
+    // Route Editorial > Ready to Upload to full-width ready_to_upload sheet
+    if (page === 'editorial' && viewName === 'Ready to Upload') {
+      if (window.renderEditorialReadyToUploadTab) {
+        window.renderEditorialReadyToUploadTab(dashboardContent);
+        return;
+      }
     }
 
     // Route Design > Proposals to live design proposals view

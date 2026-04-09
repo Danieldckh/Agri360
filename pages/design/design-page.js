@@ -83,4 +83,190 @@
   }
 
   window.renderDesignContentCalendarsTab = renderDesignContentCalendarsTab;
+
+  // ── Design > Web Design Tab ───────────────────────────────────────
+  // Flat sheet of website-design deliverables currently routed to the
+  // Design department (site map, development, hosting, etc.). The eye
+  // icon reuses the Production WD dashboard (exposed as
+  // window.openWebsiteDesignDashboard) so clicking a row gives the
+  // exact same UX as Production's Deliverables tab.
+  //
+  // Columns: Production person | Client/title | Pages | Type | Status.
+  // Rows are fetched from /api/deliverables/by-type/website-design
+  // and filtered client-side to the design-side status set.
+  // ─────────────────────────────────────────────────────────────────
+  var WD_DESIGN_STATUSES = [
+    'site_map', 'development', 'site_development', 'hosting_seo',
+    'design_changes', 'complete'
+  ];
+
+  var WD_TYPE_LABELS = {
+    'website-design-development': 'Website Design and Development',
+    'web-redesign': 'Web Redesign',
+    'monthly-website-management': 'Monthly Website Management'
+  };
+
+  function formatWdTypeLabel(raw) {
+    if (raw == null || raw === '') return '—';
+    var s = String(raw).toLowerCase().replace(/[\s_]+/g, '-');
+    if (WD_TYPE_LABELS[s]) return WD_TYPE_LABELS[s];
+    if (s.indexOf('redesign') !== -1) return 'Web Redesign';
+    if (s.indexOf('monthly') !== -1 || s.indexOf('management') !== -1) return 'Monthly Website Management';
+    if (s.indexOf('website') !== -1 || s.indexOf('design') !== -1) return 'Website Design and Development';
+    return String(raw);
+  }
+
+  function extractPagesCount(d) {
+    var meta = d.metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) { meta = {}; } }
+    var bf = d.bookingForm || d.booking_form || {};
+    var fd = bf.formData || bf.form_data || {};
+    var candidates = [meta.pagesCount, meta.pages_count, meta.number_of_pages, meta.pages,
+      fd.pages, fd.numberOfPages, fd.number_of_pages];
+    for (var i = 0; i < candidates.length; i++) {
+      var v = candidates[i];
+      if (v != null && v !== '') return v;
+    }
+    return '—';
+  }
+
+  function extractWdType(d) {
+    var meta = d.metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) { meta = {}; } }
+    var bf = d.bookingForm || d.booking_form || {};
+    var fd = bf.formData || bf.form_data || {};
+    return meta.websiteType || meta.website_type
+      || fd.websiteType || fd.website_type
+      || null;
+  }
+
+  function resolveProductionName(d) {
+    var id = d.assignedProduction || d.assigned_production || d.assignedTo || d.assigned_to;
+    if (!id) return '—';
+    if (window._employeeCacheLookup) {
+      var emp = window._employeeCacheLookup(id);
+      if (emp) {
+        var nm = ((emp.first_name || emp.firstName || '') + ' ' + (emp.last_name || emp.lastName || '')).trim();
+        if (nm) return nm;
+      }
+    }
+    return '—';
+  }
+
+  function getHeaders() {
+    return window.getAuthHeaders ? window.getAuthHeaders() : {};
+  }
+
+  function renderDesignWebDesignTab(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = '';
+    container.style.padding = '';
+
+    var card = document.createElement('div');
+    card.className = 'dept-sheet-card design-wd-tab-card';
+
+    var header = document.createElement('div');
+    header.className = 'dept-sheet-header';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'dept-sheet-title-wrap';
+    var h = document.createElement('h3');
+    h.className = 'dept-sheet-title';
+    h.textContent = 'Web Design';
+    titleWrap.appendChild(h);
+    var countBadge = document.createElement('span');
+    countBadge.className = 'dept-sheet-count';
+    countBadge.textContent = '0';
+    titleWrap.appendChild(countBadge);
+    header.appendChild(titleWrap);
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dept-sheet-search';
+    searchInput.placeholder = 'Search web design...';
+    header.appendChild(searchInput);
+    card.appendChild(header);
+
+    var sheetContainer = document.createElement('div');
+    sheetContainer.className = 'dept-sheet-container';
+    card.appendChild(sheetContainer);
+    container.appendChild(card);
+
+    var allRows = [];
+
+    var columns = [
+      { key: 'assigned', label: 'Production', sortable: true },
+      { key: 'client',   label: 'Client / Deliverable', sortable: true, isName: true },
+      { key: 'pages',    label: 'Pages', sortable: true, width: 'sm' },
+      { key: 'wdType',   label: 'Type', sortable: true },
+      { key: 'status',   label: 'Status', sortable: true, type: 'status', options: WD_DESIGN_STATUSES }
+    ];
+
+    var leadingActions = [{
+      icon: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
+      tooltip: 'View website design dashboard',
+      className: 'action-view',
+      onClick: function (rowData) {
+        if (rowData && rowData.__deliverable && typeof window.openWebsiteDesignDashboard === 'function') {
+          window.openWebsiteDesignDashboard(container, rowData.__deliverable);
+        } else {
+          console.warn('[design] openWebsiteDesignDashboard not available');
+        }
+      }
+    }];
+
+    function mapDeliverableToRow(d) {
+      return {
+        id: d.id,
+        assigned: resolveProductionName(d),
+        client: (d.clientName || d.client_name || '') + (d.title ? ' — ' + d.title : ''),
+        pages: extractPagesCount(d),
+        wdType: formatWdTypeLabel(extractWdType(d)),
+        status: d.status,
+        __deliverable: d
+      };
+    }
+
+    function render() {
+      var term = (searchInput.value || '').toLowerCase();
+      var filtered = term ? allRows.filter(function (r) {
+        return columns.some(function (c) {
+          var v = r[c.key];
+          return v != null && String(v).toLowerCase().indexOf(term) !== -1;
+        });
+      }) : allRows;
+      countBadge.textContent = filtered.length;
+      if (window.renderSheet) {
+        window.renderSheet(sheetContainer, {
+          columns: columns,
+          data: filtered,
+          searchable: false,
+          leadingActions: leadingActions
+        });
+      }
+    }
+    searchInput.addEventListener('input', render);
+
+    function fetchData() {
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      Promise.all([
+        empPromise,
+        fetch('/api/deliverables/by-type/website-design', { headers: getHeaders() })
+          .then(function (r) { return r.ok ? r.json() : []; })
+      ]).then(function (results) {
+        var items = Array.isArray(results[1]) ? results[1] : [];
+        var designSide = items.filter(function (d) {
+          return WD_DESIGN_STATUSES.indexOf(d.status) !== -1;
+        });
+        allRows = designSide.map(mapDeliverableToRow);
+        render();
+      }).catch(function (err) {
+        console.error('[design] Web Design tab fetch error:', err);
+        allRows = [];
+        render();
+      });
+    }
+    fetchData();
+  }
+
+  window.renderDesignWebDesignTab = renderDesignWebDesignTab;
 })();

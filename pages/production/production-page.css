@@ -271,13 +271,88 @@
 .wd-file-thumb:hover .cc-img-remove { display:block; }
 .wd-file-link { font-size:9px; text-align:center; padding:4px; color:var(--accent-color,#3b82f6); word-break:break-all; text-decoration:none; }
 
-/* ===== Online Articles Dashboard ===== */
-.oa-dashboard { width:100%; height:100%; display:flex; flex-direction:column; overflow-y:auto; padding:0 4px; }
-.oa-editor-card { background:var(--card-bg,#fff); border:1px solid var(--border-color,#e2e8f0); border-radius:10px; padding:16px; margin-bottom:16px; }
-.oa-card-title { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-secondary,#64748b); margin:0 0 12px 0; padding-bottom:8px; border-bottom:1px solid var(--border-color,#e2e8f0); }
-.oa-article-editor { min-height:300px; font-size:14px; line-height:1.7; color:var(--text-primary,#1e293b); border:1px solid transparent; border-radius:6px; padding:12px; outline:none; transition:border-color 0.15s; word-break:break-word; }
-.oa-article-editor:focus { border-color:var(--accent-color,#3b82f6); background:var(--card-bg,#fff); }
-.oa-article-editor:empty::before { content:attr(placeholder); color:var(--text-muted,#94a3b8); }
+/* ===== Online Articles Row ===== */
+.prod-deliv-amount { flex:0 0 60px; font-weight:600; color:var(--text-primary,#1e293b); text-align:center; }
+.prod-deliv-curated { flex:0 0 100px; color:var(--text-secondary,#64748b); font-size:12px; }
+.prod-deliv-translate { flex:0 0 auto; overflow:visible; }
+.prod-deliv-translate-btn {
+  padding:4px 10px; border:1px solid var(--border-color,#e2e8f0);
+  background:rgba(128,128,128,0.12); color:var(--text-secondary,#64748b);
+  font-size:11px; font-weight:600; border-radius:999px; cursor:pointer;
+  white-space:nowrap; transition:all 0.15s;
+}
+.prod-deliv-translate-btn:hover { border-color:var(--accent-color,#3b82f6); }
+.prod-deliv-translate-btn.is-on {
+  background:#10b981; border-color:#10b981; color:#fff;
+}
+.prod-deliv-translate-btn.is-on:hover { background:#059669; border-color:#059669; }
+
+/* Per-deliverable Request Materials button */
+.prod-deliv-req-mat { flex:0 0 auto; overflow:visible; }
+.prod-deliv-req-mat-btn {
+  padding:4px 10px; border:1px solid var(--border-color,#e2e8f0);
+  background:var(--card-bg,#fff); color:var(--text-primary,#1e293b);
+  font-size:11px; font-weight:600; border-radius:6px; cursor:pointer;
+  white-space:nowrap; transition:all 0.15s;
+}
+.prod-deliv-req-mat-btn:hover {
+  border-color:var(--accent-color,#3b82f6);
+  color:var(--accent-color,#3b82f6);
+  background:rgba(59,130,246,0.04);
+}
+
+/* ===== Online Article Dashboard ===== */
+.oa-dashboard {
+  width:100%; height:100%; display:flex; flex-direction:column;
+  overflow:hidden; padding:20px; box-sizing:border-box;
+}
+.oa-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 4px 16px; flex-shrink:0;
+}
+.oa-title {
+  font-size:20px; font-weight:600;
+  color:var(--text-primary,#1e293b); margin:0;
+}
+.oa-materials-recap { flex-shrink:0; }
+.oa-bottom-row {
+  display:flex; gap:16px; flex:1; min-height:0;
+}
+.oa-bottom-row .oa-chat-box {
+  flex:0 0 30%; margin:0; max-height:none; min-height:0;
+}
+.oa-article-card {
+  flex:1; min-height:0; display:flex; flex-direction:column;
+}
+.oa-article-header {
+  font-size:14px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.04em; color:var(--text-secondary,#64748b);
+  margin:0 0 12px 0; padding-bottom:8px;
+  border-bottom:1px solid var(--border-color,#e2e8f0);
+  flex-shrink:0;
+}
+.oa-article-card .ql-toolbar.ql-snow {
+  border:1px solid var(--border-color,#e2e8f0);
+  border-radius:6px 6px 0 0;
+  background:rgba(128,128,128,0.04);
+}
+.oa-article-card .ql-container.ql-snow {
+  border:1px solid var(--border-color,#e2e8f0);
+  border-top:none;
+  border-radius:0 0 6px 6px;
+  flex:1;
+  min-height:400px;
+  font-size:14px;
+  display:flex;
+  flex-direction:column;
+}
+.oa-article-card .ql-editor {
+  flex:1;
+  line-height:1.7;
+  color:var(--text-primary,#1e293b);
+  min-height:400px;
+}
+.oa-article-editor img { max-width:100%; margin:8px 0; border-radius:6px; }
 
 /* ===== Agri4All Dashboards ===== */
 .a4a-items { display:flex; flex-direction:column; gap:16px; padding-bottom:24px; }
@@ -286,7 +361,6 @@
 .a4a-rt-toolbar { display:flex; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--border-color,#e2e8f0); margin-bottom:10px; }
 .a4a-rt-btn { padding:4px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-secondary,#64748b); cursor:pointer; transition:all 0.15s; }
 .a4a-rt-btn:hover { border-color:var(--accent-color,#3b82f6); color:var(--accent-color,#3b82f6); background:rgba(59,130,246,0.04); }
-.oa-article-editor img { max-width:100%; margin:8px 0; border-radius:6px; }
 
 /* Multi-section dashboard checkbox + delete + editable name */
 .wd-step-header { position:relative; }
