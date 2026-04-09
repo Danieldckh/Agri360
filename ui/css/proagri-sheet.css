@@ -166,17 +166,6 @@
   outline-offset: -1px;
 }
 
-/* Admin > Design Proposals: status column aligns right by request. */
-.design-proposals-sheet .proagri-sheet-header-cell[data-col-key="status"] {
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.design-proposals-sheet .proagri-sheet-cell[data-col-key="status"] {
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-}
 
 .proagri-sheet-cell.radial-col {
   flex: 0 0 40px;
