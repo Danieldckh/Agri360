@@ -995,7 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Route Design > Proposals to live design proposals view
+    // Route Design > Proposals to live  view
     if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
       window.renderDesignProposalsTab(dashboardContent);
       return;

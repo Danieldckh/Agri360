@@ -224,6 +224,11 @@ async function runMigrations() {
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS editable_url TEXT`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS esign_url TEXT`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS checklist_url TEXT`);
+    // Design proposal artifact uploaded from Admin > Design Proposals sheet
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS proposal_file_url TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS proposal_file_name TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS proposal_file_mime VARCHAR(255)`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS proposal_file_uploaded_at TIMESTAMPTZ`);
 
     // E-sign data (latest-state "pointer" columns on booking_forms —
     // the append-only source of truth lives in booking_form_revisions)

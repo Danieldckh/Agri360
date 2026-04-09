@@ -34,6 +34,7 @@
   var ICON_ADVANCE = 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z';
   var ICON_UNDO = 'M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z';
   var ICON_EYE = 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z';
+  var ICON_UPLOAD = 'M5 20h14v-2H5v2zm7-18l-5.5 5.5h3.5V14h4V7.5H17.5L12 2z';
   // skip_next (Material): jumps straight to the end bar — used to skip
   // outline_proposal rows directly to booking_form_ready, bypassing the
   // design/review/sent_to_client sequence for clients who don't need a
@@ -96,6 +97,11 @@
     { key: 'signedUrl',    label: 'Signed Booking Form',   type: 'link', width: 'sm' }
   ]);
 
+  // Design Proposals sheet: status + the uploaded proposal file artifact.
+  var DESIGN_PROPOSAL_COLUMNS = BASE_COLUMNS.concat([
+    { key: 'proposalFileUrl', label: 'Proposal File', type: 'link', width: 'sm' }
+  ]);
+
   // Per-tab column overrides for renderAdminTab. Tabs not listed fall back
   // to BASE_COLUMNS. NOTE: the Booking Form tab does NOT go through
   // renderAdminTab — it has its own custom split-layout renderer
@@ -127,15 +133,66 @@
       // Change-request and signed PDFs are stored as base64. Wrap them in
       // data URLs so a click on "View" opens the PDF in a new tab.
       changeReqUrl: pdfDataUrl(form.changeRequestPdf),
-      signedUrl: pdfDataUrl(form.signedPdf)
+      signedUrl: pdfDataUrl(form.signedPdf),
+      proposalFileUrl: form.proposalFileUrl || ''
     };
+  }
+
+  function getAuthOnlyHeaders() {
+    var headers = {};
+    if (window.getAuthHeaders) {
+      var auth = window.getAuthHeaders();
+      for (var key in auth) {
+        if (auth.hasOwnProperty(key)) headers[key] = auth[key];
+      }
+    }
+    return headers;
+  }
+
+  function uploadProposalFile(rowData, refreshFn) {
+    if (!rowData || !rowData.id) return;
+    var picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = '.pdf,.doc,.docx,.ppt,.pptx,.zip,image/*';
+    picker.style.display = 'none';
+    document.body.appendChild(picker);
+    picker.addEventListener('change', function () {
+      var file = picker.files && picker.files[0];
+      if (!file) {
+        picker.remove();
+        return;
+      }
+      var fd = new FormData();
+      fd.append('file', file);
+      fetch(API_BASE + '/' + rowData.id + '/upload-proposal-file', {
+        method: 'POST',
+        headers: getAuthOnlyHeaders(),
+        body: fd
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Upload failed');
+          return res.json();
+        })
+        .then(function () {
+          if (typeof refreshFn === 'function') refreshFn();
+        })
+        .catch(function (err) {
+          console.error('Proposal file upload failed:', err);
+          alert('Failed to upload proposal file. Please try again.');
+        })
+        .finally(function () {
+          picker.remove();
+        });
+    });
+    picker.click();
   }
 
   // --- Reusable Sheet Builder ---
   // columns defaults to BASE_COLUMNS; pass a custom set to override (e.g.
   // PROPOSAL_COLUMNS for the main Proposal sub-sheet which surfaces the
   // prefilled-checklist link).
-  function buildSheet(title, refreshFn, columns) {
+  function buildSheet(title, refreshFn, columns, opts) {
+    opts = opts || {};
     var sheetCols = columns || BASE_COLUMNS;
     var card = document.createElement('div');
     card.className = 'dept-sheet-card';
@@ -184,6 +241,9 @@
         }
       }
     ];
+    if (Array.isArray(opts.leadingActions)) {
+      leadingActions = opts.leadingActions.slice();
+    }
 
     var rowActions = [
       {
@@ -250,6 +310,12 @@
         }
       }
     ];
+    if (Array.isArray(opts.extraRowActions) && opts.extraRowActions.length) {
+      rowActions = opts.extraRowActions.concat(rowActions);
+    }
+    if (Array.isArray(opts.rowActions)) {
+      rowActions = opts.rowActions.slice();
+    }
 
     function render() {
       var filtered = allData;
@@ -1298,7 +1364,19 @@
     var rightCol = document.createElement('div');
     rightCol.className = 'proposal-grid-right';
 
-    var designSheet = buildSheet('Design Proposals', refreshAll);
+    var designSheet = buildSheet('Design Proposals', refreshAll, DESIGN_PROPOSAL_COLUMNS, {
+      extraRowActions: [
+        {
+          icon: ICON_UPLOAD,
+          tooltip: 'Upload proposal file',
+          className: 'action-upload',
+          onClick: function (rowData) {
+            uploadProposalFile(rowData, refreshAll);
+          }
+        }
+      ]
+    });
+    designSheet.el.classList.add('design-proposals-sheet');
     leftCol.appendChild(designSheet.el);
 
     var reviewSheet = buildSheet('Design Review', refreshAll);

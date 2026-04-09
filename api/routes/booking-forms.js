@@ -2,10 +2,29 @@ const { Router } = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { toCamelCase, toSnakeBody } = require('../utils');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const router = Router();
 
 router.use(requireAuth);
+
+const proposalUploadDir = path.join(__dirname, '../uploads/proposal-files');
+fs.mkdirSync(proposalUploadDir, { recursive: true });
+
+const proposalStorage = multer.diskStorage({
+  destination: function (_req, _file, cb) { cb(null, proposalUploadDir); },
+  filename: function (req, file, cb) {
+    var ext = path.extname(file.originalname) || '';
+    cb(null, 'proposal-' + req.params.id + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6) + ext);
+  }
+});
+
+const proposalUpload = multer({
+  storage: proposalStorage,
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB
+});
 
 // Internal helper: create the unsigned booking form (an esign URL the
 // client can click to view + sign). Used by the explicit
@@ -190,7 +209,7 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update booking form
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason', 'editable_url', 'esign_url', 'checklist_url', 'assigned_admin'];
+  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason', 'editable_url', 'esign_url', 'checklist_url', 'proposal_file_url', 'proposal_file_name', 'proposal_file_mime', 'proposal_file_uploaded_at', 'assigned_admin'];
   const updates = [];
   const values = [];
   let idx = 1;
@@ -265,6 +284,58 @@ router.delete('/:id', async (req, res) => {
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Delete booking form error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:id/upload-proposal-file - attach a design proposal file to a booking form
+router.post('/:id/upload-proposal-file', proposalUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Missing file upload' });
+    }
+
+    const current = await pool.query(
+      'SELECT proposal_file_url FROM booking_forms WHERE id = $1',
+      [req.params.id]
+    );
+    if (current.rows.length === 0) {
+      fs.unlink(path.join(proposalUploadDir, req.file.filename), function () {});
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+
+    const fileUrl = '/uploads/proposal-files/' + req.file.filename;
+    const updated = await pool.query(
+      `UPDATE booking_forms SET
+         proposal_file_url = $1,
+         proposal_file_name = $2,
+         proposal_file_mime = $3,
+         proposal_file_uploaded_at = NOW(),
+         updated_at = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [fileUrl, req.file.originalname || req.file.filename, req.file.mimetype || null, req.params.id]
+    );
+
+    // Best-effort cleanup of the previously attached proposal file.
+    var prevUrl = current.rows[0] && current.rows[0].proposal_file_url;
+    if (prevUrl && prevUrl.indexOf('/uploads/proposal-files/') === 0) {
+      var prevName = path.basename(prevUrl);
+      var prevAbs = path.join(proposalUploadDir, prevName);
+      if (prevAbs !== path.join(proposalUploadDir, req.file.filename)) {
+        fs.unlink(prevAbs, function () {});
+      }
+    }
+
+    res.json({
+      success: true,
+      fileUrl: fileUrl,
+      fileName: req.file.originalname || req.file.filename,
+      mimeType: req.file.mimetype || null,
+      bookingForm: toCamelCase(updated.rows[0])
+    });
+  } catch (err) {
+    console.error('Upload proposal file error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -825,6 +825,7 @@
       if (col.width === 'sm') cls += ' cell-sm';
       else if (col.width === 'md') cls += ' cell-md';
       th.className = cls;
+      th.setAttribute('data-col-key', col.key);
       th.textContent = col.label;
       if (col.sortable) {
         var si2 = document.createElement('span');
@@ -941,6 +942,7 @@
         if (col.width === 'sm') cls += ' cell-sm';
         else if (col.width === 'md') cls += ' cell-md';
         cell.className = cls;
+        cell.setAttribute('data-col-key', col.key);
         var type = col.type || 'text';
         (cellRenderers[type] || cellRenderers.text)(cell, rowData[col.key], col);
 
