@@ -522,6 +522,7 @@ html, body {
 
 /* Month selector above dept sheets */
 .dept-month-selector {
+  width: fit-content;
   display: inline-flex;
   align-items: center;
   gap: 0;
@@ -905,6 +906,7 @@ html, body {
 
 /* Month selector above dept sheets */
 .dept-month-selector {
+  width: fit-content;
   display: inline-flex;
   align-items: center;
   gap: 0;
@@ -1039,6 +1041,7 @@ html, body {
   }
   .dept-month-selector {
     justify-content: center;
+  width: fit-content;
   }
 }
 

@@ -2096,6 +2096,11 @@
             oaTransCell.appendChild(oaTransBtn);
             row.appendChild(oaTransCell);
 
+            // Spacer — pushes status + action to far right
+            var oaSpacer = document.createElement('div');
+            oaSpacer.className = 'prod-deliv-cell prod-deliv-spacer';
+            row.appendChild(oaSpacer);
+
             // Request Materials button — only visible when status is request_client_materials
             if (item.status === 'request_client_materials') {
               var oaReqMatCell = document.createElement('div');
@@ -2113,11 +2118,6 @@
               oaReqMatCell.appendChild(oaReqMatBtn);
               row.appendChild(oaReqMatCell);
             }
-
-            // Spacer — pushes status + action to far right
-            var oaSpacer = document.createElement('div');
-            oaSpacer.className = 'prod-deliv-cell prod-deliv-spacer';
-            row.appendChild(oaSpacer);
 
             // Status — reuse the same cell + dropdown pattern as the
             // default row below. We inline it here (no shared helper) so
