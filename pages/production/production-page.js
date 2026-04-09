@@ -2096,6 +2096,24 @@
             oaTransCell.appendChild(oaTransBtn);
             row.appendChild(oaTransCell);
 
+            // Request Materials button — only visible when status is request_client_materials
+            if (item.status === 'request_client_materials') {
+              var oaReqMatCell = document.createElement('div');
+              oaReqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
+              var oaReqMatBtn = document.createElement('button');
+              oaReqMatBtn.type = 'button';
+              oaReqMatBtn.className = 'prod-deliv-req-mat-btn';
+              oaReqMatBtn.textContent = 'Request Materials';
+              (function (it) {
+                oaReqMatBtn.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
+                });
+              })(item);
+              oaReqMatCell.appendChild(oaReqMatBtn);
+              row.appendChild(oaReqMatCell);
+            }
+
             // Spacer — pushes status + action to far right
             var oaSpacer = document.createElement('div');
             oaSpacer.className = 'prod-deliv-cell prod-deliv-spacer';
