@@ -783,10 +783,8 @@ router.post('/create-content-calendars', async (req, res) => {
       const states = group.states;
       const countries = group.countries;
 
-      // 1. Agri4All Posts (FB + IG posts)
-      if (anyHas(states, 'facebook_posts') || anyHas(states, 'instagram_posts')) {
-        const igPosts = anyHas(states, 'instagram_posts');
-        const igPostsAmount = maxAmt(states, 'instagram_posts_amount');
+      // 1. Agri4All Posts (FB + IG posts + IG stories)
+      if (anyHas(states, 'facebook_posts') || anyHas(states, 'instagram_posts') || anyHas(states, 'instagram_stories')) {
         created.push(await createDeliv(
           'agri4all-posts',
           clientName + ' - Agri4All Posts - ' + ml,
@@ -796,12 +794,12 @@ router.post('/create-content-calendars', async (req, res) => {
             facebook_posts: anyHas(states, 'facebook_posts'),
             facebook_posts_amount: maxAmt(states, 'facebook_posts_amount'),
             facebook_posts_curated_amount: maxAmt(states, 'facebook_posts_curated_amount'),
-            instagram_posts: igPosts,
-            instagram_posts_amount: igPostsAmount,
+            instagram_posts: anyHas(states, 'instagram_posts'),
+            instagram_posts_amount: maxAmt(states, 'instagram_posts_amount'),
             instagram_posts_curated_amount: maxAmt(states, 'instagram_posts_curated_amount'),
-            // Instagram Stories auto-derived from IG posts (same amount)
-            instagram_stories: igPosts,
-            instagram_stories_amount: igPostsAmount
+            // Instagram Stories belong with posts, read directly from states
+            instagram_stories: anyHas(states, 'instagram_stories'),
+            instagram_stories_amount: maxAmt(states, 'instagram_stories_amount')
           }
         ));
       }
@@ -821,8 +819,9 @@ router.post('/create-content-calendars', async (req, res) => {
         ));
       }
 
-      // 3. Agri4All Videos (stories + video posts + TikTok + YouTube)
-      const hasAnyVideo = anyHas(states, 'facebook_stories') || anyHas(states, 'instagram_stories') ||
+      // 3. Agri4All Videos (FB stories + video posts + TikTok + YouTube)
+      // Note: instagram_stories belongs to agri4all-posts, not videos.
+      const hasAnyVideo = anyHas(states, 'facebook_stories') ||
         anyHas(states, 'facebook_video_posts') || anyHas(states, 'tiktok_shorts') ||
         anyHas(states, 'youtube_shorts') || anyHas(states, 'youtube_video');
       if (hasAnyVideo) {
@@ -834,8 +833,6 @@ router.post('/create-content-calendars', async (req, res) => {
             countries: countries,
             facebook_stories: anyHas(states, 'facebook_stories'),
             facebook_stories_amount: maxAmt(states, 'facebook_stories_amount'),
-            instagram_stories: anyHas(states, 'instagram_stories'),
-            instagram_stories_amount: maxAmt(states, 'instagram_stories_amount'),
             facebook_video_posts: anyHas(states, 'facebook_video_posts'),
             facebook_video_posts_amount: maxAmt(states, 'facebook_video_posts_amount'),
             facebook_video_posts_curated_amount: maxAmt(states, 'facebook_video_posts_curated_amount'),
