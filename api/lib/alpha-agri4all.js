@@ -20,7 +20,7 @@ async function getAuthToken() {
   const res = await fetch(`${ALPHA_AGRI4ALL_BASE_URL}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ email: ALPHA_AGRI4ALL_EMAIL, password: ALPHA_AGRI4ALL_PASSWORD }),
+    body: JSON.stringify({ email: ALPHA_AGRI4ALL_EMAIL, password: ALPHA_AGRI4ALL_PASSWORD, device_name: 'proagri-crm' }),
   });
   if (!res.ok) throw new Error(`Alpha auth failed: ${res.status}`);
   const data = await res.json();
