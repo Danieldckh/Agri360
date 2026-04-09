@@ -328,7 +328,7 @@
           columns: sheetCols,
           data: filtered,
           searchable: false,
-          apiEndpoint: API_BASE,
+          apiEndpoint: '/booking-forms',
           leadingActions: leadingActions,
           rowActions: rowActions,
           onCellSaved: function (rowData, key) {
