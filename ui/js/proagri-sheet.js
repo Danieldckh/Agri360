@@ -825,6 +825,7 @@
       if (col.width === 'sm') cls += ' cell-sm';
       else if (col.width === 'md') cls += ' cell-md';
       th.className = cls;
+      if (!col.width && col.type === 'person') th.style.flex = '0 0 44px';
       th.setAttribute('data-col-key', col.key);
       th.textContent = col.label;
       if (col.sortable) {
@@ -942,6 +943,7 @@
         if (col.width === 'sm') cls += ' cell-sm';
         else if (col.width === 'md') cls += ' cell-md';
         cell.className = cls;
+        if (!col.width && col.type === 'person') cell.style.flex = '0 0 44px';
         cell.setAttribute('data-col-key', col.key);
         var type = col.type || 'text';
         (cellRenderers[type] || cellRenderers.text)(cell, rowData[col.key], col);
