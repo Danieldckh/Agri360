@@ -194,7 +194,7 @@ const DEPT_MAPS = {
     'request_materials': 'production', 'materials_requested': 'production', 'materials_received': 'production',
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
     'editorial': 'editorial', 'editorial_review': 'editorial',
-    'ready_for_approval': 'production', 'client_changes': 'production',
+    'ready_for_approval': 'production', 'sent_for_approval': 'production', 'client_changes': 'production',
     'approved': 'social-media', 'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
   },
   'agri4all-posts': {

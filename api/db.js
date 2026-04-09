@@ -476,6 +476,40 @@ async function runMigrations() {
       console.error('Content calendar status rename rollback error:', e.message);
     }
 
+    // 2026-04-08 — Content calendar per-post approval status.
+    // Content calendar deliverables store individual posts in metadata.posts[].
+    // Introduce a per-post `status` field (default 'pending') so the client
+    // portal can approve / request changes on a post-by-post basis. Idempotent:
+    // only touches posts that don't already have a `status` key.
+    try {
+      const ccPostStatus = await client.query(`
+        UPDATE deliverables
+           SET metadata = jsonb_set(
+             metadata,
+             '{posts}',
+             (SELECT jsonb_agg(
+                CASE WHEN p ? 'status' THEN p
+                     ELSE p || '{"status":"pending"}'::jsonb
+                END
+              ) FROM jsonb_array_elements(metadata->'posts') p),
+             true
+           )
+         WHERE type = 'sm-content-calendar'
+           AND metadata ? 'posts'
+           AND jsonb_typeof(metadata->'posts') = 'array'
+           AND jsonb_array_length(metadata->'posts') > 0
+           AND EXISTS (
+             SELECT 1 FROM jsonb_array_elements(metadata->'posts') p
+             WHERE NOT (p ? 'status')
+           )
+      `);
+      if (ccPostStatus.rowCount > 0) {
+        console.log('Backfilled per-post status=pending on ' + ccPostStatus.rowCount + ' content-calendar deliverables');
+      }
+    } catch (e) {
+      console.error('Content calendar per-post status migration error:', e.message);
+    }
+
     console.log('All migrations applied successfully');
   } catch (err) {
     console.error('Migration error:', err.message);

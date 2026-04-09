@@ -2132,6 +2132,95 @@
 
   window.renderProductionDeliverablesTab = renderProductionDeliverablesTab;
 
+  // ── Expose reusable helpers for sibling dept pages (design, editorial) ──
+  // These mirror Production's deliverables sheet exactly, so any dept that
+  // wants the same `.prod-deliv-*` DOM + same CC dashboard can reuse them
+  // without duplicating markup/CSS.
+  window.openContentCalendarDashboard = openContentCalendarDashboard;
+  window.renderClientGroupedSheet = renderClientGroupedSheet;
+  window.renderSplitSheetTab = renderSplitSheetTab;
+  window.prodCols = {
+    eye: colEye,
+    type: colType,
+    status: colStatus,
+    shortDate: colShortDate,
+    actionAdvance: colActionAdvance,
+    actionAdvanceBack: colActionAdvanceBack,
+    // New: dept-specific avatar column — renders the slot for the given
+    // dept slug (e.g. 'design' → assignedDesign). Clicking opens the
+    // inline employee picker, same as Production's team column.
+    deptAvatar: function (deptSlug) {
+      return {
+        label: 'Team',
+        className: 'prod-deliv-team',
+        render: function (item, refresh) {
+          return buildDeptAvatarRow(item, function () {
+            if (refresh) refresh();
+          }, deptSlug);
+        }
+      };
+    },
+    // New: action column that sends a deliverable back to a fixed target
+    // status (used for Editorial → design_changes) AND advances forward
+    // via the normal workflow. Falls back to the chain-previous when
+    // backTargetStatus is null.
+    actionAdvanceBackTo: function (backTargetStatus, nextStatusOrAuto, tooltipText) {
+      return {
+        label: '',
+        className: 'prod-deliv-act',
+        render: function (item, refresh) {
+          var wrap = document.createElement('div');
+          wrap.style.display = 'inline-flex';
+          wrap.style.gap = '4px';
+
+          if (backTargetStatus) {
+            var backBtn = document.createElement('button');
+            backBtn.className = 'proagri-sheet-row-action-btn action-undo';
+            backBtn.type = 'button';
+            backBtn.title = 'Send back for changes (' + formatStatus(backTargetStatus) + ')';
+            backBtn.appendChild(makeSvgIcon('M12 20l1.41-1.41L7.83 13H20v-2H7.83l5.58-5.59L12 4l-8 8z'));
+            (function (it, target) {
+              backBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fetch('/api/deliverables/' + it.id, {
+                  method: 'PATCH', headers: getHeaders(),
+                  body: JSON.stringify({ status: target })
+                }).then(function (res) { if (res.ok && refresh) refresh(); });
+              });
+            })(item, backTargetStatus);
+            wrap.appendChild(backBtn);
+          }
+
+          var target, tooltip;
+          if (nextStatusOrAuto === 'auto') {
+            var wf = workflows && workflows.getNextStatus(item.type, item.status);
+            if (!wf) return backTargetStatus ? wrap : '';
+            target = wf.next;
+            tooltip = tooltipText || wf.tooltip;
+          } else {
+            target = nextStatusOrAuto;
+            tooltip = tooltipText || ('Advance to: ' + formatStatus(target));
+          }
+          var advBtn = document.createElement('button');
+          advBtn.className = 'proagri-sheet-row-action-btn action-advance';
+          advBtn.type = 'button';
+          advBtn.title = tooltip;
+          advBtn.appendChild(makeSvgIcon(ICON_ADVANCE));
+          advBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            fetch('/api/deliverables/' + item.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: target })
+            }).then(function (res) { if (res.ok && refresh) refresh(); });
+          });
+          wrap.appendChild(advBtn);
+          return wrap;
+        }
+      };
+    }
+  };
+
   // ── Content Calendar Dashboard ─────────────────────────
   var _savedProdSidebar = null;
   var _ccContainer = null;

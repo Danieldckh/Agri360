@@ -758,6 +758,254 @@
     cursor: pointer;
   }
 
+  /* ── Content Calendar per-post approval UX ── */
+  .cp-cc-card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 26px;
+    margin-bottom: 18px;
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-cc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .cp-cc-header h3 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--cp-text);
+    margin: 0;
+  }
+  .cp-cc-revisions {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--cp-warn-soft);
+    color: var(--cp-warn);
+  }
+  .cp-cc-revisions.exhausted {
+    background: var(--cp-danger-soft);
+    color: var(--cp-danger);
+  }
+  .cp-cc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .cp-cc-post {
+    background: var(--cp-surface-alt);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .cp-cc-post:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-cc-post-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: var(--cp-surface-soft);
+    display: block;
+  }
+  .cp-cc-post-caption {
+    font-size: 12px;
+    color: var(--cp-text-secondary);
+    line-height: 1.4;
+    padding: 10px 12px 4px;
+    min-height: 38px;
+  }
+  .cp-cc-post-status {
+    display: inline-block;
+    margin: 6px 12px 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: flex-start;
+    background: var(--cp-surface-soft);
+    color: var(--cp-text-muted);
+  }
+  .cp-cc-post[data-status="approved"] .cp-cc-post-status {
+    background: var(--cp-success-soft);
+    color: var(--cp-success);
+  }
+  .cp-cc-post[data-status="changes_requested"] .cp-cc-post-status {
+    background: var(--cp-warn-soft);
+    color: var(--cp-warn);
+  }
+  .cp-cc-post[data-status="approved"] { border-color: var(--cp-success); }
+  .cp-cc-post[data-status="changes_requested"] { border-color: var(--cp-warn); }
+
+  /* Modal */
+  .cp-cc-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .cp-cc-modal-panel {
+    background: var(--cp-surface);
+    border-radius: var(--cp-radius);
+    max-width: 860px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--cp-shadow-float);
+    display: flex;
+    flex-direction: column;
+  }
+  .cp-cc-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .cp-cc-modal-body {
+    display: flex;
+    gap: 0;
+    overflow: auto;
+  }
+  .cp-cc-modal-media {
+    flex: 1 1 50%;
+    background: #0d0f16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 320px;
+  }
+  .cp-cc-modal-media img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    display: block;
+  }
+  .cp-cc-modal-media .cp-cc-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .cp-cc-modal-media .cp-cc-nav.prev { left: 10px; }
+  .cp-cc-modal-media .cp-cc-nav.next { right: 10px; }
+  .cp-cc-modal-form {
+    flex: 1 1 50%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .cp-cc-modal-form label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .cp-cc-modal-form textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--cp-surface-alt);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+  }
+  .cp-cc-modal-caption { min-height: 110px; }
+  .cp-cc-modal-changes { min-height: 80px; }
+  .cp-cc-modal-form textarea:focus {
+    border-color: var(--cp-border-strong);
+    box-shadow: 0 0 0 3px var(--cp-ring);
+  }
+  .cp-cc-modal-error {
+    font-size: 12px;
+    color: var(--cp-danger);
+    background: var(--cp-danger-soft);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .cp-cc-modal-error.open { display: block; }
+  .cp-cc-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 10px;
+    flex-wrap: wrap;
+  }
+  .cp-cc-approve-btn,
+  .cp-cc-request-btn {
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1 1 auto;
+  }
+  .cp-cc-approve-btn {
+    background: var(--cp-success);
+    color: #fff;
+    border: 1px solid var(--cp-success);
+  }
+  .cp-cc-approve-btn:hover { filter: brightness(1.08); }
+  .cp-cc-request-btn {
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border-strong);
+  }
+  .cp-cc-request-btn:hover:not(:disabled) { background: var(--cp-surface-alt); }
+  .cp-cc-request-btn:disabled,
+  .cp-cc-approve-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: none;
+  }
+  @media (max-width: 720px) {
+    .cp-cc-modal-body { flex-direction: column; }
+    .cp-cc-modal-media { min-height: 240px; }
+  }
+
   /* ── Responsive: stack the dashboard grid + collapse search on narrow screens ── */
   @media (max-width: 960px) {
     .cp-grid { grid-template-columns: 1fr; }
@@ -1268,6 +1516,12 @@
           return;
         }
         items.forEach(function (d) {
+          // Branch: content-calendar gets its own per-post approval UX
+          if (d.type === 'sm-content-calendar') {
+            el.appendChild(buildCcApprovalCard(d));
+            return;
+          }
+
           var card = document.createElement('div');
           card.className = 'cp-approval-card';
 
@@ -1380,6 +1634,321 @@
           el.appendChild(card);
         });
       });
+  }
+
+  // ========== CONTENT CALENDAR APPROVAL UX ==========
+  var CC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function ccPlainText(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html || '';
+    return (div.textContent || '').trim();
+  }
+
+  function ccExtractMonthYear(d) {
+    var dm = d.deliveryMonth || '';
+    var m = /^(\d{4})-(\d{2})/.exec(dm);
+    if (m) {
+      var yr = parseInt(m[1], 10);
+      var mo = parseInt(m[2], 10) - 1;
+      if (mo >= 0 && mo < 12) return CC_MONTHS[mo] + ' ' + yr;
+    }
+    // Fallback: parse from title
+    var t = d.title || '';
+    var tm = /(January|February|March|April|May|June|July|August|September|October|November|December)\s*(\d{4})/i.exec(t);
+    if (tm) return tm[1].charAt(0).toUpperCase() + tm[1].slice(1).toLowerCase() + ' ' + tm[2];
+    return dm || '';
+  }
+
+  function ccStatusLabel(s) {
+    if (s === 'approved') return 'Approved';
+    if (s === 'changes_requested') return 'Changes Requested';
+    return 'Pending';
+  }
+
+  function ccParseMeta(d) {
+    var m = d.metadata || {};
+    if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { m = {}; } }
+    return m;
+  }
+
+  function buildCcApprovalCard(d) {
+    var state = {
+      deliverable: d,
+      meta: ccParseMeta(d),
+      changesLeft: 3 - (d.changeRequestCount || 0)
+    };
+    state.posts = state.meta.posts || [];
+
+    var card = document.createElement('div');
+    card.className = 'cp-cc-card';
+
+    var header = document.createElement('div');
+    header.className = 'cp-cc-header';
+
+    var h3 = document.createElement('h3');
+    var clientName = d.clientName || state.meta.clientName || '';
+    var monthYear = ccExtractMonthYear(d);
+    h3.textContent = (clientName ? clientName + ' — ' : '') + 'Content Calendar' + (monthYear ? ', ' + monthYear : '');
+    header.appendChild(h3);
+
+    var revisions = document.createElement('div');
+    revisions.className = 'cp-cc-revisions' + (state.changesLeft <= 0 ? ' exhausted' : '');
+    revisions.textContent = state.changesLeft + ' of 3 change requests remaining';
+    header.appendChild(revisions);
+    card.appendChild(header);
+    state.revisionsEl = revisions;
+
+    var grid = document.createElement('div');
+    grid.className = 'cp-cc-grid';
+
+    state.posts.forEach(function (post, idx) {
+      var p = document.createElement('div');
+      p.className = 'cp-cc-post';
+      p.setAttribute('data-idx', String(idx));
+      p.setAttribute('data-status', post.status || 'pending');
+
+      var img = document.createElement('img');
+      img.className = 'cp-cc-post-img';
+      img.src = (post.images && post.images[0]) || 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><rect width="180" height="180" fill="%23eff1f5"/><text x="50%25" y="50%25" font-family="sans-serif" font-size="14" fill="%238b8f9c" text-anchor="middle" dominant-baseline="middle">No image</text></svg>');
+      img.alt = '';
+      p.appendChild(img);
+
+      var capSnippet = document.createElement('div');
+      capSnippet.className = 'cp-cc-post-caption';
+      var plain = ccPlainText(post.caption);
+      capSnippet.textContent = plain.length > 80 ? plain.slice(0, 80) + '...' : (plain || 'No caption');
+      p.appendChild(capSnippet);
+
+      var status = document.createElement('div');
+      status.className = 'cp-cc-post-status';
+      status.textContent = ccStatusLabel(post.status);
+      p.appendChild(status);
+
+      p.addEventListener('click', function () { openCcModal(state, idx); });
+      grid.appendChild(p);
+    });
+
+    card.appendChild(grid);
+    return card;
+  }
+
+  function openCcModal(state, postIdx) {
+    var post = state.posts[postIdx];
+    var images = (post.images && post.images.length > 0) ? post.images.slice() : [];
+    var currentImg = 0;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'cp-cc-modal-overlay';
+
+    var panel = document.createElement('div');
+    panel.className = 'cp-cc-modal-panel';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'cp-cc-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    panel.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.className = 'cp-cc-modal-body';
+
+    var media = document.createElement('div');
+    media.className = 'cp-cc-modal-media';
+
+    var mainImg = document.createElement('img');
+    function renderImg() {
+      if (images.length > 0) {
+        mainImg.src = images[currentImg];
+        mainImg.style.display = 'block';
+      } else {
+        mainImg.style.display = 'none';
+      }
+    }
+    media.appendChild(mainImg);
+    renderImg();
+
+    if (images.length > 1) {
+      var prev = document.createElement('button');
+      prev.className = 'cp-cc-nav prev';
+      prev.innerHTML = '&#8249;';
+      prev.addEventListener('click', function (e) {
+        e.stopPropagation();
+        currentImg = (currentImg - 1 + images.length) % images.length;
+        renderImg();
+      });
+      var next = document.createElement('button');
+      next.className = 'cp-cc-nav next';
+      next.innerHTML = '&#8250;';
+      next.addEventListener('click', function (e) {
+        e.stopPropagation();
+        currentImg = (currentImg + 1) % images.length;
+        renderImg();
+      });
+      media.appendChild(prev);
+      media.appendChild(next);
+    }
+    body.appendChild(media);
+
+    var form = document.createElement('div');
+    form.className = 'cp-cc-modal-form';
+
+    var capLabel = document.createElement('label');
+    capLabel.textContent = 'Caption';
+    form.appendChild(capLabel);
+
+    var capArea = document.createElement('textarea');
+    capArea.className = 'cp-cc-modal-caption';
+    capArea.value = ccPlainText(post.caption);
+    form.appendChild(capArea);
+
+    var chLabel = document.createElement('label');
+    chLabel.textContent = 'Change request';
+    form.appendChild(chLabel);
+
+    var chArea = document.createElement('textarea');
+    chArea.className = 'cp-cc-modal-changes';
+    chArea.placeholder = "Describe the changes you'd like...";
+    form.appendChild(chArea);
+
+    var errBox = document.createElement('div');
+    errBox.className = 'cp-cc-modal-error';
+    form.appendChild(errBox);
+
+    var actions = document.createElement('div');
+    actions.className = 'cp-cc-modal-actions';
+
+    var requestBtn = document.createElement('button');
+    requestBtn.className = 'cp-cc-request-btn';
+    function setRequestLabel() {
+      if (state.changesLeft <= 0) {
+        requestBtn.textContent = 'No changes remaining';
+        requestBtn.disabled = true;
+      } else {
+        requestBtn.textContent = 'Request Changes (' + state.changesLeft + ' of 3 remaining)';
+        requestBtn.disabled = false;
+      }
+    }
+    setRequestLabel();
+
+    var approveBtn = document.createElement('button');
+    approveBtn.className = 'cp-cc-approve-btn';
+    approveBtn.textContent = 'Approve Post';
+
+    // If already approved, lock the buttons
+    if (post.status === 'approved') {
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Already Approved';
+      requestBtn.disabled = true;
+    }
+
+    function showErr(msg) { errBox.textContent = msg; errBox.classList.add('open'); }
+    function clearErr() { errBox.classList.remove('open'); errBox.textContent = ''; }
+
+    approveBtn.addEventListener('click', function () {
+      clearErr();
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Approving...';
+      fetch('/api/portal/' + token + '/approvals/' + state.deliverable.id + '/posts/' + postIdx + '/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).then(function (r) {
+        return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+      }).then(function (res) {
+        if (!res.ok) {
+          approveBtn.disabled = false;
+          approveBtn.textContent = 'Approve Post';
+          showErr((res.body && res.body.error) || 'Failed to approve post');
+          return;
+        }
+        post.status = 'approved';
+        updateCcPostCard(state, postIdx);
+        overlay.remove();
+        if (res.body && res.body.deliverable && res.body.deliverable.status === 'approved') {
+          renderTab();
+        }
+      }).catch(function () {
+        approveBtn.disabled = false;
+        approveBtn.textContent = 'Approve Post';
+        showErr('Network error');
+      });
+    });
+
+    requestBtn.addEventListener('click', function () {
+      clearErr();
+      var text = chArea.value.trim();
+      var caption = capArea.value;
+      if (!text) { showErr('Please describe the changes you would like.'); return; }
+      requestBtn.disabled = true;
+      requestBtn.textContent = 'Sending...';
+      fetch('/api/portal/' + token + '/approvals/' + state.deliverable.id + '/posts/' + postIdx + '/request-changes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, caption: caption, images: post.images || [] })
+      }).then(function (r) {
+        return r.json().then(function (body) { return { ok: r.ok, status: r.status, body: body }; });
+      }).then(function (res) {
+        if (!res.ok) {
+          setRequestLabel();
+          if (res.status === 400 && res.body && /Maximum change requests/i.test(res.body.error || '')) {
+            state.changesLeft = 0;
+            setRequestLabel();
+            updateCcRevisionCounter(state);
+            showErr(res.body.error);
+          } else {
+            showErr((res.body && res.body.error) || 'Failed to request changes');
+          }
+          return;
+        }
+        post.status = 'changes_requested';
+        post.caption = caption;
+        state.changesLeft = Math.max(0, state.changesLeft - 1);
+        updateCcPostCard(state, postIdx);
+        updateCcRevisionCounter(state);
+        overlay.remove();
+      }).catch(function () {
+        setRequestLabel();
+        showErr('Network error');
+      });
+    });
+
+    actions.appendChild(requestBtn);
+    actions.appendChild(approveBtn);
+    form.appendChild(actions);
+    body.appendChild(form);
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    document.body.appendChild(overlay);
+  }
+
+  function updateCcPostCard(state, postIdx) {
+    // Find the card via data attributes — scoped to the approvals container
+    var cards = document.querySelectorAll('.cp-cc-post[data-idx="' + postIdx + '"]');
+    cards.forEach(function (p) {
+      // Only update ones that belong to this deliverable's grid. Safest: check ancestor card contains our revisions element.
+      var parentCard = p.closest('.cp-cc-card');
+      if (!parentCard || !parentCard.contains(state.revisionsEl)) return;
+      var post = state.posts[postIdx];
+      p.setAttribute('data-status', post.status || 'pending');
+      var statusEl = p.querySelector('.cp-cc-post-status');
+      if (statusEl) statusEl.textContent = ccStatusLabel(post.status);
+      var capEl = p.querySelector('.cp-cc-post-caption');
+      if (capEl) {
+        var plain = ccPlainText(post.caption);
+        capEl.textContent = plain.length > 80 ? plain.slice(0, 80) + '...' : (plain || 'No caption');
+      }
+    });
+  }
+
+  function updateCcRevisionCounter(state) {
+    if (!state.revisionsEl) return;
+    state.revisionsEl.textContent = state.changesLeft + ' of 3 change requests remaining';
+    state.revisionsEl.classList.toggle('exhausted', state.changesLeft <= 0);
   }
 
   function openLightbox(url) {

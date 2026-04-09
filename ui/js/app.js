@@ -967,6 +967,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Design > Content Calendars to the Production-styled split sheet
+    if (page === 'design' && viewName === 'Content Calendars' && window.renderDesignContentCalendarsTab) {
+      window.renderDesignContentCalendarsTab(dashboardContent);
+      return;
+    }
+
+    // Route Editorial > Content Calendars to the Production-styled split sheet
+    if (page === 'editorial' && viewName === 'Content Calendars' && window.renderEditorialContentCalendarsTab) {
+      window.renderEditorialContentCalendarsTab(dashboardContent);
+      return;
+    }
+
     // Route Design > Proposals to live design proposals view
     if (page === 'design' && viewName === 'Proposals' && window.renderDesignProposalsTab) {
       window.renderDesignProposalsTab(dashboardContent);
@@ -1081,8 +1093,11 @@ document.addEventListener('DOMContentLoaded', () => {
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
     'client-list': function () { window.insertTemplate(dashboardContent, '/pages/client-list/client-list.html', window.initClientListPage); },
     'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); },
-    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); },
-    'design': function () { if (window.renderDesignPage) window.renderDesignPage(dashboardContent); }
+    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); }
+    // NOTE: 'design' and 'editorial' are NOT in pageRenderers on purpose.
+    // They are department pages handled by the deptPages flow (sidebar
+    // subnav). Individual tabs (e.g. 'Content Calendars') are routed
+    // inside showDeptContent() below.
   };
 
   function finishPageEnter() {

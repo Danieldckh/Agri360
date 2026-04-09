@@ -198,7 +198,7 @@
 .cc-posts-th svg { display:block; }
 .cc-posts-th-num { flex:0 0 36px; }
 .cc-posts-th-date { flex:0 0 110px; }
-.cc-posts-th-caption { flex:0.9; min-width:0; }
+.cc-posts-th-caption { flex:1.8; min-width:0; }
 .cc-posts-th-images { flex:1.6; min-width:0; }
 .cc-posts-th-changes { flex:0 0 80px; justify-content:center; color:var(--text-muted,#94a3b8); }
 .cc-posts-th-act { flex:0 0 36px; }
@@ -208,7 +208,7 @@
 .cc-posts-cell { padding:2px 4px; }
 .cc-posts-num { flex:0 0 36px; font-size:12px; font-weight:600; color:var(--text-muted,#94a3b8); padding-top:6px; }
 .cc-posts-date { flex:0 0 110px; }
-.cc-posts-caption { flex:0.9; min-width:0; }
+.cc-posts-caption { flex:1.8; min-width:0; }
 .cc-posts-images { flex:1.6; min-width:0; }
 .cc-posts-changes { flex:0 0 80px; display:flex; flex-direction:column; gap:3px; }
 .cc-posts-act { flex:0 0 36px; display:flex; justify-content:center; padding-top:4px; }
@@ -464,3 +464,26 @@
 .cc-bottom-row { display:flex; gap:16px; flex:1; min-height:0; margin-top:16px; }
 .cc-bottom-row .cc-chat-box { flex:0 0 30%; margin:0; max-height:none; min-height:0; }
 .cc-bottom-row .cc-posts-card { flex:1; margin:0; }
+
+/* ── Split-sheet (Follow Ups / Approvals) vertical scroll fix ──
+   renderSplitSheetTab builds: .dept-tab-wrap > .dept-dashboard-layout >
+   .dept-dashboard-half > .dept-sheet-card > [sheetBody].
+   The inner sheetBody already has flex:1/overflow-y:auto inline, but the
+   flex chain was not constraining height — .dept-dashboard-half lacked
+   min-height:0, so the card grew unbounded and rows piled off-screen.
+   Scope these rules to .dept-tab-wrap so we only touch the production
+   split-sheet tabs and not any other layout that reuses dept classes. */
+.dept-tab-wrap .dept-dashboard-layout {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.dept-tab-wrap .dept-dashboard-half {
+  min-height: 0;
+  overflow: hidden;
+}
+.dept-tab-wrap .dept-dashboard-half > .dept-sheet-card {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

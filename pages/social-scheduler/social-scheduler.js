@@ -40,7 +40,9 @@
     view: 'month',         // month | week | day
     cursor: new Date(),    // current focused date
     search: '',
-    container: null
+    container: null,
+    leftTab: 'unscheduled',      // 'unscheduled' | 'scheduled'
+    expandedClients: {}          // { [clientId|'none']: true }
   };
 
   // Returns active credentials owned by a given client (or agency if clientId is null/undefined)
@@ -338,16 +340,29 @@
   function buildLeftPanel() {
     var left = el('div', 'sch-left');
 
-    var header = el('div', 'sch-left-header');
-    var t = el('h3', 'sch-left-title');
-    t.appendChild(svg('M14 6V4h-4v2h4zM4 8v11h16V8H4zm16-2c1.11 0 2 .89 2 2v11c0 1.11-.89 2-2 2H4c-1.11 0-2-.89-2-2l.01-11C2.01 6.89 2.89 6 4 6h4V4c0-1.11.89-2 2-2h4c1.11 0 2 .89 2 2v2h4z', 16));
-    t.appendChild(document.createTextNode(' Unscheduled'));
-    var unsched = unscheduledPosts();
-    var badge = el('span', 'sch-badge', unsched.length);
-    t.appendChild(badge);
-    header.appendChild(t);
-    left.appendChild(header);
+    // --- Tab bar --------------------------------------------------
+    var tabBar = el('div', 'sch-tab-bar');
+    var unschedCount = unscheduledPosts().length;
+    var schedCount = filteredPosts().filter(function (p) { return !!p.scheduledAt; }).length;
 
+    [
+      { id: 'unscheduled', label: 'Unscheduled', count: unschedCount },
+      { id: 'scheduled',   label: 'Scheduled',   count: schedCount }
+    ].forEach(function (tab) {
+      var btn = el('button', 'sch-tab' + (state.leftTab === tab.id ? ' active' : ''));
+      btn.setAttribute('data-tab', tab.id);
+      btn.appendChild(document.createTextNode(tab.label + ' '));
+      btn.appendChild(el('span', 'sch-tab-count', tab.count));
+      btn.addEventListener('click', function () {
+        if (state.leftTab === tab.id) return;
+        state.leftTab = tab.id;
+        render();
+      });
+      tabBar.appendChild(btn);
+    });
+    left.appendChild(tabBar);
+
+    // --- Search (shared by both tabs) ----------------------------
     var search = el('input', 'sch-search');
     search.type = 'text';
     search.placeholder = 'Search posts...';
@@ -359,6 +374,18 @@
     });
     left.appendChild(search);
 
+    // --- Tab body ------------------------------------------------
+    if (state.leftTab === 'unscheduled') {
+      left.appendChild(buildUnscheduledTabBody());
+    } else {
+      left.appendChild(buildScheduledTabBody());
+    }
+
+    return left;
+  }
+
+  function buildUnscheduledTabBody() {
+    var unsched = unscheduledPosts();
     var list = el('div', 'sch-unscheduled-list');
     if (unsched.length === 0) {
       list.appendChild(el('div', 'sch-empty', 'No unscheduled posts. Drop a scheduled post here to unschedule it, or create a new one.'));
@@ -369,33 +396,126 @@
     }
     // Allow scheduled posts to be dragged back here to unschedule them
     makeDropTarget(list, function (post) { unschedulePost(post); });
-    left.appendChild(list);
+    return list;
+  }
 
-    return left;
+  function buildScheduledTabBody() {
+    var wrap = el('div', 'sch-scheduled-list');
+    var scheduled = filteredPosts().filter(function (p) { return !!p.scheduledAt; });
+
+    if (scheduled.length === 0) {
+      wrap.appendChild(el('div', 'sch-empty', 'No scheduled posts yet. Drag a post onto the calendar to schedule it.'));
+      return wrap;
+    }
+
+    // Group by client id. Fall back to clientName lookup via state.clients if needed.
+    var groups = {}; // key -> { key, name, posts: [] }
+    scheduled.forEach(function (p) {
+      var key = (p.clientId == null) ? 'none' : String(p.clientId);
+      if (!groups[key]) {
+        var name = p.clientName;
+        if (!name && p.clientId != null && Array.isArray(state.clients)) {
+          var match = state.clients.find(function (c) { return Number(c.id) === Number(p.clientId); });
+          if (match) name = match.name || match.clientName;
+        }
+        if (!name) name = (p.clientId == null) ? 'Agency / No Client' : ('Client #' + p.clientId);
+        groups[key] = { key: key, name: name, posts: [] };
+      }
+      groups[key].posts.push(p);
+    });
+
+    // Sort groups by name, posts within each group by scheduledAt
+    var groupList = Object.keys(groups).map(function (k) { return groups[k]; });
+    groupList.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    groupList.forEach(function (g) {
+      g.posts.sort(function (a, b) { return new Date(a.scheduledAt) - new Date(b.scheduledAt); });
+    });
+
+    groupList.forEach(function (g) {
+      var isOpen = !!state.expandedClients[g.key];
+      var toggle = el('div', 'sch-client-toggle' + (isOpen ? ' expanded' : ''));
+
+      var header = el('div', 'sch-client-toggle-header');
+      header.appendChild(el('span', 'sch-client-chevron', isOpen ? '▼' : '▶'));
+      header.appendChild(el('span', 'sch-client-name', g.name));
+      header.appendChild(el('span', 'sch-client-count', g.posts.length));
+      header.addEventListener('click', function () {
+        state.expandedClients[g.key] = !state.expandedClients[g.key];
+        render();
+      });
+      toggle.appendChild(header);
+
+      var body = el('div', 'sch-client-toggle-body');
+      body.style.display = isOpen ? 'flex' : 'none';
+      g.posts.forEach(function (p) {
+        body.appendChild(buildPostCard(p));
+      });
+      toggle.appendChild(body);
+
+      wrap.appendChild(toggle);
+    });
+
+    return wrap;
+  }
+
+  // Format a date as "May 5" (or "May 5, 2027" if year differs from now)
+  function formatShortDate(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var now = new Date();
+    var base = months[d.getMonth()] + ' ' + d.getDate();
+    if (d.getFullYear() !== now.getFullYear()) base += ', ' + d.getFullYear();
+    return base;
   }
 
   function buildPostCard(p) {
     var card = el('div', 'sch-post-card');
+    card.setAttribute('data-post-id', p.id);
     makeDraggable(card, p);
 
-    var head = el('div', 'sch-post-card-head');
-    head.appendChild(el('h4', 'sch-post-title', p.title || '(untitled)'));
-    head.appendChild(el('span', 'sch-source-dot ' + p.sourceType));
-    card.appendChild(head);
-
-    if (p.content) {
-      card.appendChild(el('p', 'sch-post-content', p.content));
+    // --- Image thumbnail ---
+    var imgBox = el('div', 'sch-post-card-img');
+    var firstMedia = null;
+    if (Array.isArray(p.mediaUrls) && p.mediaUrls.length > 0) {
+      firstMedia = p.mediaUrls[0];
     }
-
-    var meta = el('div', 'sch-post-meta');
-    var plats = Array.isArray(p.platforms) ? p.platforms : [];
-    plats.forEach(function (pl) {
-      meta.appendChild(el('span', 'sch-platform-chip ' + pl, pl));
-    });
-    if (p.clientName) {
-      meta.appendChild(el('span', 'sch-post-client', p.clientName));
+    if (firstMedia) {
+      var img = document.createElement('img');
+      img.src = firstMedia;
+      img.alt = '';
+      img.addEventListener('error', function () {
+        imgBox.removeChild(img);
+        imgBox.appendChild(svg('M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z', 22));
+      });
+      imgBox.appendChild(img);
+    } else {
+      imgBox.appendChild(svg('M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z', 22));
     }
-    card.appendChild(meta);
+    card.appendChild(imgBox);
+
+    // --- Body ---
+    var body = el('div', 'sch-post-card-body');
+
+    var titleText = p.title;
+    if (!titleText) {
+      var c = (p.content || '').trim();
+      titleText = c ? (c.length > 40 ? c.slice(0, 40) + '…' : c) : '(untitled)';
+    }
+    body.appendChild(el('div', 'sch-post-card-title', titleText));
+
+    var meta = el('div', 'sch-post-card-meta');
+    meta.appendChild(el('span', 'sch-post-card-date', formatShortDate(p.scheduledAt)));
+
+    var statusKey = (p.scheduledAt ? (p.status || 'scheduled') : 'unscheduled');
+    // Normalize draft/no-date to "unscheduled" visual
+    if (!p.scheduledAt) statusKey = 'unscheduled';
+    var statusLabel = statusKey.charAt(0).toUpperCase() + statusKey.slice(1);
+    meta.appendChild(el('span', 'sch-post-card-status sch-status-' + statusKey, statusLabel));
+
+    body.appendChild(meta);
+    card.appendChild(body);
 
     card.addEventListener('click', function (e) {
       // Don't open if a drag finished here

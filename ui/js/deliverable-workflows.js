@@ -18,7 +18,7 @@
       'request_focus_points', 'focus_points_requested', 'focus_points_received',
       'design', 'design_review',
       'editorial', 'editorial_review',
-      'ready_for_approval', 'approved',
+      'ready_for_approval', 'sent_for_approval', 'approved',
       'ready_for_scheduling', 'scheduled', 'posted'
     ],
 
@@ -112,6 +112,7 @@
       'editorial': 'editorial',
       'editorial_review': 'editorial',
       'ready_for_approval': 'production',
+      'sent_for_approval': 'production',
       'approved': 'social-media',
       'client_changes': 'production',
       'ready_for_scheduling': 'social-media',

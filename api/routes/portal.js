@@ -249,6 +249,181 @@ router.post('/:token/approvals/:deliverableId/request-changes', async (req, res)
   }
 });
 
+// ─── Per-post approval endpoints (content calendar) ─────
+// Content calendar deliverables contain many posts in metadata.posts[].
+// The client portal can approve or request changes on each post individually.
+// Both routes are scoped by client_id via the token so a valid token can only
+// touch its own client's deliverables.
+
+function stripHtml(s) {
+  return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function derivePlatforms(metadata) {
+  // Best-effort: read metadata.platforms — may be an object of booleans
+  // ({facebook: true, instagram: false}) or an array of strings. Normalise
+  // to an array of platform slugs.
+  const p = metadata && metadata.platforms;
+  if (!p) return [];
+  if (Array.isArray(p)) return p.filter(x => typeof x === 'string');
+  if (typeof p === 'object') {
+    return Object.keys(p).filter(k => p[k]);
+  }
+  return [];
+}
+
+// POST /:token/approvals/:deliverableId/posts/:postIdx/approve
+// Approves a single post inside a content calendar deliverable. If every post
+// on the deliverable is now approved, the deliverable itself flips to
+// 'approved'. On success we also insert a scheduled_posts row so the social
+// media scheduler can pick it up — failure of that insert is logged but does
+// not fail the approval (the post-status change is the primary contract).
+router.post('/:token/approvals/:deliverableId/posts/:postIdx/approve', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+
+    const existing = await pool.query(
+      'SELECT * FROM deliverables WHERE id = $1 AND client_id = $2',
+      [req.params.deliverableId, client.id]
+    );
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    const deliverable = existing.rows[0];
+
+    let metadata = deliverable.metadata || {};
+    if (typeof metadata === 'string') try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+    const posts = Array.isArray(metadata.posts) ? metadata.posts : [];
+
+    const postIdx = parseInt(req.params.postIdx, 10);
+    if (Number.isNaN(postIdx) || postIdx < 0 || postIdx >= posts.length) {
+      return res.status(400).json({ error: 'Invalid postIdx' });
+    }
+
+    posts[postIdx] = Object.assign({}, posts[postIdx], { status: 'approved' });
+    metadata.posts = posts;
+
+    const allApproved = posts.length > 0 && posts.every(p => p && p.status === 'approved');
+    const newStatus = allApproved ? 'approved' : deliverable.status;
+
+    const result = await pool.query(
+      `UPDATE deliverables SET metadata = $1, status = $2, updated_at = NOW()
+       WHERE id = $3 AND client_id = $4 RETURNING *`,
+      [JSON.stringify(metadata), newStatus, req.params.deliverableId, client.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+
+    // Best-effort: enqueue a scheduled_posts row. Failure here must not break
+    // the approve contract.
+    try {
+      const post = posts[postIdx];
+      const title = (deliverable.title || 'Content Calendar Post') + ' — post ' + (postIdx + 1);
+      const content = stripHtml(post.caption);
+      const platforms = derivePlatforms(metadata);
+      const mediaUrls = Array.isArray(post.images) ? post.images : [];
+      let scheduledAt = null;
+      let spStatus = 'unscheduled';
+      if (post.date) {
+        // Normalise to ISO timestamp at 09:00 UTC on the given date.
+        scheduledAt = String(post.date).slice(0, 10) + ' 09:00:00+00';
+        spStatus = 'scheduled';
+      }
+      await pool.query(
+        `INSERT INTO scheduled_posts
+           (title, content, platforms, scheduled_at, status, source_type, source_id, client_id, media_urls, created_by)
+         VALUES ($1, $2, $3, $4, $5, 'content-calendar', $6, $7, $8, NULL)`,
+        [
+          title,
+          content,
+          JSON.stringify(platforms),
+          scheduledAt,
+          spStatus,
+          deliverable.id,
+          deliverable.client_id,
+          JSON.stringify(mediaUrls)
+        ]
+      );
+    } catch (spErr) {
+      console.error('scheduled_posts insert failed for post approval:', spErr.message);
+    }
+
+    res.json(toCamelCase(result.rows[0]));
+  } catch (err) {
+    console.error('Portal post approve error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:token/approvals/:deliverableId/posts/:postIdx/request-changes
+// Client requests changes on a single post. Same 3-revision hard cap as the
+// deliverable-level endpoint. On success the whole deliverable loops back to
+// 'design_changes' per spec (design picks up the per-post change note).
+router.post('/:token/approvals/:deliverableId/posts/:postIdx/request-changes', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+
+    const body = req.body || {};
+    const text = typeof body.text === 'string' ? body.text : '';
+    const caption = typeof body.caption === 'string' ? body.caption : null;
+    const images = Array.isArray(body.images) ? body.images : [];
+    if (!text && caption === null) {
+      return res.status(400).json({ error: 'Either text or caption is required' });
+    }
+
+    const existing = await pool.query(
+      'SELECT * FROM deliverables WHERE id = $1 AND client_id = $2',
+      [req.params.deliverableId, client.id]
+    );
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    const deliverable = existing.rows[0];
+
+    const currentCount = deliverable.change_request_count || 0;
+    if (currentCount >= 3) {
+      return res.status(400).json({ error: 'Maximum change requests (3) reached for this deliverable' });
+    }
+
+    let metadata = deliverable.metadata || {};
+    if (typeof metadata === 'string') try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+    const posts = Array.isArray(metadata.posts) ? metadata.posts : [];
+
+    const postIdx = parseInt(req.params.postIdx, 10);
+    if (Number.isNaN(postIdx) || postIdx < 0 || postIdx >= posts.length) {
+      return res.status(400).json({ error: 'Invalid postIdx' });
+    }
+
+    const post = Object.assign({}, posts[postIdx]);
+    post.change_requests = Array.isArray(post.change_requests) ? post.change_requests.slice() : [];
+    post.change_requests.push({
+      id: Date.now(),
+      text: text || '',
+      images: images,
+      created_at: new Date().toISOString(),
+      created_by: 'client'
+    });
+    if (caption !== null) {
+      post.caption = caption;
+    }
+    post.status = 'changes_requested';
+    posts[postIdx] = post;
+    metadata.posts = posts;
+
+    const result = await pool.query(
+      `UPDATE deliverables
+          SET metadata = $1,
+              status = 'design_changes',
+              change_request_count = change_request_count + 1,
+              updated_at = NOW()
+        WHERE id = $2 AND client_id = $3 RETURNING *`,
+      [JSON.stringify(metadata), req.params.deliverableId, client.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    res.json(toCamelCase(result.rows[0]));
+  } catch (err) {
+    console.error('Portal post request-changes error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ─── Portal Chat Messages ────────────────────────────────
 // A lightweight chat thread per client, stored in portal_messages.
 // The portal side (public, token-based) and the CRM side (authenticated)

@@ -241,22 +241,115 @@
   font-style: italic;
 }
 
+/* Left panel tab bar */
+.sch-tab-bar {
+  display: flex;
+  gap: 2px;
+  background: var(--color-bg-muted, #f1f5f9);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.sch-tab {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.sch-tab.active {
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, #1e293b);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.sch-tab-count {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.12);
+  color: inherit;
+}
+
+/* Scheduled tab client groups */
+.sch-scheduled-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sch-client-toggle {
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.sch-client-toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.sch-client-toggle-header:hover {
+  background: rgba(128, 128, 128, 0.04);
+}
+.sch-client-chevron {
+  font-size: 10px;
+  color: var(--text-muted, #94a3b8);
+  transition: transform 0.15s;
+  width: 12px;
+  text-align: center;
+}
+.sch-client-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sch-client-count {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  background: rgba(128, 128, 128, 0.08);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.sch-client-toggle-body {
+  padding: 4px 8px 8px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 /* Post cards */
 .sch-post-card {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: var(--color-secondary, #fff);
-  cursor: grab;
-  transition: all 0.15s ease;
-  position: relative;
+  border-radius: 8px;
+  background: var(--card-bg, var(--color-secondary, #fff));
+  cursor: move;
+  transition: all 0.15s;
   user-select: none;
+  position: relative;
 }
 
 .sch-post-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   border-color: var(--color-accent-dark, #d4791a);
-  box-shadow: 0 2px 8px rgba(212, 121, 26, 0.12);
-  transform: translateY(-1px);
 }
 
 .sch-post-card.dragging {
@@ -264,12 +357,71 @@
   cursor: grabbing;
 }
 
-.sch-post-card-head {
+.sch-post-card-img {
+  flex: 0 0 60px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-bg-muted, #f1f5f9);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #94a3b8);
+}
+.sch-post-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sch-post-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 4px;
+}
+
+.sch-post-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.sch-post-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.sch-post-card-date {
+  font-size: 10px;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+}
+.sch-post-card-status {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.sch-status-unscheduled { background: rgba(148, 163, 184, 0.15); color: #64748b; }
+.sch-status-scheduled   { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.sch-status-draft       { background: rgba(148, 163, 184, 0.15); color: #64748b; }
+.sch-status-posted      { background: rgba(34, 197, 94, 0.15);  color: #22c55e; }
+.sch-status-failed      { background: rgba(239, 68, 68, 0.15);  color: #ef4444; }
+
+/* legacy — kept so nothing else in this file breaks if referenced */
+.sch-post-card-head {
+  display: none;
 }
 
 .sch-post-title {
@@ -1034,4 +1186,46 @@
 
 [data-theme="dark"] .sch-month-cell.today {
   background: #3d2a14;
+}
+
+/* Dark theme — tabs + client groups + post card */
+[data-theme="dark"] .sch-tab-bar {
+  background: #1a1d23;
+}
+[data-theme="dark"] .sch-tab {
+  color: #9ca3af;
+}
+[data-theme="dark"] .sch-tab.active {
+  background: #2d323c;
+  color: #f3f4f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+[data-theme="dark"] .sch-tab-count {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .sch-client-toggle {
+  border-bottom-color: #3a3f4a;
+}
+[data-theme="dark"] .sch-client-toggle-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .sch-client-name {
+  color: #f3f4f6;
+}
+[data-theme="dark"] .sch-client-chevron,
+[data-theme="dark"] .sch-client-count {
+  color: #9ca3af;
+}
+[data-theme="dark"] .sch-client-count {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .sch-post-card-title {
+  color: #f3f4f6;
+}
+[data-theme="dark"] .sch-post-card-img {
+  background: #1e2128;
+  color: #64748b;
+}
+[data-theme="dark"] .sch-post-card-date {
+  color: #9ca3af;
 }
