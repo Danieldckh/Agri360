@@ -51,6 +51,12 @@
   overflow: visible;
   cursor: pointer;
   white-space: normal;
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
 }
 
 .prod-deliv-platforms {
@@ -58,7 +64,7 @@
   flex-wrap: wrap;
   gap: 4px;
   overflow: visible;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -83,24 +89,8 @@
   white-space: nowrap;
 }
 
-/* Content calendar rows: left-stack eye/avatar/label/platforms/posts,
-   push status + advance arrow to the right edge. The type cell is
-   overridden to 0 0 auto (instead of the default 1 1 auto) so that
-   margin-left:auto on the status cell — not the type cell — absorbs
-   the remaining space. */
-.prod-deliv-row-cc .prod-deliv-cell {
-  flex: 0 0 auto;
-}
-.prod-deliv-row-cc .prod-deliv-type {
-  flex: 0 0 auto;
-}
-.prod-deliv-row-cc .prod-deliv-platforms {
-  flex: 0 0 auto;
-}
-.prod-deliv-row-cc .prod-deliv-status-cell {
-  flex: 0 0 auto;
-  margin-left: auto;
-}
+/* Content calendar rows — no additional overrides needed; margin-left: auto
+   is applied universally to .prod-deliv-status-cell above. */
 
 .prod-deliv-act {
   flex: 0 0 36px;
