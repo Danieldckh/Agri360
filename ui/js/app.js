@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'editorial': ['Content Calendars', 'Online Articles', 'Magazine', 'Ready to Upload'],
     'video': ['Briefs', 'Production', 'Editing', 'Review'],
     'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
-    'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media', 'Google Ads']
+    'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media', 'Google Ads', 'Settings']
   };
   var currentDeptPage = null;
   var currentDeptView = null;
@@ -1011,19 +1011,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Content Calendars → content-calendar, Agri for All → agri4all,
     // Own Social Media → own-sm. The scheduler hides its internal source
     // switcher when a preset is active so the dept tabs are the nav.
-    if (page === 'social-media' && window.renderSocialSchedulerPage) {
-      var SM_SOURCE_MAP = {
-        'Content Calendars': 'content-calendar',
-        'Agri for All': 'agri4all',
-        'Own Social Media': 'own-sm'
-      };
-      var presetSource = SM_SOURCE_MAP[viewName];
-      if (presetSource) {
+    if (page === 'social-media') {
+      if (viewName === 'Settings' && window.renderSocialSettingsPage) {
         dashboardContent.style.display = 'block';
         dashboardContent.style.padding = '0';
         dashboardContent.style.height = '100%';
-        window.renderSocialSchedulerPage(dashboardContent, { sourceFilter: presetSource });
+        window.renderSocialSettingsPage(dashboardContent);
         return;
+      }
+      if (window.renderSocialSchedulerPage) {
+        var SM_SOURCE_MAP = {
+          'Content Calendars': 'content-calendar',
+          'Agri for All': 'agri4all',
+          'Own Social Media': 'own-sm'
+        };
+        var presetSource = SM_SOURCE_MAP[viewName];
+        if (presetSource) {
+          dashboardContent.style.display = 'block';
+          dashboardContent.style.padding = '0';
+          dashboardContent.style.height = '100%';
+          window.renderSocialSchedulerPage(dashboardContent, { sourceFilter: presetSource });
+          return;
+        }
       }
     }
 

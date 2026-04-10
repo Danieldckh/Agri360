@@ -796,7 +796,57 @@
       clientId: null
     }, post || {});
 
+    // Ensure mediaUrls is always an array on the data object
+    if (!Array.isArray(data.mediaUrls)) data.mediaUrls = [];
+
     var form = el('div');
+
+    // --- Media gallery (shown at top if photos exist, or always show add row) ---
+    var mediaSection = el('div', 'sch-media-section');
+    var mediaLabel = el('label', 'sch-field-label', 'Photos');
+    mediaSection.appendChild(mediaLabel);
+    var mediaGallery = el('div', 'sch-media-gallery');
+
+    function rebuildGallery() {
+      while (mediaGallery.firstChild) mediaGallery.removeChild(mediaGallery.firstChild);
+      data.mediaUrls.forEach(function (url, idx) {
+        var thumb = el('div', 'sch-media-thumb');
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = '';
+        img.addEventListener('error', function () { img.style.display = 'none'; });
+        thumb.appendChild(img);
+        var rm = el('button', 'sch-media-thumb-rm', '×');
+        rm.title = 'Remove';
+        rm.addEventListener('click', function () {
+          data.mediaUrls.splice(idx, 1);
+          rebuildGallery();
+        });
+        thumb.appendChild(rm);
+        mediaGallery.appendChild(thumb);
+      });
+      // "Add URL" mini-row
+      var addRow = el('div', 'sch-media-add-row');
+      var urlInput = el('input');
+      urlInput.type = 'url';
+      urlInput.placeholder = 'Paste image URL…';
+      urlInput.className = 'sch-media-url-input';
+      var addBtn = el('button', 'sch-btn sch-btn-sm', '+ Add');
+      addBtn.addEventListener('click', function () {
+        var v = urlInput.value.trim();
+        if (v) {
+          data.mediaUrls.push(v);
+          rebuildGallery();
+        }
+      });
+      addRow.appendChild(urlInput);
+      addRow.appendChild(addBtn);
+      mediaGallery.appendChild(addRow);
+    }
+    rebuildGallery();
+
+    mediaSection.appendChild(mediaGallery);
+    form.appendChild(mediaSection);
 
     // Title
     form.appendChild(field('Title',
@@ -918,7 +968,8 @@
           hashtags: data.hashtags || null,
           notes: data.notes || null,
           status: data.status,
-          clientId: data.clientId
+          clientId: data.clientId,
+          mediaUrls: data.mediaUrls || []
         };
         var p = isNew
           ? api('/posts', { method: 'POST', body: JSON.stringify(payload) })
@@ -1149,6 +1200,238 @@
       footer.appendChild(save);
     });
   }
+
+  // ---------------- settings page ----------------
+  window.renderSocialSettingsPage = function (container) {
+    container.innerHTML = '';
+    container.style.padding = '24px';
+    container.style.overflowY = 'auto';
+    container.style.boxSizing = 'border-box';
+
+    var root = el('div', 'sch-settings-root');
+    container.appendChild(root);
+
+    function renderSettings() {
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      // --- Clients section ---
+      var clientsHeader = el('div', 'sch-settings-section-header');
+      clientsHeader.appendChild(el('h3', 'sch-settings-title', 'Clients'));
+      var addClientBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary', '+ Add Client');
+      clientsHeader.appendChild(addClientBtn);
+      root.appendChild(clientsHeader);
+
+      // Inline add-client form (hidden until button clicked)
+      var addClientForm = el('div', 'sch-settings-add-form');
+      addClientForm.style.display = 'none';
+      var newClientName = el('input');
+      newClientName.type = 'text';
+      newClientName.placeholder = 'Client name…';
+      newClientName.className = 'sch-settings-input';
+      var newClientEmail = el('input');
+      newClientEmail.type = 'email';
+      newClientEmail.placeholder = 'Email (optional)';
+      newClientEmail.className = 'sch-settings-input';
+      var newClientPhone = el('input');
+      newClientPhone.type = 'tel';
+      newClientPhone.placeholder = 'Phone (optional)';
+      newClientPhone.className = 'sch-settings-input';
+      var saveClientBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary', 'Save');
+      var cancelClientBtn = el('button', 'sch-btn sch-btn-sm', 'Cancel');
+      addClientForm.appendChild(newClientName);
+      addClientForm.appendChild(newClientEmail);
+      addClientForm.appendChild(newClientPhone);
+      addClientForm.appendChild(saveClientBtn);
+      addClientForm.appendChild(cancelClientBtn);
+      root.appendChild(addClientForm);
+
+      addClientBtn.addEventListener('click', function () {
+        addClientForm.style.display = addClientForm.style.display === 'none' ? 'flex' : 'none';
+        if (addClientForm.style.display !== 'none') newClientName.focus();
+      });
+      cancelClientBtn.addEventListener('click', function () {
+        addClientForm.style.display = 'none';
+        newClientName.value = '';
+        newClientEmail.value = '';
+        newClientPhone.value = '';
+      });
+      saveClientBtn.addEventListener('click', function () {
+        var name = newClientName.value.trim();
+        if (!name) { alert('Client name is required.'); return; }
+        saveClientBtn.disabled = true;
+        var h = { 'Content-Type': 'application/json' };
+        if (window.getAuthHeaders) { var a = window.getAuthHeaders(); for (var k in a) h[k] = a[k]; }
+        fetch('/api/clients', {
+          method: 'POST',
+          headers: h,
+          body: JSON.stringify({ name: name, email: newClientEmail.value.trim() || null, phone: newClientPhone.value.trim() || null })
+        })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function () {
+          // Reload state then re-render settings
+          return loadAll();
+        })
+        .then(function () { renderSettings(); })
+        .catch(function (err) {
+          alert('Failed to create client: ' + err.message);
+          saveClientBtn.disabled = false;
+        });
+      });
+
+      // Client list — each card shows their social accounts
+      var clientList = el('div', 'sch-settings-client-list');
+
+      // Agency row first
+      clientList.appendChild(buildClientSettingsCard(null, 'Agency (Own accounts)'));
+
+      // All CRM clients
+      state.clients.forEach(function (c) {
+        clientList.appendChild(buildClientSettingsCard(c.id, c.name));
+      });
+
+      root.appendChild(clientList);
+    }
+
+    function buildClientSettingsCard(clientId, clientName) {
+      var card = el('div', 'sch-settings-client-card');
+
+      var cardHeader = el('div', 'sch-settings-client-header');
+      cardHeader.appendChild(el('span', 'sch-settings-client-name', clientName));
+      var addAccBtn = el('button', 'sch-btn sch-btn-sm', '+ Connect Account');
+      cardHeader.appendChild(addAccBtn);
+      card.appendChild(cardHeader);
+
+      // Accounts belonging to this client
+      var myAccounts = state.creds.filter(function (c) {
+        if (clientId == null) return c.clientId == null;
+        return Number(c.clientId) === Number(clientId);
+      });
+
+      var accList = el('div', 'sch-settings-acc-list');
+      if (myAccounts.length === 0) {
+        accList.appendChild(el('div', 'sch-settings-acc-empty', 'No accounts connected yet.'));
+      } else {
+        myAccounts.forEach(function (acc) {
+          var row = el('div', 'sch-settings-acc-row');
+
+          var dot = el('span', 'sch-cred-status' + (acc.isActive ? ' active' : ''));
+          row.appendChild(dot);
+
+          var info = el('span', 'sch-settings-acc-info');
+          info.textContent = acc.platform + ' · ' + acc.accountName + (acc.accountHandle ? ' (' + acc.accountHandle + ')' : '');
+          row.appendChild(info);
+
+          var acts = el('div', 'sch-settings-acc-acts');
+
+          var verifyBtn = el('button', 'sch-btn sch-btn-sm', 'Verify');
+          verifyBtn.addEventListener('click', function () {
+            verifyBtn.disabled = true;
+            api('/credentials/' + acc.id + '/verify', { method: 'POST' })
+              .then(function () { return loadAll(); })
+              .then(function () { renderSettings(); });
+          });
+          acts.appendChild(verifyBtn);
+
+          var removeBtn = el('button', 'sch-btn sch-btn-sm sch-btn-danger', 'Remove');
+          removeBtn.addEventListener('click', function () {
+            if (!confirm('Remove ' + acc.platform + ' account?')) return;
+            api('/credentials/' + acc.id, { method: 'DELETE' })
+              .then(function () { return loadAll(); })
+              .then(function () { renderSettings(); });
+          });
+          acts.appendChild(removeBtn);
+
+          row.appendChild(acts);
+          accList.appendChild(row);
+        });
+      }
+      card.appendChild(accList);
+
+      // Inline add-account form (hidden until button clicked)
+      var addAccForm = el('div', 'sch-settings-add-acc-form');
+      addAccForm.style.display = 'none';
+      var newAcc = { platform: 'facebook', accountName: '', accountHandle: '', credentials: {}, clientId: clientId };
+
+      var platRow = el('div', 'sch-settings-add-acc-row');
+      // Platform select
+      var platSel = document.createElement('select');
+      platSel.className = 'sch-settings-select';
+      PLATFORMS.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p;
+        o.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+        platSel.appendChild(o);
+      });
+      platSel.addEventListener('change', function () { newAcc.platform = platSel.value; rebuildCredFields(); });
+      platRow.appendChild(platSel);
+
+      var accNameInput = el('input');
+      accNameInput.type = 'text';
+      accNameInput.placeholder = 'Account name';
+      accNameInput.className = 'sch-settings-input';
+      accNameInput.addEventListener('input', function () { newAcc.accountName = accNameInput.value; });
+      platRow.appendChild(accNameInput);
+
+      var handleInput = el('input');
+      handleInput.type = 'text';
+      handleInput.placeholder = 'Handle (optional)';
+      handleInput.className = 'sch-settings-input';
+      handleInput.addEventListener('input', function () { newAcc.accountHandle = handleInput.value; });
+      platRow.appendChild(handleInput);
+
+      addAccForm.appendChild(platRow);
+
+      var credFieldsHost = el('div', 'sch-settings-cred-fields');
+      function rebuildCredFields() {
+        while (credFieldsHost.firstChild) credFieldsHost.removeChild(credFieldsHost.firstChild);
+        newAcc.credentials = {};
+        var flds = PLATFORM_FIELDS[newAcc.platform] || ['Access Token'];
+        flds.forEach(function (f) {
+          var key = f.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          var isSecret = f.toLowerCase().indexOf('token') !== -1 || f.toLowerCase().indexOf('secret') !== -1 || f.toLowerCase().indexOf('key') !== -1;
+          var inp = el('input');
+          inp.type = isSecret ? 'password' : 'text';
+          inp.placeholder = f;
+          inp.className = 'sch-settings-input';
+          inp.addEventListener('input', function () { newAcc.credentials[key] = inp.value; });
+          credFieldsHost.appendChild(inp);
+        });
+      }
+      rebuildCredFields();
+      addAccForm.appendChild(credFieldsHost);
+
+      var accFormBtns = el('div', 'sch-settings-form-btns');
+      var saveAccBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary', 'Save Account');
+      var cancelAccBtn = el('button', 'sch-btn sch-btn-sm', 'Cancel');
+      saveAccBtn.addEventListener('click', function () {
+        if (!newAcc.accountName.trim()) { alert('Account name is required.'); return; }
+        saveAccBtn.disabled = true;
+        api('/credentials', { method: 'POST', body: JSON.stringify(newAcc) })
+          .then(function () { return loadAll(); })
+          .then(function () { renderSettings(); })
+          .catch(function (err) {
+            alert('Save failed: ' + err.message);
+            saveAccBtn.disabled = false;
+          });
+      });
+      cancelAccBtn.addEventListener('click', function () {
+        addAccForm.style.display = 'none';
+      });
+      accFormBtns.appendChild(saveAccBtn);
+      accFormBtns.appendChild(cancelAccBtn);
+      addAccForm.appendChild(accFormBtns);
+      card.appendChild(addAccForm);
+
+      addAccBtn.addEventListener('click', function () {
+        addAccForm.style.display = addAccForm.style.display === 'none' ? 'block' : 'none';
+      });
+
+      return card;
+    }
+
+    // Load state then render (re-use loadAll which populates state.clients + state.creds)
+    loadAll().then(function () { renderSettings(); });
+  };
 
   // ---------------- public entry ----------------
   // options: { sourceFilter?: 'content-calendar'|'agri4all'|'own-sm'|'all' }
