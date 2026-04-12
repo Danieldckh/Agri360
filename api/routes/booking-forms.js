@@ -340,7 +340,9 @@ router.post('/:id/upload-proposal-file', proposalUpload.single('file'), async (r
   }
 });
 
-// POST /:id/send-to-editor - Send checklist data to editable booking form service
+// POST /:id/send-to-editor - Generate editable booking form HTML and save it
+// to the booking-form editor service.  Runs format-deliverables locally (no
+// n8n) and POSTs the finished HTML snippet to POST /create on the editor.
 router.post('/:id/send-to-editor', async (req, res) => {
   try {
     const result = await pool.query(
@@ -357,36 +359,35 @@ router.post('/:id/send-to-editor', async (req, res) => {
     const formData = form.formData || {};
     const slug = (form.clientName || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + form.id;
 
-    // Build payload matching what the editable booking form service expects
-    const payload = {
-      slug: slug,
-      client_information: {
-        company_name: formData.companyName || form.clientName || '',
-        trading_name: formData.tradingName || '',
-        campaign_start: formData.campaignMonthStart || form.campaignMonthStart || '',
-        campaign_end: formData.campaignMonthEnd || form.campaignMonthEnd || ''
-      },
-      form_data: formData,
-      booking_form_id: form.id
-    };
+    // Generate HTML from checklist data using format-deliverables
+    const { formatDeliverables } = require('../lib/format-deliverables');
+    const html = formatDeliverables(formData);
 
-    // Send to editable booking form service via n8n webhook
-    const EDITOR_WEBHOOK = process.env.N8N_BOOKING_FORM_WEBHOOK || 'https://n8n.proagrihub.com/webhook/BookingForm';
-    const editorRes = await fetch(EDITOR_WEBHOOK, {
+    // POST the HTML snippet to the editor service
+    const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';
+    const editorRes = await fetch(`${EDITOR_URL}/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ slug, html })
     });
-    const editorResult = await editorRes.text();
+
+    let editableUrl;
+    if (editorRes.ok) {
+      const editorData = await editorRes.json();
+      editableUrl = editorData.url || `${EDITOR_URL}/pages/${slug}.html`;
+    } else {
+      const errText = await editorRes.text();
+      console.error('Editor service error:', editorRes.status, errText);
+      editableUrl = `${EDITOR_URL}/pages/${slug}.html`;
+    }
 
     // Store the editable URL
-    const editableUrl = `https://bookingformeditor.proagrihub.com/pages/${slug}.html`;
     await pool.query(
       'UPDATE booking_forms SET editable_url = $1, updated_at = NOW() WHERE id = $2',
       [editableUrl, req.params.id]
     );
 
-    res.json({ success: true, editableUrl, slug, webhookResponse: editorResult });
+    res.json({ success: true, editableUrl, slug });
   } catch (err) {
     console.error('Send to editor error:', err);
     res.status(500).json({ error: 'Internal server error' });
