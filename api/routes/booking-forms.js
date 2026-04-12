@@ -365,6 +365,7 @@ router.post('/:id/send-to-editor', async (req, res) => {
 
     // POST the HTML snippet to the editor service
     const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';
+    console.log('[send-to-editor] slug=%s html_len=%d editor_url=%s', slug, (html || '').length, EDITOR_URL);
     const editorRes = await fetch(`${EDITOR_URL}/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -375,11 +376,12 @@ router.post('/:id/send-to-editor', async (req, res) => {
     let finalSlug = slug;
     if (editorRes.ok) {
       const editorData = await editorRes.json();
+      console.log('[send-to-editor] editor response:', JSON.stringify(editorData));
       editableUrl = editorData.url || `${EDITOR_URL}/pages/${slug}.html`;
       finalSlug = editorData.slug || slug;
     } else {
       const errText = await editorRes.text();
-      console.error('Editor service error:', editorRes.status, errText);
+      console.error('[send-to-editor] Editor service error:', editorRes.status, errText);
       editableUrl = `${EDITOR_URL}/pages/${slug}.html`;
     }
 
