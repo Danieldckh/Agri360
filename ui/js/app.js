@@ -8,23 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Hide Dev tools in production (non-localhost)
   var isDevEnv = ['localhost', '127.0.0.1', ''].indexOf(window.location.hostname) !== -1;
-  if (!isDevEnv) {
-    var devGroup = document.querySelector('.nav-group[data-group="dev"]');
-    if (devGroup) devGroup.style.display = 'none';
-  }
 
   const sidebar = document.getElementById('sidebar');
   const collapseBtn = document.getElementById('collapseBtn');
   const dashboardContent = document.getElementById('dashboardContent');
   const navItems = document.querySelectorAll('.nav-item');
   let isTransitioning = false;
-  var devPages = ['styles', 'components', 'database', 'dashboards'];
+  var devPages = [];
   let currentPage = localStorage.getItem('proagri-active-page') || 'my-view';
-  if (!isDevEnv && devPages.indexOf(currentPage) !== -1) {
-    currentPage = 'my-view';
-  }
 
   // ===== User Menu =====
   const userAvatarBtn = document.getElementById('userAvatarBtn');
