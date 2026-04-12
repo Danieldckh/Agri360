@@ -1118,7 +1118,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
     'client-list': function () { window.insertTemplate(dashboardContent, '/pages/client-list/client-list.html', window.initClientListPage); },
     'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); },
-    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); }
+    'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); },
+    'docs': function () { if (window.renderDocsPage) window.renderDocsPage(dashboardContent); }
     // NOTE: 'design' and 'editorial' are NOT in pageRenderers on purpose.
     // They are department pages handled by the deptPages flow (sidebar
     // subnav). Individual tabs (e.g. 'Content Calendars') are routed
