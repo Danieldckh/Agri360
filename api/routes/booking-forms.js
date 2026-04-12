@@ -49,8 +49,8 @@ async function createUnsignedBookingForm(formId, opts) {
   const form = toCamelCase(formResult.rows[0]);
   const finalSlug = opts.slug || ('esign-' + form.id);
 
-  // Use the editor service to host the unsigned version (read-only page)
-  const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';
+  // Use the esign service to host the unsigned version (read-only page)
+  const ESIGN_URL = process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com';
 
   // Build the HTML: either use the provided edited HTML or fetch from the editable URL
   let html = opts.html || '';
@@ -71,14 +71,14 @@ async function createUnsignedBookingForm(formId, opts) {
     html = buildBookingFormSnippet(formData, form, deliverableRows);
   }
 
-  // Save as a read-only page on the editor service
-  const editorRes = await fetch(`${EDITOR_URL}/create`, {
+  // Save as a read-only page on the esign service
+  const esignRes = await fetch(`${ESIGN_URL}/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slug: finalSlug, html })
   });
-  const editorResult = await editorRes.json().catch(() => ({}));
-  const esignUrl = editorResult.url || `${EDITOR_URL}/pages/${finalSlug}.html`;
+  const esignResult = await esignRes.json().catch(() => ({}));
+  const esignUrl = esignResult.url || `${ESIGN_URL}/pages/${finalSlug}.html`;
 
   await pool.query(
     'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
