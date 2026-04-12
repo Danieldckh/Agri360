@@ -359,9 +359,13 @@ router.post('/:id/send-to-editor', async (req, res) => {
     const formData = form.formData || {};
     const slug = (form.clientName || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + form.id;
 
-    // Generate HTML from checklist data using format-deliverables
+    // Generate deliverable rows from checklist data
     const { formatDeliverables } = require('../lib/format-deliverables');
-    const html = formatDeliverables(formData) || '<tr><td colspan="6"><div class="editable" contenteditable="true"><p><em>No deliverable sections were selected in the checklist. Edit this booking form to add content.</em></p></div></td></tr>';
+    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="6"><div class="editable" contenteditable="true"><p><em>No deliverable sections were selected in the checklist.</em></p></div></td></tr>';
+
+    // Build full booking form HTML snippet with company info + deliverables table
+    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
+    const html = buildBookingFormSnippet(formData, form, deliverableRows);
 
     // POST the HTML snippet to the editor service
     const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';

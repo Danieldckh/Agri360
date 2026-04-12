@@ -327,7 +327,7 @@ function formatDeliverables(body) {
     const hasAnything = smm.recurring || hasGoogleAds || hasRecurringOnline || recurringVideos.length || recurringWebsites.length || recurringMagazines.length || agriRecurring.length;
     if (!hasAnything) return "";
     content.push(`<h3>${escapeHtml(rangeLabel)}</h3>`);
-    if (smm.recurring) { content.push(bu("Social Media Management") + br()); formatSMM({ posts: smm.data.monthly_posts || smm.data.posts || 0, content_calendar: !!smm.data.content_calendar }).forEach(x => content.push(x)); }
+    if (smm.recurring) { content.push(bu("Social Media Management") + br()); formatSMM({ posts: smm.data.monthly_posts || smm.data.posts || 0, content_calendar: !!smm.data.content_calendar, own_page: smm.data.own_page || {} }).forEach(x => content.push(x)); }
     if (hasGoogleAds) formatGoogleAds(googleAdsData).forEach(x => content.push(x));
     if (hasRecurringOnline) { content.push(bu("Online Articles") + br()); formatOnline(online.recurring ? online.data : null, recurringBanners).forEach(x => content.push(x)); content.push(br()); }
     if (recurringVideos.length) { content.push(bu("Video") + br()); formatVideoList(recurringVideos).forEach(x => content.push(x)); }
