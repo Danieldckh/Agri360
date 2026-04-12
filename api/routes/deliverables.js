@@ -445,58 +445,55 @@ router.post('/bulk', async (req, res) => {
       });
     }
 
-    // Social Media Management
-    if (fd.socialMediaManagement && fd.socialMediaManagement.enabled) {
-      const smMonths = fd.page2ActiveMonths && fd.page2ActiveMonths.length ? fd.page2ActiveMonths : allMonths;
-      addType('sm-posts', 'SM Posts', 'request_client_materials', smMonths);
-      if (fd.socialMediaManagement.contentCalendar) {
-        addType('sm-content-calendar', 'Content Calendar', 'request_focus_points', smMonths);
+    // Social Media Management — enabled if array has entries
+    const smmArr = fd.social_media_management || [];
+    if (smmArr.length > 0) {
+      addType('sm-posts', 'SM Posts', 'request_client_materials', allMonths);
+      if (smmArr.some(e => e.content_calendar)) {
+        addType('sm-content-calendar', 'Content Calendar', 'request_focus_points', allMonths);
       }
-      if (fd.socialMediaManagement.googleAds) {
-        addType('sm-google-ads', 'Google Ads', 'request_client_materials', smMonths);
+      if (smmArr.some(e => e.google_ads && e.google_ads.enabled)) {
+        addType('sm-google-ads', 'Google Ads', 'request_client_materials', allMonths);
       }
-    }
-
-    // Own Page Social Media
-    if (fd.ownPageSocialMedia && fd.ownPageSocialMedia.enabled) {
-      const smMonths = fd.page2ActiveMonths && fd.page2ActiveMonths.length ? fd.page2ActiveMonths : allMonths;
-      addType('sm-posts', 'Own Page SM', 'request_client_materials', smMonths);
+      // Own Page Social Media
+      const hasOwnPage = smmArr.some(e => {
+        const o = e.own_page || {};
+        return o.facebook_posts || o.instagram_posts || o.tiktok_shorts ||
+               o.youtube_shorts || o.youtube_video || o.linkedin_article;
+      });
+      if (hasOwnPage) {
+        addType('sm-posts', 'Own Page SM', 'request_client_materials', allMonths);
+      }
     }
 
     // Agri4All
-    if (fd.agri4all && fd.agri4all.enabled) {
-      const a4Months = fd.page3ActiveMonths && fd.page3ActiveMonths.length ? fd.page3ActiveMonths : allMonths;
-      addType('agri4all-posts', 'Agri4All Posts', 'request_client_materials', a4Months);
+    if ((fd.agri4all || []).length > 0) {
+      addType('agri4all-posts', 'Agri4All Posts', 'request_client_materials', allMonths);
     }
 
     // Online Articles
-    if (fd.onlineArticles && fd.onlineArticles.enabled) {
-      const oaMonths = fd.page4ActiveMonths && fd.page4ActiveMonths.length ? fd.page4ActiveMonths : allMonths;
-      addType('online-articles', 'Online Articles', 'request_client_materials', oaMonths);
+    if ((fd.online_articles || []).length > 0) {
+      addType('online-articles', 'Online Articles', 'request_client_materials', allMonths);
     }
 
     // Banners
-    if (fd.banners && fd.banners.enabled) {
-      const bnMonths = fd.page5ActiveMonths && fd.page5ActiveMonths.length ? fd.page5ActiveMonths : allMonths;
-      addType('agri4all-banners', 'Banners', 'design', bnMonths);
+    if ((fd.banners || []).length > 0) {
+      addType('agri4all-banners', 'Banners', 'design', allMonths);
     }
 
     // Magazine
-    if (fd.magazine && fd.magazine.enabled) {
-      const mgMonths = fd.page6ActiveMonths && fd.page6ActiveMonths.length ? fd.page6ActiveMonths : allMonths;
-      addType('magazine', 'Magazine', 'request_client_materials', mgMonths);
+    if ((fd.magazine || []).length > 0) {
+      addType('magazine', 'Magazine', 'request_client_materials', allMonths);
     }
 
     // Video
-    if (fd.video && fd.video.enabled) {
-      const vdMonths = fd.page7ActiveMonths && fd.page7ActiveMonths.length ? fd.page7ActiveMonths : allMonths;
-      addType('video', 'Video', 'send_request_form', vdMonths);
+    if ((fd.video || []).length > 0) {
+      addType('video', 'Video', 'send_request_form', allMonths);
     }
 
-    // Website Design
-    if (fd.websiteDesign && fd.websiteDesign.enabled) {
-      const wdMonths = fd.page8ActiveMonths && fd.page8ActiveMonths.length ? fd.page8ActiveMonths : allMonths;
-      addType('website-design', 'Website Design', 'request_client_materials', wdMonths);
+    // Website
+    if ((fd.website || []).length > 0) {
+      addType('website-design', 'Website Design', 'request_client_materials', allMonths);
     }
 
     // Insert all deliverables in a transaction
