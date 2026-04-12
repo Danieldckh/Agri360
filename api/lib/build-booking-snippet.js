@@ -24,6 +24,13 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
 
   const companyName = ci.company_name || form.clientName || '';
   const tradingName = ci.trading_name || form.tradingName || '';
+
+  // Override styles: hide admin button, fix booking table for 4 columns
+  const styleOverrides = `<style>
+.admin-btn, #admin-notion-btn { display: none !important; }
+.booking-table td:first-child { width: 50%; }
+</style>`;
+
   const campaignStart = ci.campaign_start || form.campaignMonthStart || '';
   const campaignEnd = ci.campaign_end || form.campaignMonthEnd || '';
 
@@ -43,7 +50,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
     ? fmtMonth(campaignStart) + ' - ' + fmtMonth(campaignEnd)
     : '';
 
-  const parts = [];
+  const parts = [styleOverrides];
 
   // ─── Company Information Table ───
   parts.push(`
