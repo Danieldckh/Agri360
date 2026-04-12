@@ -361,7 +361,7 @@ router.post('/:id/send-to-editor', async (req, res) => {
 
     // Generate HTML from checklist data using format-deliverables
     const { formatDeliverables } = require('../lib/format-deliverables');
-    const html = formatDeliverables(formData);
+    const html = formatDeliverables(formData) || '<tr><td colspan="6"><div class="editable" contenteditable="true"><p><em>No deliverable sections were selected in the checklist. Edit this booking form to add content.</em></p></div></td></tr>';
 
     // POST the HTML snippet to the editor service
     const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';
