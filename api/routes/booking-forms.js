@@ -52,24 +52,13 @@ async function createUnsignedBookingForm(formId, opts) {
   // Use the esign service to host the unsigned version (read-only page)
   const ESIGN_URL = process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com';
 
-  // Build the HTML: either use the provided edited HTML or fetch from the editable URL
-  let html = opts.html || '';
-  if (!html && form.editableUrl) {
-    try {
-      const pageRes = await fetch(form.editableUrl);
-      if (pageRes.ok) html = await pageRes.text();
-    } catch (e) {
-      console.warn('Could not fetch editable page for esign:', e);
-    }
-  }
-  // If still no HTML, generate from formData
-  if (!html) {
-    const { formatDeliverables } = require('../lib/format-deliverables');
-    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
-    const formData = form.formData || {};
-    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
-    html = buildBookingFormSnippet(formData, form, deliverableRows);
-  }
+  // Always generate a fresh snippet from formData so the esign service
+  // wraps it in its own read-only template (no contenteditable, no editor UI).
+  const { formatDeliverables } = require('../lib/format-deliverables');
+  const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
+  const formData = form.formData || {};
+  const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
+  const html = buildBookingFormSnippet(formData, form, deliverableRows);
 
   // Save as a read-only page on the esign service
   const esignRes = await fetch(`${ESIGN_URL}/create`, {

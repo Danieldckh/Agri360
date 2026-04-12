@@ -131,6 +131,24 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
 </div>`);
 
   // ─── Deliverables Table (columns: Deliverables, Price, Discount, Subtotal) ───
+  // Build per-month financial rows
+  const financialArr = formData.financial || [];
+  let financialRows = '';
+  if (financialArr.length > 0) {
+    financialRows = financialArr.map(function (f) {
+      var label = f.month_label || f.months_display || '';
+      var price = f.base_price || '';
+      var disc = f.discount || '';
+      var sub = f.subtotal || '';
+      return '<tr>' +
+        editableCell('<b>' + esc(label) + '</b>') +
+        editableCell(price ? esc(currency) + ' ' + esc(price) : '') +
+        editableCell(disc ? esc(currency) + ' ' + esc(disc) : '') +
+        editableCell(sub ? esc(currency) + ' ' + esc(sub) : '') +
+        '</tr>';
+    }).join('\n');
+  }
+
   parts.push(`
 <div class="booking-table-wrapper">
   <table class="booking-table">
@@ -141,6 +159,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
       ${editableCell('<b>Subtotal</b>')}
     </tr>
     ${deliverableRows}
+    ${financialRows}
   </table>
 </div>`);
 
