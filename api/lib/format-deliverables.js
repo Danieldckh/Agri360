@@ -350,7 +350,7 @@ function formatDeliverables(body) {
   }
 
   function row(html) {
-    return `<tr>\n<td><div class="editable" contenteditable="true">${html}</div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n</tr>`;
+    return `<tr>\n<td><div class="editable" contenteditable="true">${html}</div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n</tr>`;
   }
 
   // --- Output ---

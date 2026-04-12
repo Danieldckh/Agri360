@@ -123,23 +123,21 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
   </table>
 </div>`);
 
-  // ─── Deliverables Table ───
+  // ─── Deliverables Table (columns: Deliverables, Price, Discount, Subtotal) ───
   parts.push(`
 <div class="booking-table-wrapper">
   <table class="booking-table">
     <tr>
       ${editableCell('<b>Deliverables</b>')}
-      ${editableCell('<b>Monthly Cost</b>')}
-      ${editableCell('<b>Setup Cost</b>')}
-      ${editableCell('<b>Notes</b>')}
-      ${editableCell('<b>Qty</b>')}
-      ${editableCell('<b>Total</b>')}
+      ${editableCell('<b>Price</b>')}
+      ${editableCell('<b>Discount</b>')}
+      ${editableCell('<b>Subtotal</b>')}
     </tr>
     ${deliverableRows}
   </table>
 </div>`);
 
-  // ─── Financial Summary + Sign-off Footer ───
+  // ─── Financial Summary + Terms Footer ───
   const subtotal = fin.subtotal || '';
   const tax = fin.tax || '';
   const total = fin.total || '';
@@ -155,24 +153,24 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
     </div>
   </div>
   <div class="footer-right">
-    <table class="totals-table">
+    <table style="width:100%;border-collapse:collapse;background:transparent;border:none;">
       <tr>
-        ${editableCell('<b>Subtotal</b>')}
-        ${editableCell(subtotal ? esc(currency) + ' ' + esc(subtotal) : '')}
+        <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>Subtotal</b></div></td>
+        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(subtotal) : ''}</div></td>
       </tr>
       <tr>
-        ${editableCell('<b>VAT (15%)</b>')}
-        ${editableCell(tax ? esc(currency) + ' ' + esc(tax) : '')}
+        <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>VAT (15%)</b></div></td>
+        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${tax ? esc(currency) + ' ' + esc(tax) : ''}</div></td>
       </tr>
       <tr>
-        ${editableCell('<b>Total</b>')}
-        ${editableCell(total ? esc(currency) + ' ' + esc(total) : '')}
+        <td style="padding:6px 0;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true"><b>Total</b></div></td>
+        <td style="padding:6px 0;text-align:right;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true">${total ? esc(currency) + ' ' + esc(total) : ''}</div></td>
       </tr>
     </table>
   </div>
 </div>`);
 
-  // ─── Sign-off Section ───
+  // ─── Sign-off Section (representative only, no client signature row) ───
   parts.push(`
 <div class="booking-table-wrapper" style="margin-top: 28px;">
   <table class="company-table">
@@ -181,12 +179,6 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
       ${editableCell(esc(signOff.representative || ''))}
       ${editableCell('<b>Date</b>')}
       ${editableCell(esc(signOff.date || ''))}
-    </tr>
-    <tr>
-      ${editableCell('<b>Client Signature</b>')}
-      ${editableCell('')}
-      ${editableCell('<b>Date</b>')}
-      ${editableCell('')}
     </tr>
   </table>
 </div>`);
