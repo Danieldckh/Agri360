@@ -49,20 +49,37 @@ async function createUnsignedBookingForm(formId, opts) {
   const form = toCamelCase(formResult.rows[0]);
   const finalSlug = opts.slug || ('esign-' + form.id);
 
-  const ESIGN_SERVICE = process.env.ESIGN_SERVICE_URL || 'https://esign.proagrihub.com';
-  const esignRes = await fetch(ESIGN_SERVICE + '/create', {
+  // Use the editor service to host the unsigned version (read-only page)
+  const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';
+
+  // Build the HTML: either use the provided edited HTML or fetch from the editable URL
+  let html = opts.html || '';
+  if (!html && form.editableUrl) {
+    try {
+      const pageRes = await fetch(form.editableUrl);
+      if (pageRes.ok) html = await pageRes.text();
+    } catch (e) {
+      console.warn('Could not fetch editable page for esign:', e);
+    }
+  }
+  // If still no HTML, generate from formData
+  if (!html) {
+    const { formatDeliverables } = require('../lib/format-deliverables');
+    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
+    const formData = form.formData || {};
+    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
+    html = buildBookingFormSnippet(formData, form, deliverableRows);
+  }
+
+  // Save as a read-only page on the editor service
+  const editorRes = await fetch(`${EDITOR_URL}/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      slug: finalSlug,
-      html: opts.html || '',
-      bookingFormId: form.id,
-      readOnly: true
-    })
+    body: JSON.stringify({ slug: finalSlug, html })
   });
-  const esignResult = await esignRes.json().catch(() => ({}));
+  const editorResult = await editorRes.json().catch(() => ({}));
+  const esignUrl = editorResult.url || `${EDITOR_URL}/pages/${finalSlug}.html`;
 
-  const esignUrl = esignResult.url || `${ESIGN_SERVICE}/pages/${finalSlug}.html`;
   await pool.query(
     'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
     [esignUrl, formId]
@@ -416,6 +433,31 @@ router.post('/:id/send-to-esign', async (req, res) => {
       return res.status(404).json({ error: 'Booking form not found' });
     }
     console.error('Send to esign error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /by-slug/:slug/send-to-esign - Generate unsigned booking form by slug.
+// Called by the editable booking form's "Send to ProAgri" button which only
+// knows the editor slug (e.g. "acme-farms-22"), not the booking form ID.
+router.post('/by-slug/:slug/send-to-esign', async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/\.html$/i, '');
+    const { html } = req.body || {};
+
+    // Find the booking form whose editable_url contains this slug
+    const result = await pool.query(
+      "SELECT id FROM booking_forms WHERE editable_url LIKE $1 ORDER BY id DESC LIMIT 1",
+      ['%' + slug + '%']
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No booking form found for slug: ' + slug });
+    }
+    const formId = result.rows[0].id;
+    const { esignUrl, slug: finalSlug } = await createUnsignedBookingForm(formId, { html });
+    res.json({ success: true, esignUrl, slug: finalSlug, bookingFormId: formId });
+  } catch (err) {
+    console.error('Send to esign by slug error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
