@@ -58,7 +58,9 @@ async function createUnsignedBookingForm(formId, opts) {
   const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
   const formData = form.formData || {};
   const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
-  const html = buildBookingFormSnippet(formData, form, deliverableRows);
+  // Strip contenteditable to make the esign version read-only
+  const rawHtml = buildBookingFormSnippet(formData, form, deliverableRows);
+  const html = rawHtml.replace(/\s*contenteditable="true"/g, '');
 
   // Save as a read-only page on the esign service
   const esignRes = await fetch(`${ESIGN_URL}/create`, {
