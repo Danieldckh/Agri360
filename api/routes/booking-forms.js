@@ -372,9 +372,11 @@ router.post('/:id/send-to-editor', async (req, res) => {
     });
 
     let editableUrl;
+    let finalSlug = slug;
     if (editorRes.ok) {
       const editorData = await editorRes.json();
       editableUrl = editorData.url || `${EDITOR_URL}/pages/${slug}.html`;
+      finalSlug = editorData.slug || slug;
     } else {
       const errText = await editorRes.text();
       console.error('Editor service error:', editorRes.status, errText);
@@ -387,7 +389,7 @@ router.post('/:id/send-to-editor', async (req, res) => {
       [editableUrl, req.params.id]
     );
 
-    res.json({ success: true, editableUrl, slug });
+    res.json({ success: true, editableUrl, slug: finalSlug });
   } catch (err) {
     console.error('Send to editor error:', err);
     res.status(500).json({ error: 'Internal server error' });
