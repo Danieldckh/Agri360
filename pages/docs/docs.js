@@ -1,497 +1,184 @@
-/* ─── API Documentation Page — Drill-Down Navigation ─── */
+/* ─── API Documentation Page ───
+   Exports:
+     window.renderDocsPage(container)         — welcome screen (no API selected)
+     window.showDocsApi(container, apiKey)     — render docs for a specific API
+     window.getDocsApiSections(apiKey)         — return [{id, title}] for sidebar
+*/
 (function () {
-  var CRM_BASE = 'https://agri360.proagrihub.com';
-  var EDITOR_BASE = 'https://bookingformeditor.proagrihub.com';
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function m(method) { return '<span class="docs-method ' + method.toLowerCase() + '">' + method + '</span>'; }
 
-  // ── API definitions ──
-  var apis = {
-    checklist: {
-      label: 'Checklist API',
-      desc: 'CRM backend — booking forms, clients, e-sign, deliverables',
-      sections: [
-        { id: 'cl-overview',       title: 'Overview' },
-        { id: 'cl-auth',           title: 'Authentication' },
-        { id: 'cl-create-client',  title: 'Create Client' },
-        { id: 'cl-create-bf',      title: 'Create / Upsert Booking Form' },
-        { id: 'cl-list-bf',        title: 'List Booking Forms' },
-        { id: 'cl-get-bf',         title: 'Get Booking Form' },
-        { id: 'cl-update-bf',      title: 'Update Booking Form' },
-        { id: 'cl-delete-bf',      title: 'Delete Booking Form' },
-        { id: 'cl-send-editor',    title: 'Send to Editor' },
-        { id: 'cl-send-esign',     title: 'Send to E-Sign' },
-        { id: 'cl-sign',           title: 'Sign / Change Request' },
-        { id: 'cl-revisions',      title: 'Revisions' },
-        { id: 'cl-bulk-deliverables', title: 'Bulk Create Deliverables' },
-        { id: 'cl-list-deliverables', title: 'List Deliverables' },
-        { id: 'cl-checklist-id',   title: 'Checklist ID Generation' },
-        { id: 'cl-flow',           title: 'End-to-End Flow' }
-      ]
-    },
-    editor: {
-      label: 'Editable Booking Form API',
-      desc: 'Editor service — generate, store, and serve editable HTML forms',
-      sections: [
-        { id: 'ed-overview',   title: 'Overview' },
-        { id: 'ed-health',     title: 'Health Check' },
-        { id: 'ed-create',     title: 'Create / Save Page' },
-        { id: 'ed-list',       title: 'List All Pages' },
-        { id: 'ed-view',       title: 'View Generated Page' },
-        { id: 'ed-delete',     title: 'Delete Page' },
-        { id: 'ed-send-n8n',   title: 'Send to Webhook' },
-        { id: 'ed-send-crm',   title: 'Send to CRM' },
-        { id: 'ed-flow',       title: 'End-to-End Flow' }
-      ]
-    }
+  var apiSections = {
+    checklist: [
+      { id: 'cl-overview', title: 'Overview' },
+      { id: 'cl-flow', title: 'Submission Flow' },
+      { id: 'cl-data', title: 'Data Format' },
+      { id: 'cl-id', title: 'Checklist ID' },
+      { id: 'cl-prefill', title: 'Prefill URL' },
+      { id: 'cl-test', title: 'Test Data' }
+    ],
+    'editable-booking-form': [
+      { id: 'eb-overview', title: 'Overview' },
+      { id: 'eb-health', title: 'Health Check' },
+      { id: 'eb-create', title: 'Create / Save Page' },
+      { id: 'eb-list', title: 'List All Pages' },
+      { id: 'eb-view', title: 'View Generated Page' },
+      { id: 'eb-delete', title: 'Delete Page' },
+      { id: 'eb-send-webhook', title: 'Send to Webhook' },
+      { id: 'eb-send-crm', title: 'Send to CRM' },
+      { id: 'eb-send-esign', title: 'Send to E-Sign' },
+      { id: 'eb-template', title: 'Template System' }
+    ],
+    crm: [
+      { id: 'crm-overview', title: 'Overview' },
+      { id: 'crm-auth', title: 'Authentication' },
+      { id: 'crm-list-clients', title: 'List / Search Clients' },
+      { id: 'crm-create-client', title: 'Create Client' },
+      { id: 'crm-get-client', title: 'Get Client' },
+      { id: 'crm-update-client', title: 'Update Client' },
+      { id: 'crm-list-bf', title: 'List Booking Forms' },
+      { id: 'crm-get-bf', title: 'Get Booking Form' },
+      { id: 'crm-create-bf', title: 'Create / Upsert Booking Form' },
+      { id: 'crm-update-bf', title: 'Update Booking Form' },
+      { id: 'crm-delete-bf', title: 'Delete Booking Form' },
+      { id: 'crm-send-editor', title: 'Send to Editor' },
+      { id: 'crm-revisions', title: 'Revisions' },
+      { id: 'crm-revision-detail', title: 'Revision Detail' }
+    ],
+    esign: [
+      { id: 'es-overview', title: 'Overview' },
+      { id: 'es-send', title: 'Send to E-Sign' },
+      { id: 'es-sign', title: 'Sign / Change Request' },
+      { id: 'es-tokens', title: 'Token System' },
+      { id: 'es-status', title: 'Status Changes' }
+    ],
+    deliverables: [
+      { id: 'del-overview', title: 'Overview' },
+      { id: 'del-bulk', title: 'Bulk Create' },
+      { id: 'del-list', title: 'List Deliverables' },
+      { id: 'del-get', title: 'Get Deliverable' },
+      { id: 'del-update', title: 'Update Deliverable' },
+      { id: 'del-delete', title: 'Delete Deliverable' },
+      { id: 'del-routing', title: 'Department Routing' },
+      { id: 'del-workflows', title: 'Status Workflows' }
+    ],
+    coolify: [
+      { id: 'cf-overview', title: 'Overview' },
+      { id: 'cf-auth', title: 'Authentication' },
+      { id: 'cf-list-apps', title: 'List Applications' },
+      { id: 'cf-get-app', title: 'Get Application' },
+      { id: 'cf-update-app', title: 'Update Application' },
+      { id: 'cf-deploy', title: 'Deploy' },
+      { id: 'cf-status', title: 'Deployment Status' },
+      { id: 'cf-restart', title: 'Restart Application' },
+      { id: 'cf-envs', title: 'Environment Variables' },
+      { id: 'cf-uuids', title: 'Application UUIDs' }
+    ]
   };
 
-  // ── Helpers ──
-  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  function method(m) { return '<span class="docs-method ' + m.toLowerCase() + '">' + m + '</span>'; }
-
-  function backArrowSvg() {
-    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>';
-  }
-
-  // ── Content builders ──
   function checklistContent() {
-    return ''
-    // Overview
-    + '<div class="docs-section" id="cl-overview">'
-    + '<h1>Checklist API</h1>'
-    + '<p>The Checklist API is part of the ProAgri CRM backend. It manages booking forms created from the checklist wizard, handles client creation, and triggers editable booking form generation.</p>'
-    + '<table><tr><th>Base URL</th><td><code>' + esc(CRM_BASE) + '/api</code></td></tr>'
-    + '<tr><th>Format</th><td>JSON (Content-Type: application/json)</td></tr>'
-    + '<tr><th>Auth</th><td>Bearer token when AUTH_ENABLED=true (currently disabled)</td></tr></table>'
-    + '</div>'
-
-    // Auth
-    + '<div class="docs-section" id="cl-auth">'
-    + '<h2>Authentication</h2>'
-    + '<p>When <code>AUTH_ENABLED=false</code> (the default), all endpoints are accessible without a token. A fake admin user is injected automatically.</p>'
-    + '<p>When <code>AUTH_ENABLED=true</code>, include a Bearer token in the Authorization header:</p>'
-    + '<pre><code>Authorization: Bearer &lt;your-jwt-token&gt;</code></pre>'
-    + '</div>'
-
-    // Create Client
-    + '<div class="docs-section" id="cl-create-client">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/api/clients</span></h2>'
-    + '<p>Create a new client. Called by the checklist wizard when the user enters a new company (not selected from autocomplete).</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "name": "Acme Farms",\n  "tradingName": "Acme",\n  "companyRegNo": "2025/000001/07",\n  "vatNumber": "4123456789",\n  "website": "https://acme.co.za",\n  "industryExpertise": "Agriculture",\n  "physicalAddress": "1 Farm Road, Pretoria",\n  "physicalPostalCode": "0001",\n  "postalAddress": "PO Box 123, Pretoria",\n  "postalCode": "0001",\n  "primaryContact": {\n    "name": "John Doe",\n    "email": "john@acme.co.za",\n    "cell": "0821234567",\n    "tel": "0121234567"\n  },\n  "materialContact": { "name": "", "email": "", "cell": "", "tel": "" },\n  "accountsContact": { "name": "", "email": "", "cell": "", "tel": "" }\n}</code></pre>'
-    + '<h3>Response <span class="docs-status ok">201 Created</span></h3>'
-    + '<pre><code>{\n  "id": 28,\n  "name": "Acme Farms",\n  "tradingName": "Acme",\n  "status": "active",\n  ...\n}</code></pre>'
-    + '<h3>Errors</h3>'
-    + '<table><tr><th>Code</th><th>Reason</th></tr>'
-    + '<tr><td>400</td><td><code>name</code> is required</td></tr></table>'
-    + '</div>'
-
-    // Create/Upsert Booking Form
-    + '<div class="docs-section" id="cl-create-bf">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/api/booking-forms</span></h2>'
-    + '<p>Create or update a booking form. If <code>checklistId</code> matches an existing row, it performs an <strong>upsert</strong> (update). Otherwise it creates a new row.</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "clientId": 28,                         // REQUIRED\n  "title": "Acme Farms - Proposal",\n  "status": "outline_proposal",\n  "formData": { ... },                    // Full checklist payload (JSONB)\n  "checklistId": "CL-ABC123",             // Upsert key\n  "checklistUrl": "https://checklist...", // Link back to checklist\n  "campaignMonthStart": "2026-02",\n  "campaignMonthEnd": "2026-05"\n}</code></pre>'
-    + '<h3>Response <span class="docs-status ok">201 Created</span> or <span class="docs-status ok">200 OK</span> (upsert)</h3>'
-    + '<pre><code>{\n  "id": 22,\n  "clientId": 28,\n  "title": "Acme Farms - Proposal",\n  "status": "outline_proposal",\n  "checklistId": "CL-ABC123",\n  "editableUrl": null,\n  "formData": { ... },\n  ...\n}</code></pre>'
-    + '<h3>Errors</h3>'
-    + '<table><tr><th>Code</th><th>Reason</th></tr>'
-    + '<tr><td>400</td><td><code>client_id is required</code></td></tr></table>'
-    + '</div>'
-
-    // List Booking Forms
-    + '<div class="docs-section" id="cl-list-bf">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/api/booking-forms</span></h2>'
-    + '<p>List all booking forms, ordered by most recent first.</p>'
-    + '<h3>Query Parameters</h3>'
-    + '<table><tr><th>Param</th><th>Type</th><th>Description</th></tr>'
-    + '<tr><td><code>department</code></td><td>string</td><td>Optional. Filter by department slug.</td></tr></table>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>[\n  {\n    "id": 22,\n    "clientId": 28,\n    "clientName": "Acme Farms",\n    "title": "Acme Farms - Proposal",\n    "status": "outline_proposal",\n    "editableUrl": "https://bookingformeditor.proagrihub.com/pages/acme-farms-22.html",\n    ...\n  }\n]</code></pre>'
-    + '</div>'
-
-    // Get Booking Form
-    + '<div class="docs-section" id="cl-get-bf">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/api/booking-forms/:id</span></h2>'
-    + '<p>Get a single booking form by ID, including full client details.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<p>Returns the booking form object with 47+ fields including all client contact info.</p>'
-    + '<h3>Errors</h3>'
-    + '<table><tr><th>Code</th><th>Reason</th></tr>'
-    + '<tr><td>404</td><td>Booking form not found</td></tr></table>'
-    + '</div>'
-
-    // Update Booking Form
-    + '<div class="docs-section" id="cl-update-bf">'
-    + '<h2>' + method('PATCH') + ' <span class="docs-path">/api/booking-forms/:id</span></h2>'
-    + '<p>Update specific fields on a booking form. Only include fields you want to change.</p>'
-    + '<h3>Updatable Fields</h3>'
-    + '<p><code>title</code>, <code>description</code>, <code>status</code>, <code>department</code>, <code>booked_date</code>, <code>due_date</code>, <code>campaign_month_start</code>, <code>campaign_month_end</code>, <code>form_data</code>, <code>sign_off_date</code>, <code>representative</code>, <code>decline_reason</code>, <code>editable_url</code>, <code>esign_url</code>, <code>checklist_url</code>, <code>assigned_admin</code></p>'
-    + '<h3>Side Effect</h3>'
-    + '<p>When <code>status</code> is set to <code>booking_form_ready</code> and no <code>esign_url</code> exists, the system automatically generates the unsigned e-sign URL (best-effort).</p>'
-    + '</div>'
-
-    // Delete Booking Form
-    + '<div class="docs-section" id="cl-delete-bf">'
-    + '<h2>' + method('DELETE') + ' <span class="docs-path">/api/booking-forms/:id</span></h2>'
-    + '<p>Delete a booking form by ID.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "success": true\n}</code></pre>'
-    + '<h3>Errors</h3>'
-    + '<table><tr><th>Code</th><th>Reason</th></tr>'
-    + '<tr><td>404</td><td>Booking form not found</td></tr></table>'
-    + '</div>'
-
-    // Send to Editor
-    + '<div class="docs-section" id="cl-send-editor">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/api/booking-forms/:id/send-to-editor</span></h2>'
-    + '<p>Generate the editable booking form HTML from the checklist data stored in <code>formData</code>. This transforms the checklist payload into a formatted HTML table and saves it to the booking form editor service.</p>'
-    + '<h3>Request Body</h3>'
-    + '<p>No body required. The route reads data from the database.</p>'
-    + '<h3>What Happens</h3>'
-    + '<ol><li>Reads the booking form + client data from the DB</li>'
-    + '<li>Generates a slug: <code>{clientName}-{id}</code></li>'
-    + '<li>Runs format-deliverables to transform checklist data into HTML table rows</li>'
-    + '<li>POSTs the HTML to <code>' + esc(EDITOR_BASE) + '/create</code></li>'
-    + '<li>Stores the <code>editableUrl</code> on the booking form row</li></ol>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "success": true,\n  "editableUrl": "' + esc(EDITOR_BASE) + '/pages/acme-farms-22.html",\n  "slug": "acme-farms-22"\n}</code></pre>'
-    + '</div>'
-
-    // Send to E-Sign
-    + '<div class="docs-section" id="cl-send-esign">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/api/booking-forms/:id/send-to-esign</span></h2>'
-    + '<p>Generate an unsigned booking form for e-signature. Sends HTML to the e-sign service.</p>'
-    + '<h3>Request Body (optional)</h3>'
-    + '<pre><code>{\n  "html": "&lt;html&gt;...&lt;/html&gt;",   // Custom HTML (optional)\n  "slug": "custom-slug"              // Custom slug (optional)\n}</code></pre>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "success": true,\n  "esignUrl": "https://bookingformesign.proagrihub.com/sign/acme-farms-22",\n  "slug": "acme-farms-22"\n}</code></pre>'
-    + '</div>'
-
-    // Sign
-    + '<div class="docs-section" id="cl-sign">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/api/booking-forms/:id/sign</span></h2>'
-    + '<p>Handle e-sign completion. Creates an immutable revision record and updates the booking form status.</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "action": "signed",            // "signed" or "change_request"\n  "pdfData": "base64...",        // PDF as base64\n  "signatureData": { ... },      // Signature metadata\n  "changeNotes": "",             // Notes (for change_request)\n  "signerName": "John Doe",\n  "signerEmail": "john@acme.co.za"\n}</code></pre>'
-    + '<h3>Side Effects</h3>'
-    + '<table><tr><th>Action</th><th>Status Change</th><th>Department</th></tr>'
-    + '<tr><td><code>signed</code></td><td>\u2192 <code>onboarding</code></td><td>\u2192 <code>admin-onboarding</code></td></tr>'
-    + '<tr><td><code>change_request</code></td><td>\u2192 <code>change_requested</code></td><td>(unchanged)</td></tr></table>'
-    + '</div>'
-
-    // Revisions
-    + '<div class="docs-section" id="cl-revisions">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/api/booking-forms/:id/revisions</span></h2>'
-    + '<p>List the immutable audit trail of sign/change-request events for a booking form.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>[\n  {\n    "id": 1,\n    "bookingFormId": 22,\n    "action": "signed",\n    "signerName": "John Doe",\n    "signerEmail": "john@acme.co.za",\n    "changeNotes": null,\n    "clientIp": "196.x.x.x",\n    "createdAt": "2026-04-12T10:00:00Z"\n  }\n]</code></pre>'
-    + '<p><strong>Note:</strong> Heavy fields (<code>htmlSnapshot</code>, <code>pdfBase64</code>) are excluded from the list. Use <code>GET /api/booking-forms/:id/revisions/:revisionId</code> for the full payload.</p>'
-    + '</div>'
-
-    // Bulk Create Deliverables
-    + '<div class="docs-section" id="cl-bulk-deliverables">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/api/deliverables/bulk</span></h2>'
-    + '<p>Create per-month deliverables for each enabled service in the booking form\'s <code>formData</code>. Idempotent \u2014 returns existing deliverables if already created.</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "bookingFormId": 28\n}</code></pre>'
-    + '<h3>Services Detected</h3>'
-    + '<table><tr><th>formData Key</th><th>Deliverable Types Created</th></tr>'
-    + '<tr><td><code>social_media_management</code></td><td>SM Posts, Content Calendar, Google Ads, Own Page SM</td></tr>'
-    + '<tr><td><code>agri4all</code></td><td>Agri4All</td></tr>'
-    + '<tr><td><code>online_articles</code></td><td>Online Articles</td></tr>'
-    + '<tr><td><code>banners</code></td><td>Banners</td></tr>'
-    + '<tr><td><code>magazine</code></td><td>Magazine</td></tr>'
-    + '<tr><td><code>video</code></td><td>Video</td></tr>'
-    + '<tr><td><code>website</code></td><td>Website</td></tr></table>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "totalCreated": 12,\n  "byType": {\n    "sm-posts": 4,\n    "content-calendar": 4,\n    "google-ads": 4,\n    ...\n  },\n  "deliverables": [\n    {\n      "id": 101,\n      "bookingFormId": 28,\n      "type": "sm-posts",\n      "month": "2026-02",\n      "status": "not_started",\n      ...\n    }\n  ]\n}</code></pre>'
-    + '</div>'
-
-    // List Deliverables
-    + '<div class="docs-section" id="cl-list-deliverables">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/api/deliverables</span></h2>'
-    + '<p>List deliverables with optional filters.</p>'
-    + '<h3>Query Parameters</h3>'
-    + '<table><tr><th>Param</th><th>Type</th><th>Description</th></tr>'
-    + '<tr><td><code>bookingFormId</code></td><td>number</td><td>Filter by booking form ID</td></tr>'
-    + '<tr><td><code>clientId</code></td><td>number</td><td>Filter by client ID</td></tr>'
-    + '<tr><td><code>department</code></td><td>string</td><td>Filter by department slug</td></tr></table>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>[\n  {\n    "id": 101,\n    "bookingFormId": 28,\n    "clientId": 34,\n    "type": "sm-posts",\n    "month": "2026-02",\n    "status": "not_started",\n    "department": "social-media",\n    ...\n  }\n]</code></pre>'
-    + '</div>'
-
-    // Checklist ID
-    + '<div class="docs-section" id="cl-checklist-id">'
-    + '<h2>Checklist ID Generation</h2>'
-    + '<p>The checklist wizard generates a deterministic ID used as the upsert key for booking forms. This ensures resubmitting the same checklist updates the existing record.</p>'
-    + '<h3>Algorithm</h3>'
-    + '<pre><code>input  = (clientName + "|" + campaignStart + "|" + campaignEnd).toLowerCase()\nhash   = Java-style hashCode (shift-5 multiply-add loop)\nresult = "CL-" + abs(hash).toString(36).toUpperCase().slice(0, 6)\n\nExample: "acme farms|2026-02|2026-05" \u2192 CL-1A2B3C</code></pre>'
-    + '</div>'
-
-    // End-to-End Flow
-    + '<div class="docs-section" id="cl-flow">'
-    + '<h2>End-to-End Flow</h2>'
-    + '<p>The complete flow when a user fills out and submits the checklist wizard:</p>'
-    + '<ol>'
-    + '<li><strong>Checklist wizard</strong> collects all form data across 10 steps</li>'
-    + '<li><strong>POST /api/clients</strong> \u2014 creates the client (if new, not from autocomplete)</li>'
-    + '<li><strong>POST /api/booking-forms</strong> \u2014 creates/upserts the booking form with the full payload in <code>formData</code></li>'
-    + '<li><strong>POST /api/booking-forms/:id/send-to-editor</strong> \u2014 generates the editable booking form HTML and saves it to the editor service</li>'
-    + '<li><strong>Redirect</strong> \u2014 the checklist wizard redirects to the editable booking form URL</li>'
-    + '<li>The user can edit the booking form and send it to ProAgri</li>'
-    + '</ol>'
-    + '<p>Both the <code>checklistUrl</code> (for reopening the checklist) and <code>editableUrl</code> (for the generated form) are stored permanently on the booking form record.</p>'
-    + '</div>';
+    return '<div class="docs-section" id="cl-overview"><h1>Checklist API</h1><p>The Checklist is a client-side multi-step wizard that collects campaign requirements across 11 steps. It runs as a static site and submits data to the CRM API.</p><table><tr><th>URL</th><td><code>http://kgso4o000o48kww4k4c8048c.148.230.100.16.sslip.io</code></td></tr><tr><th>Type</th><td>Static HTML + vanilla JS</td></tr><tr><th>Steps</th><td>Client Info, Social Media, Agri4All, Online, Banners, Magazine, Video, Website, Financials, Sign-off, Review</td></tr></table></div>'
+    + '<div class="docs-section" id="cl-flow"><h2>Submission Flow</h2><p>When the user clicks Submit:</p><ol><li><strong>POST /api/clients</strong> — Creates the client (if not from autocomplete)</li><li><strong>POST /api/booking-forms</strong> — Creates/upserts booking form with full formData</li><li><strong>POST /api/booking-forms/:id/send-to-editor</strong> — Generates editable booking form HTML</li><li><strong>POST /api/deliverables/bulk</strong> — Creates per-month deliverables</li><li><strong>Redirect</strong> — Browser navigates to the editable booking form URL</li></ol><pre><code>const bfRes = await fetch(CRM_API + "/booking-forms", { method: "POST", body: JSON.stringify(bfBody) });\nconst bfData = await bfRes.json();\nawait fetch(CRM_API + "/booking-forms/" + bfData.id + "/send-to-editor", { method: "POST" });\nawait fetch(CRM_API + "/deliverables/bulk", { method: "POST", body: JSON.stringify({ bookingFormId: bfData.id }) });\nwindow.location.href = editableUrl;</code></pre></div>'
+    + '<div class="docs-section" id="cl-data"><h2>Data Format</h2><p>The <code>formData</code> payload (snake_case):</p><pre><code>{\n  "client_information": { "company_name": "...", "campaign_start": "2026-06", ... },\n  "social_media_management": [\n    { "month_label": "All Months", "monthly_posts": 12, "content_calendar": true,\n      "own_page": { "facebook_posts": true, "facebook_posts_amount": 8, ... },\n      "google_ads": { "enabled": true, "initial_setup_text": "...", "monthly_ongoing_text": "..." } }\n  ],\n  "agri4all": [{ "month_label": "...", "country": "...", "state": { ... } }],\n  "online_articles": [{ "platforms": [...], "amount": 2 }],\n  "banners": [{ "entries": [{ "platform": "...", "impressions": 50000 }] }],\n  "magazine": [{ "magazine": "SA Digital", "page_size": "Full Page", "type": "Advert" }],\n  "video": [{ "video_type": "Corporate", "video_duration": "60 seconds" }],\n  "website": [{ "website_type": "Website Design & Development", "number_of_pages": "5-10" }],\n  "financial_totals": { "subtotal": "30000", "tax": "4500", "total": "34500" },\n  "sign_off": { "date": "2026-04-12", "representative": "Daniel" }\n}</code></pre></div>'
+    + '<div class="docs-section" id="cl-id"><h2>Checklist ID Generation</h2><pre><code>input  = (clientName + "|" + campaignStart + "|" + campaignEnd).toLowerCase()\nhash   = Java-style hashCode\nresult = "CL-" + abs(hash).toString(36).toUpperCase().slice(0, 6)</code></pre></div>'
+    + '<div class="docs-section" id="cl-prefill"><h2>Prefill URL</h2><p>Checklist can be reopened with prefilled data via URL hash: <code>#prefill=&lt;compressed-base64&gt;</code></p></div>'
+    + '<div class="docs-section" id="cl-test"><h2>Test Data</h2><p>The "Fill Test Data" button on Step 1 populates all fields with sample data for development testing.</p></div>';
   }
 
   function editorContent() {
-    return ''
-    // Overview
-    + '<div class="docs-section" id="ed-overview">'
-    + '<h1>Editable Booking Form API</h1>'
-    + '<p>The Editable Booking Form service generates, stores, and serves editable HTML booking forms. It receives HTML snippets from the CRM and wraps them in a styled template with editable fields.</p>'
-    + '<table><tr><th>Base URL</th><td><code>' + esc(EDITOR_BASE) + '</code></td></tr>'
-    + '<tr><th>Format</th><td>JSON (Content-Type: application/json)</td></tr>'
-    + '<tr><th>Auth</th><td>None required (public service)</td></tr>'
-    + '<tr><th>Max Body</th><td>25 MB</td></tr></table>'
-    + '</div>'
-
-    // Health Check
-    + '<div class="docs-section" id="ed-health">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/</span></h2>'
-    + '<p>Health check endpoint.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{ "status": "ok" }</code></pre>'
-    + '</div>'
-
-    // Create/Save
-    + '<div class="docs-section" id="ed-create">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/create</span></h2>'
-    + '<p>Create or overwrite an editable booking form page. If the HTML is a snippet (no <code>&lt;html&gt;</code> tag), it is injected into the base template at the <code>&lt;!--CONTENT_SNIPPET--&gt;</code> marker.</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "slug": "acme-farms-22",\n  "html": "&lt;table class=\\"booking-table\\"&gt;...&lt;/table&gt;"\n}</code></pre>'
-    + '<h3>Slug Sanitization</h3>'
-    + '<p>The slug is lowercased, non-alphanumeric characters replaced with hyphens, <code>.html</code> extension stripped.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "success": true,\n  "url": "' + esc(EDITOR_BASE) + '/pages/acme-farms-22.html",\n  "slug": "acme-farms-22"\n}</code></pre>'
-    + '<h3>Template Injection</h3>'
-    + '<p>When the HTML doesn\'t contain <code>&lt;html</code>, <code>&lt;head</code>, or <code>&lt;body</code> tags, the service wraps it in <code>templates/base.html</code>. The template provides:</p>'
-    + '<ul><li>ProAgri branding banner</li><li>Editable header (logo, address, legal strip)</li><li>Editable table cells with focus styling</li><li>"Send booking form to ProAgri" button</li><li>LocalStorage persistence for header edits</li></ul>'
-    + '</div>'
-
-    // List All Pages
-    + '<div class="docs-section" id="ed-list">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/pages</span></h2>'
-    + '<p>List all generated booking form HTML pages sorted by most recently modified.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "pages": [\n    {\n      "slug": "acme-farms-22",\n      "filename": "acme-farms-22.html",\n      "url": "' + esc(EDITOR_BASE) + '/pages/acme-farms-22.html",\n      "size": 24576,\n      "createdAt": "2026-03-15T08:30:00Z",\n      "modifiedAt": "2026-04-01T14:22:00Z"\n    }\n  ],\n  "total": 47\n}</code></pre>'
-    + '</div>'
-
-    // View
-    + '<div class="docs-section" id="ed-view">'
-    + '<h2>' + method('GET') + ' <span class="docs-path">/pages/{slug}.html</span></h2>'
-    + '<p>View a generated editable booking form page. This is the URL that clients interact with.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<p>Returns the full HTML page with editable content, ProAgri branding, and the "Send to ProAgri" button.</p>'
-    + '<h3>404</h3>'
-    + '<p>If the slug doesn\'t exist, returns <code>Cannot GET /pages/{slug}.html</code>.</p>'
-    + '</div>'
-
-    // Delete Page
-    + '<div class="docs-section" id="ed-delete">'
-    + '<h2>' + method('DELETE') + ' <span class="docs-path">/pages/:slug</span></h2>'
-    + '<p>Delete a generated booking form page by slug.</p>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{\n  "success": true,\n  "deleted": "acme-farms-22"\n}</code></pre>'
-    + '<h3>Errors</h3>'
-    + '<table><tr><th>Code</th><th>Reason</th></tr>'
-    + '<tr><td>400</td><td>Invalid slug format</td></tr>'
-    + '<tr><td>404</td><td>Page not found</td></tr></table>'
-    + '</div>'
-
-    // Send to Webhook
-    + '<div class="docs-section" id="ed-send-n8n">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/send-to-n8n</span></h2>'
-    + '<p>Forward the edited booking form data to an external webhook. Used by the "Send booking form to ProAgri" button on generated pages.</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "slug": "acme-farms-22",\n  "url": "' + esc(EDITOR_BASE) + '/pages/acme-farms-22.html",\n  "html": "&lt;div id=\\"booking-form-root\\"&gt;...&lt;/div&gt;",\n  "header": {\n    "logoBase64": "data:image/png;base64,...",\n    "logoFileName": "logo.png",\n    "addressHtml": "PO Box ...",\n    "legalStripText": "Agri Media Africa..."\n  },\n  "bookingFormCompanyName": "Acme Farms"\n}</code></pre>'
-    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
-    + '<pre><code>{ "success": true, "status": 200, "response": "..." }</code></pre>'
-    + '</div>'
-
-    // Send to CRM
-    + '<div class="docs-section" id="ed-send-crm">'
-    + '<h2>' + method('POST') + ' <span class="docs-path">/send-to-crm/:slug</span></h2>'
-    + '<p>Proxy the edited booking form to the CRM API. Avoids browser CORS issues with direct CRM calls.</p>'
-    + '<h3>Request Body</h3>'
-    + '<pre><code>{\n  "html": "&lt;div&gt;...&lt;/div&gt;",\n  "header": { ... },\n  "bookingFormCompanyName": "Acme Farms"\n}</code></pre>'
-    + '<h3>Response</h3>'
-    + '<p>Passes through the CRM API response.</p>'
-    + '</div>'
-
-    // End-to-End Flow
-    + '<div class="docs-section" id="ed-flow">'
-    + '<h2>End-to-End Flow</h2>'
-    + '<p>How the editable booking form is generated and used:</p>'
-    + '<ol>'
-    + '<li><strong>CRM</strong> calls <code>POST /api/booking-forms/:id/send-to-editor</code></li>'
-    + '<li>CRM runs <code>format-deliverables</code> to transform checklist data into HTML table rows</li>'
-    + '<li>CRM calls <code>POST ' + esc(EDITOR_BASE) + '/create</code> with the slug and HTML snippet</li>'
-    + '<li>Editor service injects HTML into <code>templates/base.html</code> and saves to <code>/public/pages/{slug}.html</code></li>'
-    + '<li>The generated page is immediately accessible at <code>' + esc(EDITOR_BASE) + '/pages/{slug}.html</code></li>'
-    + '<li>User edits the form (logo, address, content, pricing columns)</li>'
-    + '<li>User clicks "Send booking form to ProAgri" which calls <code>POST /send-to-n8n</code></li>'
-    + '</ol>'
-    + '<h3>Page Features</h3>'
-    + '<ul>'
-    + '<li>All table cells are <code>contenteditable</code> \u2014 click to edit</li>'
-    + '<li>Header (logo, address, legal strip) is editable and persists via localStorage</li>'
-    + '<li>Logo upload via click on the logo placeholder</li>'
-    + '<li>Edits auto-save when the page is sent back to ProAgri</li>'
-    + '</ul>'
-    + '</div>';
+    var B = 'https://bookingformeditor.proagrihub.com';
+    return '<div class="docs-section" id="eb-overview"><h1>Editable Booking Form API</h1><p>Generates, stores, and serves editable HTML booking forms from checklist data.</p><table><tr><th>Base URL</th><td><code>' + esc(B) + '</code></td></tr><tr><th>Auth</th><td>None</td></tr><tr><th>Max Body</th><td>25 MB</td></tr></table></div>'
+    + '<div class="docs-section" id="eb-health"><h2>' + m('GET') + ' <span class="docs-path">/</span></h2><p>Health check.</p><pre><code>{ "status": "ok" }</code></pre></div>'
+    + '<div class="docs-section" id="eb-create"><h2>' + m('POST') + ' <span class="docs-path">/create</span></h2><p>Create or overwrite a page. Snippets are injected into the base template.</p><h3>Request</h3><pre><code>{ "slug": "acme-22", "html": "&lt;table&gt;...&lt;/table&gt;" }</code></pre><h3>Response <span class="docs-status ok">200</span></h3><pre><code>{ "success": true, "url": "' + esc(B) + '/pages/acme-22.html", "slug": "acme-22" }</code></pre></div>'
+    + '<div class="docs-section" id="eb-list"><h2>' + m('GET') + ' <span class="docs-path">/pages</span></h2><p>List all generated pages with metadata.</p><pre><code>{ "pages": [{ "slug": "...", "filename": "...", "url": "...", "size": 24000, "createdAt": "...", "modifiedAt": "..." }], "total": 1 }</code></pre></div>'
+    + '<div class="docs-section" id="eb-view"><h2>' + m('GET') + ' <span class="docs-path">/pages/{slug}.html</span></h2><p>View a generated editable booking form page.</p></div>'
+    + '<div class="docs-section" id="eb-delete"><h2>' + m('DELETE') + ' <span class="docs-path">/pages/{slug}</span></h2><p>Delete a page.</p><pre><code>{ "success": true, "deleted": "acme-22" }</code></pre><table><tr><th>Code</th><th>Reason</th></tr><tr><td>400</td><td>Invalid slug</td></tr><tr><td>404</td><td>Page not found</td></tr></table></div>'
+    + '<div class="docs-section" id="eb-send-webhook"><h2>' + m('POST') + ' <span class="docs-path">/send-to-n8n</span></h2><p>Forward edited form to webhook. Used by "Send to ProAgri" button.</p><pre><code>{ "slug": "...", "url": "...", "html": "...", "header": { "logoBase64": "...", "addressHtml": "..." }, "bookingFormCompanyName": "..." }</code></pre></div>'
+    + '<div class="docs-section" id="eb-send-crm"><h2>' + m('POST') + ' <span class="docs-path">/send-to-crm/{slug}</span></h2><p>Proxy edited form to CRM API (avoids CORS).</p></div>'
+    + '<div class="docs-section" id="eb-send-esign"><h2>' + m('POST') + ' <span class="docs-path">/send-to-esign/{slug}</span></h2><p>Create read-only e-sign version.</p></div>'
+    + '<div class="docs-section" id="eb-template"><h2>Template System</h2><p><code>templates/base.html</code> provides the page skeleton. Snippets injected at <code>&lt;!--CONTENT_SNIPPET--&gt;</code>. Features: editable cells, logo upload, header persistence via localStorage.</p></div>';
   }
 
-  // ── Render ──
-  function renderDocsPage(container) {
+  function crmContent() {
+    var A = 'https://agri360.proagrihub.com/api';
+    return '<div class="docs-section" id="crm-overview"><h1>CRM API</h1><p>Express 5 + PostgreSQL backend. Manages clients, booking forms, deliverables, and workflows.</p><table><tr><th>Base URL</th><td><code>' + esc(A) + '</code></td></tr><tr><th>Format</th><td>JSON (snake_case DB, camelCase API)</td></tr></table></div>'
+    + '<div class="docs-section" id="crm-auth"><h2>Authentication</h2><p><code>AUTH_ENABLED=false</code> (default): no token needed. When enabled:</p><pre><code>Authorization: Bearer &lt;jwt-token&gt;</code></pre></div>'
+    + '<div class="docs-section" id="crm-list-clients"><h2>' + m('GET') + ' <span class="docs-path">/api/clients</span></h2><p>List/search clients.</p><table><tr><th>Param</th><th>Description</th></tr><tr><td><code>?search=term</code></td><td>Search by name</td></tr><tr><td><code>?limit=N</code></td><td>Limit results</td></tr></table></div>'
+    + '<div class="docs-section" id="crm-create-client"><h2>' + m('POST') + ' <span class="docs-path">/api/clients</span></h2><h3>Request</h3><pre><code>{\n  "name": "Acme Farms", "tradingName": "Acme",\n  "companyRegNo": "2025/001/07", "vatNumber": "412345",\n  "website": "https://acme.co.za",\n  "primaryContact": { "name": "John", "email": "john@acme.co.za", "cell": "082...", "tel": "012..." },\n  "materialContact": { ... }, "accountsContact": { ... }\n}</code></pre><h3>Response <span class="docs-status ok">201</span></h3><pre><code>{ "id": 28, "name": "Acme Farms", "status": "active", ... }</code></pre></div>'
+    + '<div class="docs-section" id="crm-get-client"><h2>' + m('GET') + ' <span class="docs-path">/api/clients/:id</span></h2><p>Get single client with all contact details.</p></div>'
+    + '<div class="docs-section" id="crm-update-client"><h2>' + m('PATCH') + ' <span class="docs-path">/api/clients/:id</span></h2><p>Update specific client fields.</p></div>'
+    + '<div class="docs-section" id="crm-list-bf"><h2>' + m('GET') + ' <span class="docs-path">/api/booking-forms</span></h2><p>List all booking forms.</p><table><tr><th>Param</th><th>Description</th></tr><tr><td><code>?department=slug</code></td><td>Filter by department</td></tr></table></div>'
+    + '<div class="docs-section" id="crm-get-bf"><h2>' + m('GET') + ' <span class="docs-path">/api/booking-forms/:id</span></h2><p>Get single booking form with full client details (47+ fields).</p></div>'
+    + '<div class="docs-section" id="crm-create-bf"><h2>' + m('POST') + ' <span class="docs-path">/api/booking-forms</span></h2><p>Create or upsert. Upserts by <code>checklistId</code>.</p><h3>Request</h3><pre><code>{\n  "clientId": 28, "title": "Acme - Proposal",\n  "status": "outline_proposal", "formData": { ... },\n  "checklistId": "CL-ABC123", "checklistUrl": "https://...",\n  "campaignMonthStart": "2026-06", "campaignMonthEnd": "2026-08"\n}</code></pre><h3>Response <span class="docs-status ok">201</span>/<span class="docs-status ok">200</span></h3><pre><code>{ "id": 22, "clientId": 28, "checklistId": "CL-ABC123", ... }</code></pre><table><tr><th>Code</th><th>Reason</th></tr><tr><td>400</td><td>client_id is required</td></tr></table></div>'
+    + '<div class="docs-section" id="crm-update-bf"><h2>' + m('PATCH') + ' <span class="docs-path">/api/booking-forms/:id</span></h2><p>Update fields. Auto-generates esign URL when status reaches <code>booking_form_ready</code>.</p></div>'
+    + '<div class="docs-section" id="crm-delete-bf"><h2>' + m('DELETE') + ' <span class="docs-path">/api/booking-forms/:id</span></h2><pre><code>{ "success": true }</code></pre></div>'
+    + '<div class="docs-section" id="crm-send-editor"><h2>' + m('POST') + ' <span class="docs-path">/api/booking-forms/:id/send-to-editor</span></h2><p>Generate editable booking form HTML. Runs format-deliverables locally, POSTs to editor service.</p><h3>No body required</h3><ol><li>Reads booking form + client from DB</li><li>Generates slug: <code>{clientName}-{id}</code></li><li>Runs format-deliverables → HTML</li><li>Wraps in company info + contacts + deliverables table + footer</li><li>POSTs to editor service <code>/create</code></li><li>Stores <code>editableUrl</code></li></ol><pre><code>{ "success": true, "editableUrl": "https://bookingformeditor.proagrihub.com/pages/acme-22.html", "slug": "acme-22" }</code></pre></div>'
+    + '<div class="docs-section" id="crm-revisions"><h2>' + m('GET') + ' <span class="docs-path">/api/booking-forms/:id/revisions</span></h2><p>Immutable audit trail. Heavy fields excluded from list.</p><pre><code>[{ "id": 1, "action": "signed", "signerName": "John", "createdAt": "..." }]</code></pre></div>'
+    + '<div class="docs-section" id="crm-revision-detail"><h2>' + m('GET') + ' <span class="docs-path">/api/booking-forms/:id/revisions/:revisionId</span></h2><p>Full revision with HTML snapshot and PDF.</p></div>';
+  }
+
+  function esignContent() {
+    return '<div class="docs-section" id="es-overview"><h1>E-Sign API</h1><p>Handles booking form e-signatures with tokens and immutable revisions.</p><table><tr><th>Base URL</th><td><code>https://agri360.proagrihub.com/api</code></td></tr></table></div>'
+    + '<div class="docs-section" id="es-send"><h2>' + m('POST') + ' <span class="docs-path">/api/booking-forms/:id/send-to-esign</span></h2><h3>Request (optional)</h3><pre><code>{ "html": "...", "slug": "custom-slug" }</code></pre><h3>Response <span class="docs-status ok">200</span></h3><pre><code>{ "success": true, "esignUrl": "https://bookingformesign.proagrihub.com/sign/...", "slug": "..." }</code></pre></div>'
+    + '<div class="docs-section" id="es-sign"><h2>' + m('POST') + ' <span class="docs-path">/api/booking-forms/:id/sign</span></h2><pre><code>{\n  "action": "signed",\n  "pdfData": "base64...",\n  "signatureData": { ... },\n  "signerName": "John Doe",\n  "signerEmail": "john@acme.co.za"\n}</code></pre><p><code>action</code>: <code>"signed"</code> or <code>"change_request"</code></p></div>'
+    + '<div class="docs-section" id="es-tokens"><h2>Token System</h2><p><code>booking_form_esign_tokens</code> table stores signing tokens linked to frozen HTML snapshots.</p><table><tr><th>Column</th><th>Description</th></tr><tr><td>token</td><td>Unique signing token (VARCHAR 64)</td></tr><tr><td>html_snapshot</td><td>Frozen form HTML</td></tr><tr><td>expires_at</td><td>Token expiration</td></tr></table></div>'
+    + '<div class="docs-section" id="es-status"><h2>Status Changes</h2><table><tr><th>Action</th><th>Status</th><th>Department</th></tr><tr><td>signed</td><td>onboarding</td><td>admin-onboarding</td></tr><tr><td>change_request</td><td>change_requested</td><td>(unchanged)</td></tr></table></div>';
+  }
+
+  function deliverablesContent() {
+    return '<div class="docs-section" id="del-overview"><h1>Deliverables API</h1><p>Individual tasks generated from booking form data — one per service per month. Flow between departments via status workflows.</p><table><tr><th>Base URL</th><td><code>https://agri360.proagrihub.com/api</code></td></tr></table></div>'
+    + '<div class="docs-section" id="del-bulk"><h2>' + m('POST') + ' <span class="docs-path">/api/deliverables/bulk</span></h2><p>Create deliverables from booking form. <strong>Idempotent.</strong></p><pre><code>{ "bookingFormId": 28 }</code></pre><h3>Service Detection</h3><table><tr><th>formData Field</th><th>Type</th><th>Initial Status</th></tr><tr><td>social_media_management[]</td><td>sm-posts</td><td>request_client_materials</td></tr><tr><td>↳ content_calendar</td><td>sm-content-calendar</td><td>request_focus_points</td></tr><tr><td>↳ google_ads.enabled</td><td>sm-google-ads</td><td>request_client_materials</td></tr><tr><td>↳ own_page (any)</td><td>sm-posts (Own Page)</td><td>request_client_materials</td></tr><tr><td>agri4all[]</td><td>agri4all-posts</td><td>request_client_materials</td></tr><tr><td>online_articles[]</td><td>online-articles</td><td>request_client_materials</td></tr><tr><td>banners[]</td><td>agri4all-banners</td><td>design</td></tr><tr><td>magazine[]</td><td>magazine</td><td>request_client_materials</td></tr><tr><td>video[]</td><td>video</td><td>send_request_form</td></tr><tr><td>website[]</td><td>website-design</td><td>request_client_materials</td></tr></table><h3>Response <span class="docs-status ok">201</span></h3><pre><code>{ "totalCreated": 12, "byType": { "sm-posts": 4, ... }, "deliverables": [...] }</code></pre></div>'
+    + '<div class="docs-section" id="del-list"><h2>' + m('GET') + ' <span class="docs-path">/api/deliverables</span></h2><table><tr><th>Param</th><th>Description</th></tr><tr><td>?bookingFormId=28</td><td>Filter by booking form</td></tr><tr><td>?clientId=34</td><td>Filter by client</td></tr><tr><td>?department=production</td><td>Filter by department</td></tr><tr><td>?status=design</td><td>Filter by status</td></tr></table></div>'
+    + '<div class="docs-section" id="del-get"><h2>' + m('GET') + ' <span class="docs-path">/api/deliverables/:id</span></h2><p>Get single deliverable.</p></div>'
+    + '<div class="docs-section" id="del-update"><h2>' + m('PATCH') + ' <span class="docs-path">/api/deliverables/:id</span></h2><p>Update status, assignedTo, dueDate, etc. Status changes auto-route to correct department.</p></div>'
+    + '<div class="docs-section" id="del-delete"><h2>' + m('DELETE') + ' <span class="docs-path">/api/deliverables/:id</span></h2><p>Delete a deliverable.</p></div>'
+    + '<div class="docs-section" id="del-routing"><h2>Department Routing</h2><p><code>DEPT_MAPS</code> maps type + status → department slug.</p><pre><code>"sm-content-calendar": {\n  "request_focus_points": "production",\n  "design": "design",\n  "design_review": "production",\n  "proofread": "editorial",\n  "approved": "social-media",\n  "scheduled": "social-media",\n  "posted": "social-media"\n}</code></pre></div>'
+    + '<div class="docs-section" id="del-workflows"><h2>Status Workflows</h2><p>Content Calendar:</p><pre><code>request_focus_points → focus_points_received → design → design_review\n  → proofread → approved → scheduled → posted\n  ↳ design_changes → design\n  ↳ client_changes → design_review</code></pre></div>';
+  }
+
+  function coolifyContent() {
+    var C = 'https://coolify.proagrihub.com/api/v1';
+    return '<div class="docs-section" id="cf-overview"><h1>Coolify API</h1><p>Manages all Docker deployments. Deploy, restart, check status, manage env vars.</p><table><tr><th>Base URL</th><td><code>' + esc(C) + '</code></td></tr><tr><th>Auth</th><td>Bearer token (COOLIFY_API_TOKEN)</td></tr></table></div>'
+    + '<div class="docs-section" id="cf-auth"><h2>Authentication</h2><pre><code>Authorization: Bearer &lt;COOLIFY_API_TOKEN&gt;</code></pre></div>'
+    + '<div class="docs-section" id="cf-list-apps"><h2>' + m('GET') + ' <span class="docs-path">/api/v1/applications</span></h2><p>List all applications.</p><pre><code>[{ "uuid": "tows08oogko8k4wk84g40oo4", "name": "agri360-crm", "fqdn": "https://agri360.proagrihub.com" }]</code></pre></div>'
+    + '<div class="docs-section" id="cf-get-app"><h2>' + m('GET') + ' <span class="docs-path">/api/v1/applications/:uuid</span></h2><p>Get full app config.</p></div>'
+    + '<div class="docs-section" id="cf-update-app"><h2>' + m('PATCH') + ' <span class="docs-path">/api/v1/applications/:uuid</span></h2><pre><code>{ "domains": "https://new.com,https://old.com" }</code></pre></div>'
+    + '<div class="docs-section" id="cf-deploy"><h2>' + m('POST') + ' <span class="docs-path">/api/v1/deploy?uuid=XXX</span></h2><p>Trigger deployment.</p><pre><code>{ "deployments": [{ "message": "deployment queued.", "deployment_uuid": "abc..." }] }</code></pre></div>'
+    + '<div class="docs-section" id="cf-status"><h2>' + m('GET') + ' <span class="docs-path">/api/v1/deployments/:uuid</span></h2><pre><code>{ "status": "finished", "commit": "abc12345" }</code></pre><p>Statuses: <code>queued, in_progress, finished, failed</code></p></div>'
+    + '<div class="docs-section" id="cf-restart"><h2>' + m('POST') + ' <span class="docs-path">/api/v1/applications/:uuid/restart</span></h2><pre><code>{ "message": "Restart request queued." }</code></pre></div>'
+    + '<div class="docs-section" id="cf-envs"><h2>' + m('POST') + ' <span class="docs-path">/api/v1/applications/:uuid/envs</span></h2><pre><code>{ "key": "MY_VAR", "value": "my-value", "is_preview": false }</code></pre></div>'
+    + '<div class="docs-section" id="cf-uuids"><h2>Application UUIDs</h2><table><tr><th>App</th><th>UUID</th><th>Domain</th></tr><tr><td>CRM</td><td><code>tows08oogko8k4wk84g40oo4</code></td><td>agri360.proagrihub.com</td></tr><tr><td>Checklist</td><td><code>kgso4o000o48kww4k4c8048c</code></td><td>kgso4o...sslip.io</td></tr><tr><td>Editor</td><td><code>agw8ggg000sgkgs0ok0k04wg</code></td><td>bookingformeditor.proagrihub.com</td></tr><tr><td>E-Sign</td><td><code>too4c4gww8s8kwskk848kkcs</code></td><td>bookingformesign.proagrihub.com</td></tr><tr><td>Client Lookup</td><td><code>zgk4co44o0o4804c80s0sc4w</code></td><td>clientlookup.proagrihub.com</td></tr></table></div>';
+  }
+
+  var contentBuilders = {
+    'checklist': checklistContent,
+    'editable-booking-form': editorContent,
+    'crm': crmContent,
+    'esign': esignContent,
+    'deliverables': deliverablesContent,
+    'coolify': coolifyContent
+  };
+
+  window.getDocsApiSections = function (apiKey) {
+    return apiSections[apiKey] || [];
+  };
+
+  window.showDocsApi = function (container, apiKey) {
     while (container.firstChild) container.removeChild(container.firstChild);
+    var wrap = document.createElement('div');
+    wrap.className = 'docs-content';
+    wrap.innerHTML = contentBuilders[apiKey] ? contentBuilders[apiKey]() : '<p>Unknown API: ' + esc(apiKey) + '</p>';
+    container.appendChild(wrap);
+  };
 
-    var page = document.createElement('div');
-    page.className = 'docs-page';
-
-    // Left nav panel
-    var nav = document.createElement('nav');
-    nav.className = 'docs-nav';
-
-    var navInner = document.createElement('div');
-    navInner.className = 'docs-nav-inner';
-    nav.appendChild(navInner);
-
-    // Content area
-    var content = document.createElement('div');
-    content.className = 'docs-content';
-    content.id = 'docs-content';
-
-    page.appendChild(nav);
-    page.appendChild(content);
-    container.appendChild(page);
-
-    var currentApi = null;
-    var activeLink = null;
-
-    // Show level 0 — API selection cards
-    showApiList();
-
-    function fadeNav(callback) {
-      navInner.classList.add('fading');
-      setTimeout(function () {
-        callback();
-        navInner.classList.remove('fading');
-      }, 180);
-    }
-
-    function showApiList() {
-      fadeNav(function () {
-        currentApi = null;
-        navInner.innerHTML = '';
-
-        var label = document.createElement('div');
-        label.className = 'docs-nav-label';
-        label.textContent = 'API Documentation';
-        navInner.appendChild(label);
-
-        Object.keys(apis).forEach(function (key) {
-          var card = document.createElement('div');
-          card.className = 'docs-api-card';
-
-          var title = document.createElement('div');
-          title.className = 'docs-api-card-title';
-          title.textContent = apis[key].label;
-
-          var desc = document.createElement('div');
-          desc.className = 'docs-api-card-desc';
-          desc.textContent = apis[key].desc;
-
-          card.appendChild(title);
-          card.appendChild(desc);
-          card.addEventListener('click', function () { showSections(key); });
-          navInner.appendChild(card);
-        });
-
-        // Show placeholder in content
-        content.innerHTML = '<div class="docs-placeholder">'
-          + '<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>'
-          + '<p>Select an API from the left to view its documentation.</p>'
-          + '</div>';
-      });
-    }
-
-    function showSections(apiKey) {
-      fadeNav(function () {
-        currentApi = apiKey;
-        activeLink = null;
-        navInner.innerHTML = '';
-
-        // Back button
-        var back = document.createElement('button');
-        back.className = 'docs-back-btn';
-        back.innerHTML = backArrowSvg() + ' Back';
-        back.addEventListener('click', function () { showApiList(); });
-        navInner.appendChild(back);
-
-        // Label
-        var label = document.createElement('div');
-        label.className = 'docs-nav-label';
-        label.textContent = apis[apiKey].label;
-        navInner.appendChild(label);
-
-        // Section links
-        apis[apiKey].sections.forEach(function (sec, i) {
-          var a = document.createElement('a');
-          a.textContent = sec.title;
-          a.dataset.section = sec.id;
-          if (i === 0) {
-            a.classList.add('active');
-            activeLink = a;
-          }
-          a.addEventListener('click', function () {
-            var el = document.getElementById(sec.id);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (activeLink) activeLink.classList.remove('active');
-            a.classList.add('active');
-            activeLink = a;
-          });
-          navInner.appendChild(a);
-        });
-
-        // Load content
-        content.innerHTML = apiKey === 'checklist' ? checklistContent() : editorContent();
-
-        // Scroll spy
-        content.removeEventListener('scroll', scrollSpy);
-        content.addEventListener('scroll', scrollSpy);
-      });
-    }
-
-    function scrollSpy() {
-      if (!currentApi) return;
-      var sections = apis[currentApi].sections;
-      var scrollTop = content.scrollTop;
-      var found = null;
-      for (var i = 0; i < sections.length; i++) {
-        var el = document.getElementById(sections[i].id);
-        if (el && el.offsetTop - 40 <= scrollTop) found = sections[i].id;
-      }
-      if (found) {
-        var links = navInner.querySelectorAll('a');
-        for (var j = 0; j < links.length; j++) {
-          var isActive = links[j].dataset.section === found;
-          links[j].classList.toggle('active', isActive);
-          if (isActive) activeLink = links[j];
-        }
-      }
-    }
-  }
-
-  window.renderDocsPage = renderDocsPage;
+  window.renderDocsPage = function (container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    var wrap = document.createElement('div');
+    wrap.className = 'docs-content';
+    wrap.innerHTML = '<div style="text-align:center;padding:60px 20px;">'
+      + '<svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.15;margin-bottom:16px;"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>'
+      + '<h2 style="color:var(--brand-navy);margin:0 0 8px;">API Documentation</h2>'
+      + '<p style="color:var(--muted);max-width:400px;margin:0 auto;">Select an API from the sidebar to view its documentation.</p></div>';
+    container.appendChild(wrap);
+  };
 })();

@@ -347,6 +347,17 @@ document.addEventListener('DOMContentLoaded', () => {
     'agri4all': ['Posts', 'Newsletters', 'Links', 'Stats'],
     'social-media': ['Content Calendars', 'Agri for All', 'Own Social Media', 'Google Ads', 'Settings']
   };
+  // Docs page configuration — two-level sidebar drill-down
+  var docsMenuItems = {
+    'checklist': 'Checklist',
+    'editable-booking-form': 'Editable Booking Form',
+    'crm': 'CRM',
+    'esign': 'E-Sign',
+    'deliverables': 'Deliverables',
+    'coolify': 'Coolify'
+  };
+  var currentDocsApi = null;
+
   var currentDeptPage = null;
   var currentDeptView = null;
   var savedNavHTML = null;
@@ -1112,6 +1123,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); },
     'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); },
     'docs': function () { if (window.renderDocsPage) window.renderDocsPage(dashboardContent); }
+    // NOTE: 'docs' is now intercepted before pageRenderers in transitionToPage
+    // to enable sidebar drill-down. This entry remains as fallback.
     // NOTE: 'design' and 'editorial' are NOT in pageRenderers on purpose.
     // They are department pages handled by the deptPages flow (sidebar
     // subnav). Individual tabs (e.g. 'Content Calendars') are routed
@@ -1303,6 +1316,139 @@ document.addEventListener('DOMContentLoaded', () => {
   window.showContentCalendarMenu = showContentCalendarMenu;
   window.hideContentCalendarMenu = hideContentCalendarMenu;
 
+  // ── Docs sidebar drill-down ──
+  function showDocsSubMenu() {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+
+    expandSidebarIfCollapsed();
+
+    if (!savedNavHTML) {
+      savedNavHTML = nav.cloneNode(true);
+    }
+
+    currentDocsApi = null;
+
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+      // Back button
+      var backItem = document.createElement('a');
+      backItem.className = 'nav-item';
+      backItem.tabIndex = 0;
+      backItem.style.cursor = 'pointer';
+      var backIcon = document.createElement('span');
+      backIcon.className = 'nav-icon';
+      backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+      backItem.appendChild(backIcon);
+      var backLabel = document.createElement('span');
+      backLabel.className = 'nav-label';
+      backLabel.textContent = 'Docs';
+      backItem.appendChild(backLabel);
+      backItem.addEventListener('click', function () {
+        hideDeptSubMenu();
+        var myViewItem = document.querySelector('.nav-item[data-page="my-view"]');
+        if (myViewItem) myViewItem.click();
+      });
+      nav.appendChild(backItem);
+
+      // Separator
+      var sep = document.createElement('div');
+      sep.style.height = '1px';
+      sep.style.background = 'rgba(0,0,0,0.08)';
+      sep.style.margin = '8px 12px';
+      nav.appendChild(sep);
+
+      // API category items
+      Object.keys(docsMenuItems).forEach(function (key) {
+        var item = document.createElement('a');
+        item.className = 'nav-item';
+        item.tabIndex = 0;
+        item.style.cursor = 'pointer';
+        var label = document.createElement('span');
+        label.className = 'nav-label';
+        label.textContent = docsMenuItems[key];
+        item.appendChild(label);
+        item.addEventListener('click', function () {
+          nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+          item.classList.add('active');
+          showDocsApiSubMenu(key);
+        });
+        nav.appendChild(item);
+      });
+
+      nav.style.opacity = '1';
+    }, 200);
+
+    // Show docs welcome in content
+    if (window.renderDocsPage) window.renderDocsPage(dashboardContent);
+  }
+
+  function showDocsApiSubMenu(apiKey) {
+    var nav = document.querySelector('#sidebar nav');
+    if (!nav) return;
+
+    currentDocsApi = apiKey;
+    var sections = window.getDocsApiSections ? window.getDocsApiSections(apiKey) : [];
+
+    nav.style.transition = 'opacity 0.2s ease';
+    nav.style.opacity = '0';
+
+    setTimeout(function () {
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+
+      // Back to docs list
+      var backItem = document.createElement('a');
+      backItem.className = 'nav-item';
+      backItem.tabIndex = 0;
+      backItem.style.cursor = 'pointer';
+      var backIcon = document.createElement('span');
+      backIcon.className = 'nav-icon';
+      backIcon.appendChild(makeSvgIcon('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'));
+      backItem.appendChild(backIcon);
+      var backLabel = document.createElement('span');
+      backLabel.className = 'nav-label';
+      backLabel.textContent = docsMenuItems[apiKey] || apiKey;
+      backItem.appendChild(backLabel);
+      backItem.addEventListener('click', function () {
+        showDocsSubMenu();
+      });
+      nav.appendChild(backItem);
+
+      var sep = document.createElement('div');
+      sep.style.height = '1px';
+      sep.style.background = 'rgba(0,0,0,0.08)';
+      sep.style.margin = '8px 12px';
+      nav.appendChild(sep);
+
+      sections.forEach(function (sec, idx) {
+        var item = document.createElement('a');
+        item.className = 'nav-item' + (idx === 0 ? ' active' : '');
+        item.tabIndex = 0;
+        item.style.cursor = 'pointer';
+        var label = document.createElement('span');
+        label.className = 'nav-label';
+        label.textContent = sec.title;
+        item.appendChild(label);
+        item.addEventListener('click', function () {
+          nav.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+          item.classList.add('active');
+          var el = document.getElementById(sec.id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        nav.appendChild(item);
+      });
+
+      nav.style.opacity = '1';
+    }, 200);
+
+    // Render docs content for this API
+    if (window.showDocsApi) window.showDocsApi(dashboardContent, apiKey);
+  }
+
   function transitionToPage(page) {
     isTransitioning = true;
 
@@ -1312,9 +1458,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.cleanupMessaging) window.cleanupMessaging();
     }
 
-    // Cleanup previous page if it was a department
-    if (currentDeptPage && deptPages.indexOf(page) === -1) {
+    // Cleanup previous page if it was a department or docs sidebar
+    if (currentDeptPage && deptPages.indexOf(page) === -1 && page !== 'docs') {
       hideDeptSubMenu();
+    }
+    if (currentDocsApi !== null && page !== 'docs') {
+      hideDeptSubMenu();
+      currentDocsApi = null;
+    }
+    // If we were on the docs welcome (level 1 sidebar) and navigating away, restore nav
+    if (currentPage === 'docs' && page !== 'docs' && savedNavHTML) {
+      hideDeptSubMenu();
+      currentDocsApi = null;
     }
 
     dashboardContent.classList.add('page-exit');
@@ -1334,6 +1489,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       currentPage = page;
       localStorage.setItem('proagri-active-page', page);
+
+      // Docs page — two-level sidebar drill-down
+      if (page === 'docs') {
+        showDocsSubMenu();
+        finishPageEnter();
+        return;
+      }
 
       // Check page renderer registry
       if (pageRenderers[page]) {
