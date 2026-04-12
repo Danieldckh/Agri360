@@ -1,35 +1,42 @@
-/* ─── API Documentation Page ─── */
+/* ─── API Documentation Page — Drill-Down Navigation ─── */
 (function () {
   var CRM_BASE = 'https://agri360.proagrihub.com';
   var EDITOR_BASE = 'https://bookingformeditor.proagrihub.com';
 
-  // ── Section definitions per tab ──
-  var tabs = {
+  // ── API definitions ──
+  var apis = {
     checklist: {
       label: 'Checklist API',
+      desc: 'CRM backend — booking forms, clients, e-sign, deliverables',
       sections: [
-        { id: 'cl-overview',    title: 'Overview' },
-        { id: 'cl-auth',        title: 'Authentication' },
-        { id: 'cl-create-client', title: 'Create Client' },
-        { id: 'cl-create-bf',   title: 'Create / Upsert Booking Form' },
-        { id: 'cl-list-bf',     title: 'List Booking Forms' },
-        { id: 'cl-get-bf',      title: 'Get Booking Form' },
-        { id: 'cl-update-bf',   title: 'Update Booking Form' },
-        { id: 'cl-send-editor', title: 'Send to Editor' },
-        { id: 'cl-send-esign',  title: 'Send to E-Sign' },
-        { id: 'cl-sign',        title: 'Sign / Change Request' },
-        { id: 'cl-revisions',   title: 'Revisions' },
-        { id: 'cl-checklist-id', title: 'Checklist ID Generation' },
-        { id: 'cl-flow',        title: 'End-to-End Flow' }
+        { id: 'cl-overview',       title: 'Overview' },
+        { id: 'cl-auth',           title: 'Authentication' },
+        { id: 'cl-create-client',  title: 'Create Client' },
+        { id: 'cl-create-bf',      title: 'Create / Upsert Booking Form' },
+        { id: 'cl-list-bf',        title: 'List Booking Forms' },
+        { id: 'cl-get-bf',         title: 'Get Booking Form' },
+        { id: 'cl-update-bf',      title: 'Update Booking Form' },
+        { id: 'cl-delete-bf',      title: 'Delete Booking Form' },
+        { id: 'cl-send-editor',    title: 'Send to Editor' },
+        { id: 'cl-send-esign',     title: 'Send to E-Sign' },
+        { id: 'cl-sign',           title: 'Sign / Change Request' },
+        { id: 'cl-revisions',      title: 'Revisions' },
+        { id: 'cl-bulk-deliverables', title: 'Bulk Create Deliverables' },
+        { id: 'cl-list-deliverables', title: 'List Deliverables' },
+        { id: 'cl-checklist-id',   title: 'Checklist ID Generation' },
+        { id: 'cl-flow',           title: 'End-to-End Flow' }
       ]
     },
     editor: {
       label: 'Editable Booking Form API',
+      desc: 'Editor service — generate, store, and serve editable HTML forms',
       sections: [
         { id: 'ed-overview',   title: 'Overview' },
         { id: 'ed-health',     title: 'Health Check' },
         { id: 'ed-create',     title: 'Create / Save Page' },
+        { id: 'ed-list',       title: 'List All Pages' },
         { id: 'ed-view',       title: 'View Generated Page' },
+        { id: 'ed-delete',     title: 'Delete Page' },
         { id: 'ed-send-n8n',   title: 'Send to Webhook' },
         { id: 'ed-send-crm',   title: 'Send to CRM' },
         { id: 'ed-flow',       title: 'End-to-End Flow' }
@@ -38,8 +45,12 @@
   };
 
   // ── Helpers ──
-  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function method(m) { return '<span class="docs-method ' + m.toLowerCase() + '">' + m + '</span>'; }
+
+  function backArrowSvg() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>';
+  }
 
   // ── Content builders ──
   function checklistContent() {
@@ -119,6 +130,17 @@
     + '<p>When <code>status</code> is set to <code>booking_form_ready</code> and no <code>esign_url</code> exists, the system automatically generates the unsigned e-sign URL (best-effort).</p>'
     + '</div>'
 
+    // Delete Booking Form
+    + '<div class="docs-section" id="cl-delete-bf">'
+    + '<h2>' + method('DELETE') + ' <span class="docs-path">/api/booking-forms/:id</span></h2>'
+    + '<p>Delete a booking form by ID.</p>'
+    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
+    + '<pre><code>{\n  "success": true\n}</code></pre>'
+    + '<h3>Errors</h3>'
+    + '<table><tr><th>Code</th><th>Reason</th></tr>'
+    + '<tr><td>404</td><td>Booking form not found</td></tr></table>'
+    + '</div>'
+
     // Send to Editor
     + '<div class="docs-section" id="cl-send-editor">'
     + '<h2>' + method('POST') + ' <span class="docs-path">/api/booking-forms/:id/send-to-editor</span></h2>'
@@ -153,8 +175,8 @@
     + '<pre><code>{\n  "action": "signed",            // "signed" or "change_request"\n  "pdfData": "base64...",        // PDF as base64\n  "signatureData": { ... },      // Signature metadata\n  "changeNotes": "",             // Notes (for change_request)\n  "signerName": "John Doe",\n  "signerEmail": "john@acme.co.za"\n}</code></pre>'
     + '<h3>Side Effects</h3>'
     + '<table><tr><th>Action</th><th>Status Change</th><th>Department</th></tr>'
-    + '<tr><td><code>signed</code></td><td>→ <code>onboarding</code></td><td>→ <code>admin-onboarding</code></td></tr>'
-    + '<tr><td><code>change_request</code></td><td>→ <code>change_requested</code></td><td>(unchanged)</td></tr></table>'
+    + '<tr><td><code>signed</code></td><td>\u2192 <code>onboarding</code></td><td>\u2192 <code>admin-onboarding</code></td></tr>'
+    + '<tr><td><code>change_request</code></td><td>\u2192 <code>change_requested</code></td><td>(unchanged)</td></tr></table>'
     + '</div>'
 
     // Revisions
@@ -166,12 +188,44 @@
     + '<p><strong>Note:</strong> Heavy fields (<code>htmlSnapshot</code>, <code>pdfBase64</code>) are excluded from the list. Use <code>GET /api/booking-forms/:id/revisions/:revisionId</code> for the full payload.</p>'
     + '</div>'
 
+    // Bulk Create Deliverables
+    + '<div class="docs-section" id="cl-bulk-deliverables">'
+    + '<h2>' + method('POST') + ' <span class="docs-path">/api/deliverables/bulk</span></h2>'
+    + '<p>Create per-month deliverables for each enabled service in the booking form\'s <code>formData</code>. Idempotent \u2014 returns existing deliverables if already created.</p>'
+    + '<h3>Request Body</h3>'
+    + '<pre><code>{\n  "bookingFormId": 28\n}</code></pre>'
+    + '<h3>Services Detected</h3>'
+    + '<table><tr><th>formData Key</th><th>Deliverable Types Created</th></tr>'
+    + '<tr><td><code>social_media_management</code></td><td>SM Posts, Content Calendar, Google Ads, Own Page SM</td></tr>'
+    + '<tr><td><code>agri4all</code></td><td>Agri4All</td></tr>'
+    + '<tr><td><code>online_articles</code></td><td>Online Articles</td></tr>'
+    + '<tr><td><code>banners</code></td><td>Banners</td></tr>'
+    + '<tr><td><code>magazine</code></td><td>Magazine</td></tr>'
+    + '<tr><td><code>video</code></td><td>Video</td></tr>'
+    + '<tr><td><code>website</code></td><td>Website</td></tr></table>'
+    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
+    + '<pre><code>{\n  "totalCreated": 12,\n  "byType": {\n    "sm-posts": 4,\n    "content-calendar": 4,\n    "google-ads": 4,\n    ...\n  },\n  "deliverables": [\n    {\n      "id": 101,\n      "bookingFormId": 28,\n      "type": "sm-posts",\n      "month": "2026-02",\n      "status": "not_started",\n      ...\n    }\n  ]\n}</code></pre>'
+    + '</div>'
+
+    // List Deliverables
+    + '<div class="docs-section" id="cl-list-deliverables">'
+    + '<h2>' + method('GET') + ' <span class="docs-path">/api/deliverables</span></h2>'
+    + '<p>List deliverables with optional filters.</p>'
+    + '<h3>Query Parameters</h3>'
+    + '<table><tr><th>Param</th><th>Type</th><th>Description</th></tr>'
+    + '<tr><td><code>bookingFormId</code></td><td>number</td><td>Filter by booking form ID</td></tr>'
+    + '<tr><td><code>clientId</code></td><td>number</td><td>Filter by client ID</td></tr>'
+    + '<tr><td><code>department</code></td><td>string</td><td>Filter by department slug</td></tr></table>'
+    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
+    + '<pre><code>[\n  {\n    "id": 101,\n    "bookingFormId": 28,\n    "clientId": 34,\n    "type": "sm-posts",\n    "month": "2026-02",\n    "status": "not_started",\n    "department": "social-media",\n    ...\n  }\n]</code></pre>'
+    + '</div>'
+
     // Checklist ID
     + '<div class="docs-section" id="cl-checklist-id">'
     + '<h2>Checklist ID Generation</h2>'
     + '<p>The checklist wizard generates a deterministic ID used as the upsert key for booking forms. This ensures resubmitting the same checklist updates the existing record.</p>'
     + '<h3>Algorithm</h3>'
-    + '<pre><code>input  = (clientName + "|" + campaignStart + "|" + campaignEnd).toLowerCase()\nhash   = Java-style hashCode (shift-5 multiply-add loop)\nresult = "CL-" + abs(hash).toString(36).toUpperCase().slice(0, 6)\n\nExample: "acme farms|2026-02|2026-05" → CL-1A2B3C</code></pre>'
+    + '<pre><code>input  = (clientName + "|" + campaignStart + "|" + campaignEnd).toLowerCase()\nhash   = Java-style hashCode (shift-5 multiply-add loop)\nresult = "CL-" + abs(hash).toString(36).toUpperCase().slice(0, 6)\n\nExample: "acme farms|2026-02|2026-05" \u2192 CL-1A2B3C</code></pre>'
     + '</div>'
 
     // End-to-End Flow
@@ -180,10 +234,10 @@
     + '<p>The complete flow when a user fills out and submits the checklist wizard:</p>'
     + '<ol>'
     + '<li><strong>Checklist wizard</strong> collects all form data across 10 steps</li>'
-    + '<li><strong>POST /api/clients</strong> — creates the client (if new, not from autocomplete)</li>'
-    + '<li><strong>POST /api/booking-forms</strong> — creates/upserts the booking form with the full payload in <code>formData</code></li>'
-    + '<li><strong>POST /api/booking-forms/:id/send-to-editor</strong> — generates the editable booking form HTML and saves it to the editor service</li>'
-    + '<li><strong>Redirect</strong> — the checklist wizard redirects to the editable booking form URL</li>'
+    + '<li><strong>POST /api/clients</strong> \u2014 creates the client (if new, not from autocomplete)</li>'
+    + '<li><strong>POST /api/booking-forms</strong> \u2014 creates/upserts the booking form with the full payload in <code>formData</code></li>'
+    + '<li><strong>POST /api/booking-forms/:id/send-to-editor</strong> \u2014 generates the editable booking form HTML and saves it to the editor service</li>'
+    + '<li><strong>Redirect</strong> \u2014 the checklist wizard redirects to the editable booking form URL</li>'
     + '<li>The user can edit the booking form and send it to ProAgri</li>'
     + '</ol>'
     + '<p>Both the <code>checklistUrl</code> (for reopening the checklist) and <code>editableUrl</code> (for the generated form) are stored permanently on the booking form record.</p>'
@@ -225,6 +279,14 @@
     + '<ul><li>ProAgri branding banner</li><li>Editable header (logo, address, legal strip)</li><li>Editable table cells with focus styling</li><li>"Send booking form to ProAgri" button</li><li>LocalStorage persistence for header edits</li></ul>'
     + '</div>'
 
+    // List All Pages
+    + '<div class="docs-section" id="ed-list">'
+    + '<h2>' + method('GET') + ' <span class="docs-path">/pages</span></h2>'
+    + '<p>List all generated booking form HTML pages sorted by most recently modified.</p>'
+    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
+    + '<pre><code>{\n  "pages": [\n    {\n      "slug": "acme-farms-22",\n      "filename": "acme-farms-22.html",\n      "url": "' + esc(EDITOR_BASE) + '/pages/acme-farms-22.html",\n      "size": 24576,\n      "createdAt": "2026-03-15T08:30:00Z",\n      "modifiedAt": "2026-04-01T14:22:00Z"\n    }\n  ],\n  "total": 47\n}</code></pre>'
+    + '</div>'
+
     // View
     + '<div class="docs-section" id="ed-view">'
     + '<h2>' + method('GET') + ' <span class="docs-path">/pages/{slug}.html</span></h2>'
@@ -233,6 +295,18 @@
     + '<p>Returns the full HTML page with editable content, ProAgri branding, and the "Send to ProAgri" button.</p>'
     + '<h3>404</h3>'
     + '<p>If the slug doesn\'t exist, returns <code>Cannot GET /pages/{slug}.html</code>.</p>'
+    + '</div>'
+
+    // Delete Page
+    + '<div class="docs-section" id="ed-delete">'
+    + '<h2>' + method('DELETE') + ' <span class="docs-path">/pages/:slug</span></h2>'
+    + '<p>Delete a generated booking form page by slug.</p>'
+    + '<h3>Response <span class="docs-status ok">200 OK</span></h3>'
+    + '<pre><code>{\n  "success": true,\n  "deleted": "acme-farms-22"\n}</code></pre>'
+    + '<h3>Errors</h3>'
+    + '<table><tr><th>Code</th><th>Reason</th></tr>'
+    + '<tr><td>400</td><td>Invalid slug format</td></tr>'
+    + '<tr><td>404</td><td>Page not found</td></tr></table>'
     + '</div>'
 
     // Send to Webhook
@@ -270,7 +344,7 @@
     + '</ol>'
     + '<h3>Page Features</h3>'
     + '<ul>'
-    + '<li>All table cells are <code>contenteditable</code> — click to edit</li>'
+    + '<li>All table cells are <code>contenteditable</code> \u2014 click to edit</li>'
     + '<li>Header (logo, address, legal strip) is editable and persists via localStorage</li>'
     + '<li>Logo upload via click on the logo placeholder</li>'
     + '<li>Edits auto-save when the page is sent back to ProAgri</li>'
@@ -285,81 +359,137 @@
     var page = document.createElement('div');
     page.className = 'docs-page';
 
-    // Tab bar
-    var tabBar = document.createElement('div');
-    tabBar.className = 'docs-tabs';
-    var tabKeys = Object.keys(tabs);
-    tabKeys.forEach(function (key) {
-      var btn = document.createElement('button');
-      btn.className = 'docs-tab' + (key === 'checklist' ? ' active' : '');
-      btn.textContent = tabs[key].label;
-      btn.dataset.tab = key;
-      btn.addEventListener('click', function () { switchTab(key); });
-      tabBar.appendChild(btn);
-    });
-    page.appendChild(tabBar);
+    // Left nav panel
+    var nav = document.createElement('nav');
+    nav.className = 'docs-nav';
 
-    // Body (sidebar + content)
-    var body = document.createElement('div');
-    body.className = 'docs-body';
+    var navInner = document.createElement('div');
+    navInner.className = 'docs-nav-inner';
+    nav.appendChild(navInner);
 
-    var sidebar = document.createElement('nav');
-    sidebar.className = 'docs-sidebar';
-    sidebar.id = 'docs-sidebar';
-
+    // Content area
     var content = document.createElement('div');
     content.className = 'docs-content';
     content.id = 'docs-content';
 
-    body.appendChild(sidebar);
-    body.appendChild(content);
-    page.appendChild(body);
+    page.appendChild(nav);
+    page.appendChild(content);
     container.appendChild(page);
 
-    // Initial render
-    switchTab('checklist');
+    var currentApi = null;
+    var activeLink = null;
 
-    function switchTab(key) {
-      // Update tab buttons
-      tabBar.querySelectorAll('.docs-tab').forEach(function (btn) {
-        btn.classList.toggle('active', btn.dataset.tab === key);
-      });
+    // Show level 0 — API selection cards
+    showApiList();
 
-      // Update sidebar
-      sidebar.innerHTML = '';
-      tabs[key].sections.forEach(function (sec) {
-        var a = document.createElement('a');
-        a.textContent = sec.title;
-        a.dataset.section = sec.id;
-        a.addEventListener('click', function () {
-          var el = document.getElementById(sec.id);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          sidebar.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); });
-          a.classList.add('active');
+    function fadeNav(callback) {
+      navInner.classList.add('fading');
+      setTimeout(function () {
+        callback();
+        navInner.classList.remove('fading');
+      }, 180);
+    }
+
+    function showApiList() {
+      fadeNav(function () {
+        currentApi = null;
+        navInner.innerHTML = '';
+
+        var label = document.createElement('div');
+        label.className = 'docs-nav-label';
+        label.textContent = 'API Documentation';
+        navInner.appendChild(label);
+
+        Object.keys(apis).forEach(function (key) {
+          var card = document.createElement('div');
+          card.className = 'docs-api-card';
+
+          var title = document.createElement('div');
+          title.className = 'docs-api-card-title';
+          title.textContent = apis[key].label;
+
+          var desc = document.createElement('div');
+          desc.className = 'docs-api-card-desc';
+          desc.textContent = apis[key].desc;
+
+          card.appendChild(title);
+          card.appendChild(desc);
+          card.addEventListener('click', function () { showSections(key); });
+          navInner.appendChild(card);
         });
-        sidebar.appendChild(a);
+
+        // Show placeholder in content
+        content.innerHTML = '<div class="docs-placeholder">'
+          + '<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>'
+          + '<p>Select an API from the left to view its documentation.</p>'
+          + '</div>';
       });
-      // Activate first sidebar item
-      var first = sidebar.querySelector('a');
-      if (first) first.classList.add('active');
+    }
 
-      // Update content
-      content.innerHTML = key === 'checklist' ? checklistContent() : editorContent();
+    function showSections(apiKey) {
+      fadeNav(function () {
+        currentApi = apiKey;
+        activeLink = null;
+        navInner.innerHTML = '';
 
-      // Scroll spy
-      content.addEventListener('scroll', function () {
-        var scrollTop = content.scrollTop;
-        var active = null;
-        tabs[key].sections.forEach(function (sec) {
-          var el = document.getElementById(sec.id);
-          if (el && el.offsetTop - 40 <= scrollTop) active = sec.id;
-        });
-        if (active) {
-          sidebar.querySelectorAll('a').forEach(function (a) {
-            a.classList.toggle('active', a.dataset.section === active);
+        // Back button
+        var back = document.createElement('button');
+        back.className = 'docs-back-btn';
+        back.innerHTML = backArrowSvg() + ' Back';
+        back.addEventListener('click', function () { showApiList(); });
+        navInner.appendChild(back);
+
+        // Label
+        var label = document.createElement('div');
+        label.className = 'docs-nav-label';
+        label.textContent = apis[apiKey].label;
+        navInner.appendChild(label);
+
+        // Section links
+        apis[apiKey].sections.forEach(function (sec, i) {
+          var a = document.createElement('a');
+          a.textContent = sec.title;
+          a.dataset.section = sec.id;
+          if (i === 0) {
+            a.classList.add('active');
+            activeLink = a;
+          }
+          a.addEventListener('click', function () {
+            var el = document.getElementById(sec.id);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (activeLink) activeLink.classList.remove('active');
+            a.classList.add('active');
+            activeLink = a;
           });
-        }
+          navInner.appendChild(a);
+        });
+
+        // Load content
+        content.innerHTML = apiKey === 'checklist' ? checklistContent() : editorContent();
+
+        // Scroll spy
+        content.removeEventListener('scroll', scrollSpy);
+        content.addEventListener('scroll', scrollSpy);
       });
+    }
+
+    function scrollSpy() {
+      if (!currentApi) return;
+      var sections = apis[currentApi].sections;
+      var scrollTop = content.scrollTop;
+      var found = null;
+      for (var i = 0; i < sections.length; i++) {
+        var el = document.getElementById(sections[i].id);
+        if (el && el.offsetTop - 40 <= scrollTop) found = sections[i].id;
+      }
+      if (found) {
+        var links = navInner.querySelectorAll('a');
+        for (var j = 0; j < links.length; j++) {
+          var isActive = links[j].dataset.section === found;
+          links[j].classList.toggle('active', isActive);
+          if (isActive) activeLink = links[j];
+        }
+      }
     }
   }
 

@@ -1,41 +1,85 @@
-/* ─── Docs Page ─── */
-.docs-page { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+/* ─── Docs Page — Drill-Down Navigation ─── */
+.docs-page { display: flex; height: 100%; min-height: 0; }
 
-/* Tab bar */
-.docs-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--line); padding: 0 24px; flex-shrink: 0; background: var(--paper); }
-.docs-tab {
-  padding: 12px 24px; font-weight: 700; font-size: 0.9rem; color: var(--muted);
-  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
-  background: none; border-top: none; border-left: none; border-right: none; font-family: inherit;
+/* Left nav panel */
+.docs-nav {
+  width: 260px; flex-shrink: 0; border-right: 1px solid var(--line);
+  overflow-y: auto; background: var(--panel); position: relative;
 }
-.docs-tab:hover { color: var(--ink); }
-.docs-tab.active { color: var(--brand-red); border-bottom-color: var(--brand-red); }
-
-/* Layout: sidebar + content */
-.docs-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-/* Sidebar navigation */
-.docs-sidebar {
-  width: 240px; flex-shrink: 0; border-right: 1px solid var(--line); overflow-y: auto;
-  padding: 16px 0; background: var(--panel);
+.docs-nav-inner {
+  padding: 12px 0;
+  opacity: 1;
+  transition: opacity 0.18s ease;
 }
-.docs-sidebar a {
-  display: block; padding: 8px 20px; font-size: 0.85rem; color: var(--muted);
+.docs-nav-inner.fading { opacity: 0; }
+
+/* Back button */
+.docs-back-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 18px; font-size: 0.82rem; font-weight: 600;
+  color: var(--muted); cursor: pointer; border: none; background: none;
+  font-family: inherit; width: 100%; text-align: left;
+  transition: color 0.12s, background 0.12s;
+  margin-bottom: 4px;
+}
+.docs-back-btn:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
+.docs-back-btn svg { flex-shrink: 0; }
+
+/* Level 0 — API cards */
+.docs-api-card {
+  display: block; margin: 8px 14px; padding: 16px 18px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+  cursor: pointer; transition: all 0.15s; text-decoration: none;
+}
+.docs-api-card:hover {
+  border-color: rgba(239,51,64,0.35);
+  box-shadow: 0 2px 8px rgba(239,51,64,0.08);
+}
+.docs-api-card-title {
+  font-size: 0.92rem; font-weight: 700; color: var(--brand-navy); margin: 0 0 4px;
+}
+.docs-api-card-desc {
+  font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.5;
+}
+
+/* Level 1 — Section links */
+.docs-nav a {
+  display: block; padding: 7px 20px; font-size: 0.84rem; color: var(--muted);
   text-decoration: none; font-weight: 500; transition: all 0.12s; cursor: pointer;
 }
-.docs-sidebar a:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
-.docs-sidebar a.active { color: var(--brand-red); font-weight: 700; background: rgba(239,51,64,0.06); border-right: 3px solid var(--brand-red); }
+.docs-nav a:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
+.docs-nav a.active {
+  color: var(--brand-red); font-weight: 700;
+  background: rgba(239,51,64,0.06); border-right: 3px solid var(--brand-red);
+}
+
+/* Nav group label */
+.docs-nav-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); padding: 4px 20px 8px;
+  opacity: 0.7;
+}
 
 /* Content area */
 .docs-content {
   flex: 1; overflow-y: auto; padding: 28px 36px; max-width: 900px;
 }
+
+/* Placeholder when no API selected */
+.docs-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--muted); text-align: center; padding: 40px;
+}
+.docs-placeholder svg { opacity: 0.25; margin-bottom: 16px; }
+.docs-placeholder p { font-size: 0.9rem; line-height: 1.6; }
+
+/* ── Content typography ── */
 .docs-content h1 { font-size: 1.5rem; font-weight: 900; color: var(--brand-navy); margin: 0 0 8px; }
 .docs-content h2 { font-size: 1.15rem; font-weight: 800; color: var(--brand-navy); margin: 32px 0 12px; padding-top: 20px; border-top: 1px solid var(--line); }
 .docs-content h2:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 .docs-content h3 { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin: 20px 0 8px; }
 .docs-content p { margin: 0 0 12px; line-height: 1.65; color: var(--ink); font-size: 0.9rem; }
-.docs-content ul { margin: 0 0 12px; padding-left: 20px; }
+.docs-content ul, .docs-content ol { margin: 0 0 12px; padding-left: 20px; }
 .docs-content li { margin: 4px 0; font-size: 0.9rem; line-height: 1.6; }
 
 /* Code blocks */
