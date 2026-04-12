@@ -412,7 +412,16 @@ router.post('/:id/send-to-editor', async (req, res) => {
       [editableUrl, req.params.id]
     );
 
-    res.json({ success: true, editableUrl, slug: finalSlug });
+    // Also generate the unsigned e-sign version (best-effort)
+    let esignUrl = null;
+    try {
+      const esignResult = await createUnsignedBookingForm(req.params.id, { html });
+      esignUrl = esignResult.esignUrl;
+    } catch (esignErr) {
+      console.warn('[send-to-editor] Could not auto-generate esign:', esignErr.message);
+    }
+
+    res.json({ success: true, editableUrl, esignUrl, slug: finalSlug });
   } catch (err) {
     console.error('Send to editor error:', err);
     res.status(500).json({ error: 'Internal server error' });
