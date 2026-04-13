@@ -68,16 +68,12 @@
     var searchEl = container.querySelector('#client-search');
     var allClients = [];
 
-    var actions = [
+    var leadingActions = [
       {
-        id: 'dashboard',
-        label: 'View Details',
-        action: function (row) { openClientDetail(row); }
-      },
-      {
-        id: 'status',
-        label: 'Change Status',
-        action: function (row) { /* unchanged stub */ }
+        icon: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
+        tooltip: 'View client dashboard',
+        className: 'action-view',
+        onClick: function (row) { openClientDetail(row); }
       }
     ];
 
@@ -94,7 +90,7 @@
       }
       countEl.textContent = filtered.length;
       if (window.renderSheet) {
-        window.renderSheet(sheetEl, { columns: COLUMNS, data: filtered, radialActions: actions });
+        window.renderSheet(sheetEl, { columns: COLUMNS, data: filtered, leadingActions: leadingActions });
       }
     }
 
