@@ -540,14 +540,13 @@ router.post('/create-content-calendars', async (req, res) => {
   }
 
   try {
-    // Idempotency — skip if any deliverables already exist for this booking form
+    // Idempotency — track which deliverable types already exist so we skip
+    // only those, rather than blocking the entire creation run.
     const existing = await pool.query(
-      `SELECT id FROM deliverables WHERE booking_form_id = $1`,
+      `SELECT id, type, delivery_month FROM deliverables WHERE booking_form_id = $1`,
       [bookingFormId]
     );
-    if (existing.rows.length > 0) {
-      return res.json({ message: 'Deliverables already exist', ids: existing.rows.map(r => r.id) });
-    }
+    const existingKeys = new Set(existing.rows.map(r => r.type + '|' + (r.delivery_month || '')));
 
     // Fetch booking form with client info
     const bfResult = await pool.query(
@@ -618,6 +617,9 @@ router.post('/create-content-calendars', async (req, res) => {
     }
 
     async function createDeliv(type, title, status, deptSlug, deliveryMonth, metadata) {
+      const key = type + '|' + (deliveryMonth || '');
+      if (existingKeys.has(key)) return null;   // already created on a prior run
+      existingKeys.add(key);                     // prevent duplicates within this run
       const deptId = deptBySlug[deptSlug] || null;
       const result = await pool.query(
         `INSERT INTO deliverables (booking_form_id, client_id, department_id, type, title, status, delivery_month, metadata, created_at, updated_at)
@@ -818,9 +820,9 @@ router.post('/create-content-calendars', async (req, res) => {
       a4aByMonth[key].states.push(e.state || {});
     });
 
-    // Helper: merge any-state (check if any state has the field true)
+    // Helper: merge any-state (check if any state has the field set)
     function anyHas(states, field) {
-      return states.some(s => s && s[field] === true);
+      return states.some(s => s && !!s[field]);
     }
     // Helper: max amount from any state
     function maxAmt(states, field) {
@@ -1040,7 +1042,9 @@ router.post('/create-content-calendars', async (req, res) => {
       } // end ownMonths loop
     }
 
-    res.status(201).json({ message: 'Deliverables created', count: created.length, deliverables: created });
+    const actuallyCreated = created.filter(Boolean);
+    const skipped = existing.rows.length;
+    res.status(201).json({ message: 'Deliverables created', count: actuallyCreated.length, skipped, deliverables: actuallyCreated });
   } catch (err) {
     console.error('Create deliverables from booking error:', err);
     res.status(500).json({ error: 'Internal server error' });
