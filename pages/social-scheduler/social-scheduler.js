@@ -1367,6 +1367,10 @@
     var root = el('div', 'sch-settings-root');
     container.appendChild(root);
 
+    // Track which clients are expanded (all collapsed by default)
+    var expandedClients = {};
+    var searchQuery = '';
+
     // Listen for OAuth popup success messages
     function onOAuthMessage(e) {
       if (e.data && e.data.type === 'social-oauth-success') {
@@ -1393,49 +1397,102 @@
       root.appendChild(header);
 
       var desc = el('p', 'sch-settings-desc',
-        'Connect social media accounts for each client. Once connected, the scheduler will automatically publish posts at their scheduled time.');
+        'Connect social media accounts for each client. Click a client to expand, then click a platform to configure it.');
       root.appendChild(desc);
 
-      // Client cards
-      var clientList = el('div', 'sch-settings-client-list');
+      // Search bar
+      var searchWrap = el('div', 'sch-settings-search-wrap');
+      var searchIcon = el('span', 'sch-settings-search-icon');
+      searchIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>';
+      searchWrap.appendChild(searchIcon);
+      var searchInput = el('input', 'sch-settings-search');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'Search clients...';
+      searchInput.value = searchQuery;
+      searchInput.addEventListener('input', function () {
+        searchQuery = searchInput.value;
+        renderClientList();
+      });
+      searchWrap.appendChild(searchInput);
+      root.appendChild(searchWrap);
 
-      // Agency first
-      clientList.appendChild(buildClientCard(null, 'Agency (Own Accounts)'));
+      // Client list container
+      var clientList = el('div', 'sch-settings-client-list');
+      clientList.id = 'sch-settings-client-list';
+      root.appendChild(clientList);
+
+      renderClientList();
+    }
+
+    function renderClientList() {
+      var clientList = document.getElementById('sch-settings-client-list');
+      if (!clientList) return;
+      while (clientList.firstChild) clientList.removeChild(clientList.firstChild);
+
+      var q = searchQuery.trim().toLowerCase();
+
+      // Agency first (always shown unless filtered out)
+      if (!q || 'agency'.indexOf(q) !== -1 || 'own accounts'.indexOf(q) !== -1) {
+        clientList.appendChild(buildClientCard(null, 'Agency (Own Accounts)'));
+      }
 
       // All CRM clients
       (state.clients || []).forEach(function (c) {
         if (c.status === 'archived') return;
+        if (q && (c.name || '').toLowerCase().indexOf(q) === -1) return;
         clientList.appendChild(buildClientCard(c.id, c.name));
       });
 
-      root.appendChild(clientList);
+      // No results message
+      if (!clientList.firstChild) {
+        var noResults = el('div', 'sch-settings-no-results', 'No clients match your search.');
+        clientList.appendChild(noResults);
+      }
     }
 
     function buildClientCard(clientId, clientName) {
-      var card = el('div', 'sch-settings-client-card');
+      var cardKey = clientId == null ? 'agency' : String(clientId);
+      var isExpanded = !!expandedClients[cardKey];
+
+      var card = el('div', 'sch-settings-client-card' + (isExpanded ? ' expanded' : ''));
 
       var cardHeader = el('div', 'sch-settings-client-header');
+      cardHeader.style.cursor = 'pointer';
+
+      // Chevron
+      var chevron = el('span', 'sch-settings-chevron');
+      chevron.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      cardHeader.appendChild(chevron);
+
       var nameEl = el('span', 'sch-settings-client-name', clientName);
       cardHeader.appendChild(nameEl);
 
       // Count connected platforms
       var connectedCount = 0;
       PLATFORMS.forEach(function (p) {
-        var cred = findCred(clientId, p);
-        if (cred) connectedCount++;
+        if (findCred(clientId, p)) connectedCount++;
       });
       if (connectedCount > 0) {
-        var badge = el('span', 'sch-settings-connected-badge', connectedCount + '/' + PLATFORMS.length + ' connected');
+        var badge = el('span', 'sch-settings-connected-badge', connectedCount + '/' + PLATFORMS.length);
         cardHeader.appendChild(badge);
       }
+
+      // Toggle expand/collapse on header click
+      cardHeader.addEventListener('click', function () {
+        expandedClients[cardKey] = !expandedClients[cardKey];
+        renderClientList();
+      });
+
       card.appendChild(cardHeader);
 
-      // Platform grid
-      var grid = el('div', 'sch-settings-platform-grid');
-      PLATFORMS.forEach(function (platform) {
-        grid.appendChild(buildPlatformTile(clientId, platform));
-      });
-      card.appendChild(grid);
+      // Platform grid (only rendered when expanded)
+      if (isExpanded) {
+        var grid = el('div', 'sch-settings-platform-grid');
+        PLATFORMS.forEach(function (platform) {
+          grid.appendChild(buildPlatformTile(clientId, platform));
+        });
+        card.appendChild(grid);
+      }
 
       return card;
     }
@@ -1454,113 +1511,224 @@
       var info = PLATFORM_INFO[platform] || { label: platform, color: '#666', icon: '' };
       var cred = findCred(clientId, platform);
       var isConnected = !!cred;
-      var isConfigured = oauthConfigCache && oauthConfigCache[platform];
 
       var tile = el('div', 'sch-platform-tile' + (isConnected ? ' connected' : ''));
+      tile.style.cursor = 'pointer';
+      if (isConnected) {
+        tile.style.borderColor = info.color;
+      }
 
       // Platform icon
       var iconWrap = el('div', 'sch-platform-tile-icon');
       iconWrap.style.color = isConnected ? info.color : '';
-      var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      s.setAttribute('width', '24');
-      s.setAttribute('height', '24');
-      s.setAttribute('viewBox', '0 0 24 24');
-      s.setAttribute('fill', 'currentColor');
-      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', info.icon);
-      s.appendChild(path);
-      iconWrap.appendChild(s);
+      iconWrap.appendChild(svg(info.icon, 28));
       tile.appendChild(iconWrap);
 
       // Platform name
       tile.appendChild(el('div', 'sch-platform-tile-name', info.label));
 
+      // Status text
       if (isConnected) {
-        // Connected state
-        var accName = el('div', 'sch-platform-tile-account');
-        accName.textContent = cred.accountName + (cred.accountHandle ? ' (' + cred.accountHandle + ')' : '');
-        tile.appendChild(accName);
-
-        var statusRow = el('div', 'sch-platform-tile-status');
-        statusRow.appendChild(el('span', 'sch-platform-tile-dot connected'));
-        statusRow.appendChild(document.createTextNode(' Connected'));
-        tile.appendChild(statusRow);
-
-        // Disconnect button
-        var disconnectBtn = el('button', 'sch-btn sch-btn-sm sch-btn-danger sch-platform-tile-btn', 'Disconnect');
-        disconnectBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (!confirm('Disconnect ' + info.label + ' for ' + (clientId ? 'this client' : 'the agency') + '?')) return;
-          disconnectBtn.disabled = true;
-          api('/credentials/' + cred.id, { method: 'DELETE' })
-            .then(function () { return loadAll(); })
-            .then(function () { renderSettings(); });
-        });
-        tile.appendChild(disconnectBtn);
-      } else if (isConfigured) {
-        // Not connected but OAuth is configured — show Connect button
-        var connectBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary sch-platform-tile-btn', 'Connect');
-        connectBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          connectBtn.disabled = true;
-          connectBtn.textContent = 'Connecting…';
-          var qp = clientId ? '?clientId=' + clientId : '';
-          fetch('/api/social-oauth/init/' + platform + qp, { headers: getHeaders() })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-              if (data.error) {
-                alert(data.error);
-                connectBtn.disabled = false;
-                connectBtn.textContent = 'Connect';
-                return;
-              }
-              // Open OAuth URL in popup
-              var w = 600, h = 700;
-              var left = (screen.width - w) / 2;
-              var top = (screen.height - h) / 2;
-              window.open(data.url, 'social_oauth_' + platform,
-                'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',toolbar=no,menubar=no');
-              // Re-enable after a moment (popup handles the rest)
-              setTimeout(function () {
-                connectBtn.disabled = false;
-                connectBtn.textContent = 'Connect';
-              }, 3000);
-            })
-            .catch(function (err) {
-              alert('Failed to start connection: ' + err.message);
-              connectBtn.disabled = false;
-              connectBtn.textContent = 'Connect';
-            });
-        });
-        tile.appendChild(connectBtn);
-
-        var hint = el('div', 'sch-platform-tile-hint', 'Click to connect via OAuth');
-        tile.appendChild(hint);
+        var statusEl = el('div', 'sch-platform-tile-status-text connected');
+        statusEl.textContent = cred.accountName || 'Connected';
+        tile.appendChild(statusEl);
       } else {
-        // OAuth not configured on the server
-        var notConfigured = el('div', 'sch-platform-tile-unconfigured');
-        notConfigured.appendChild(el('span', 'sch-platform-tile-dot unconfigured'));
-        notConfigured.appendChild(document.createTextNode(' Not configured'));
-        tile.appendChild(notConfigured);
-
-        var configHint = el('div', 'sch-platform-tile-hint');
-        configHint.textContent = 'Set ' + platformEnvHint(platform) + ' in .env';
-        tile.appendChild(configHint);
+        tile.appendChild(el('div', 'sch-platform-tile-status-text', 'Not Configured'));
       }
+
+      // Click to open config panel
+      tile.addEventListener('click', function () {
+        openConfigPanel(clientId, platform);
+      });
 
       return tile;
     }
 
-    function platformEnvHint(platform) {
-      var hints = {
-        facebook: 'FACEBOOK_APP_ID & FACEBOOK_APP_SECRET',
-        instagram: 'FACEBOOK_APP_ID & FACEBOOK_APP_SECRET',
-        twitter: 'TWITTER_CLIENT_ID & TWITTER_CLIENT_SECRET',
-        linkedin: 'LINKEDIN_CLIENT_ID & LINKEDIN_CLIENT_SECRET',
-        youtube: 'GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET',
-        tiktok: 'TIKTOK_CLIENT_KEY & TIKTOK_CLIENT_SECRET'
-      };
-      return hints[platform] || 'API credentials';
+    // ── Config Panel (overlay) ──
+    function openConfigPanel(clientId, platform) {
+      var info = PLATFORM_INFO[platform] || { label: platform, color: '#666', icon: '' };
+      var cred = findCred(clientId, platform);
+      var isConnected = !!cred;
+      var isOAuthConfigured = oauthConfigCache && oauthConfigCache[platform];
+      var clientName = clientId == null ? 'Agency (Own Accounts)' : '';
+      if (clientId != null) {
+        (state.clients || []).forEach(function (c) { if (c.id === clientId) clientName = c.name; });
+      }
+
+      // Remove any existing panel
+      var existing = document.querySelector('.sch-config-overlay');
+      if (existing) existing.remove();
+
+      // Overlay
+      var overlay = el('div', 'sch-config-overlay');
+      var panel = el('div', 'sch-config-panel');
+
+      // Close button
+      var closeBtn = el('button', 'sch-config-close');
+      closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+      closeBtn.addEventListener('click', function () { overlay.remove(); });
+      panel.appendChild(closeBtn);
+
+      // Platform header with icon
+      var panelHeader = el('div', 'sch-config-header');
+      var bigIcon = el('div', 'sch-config-icon');
+      bigIcon.style.color = info.color;
+      bigIcon.appendChild(svg(info.icon, 40));
+      panelHeader.appendChild(bigIcon);
+      var headerText = el('div', 'sch-config-header-text');
+      headerText.appendChild(el('h3', 'sch-config-title', info.label));
+      headerText.appendChild(el('div', 'sch-config-subtitle', clientName));
+      panelHeader.appendChild(headerText);
+      panel.appendChild(panelHeader);
+
+      // Divider
+      panel.appendChild(el('hr', 'sch-config-divider'));
+
+      if (isConnected) {
+        // Connected state — show info + disconnect
+        var connBadge = el('div', 'sch-config-status-badge connected');
+        connBadge.textContent = 'Connected';
+        panel.appendChild(connBadge);
+
+        var infoSection = el('div', 'sch-config-info-section');
+        if (cred.accountName) {
+          infoSection.appendChild(el('div', 'sch-config-info-label', 'Account'));
+          infoSection.appendChild(el('div', 'sch-config-info-value', cred.accountName));
+        }
+        if (cred.accountHandle) {
+          infoSection.appendChild(el('div', 'sch-config-info-label', 'Handle'));
+          infoSection.appendChild(el('div', 'sch-config-info-value', cred.accountHandle));
+        }
+        if (cred.lastVerifiedAt) {
+          infoSection.appendChild(el('div', 'sch-config-info-label', 'Last Verified'));
+          infoSection.appendChild(el('div', 'sch-config-info-value', new Date(cred.lastVerifiedAt).toLocaleDateString()));
+        }
+        panel.appendChild(infoSection);
+
+        var disconnectBtn = el('button', 'sch-btn sch-btn-danger sch-config-action-btn', 'Disconnect');
+        disconnectBtn.addEventListener('click', function () {
+          if (!confirm('Disconnect ' + info.label + ' for ' + clientName + '?')) return;
+          disconnectBtn.disabled = true;
+          disconnectBtn.textContent = 'Disconnecting...';
+          api('/credentials/' + cred.id, { method: 'DELETE' })
+            .then(function () { return loadAll(); })
+            .then(function () {
+              overlay.remove();
+              renderSettings();
+            });
+        });
+        panel.appendChild(disconnectBtn);
+      } else {
+        // Not connected
+        var notBadge = el('div', 'sch-config-status-badge');
+        notBadge.textContent = 'Not Connected';
+        panel.appendChild(notBadge);
+
+        // Option 1: OAuth connect
+        if (isOAuthConfigured) {
+          var oauthSection = el('div', 'sch-config-section');
+          oauthSection.appendChild(el('div', 'sch-config-section-title', 'Connect via OAuth'));
+          oauthSection.appendChild(el('div', 'sch-config-section-desc', 'Sign in with your ' + info.label + ' account to connect automatically.'));
+          var oauthBtn = el('button', 'sch-btn sch-btn-primary sch-config-action-btn', 'Connect with ' + info.label);
+          oauthBtn.addEventListener('click', function () {
+            oauthBtn.disabled = true;
+            oauthBtn.textContent = 'Connecting...';
+            var qp = clientId ? '?clientId=' + clientId : '';
+            fetch('/api/social-oauth/init/' + platform + qp, { headers: getHeaders() })
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.error) { alert(data.error); oauthBtn.disabled = false; oauthBtn.textContent = 'Connect with ' + info.label; return; }
+                var w = 600, h = 700, left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+                window.open(data.url, 'social_oauth_' + platform, 'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',toolbar=no,menubar=no');
+                setTimeout(function () { oauthBtn.disabled = false; oauthBtn.textContent = 'Connect with ' + info.label; }, 3000);
+              })
+              .catch(function () { oauthBtn.disabled = false; oauthBtn.textContent = 'Connect with ' + info.label; });
+          });
+          oauthSection.appendChild(oauthBtn);
+          panel.appendChild(oauthSection);
+
+          panel.appendChild(el('div', 'sch-config-or', '— or —'));
+        }
+
+        // Option 2: Manual entry
+        var manualSection = el('div', 'sch-config-section');
+        manualSection.appendChild(el('div', 'sch-config-section-title', 'Manual Configuration'));
+        manualSection.appendChild(el('div', 'sch-config-section-desc', 'Enter your API credentials manually.'));
+
+        var fields = PLATFORM_FIELDS[platform] || [];
+        var nameInput = el('input', 'sch-config-input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Account Name (e.g. My Page)';
+        manualSection.appendChild(wrapField('Account Name', nameInput));
+
+        var handleInput = el('input', 'sch-config-input');
+        handleInput.type = 'text';
+        handleInput.placeholder = '@handle or ID';
+        manualSection.appendChild(wrapField('Handle / ID', handleInput));
+
+        var fieldInputs = [];
+        fields.forEach(function (fieldName) {
+          var inp = el('input', 'sch-config-input');
+          inp.type = 'text';
+          inp.placeholder = fieldName;
+          fieldInputs.push({ name: fieldName, input: inp });
+          manualSection.appendChild(wrapField(fieldName, inp));
+        });
+
+        var saveBtn = el('button', 'sch-btn sch-btn-primary sch-config-action-btn', 'Save');
+        saveBtn.addEventListener('click', function () {
+          var accountName = nameInput.value.trim();
+          if (!accountName) { nameInput.focus(); nameInput.style.borderColor = '#ef4444'; return; }
+          var credentials = {};
+          fieldInputs.forEach(function (fi) {
+            var key = fi.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+            credentials[key] = fi.input.value.trim();
+          });
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Saving...';
+          api('/credentials', {
+            method: 'POST',
+            body: JSON.stringify({
+              platform: platform,
+              accountName: accountName,
+              accountHandle: handleInput.value.trim(),
+              credentials: credentials,
+              isActive: true,
+              clientId: clientId
+            })
+          }).then(function () {
+            return loadAll();
+          }).then(function () {
+            overlay.remove();
+            renderSettings();
+          }).catch(function (err) {
+            alert('Failed to save: ' + err.message);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+          });
+        });
+        manualSection.appendChild(saveBtn);
+        panel.appendChild(manualSection);
+      }
+
+      overlay.appendChild(panel);
+
+      // Click overlay backdrop to close
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) overlay.remove();
+      });
+
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(function () { overlay.classList.add('visible'); });
+    }
+
+    function wrapField(label, input) {
+      var wrap = el('div', 'sch-config-field');
+      wrap.appendChild(el('label', 'sch-config-label', label));
+      wrap.appendChild(input);
+      return wrap;
     }
 
     // Load state + OAuth config, then render

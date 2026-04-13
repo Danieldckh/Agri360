@@ -1568,35 +1568,99 @@
 .sch-settings-desc {
   font-size: 13px;
   color: var(--text-secondary, #888);
-  margin: 0 0 20px;
+  margin: 0 0 16px;
   line-height: 1.5;
 }
 
+/* Search bar */
+.sch-settings-search-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.sch-settings-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary, #999);
+  display: flex;
+  pointer-events: none;
+}
+
+.sch-settings-search {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-secondary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.sch-settings-search:focus {
+  border-color: var(--color-accent, #e8941a);
+}
+
+.sch-settings-no-results {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary, #999);
+  font-size: 14px;
+}
+
+/* Client list */
 .sch-settings-client-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .sch-settings-client-card {
   background: var(--color-secondary, #fff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .sch-settings-client-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 0;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.sch-settings-client-header:hover {
+  background: var(--color-primary, #f4f6f8);
+}
+
+/* Chevron */
+.sch-settings-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #999);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sch-settings-client-card.expanded .sch-settings-chevron {
+  transform: rotate(90deg);
 }
 
 .sch-settings-client-name {
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600;
+  font-size: 14px;
   color: var(--text-primary, #1a1a1a);
+  flex: 1;
 }
 
 .sch-settings-connected-badge {
@@ -1604,40 +1668,40 @@
   font-weight: 600;
   color: #15803d;
   background: #dcfce7;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 20px;
+  flex-shrink: 0;
 }
 
 /* Platform grid */
 .sch-settings-platform-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  padding: 0 16px 16px;
 }
 
+/* Simplified platform tiles */
 .sch-platform-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 16px 12px;
+  padding: 14px 8px;
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   background: var(--color-primary, #f4f6f8);
-  transition: border-color 0.15s, box-shadow 0.15s;
-  min-height: 140px;
-  justify-content: center;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   gap: 6px;
 }
 
 .sch-platform-tile:hover {
-  border-color: var(--color-accent-dark, #d4791a);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .sch-platform-tile.connected {
-  border-color: #86efac;
-  background: #f0fdf4;
+  background: var(--color-secondary, #fff);
 }
 
 .sch-platform-tile-icon {
@@ -1646,7 +1710,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, #bbb);
 }
 
 .sch-platform-tile.connected .sch-platform-tile-icon {
@@ -1654,74 +1718,225 @@
 }
 
 .sch-platform-tile-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 
 .sch-platform-tile-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary, #1a1a1a);
 }
 
-.sch-platform-tile-account {
-  font-size: 11px;
-  color: var(--text-secondary, #888);
+.sch-platform-tile-status-text {
+  font-size: 10px;
+  color: var(--text-secondary, #bbb);
+  font-weight: 500;
+}
+
+.sch-platform-tile-status-text.connected {
+  color: #15803d;
+  font-weight: 600;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sch-platform-tile-status {
-  font-size: 11px;
-  color: #15803d;
-  font-weight: 600;
+/* ── Config Panel Overlay ── */
+.sch-config-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 60px 16px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sch-config-overlay.visible {
+  opacity: 1;
+}
+
+.sch-config-panel {
+  background: var(--color-secondary, #fff);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.sch-config-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary, #999);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+}
+
+.sch-config-close:hover {
+  background: var(--color-primary, #f0f0f0);
+  color: var(--text-primary, #333);
+}
+
+.sch-config-header {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
-.sch-platform-tile-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
+.sch-config-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.sch-platform-tile-dot.connected {
-  background: #22c55e;
+.sch-config-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
 }
 
-.sch-platform-tile-dot.unconfigured {
-  background: #d1d5db;
-}
-
-.sch-platform-tile-btn {
-  margin-top: 4px;
-  font-size: 11px;
-  padding: 4px 14px;
-}
-
-.sch-platform-tile-hint {
-  font-size: 10px;
-  color: var(--text-secondary, #aaa);
+.sch-config-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary, #888);
   margin-top: 2px;
 }
 
-.sch-platform-tile-unconfigured {
-  font-size: 11px;
-  color: var(--text-secondary, #aaa);
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.sch-config-divider {
+  border: none;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+  margin: 0 0 20px;
 }
 
-/* Dark theme */
+.sch-config-status-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.sch-config-status-badge.connected {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sch-config-info-section {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin-bottom: 20px;
+}
+
+.sch-config-info-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+}
+
+.sch-config-info-value {
+  font-size: 13px;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.sch-config-section {
+  margin-bottom: 20px;
+}
+
+.sch-config-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+  margin-bottom: 4px;
+}
+
+.sch-config-section-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.sch-config-or {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary, #bbb);
+  margin: 16px 0;
+}
+
+.sch-config-field {
+  margin-bottom: 12px;
+}
+
+.sch-config-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  margin-bottom: 4px;
+}
+
+.sch-config-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 7px;
+  font-size: 13px;
+  background: var(--color-primary, #f8f9fa);
+  color: var(--text-primary, #1a1a1a);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.sch-config-input:focus {
+  border-color: var(--color-accent, #e8941a);
+}
+
+.sch-config-action-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] .sch-settings-search {
+  background: #252932;
+  border-color: #3a3f4a;
+  color: #e5e7eb;
+}
+
 [data-theme="dark"] .sch-settings-client-card {
   background: #252932;
-  color: #e5e7eb;
   border-color: #3a3f4a;
+}
+
+[data-theme="dark"] .sch-settings-client-header:hover {
+  background: #2a2f3a;
 }
 
 [data-theme="dark"] .sch-settings-title,
@@ -1735,25 +1950,24 @@
 }
 
 [data-theme="dark"] .sch-platform-tile:hover {
-  border-color: #d4791a;
+  border-color: #555;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="dark"] .sch-platform-tile.connected {
-  background: #1a2e1a;
-  border-color: #2d6a2d;
+  background: #252932;
 }
 
 [data-theme="dark"] .sch-platform-tile-name {
   color: #e5e7eb;
 }
 
-[data-theme="dark"] .sch-platform-tile-account,
-[data-theme="dark"] .sch-platform-tile-hint {
-  color: #9ca3af;
+[data-theme="dark"] .sch-platform-tile-status-text {
+  color: #6b7280;
 }
 
-[data-theme="dark"] .sch-platform-tile-unconfigured {
-  color: #6b7280;
+[data-theme="dark"] .sch-platform-tile-status-text.connected {
+  color: #6ee7b7;
 }
 
 [data-theme="dark"] .sch-settings-connected-badge {
@@ -1763,5 +1977,55 @@
 
 [data-theme="dark"] .sch-settings-desc {
   color: #9ca3af;
+}
+
+[data-theme="dark"] .sch-config-panel {
+  background: #1e2128;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .sch-config-title {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .sch-config-subtitle,
+[data-theme="dark"] .sch-config-info-label,
+[data-theme="dark"] .sch-config-label,
+[data-theme="dark"] .sch-config-section-desc {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .sch-config-info-value,
+[data-theme="dark"] .sch-config-section-title {
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .sch-config-input {
+  background: #252932;
+  border-color: #3a3f4a;
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .sch-config-status-badge {
+  background: #2a2f3a;
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .sch-config-status-badge.connected {
+  background: #1a3a1a;
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .sch-config-divider {
+  border-color: #3a3f4a;
+}
+
+[data-theme="dark"] .sch-config-close {
+  color: #6b7280;
+}
+
+[data-theme="dark"] .sch-config-close:hover {
+  background: #2a2f3a;
+  color: #e5e7eb;
 }
 
