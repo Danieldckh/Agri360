@@ -1,5 +1,9 @@
 const path = require('path');
 
+const UPLOAD_ROOT = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(__dirname, 'uploads');
+
 module.exports = {
   AUTH_ENABLED: process.env.AUTH_ENABLED === 'true' || false,
   DB: {
@@ -11,8 +15,10 @@ module.exports = {
   },
   JWT_SECRET: process.env.JWT_SECRET || 'proagri-dev-secret-change-in-prod',
   PORT: parseInt(process.env.PORT || '3001', 10),
-  UPLOAD_DIR: path.join(__dirname, 'uploads/photos'),
-  ATTACHMENT_DIR: path.join(__dirname, 'uploads/attachments'),
+  UPLOAD_ROOT: UPLOAD_ROOT,
+  UPLOAD_DIR: path.join(UPLOAD_ROOT, 'photos'),
+  ATTACHMENT_DIR: path.join(UPLOAD_ROOT, 'attachments'),
+  DELIVERABLE_IMAGE_DIR: path.join(UPLOAD_ROOT, 'deliverable-images'),
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   ALPHA_AGRI4ALL_BASE_URL: process.env.ALPHA_AGRI4ALL_BASE_URL || 'https://alpha.agri4all.com',
   ALPHA_AGRI4ALL_EMAIL: process.env.ALPHA_AGRI4ALL_EMAIL || '',

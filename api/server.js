@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-const { PORT, UPLOAD_DIR, AUTH_ENABLED } = require('./config');
+const { PORT, UPLOAD_DIR, ATTACHMENT_DIR, DELIVERABLE_IMAGE_DIR, UPLOAD_ROOT, AUTH_ENABLED } = require('./config');
 
 // Route imports
 const authRoutes = require('./routes/auth');
@@ -31,13 +31,14 @@ const socialPublisher = require('./social-publisher');
 
 // Ensure uploads directories exist
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-fs.mkdirSync(path.join(__dirname, 'uploads/attachments'), { recursive: true });
+fs.mkdirSync(ATTACHMENT_DIR, { recursive: true });
+fs.mkdirSync(DELIVERABLE_IMAGE_DIR, { recursive: true });
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(UPLOAD_ROOT));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

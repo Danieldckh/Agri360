@@ -81,6 +81,34 @@
       'request_client_materials', 'materials_requested', 'artwork_design',
       'create_captions', 'editorial_review', 'ready_for_approval',
       'sent_for_approval', 'approved', 'ready_for_scheduling', 'scheduled'
+    ],
+
+    // Own Social Twitter — short editorial chain
+    'own-social-twitter': [
+      'request_client_materials', 'materials_requested', 'materials_received',
+      'editorial',
+      'ready_for_scheduling', 'scheduled', 'posted'
+    ],
+
+    // Own Social LinkedIn — same editorial chain, no materials_received
+    'own-social-linkedin': [
+      'request_client_materials', 'materials_requested',
+      'editorial',
+      'ready_for_scheduling', 'scheduled', 'posted'
+    ],
+
+    // Agri4All LinkedIn — same editorial chain as own-social-linkedin
+    'agri4all-linkedin': [
+      'request_client_materials', 'materials_requested',
+      'editorial',
+      'ready_for_scheduling', 'scheduled', 'posted'
+    ],
+
+    // Agri4All Twitter — same editorial chain as own-social-twitter
+    'agri4all-twitter': [
+      'request_client_materials', 'materials_requested', 'materials_received',
+      'editorial',
+      'ready_for_scheduling', 'scheduled', 'posted'
     ]
   };
 
@@ -94,11 +122,8 @@
     'agri4all-newsletters': 'agri4all-posts',
     'agri4all-newsletter-feature': 'agri4all-posts',
     'agri4all-newsletter-banner': 'agri4all-posts',
-    'agri4all-linkedin': 'agri4all-posts',
     'own-social-posts': 'sm-posts',
     'own-social-videos': 'sm-posts',
-    'own-social-linkedin': 'sm-posts',
-    'own-social-twitter': 'sm-posts',
     'magazine-sa-digital': 'magazine',
     'magazine-africa-print': 'magazine',
     'magazine-africa-digital': 'magazine',
@@ -248,6 +273,44 @@
       'approved': 'social-media',
       'ready_for_scheduling': 'social-media',
       'scheduled': 'social-media'
+    },
+
+    'own-social-twitter': {
+      'request_client_materials': 'production',
+      'materials_requested': 'production',
+      'materials_received': 'production',
+      'editorial': 'editorial',
+      'ready_for_scheduling': 'social-media',
+      'scheduled': 'social-media',
+      'posted': 'social-media'
+    },
+
+    'own-social-linkedin': {
+      'request_client_materials': 'production',
+      'materials_requested': 'production',
+      'editorial': 'editorial',
+      'ready_for_scheduling': 'social-media',
+      'scheduled': 'social-media',
+      'posted': 'social-media'
+    },
+
+    'agri4all-linkedin': {
+      'request_client_materials': 'production',
+      'materials_requested': 'production',
+      'editorial': 'editorial',
+      'ready_for_scheduling': 'social-media',
+      'scheduled': 'social-media',
+      'posted': 'social-media'
+    },
+
+    'agri4all-twitter': {
+      'request_client_materials': 'production',
+      'materials_requested': 'production',
+      'materials_received': 'production',
+      'editorial': 'editorial',
+      'ready_for_scheduling': 'social-media',
+      'scheduled': 'social-media',
+      'posted': 'social-media'
     }
   };
 
@@ -261,11 +324,8 @@
     'agri4all-newsletters': 'agri4all-posts',
     'agri4all-newsletter-feature': 'agri4all-posts',
     'agri4all-newsletter-banner': 'agri4all-posts',
-    'agri4all-linkedin': 'agri4all-posts',
     'own-social-posts': 'sm-posts',
     'own-social-videos': 'sm-posts',
-    'own-social-linkedin': 'sm-posts',
-    'own-social-twitter': 'sm-posts',
     'magazine-sa-digital': 'magazine',
     'magazine-africa-print': 'magazine',
     'magazine-africa-digital': 'magazine',

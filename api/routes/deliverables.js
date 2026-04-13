@@ -351,6 +351,26 @@ const DEPT_MAPS = {
     'send_request_form': 'production', 'request_form_sent': 'production', 'request_form_received': 'production', 'populating_video_dept': 'production',
     'brief_received': 'video', 'assign_and_schedule': 'video', 'production': 'video',
     'editing': 'video', 'review': 'video', 'changes_requested': 'video', 'final_delivery': 'video'
+  },
+  'own-social-twitter': {
+    'request_client_materials': 'production', 'materials_requested': 'production', 'materials_received': 'production',
+    'editorial': 'editorial',
+    'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
+  },
+  'own-social-linkedin': {
+    'request_client_materials': 'production', 'materials_requested': 'production',
+    'editorial': 'editorial',
+    'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
+  },
+  'agri4all-linkedin': {
+    'request_client_materials': 'production', 'materials_requested': 'production',
+    'editorial': 'editorial',
+    'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
+  },
+  'agri4all-twitter': {
+    'request_client_materials': 'production', 'materials_requested': 'production', 'materials_received': 'production',
+    'editorial': 'editorial',
+    'ready_for_scheduling': 'social-media', 'scheduled': 'social-media', 'posted': 'social-media'
   }
 };
 
@@ -360,9 +380,7 @@ const DEPT_MAP_ALIASES = {
   'agri4all-videos': 'agri4all-posts',
   'agri4all-newsletters': 'agri4all-posts',
   'agri4all-newsletter-feature': 'agri4all-posts', 'agri4all-newsletter-banner': 'agri4all-posts',
-  'agri4all-linkedin': 'agri4all-posts',
   'own-social-posts': 'sm-posts', 'own-social-videos': 'sm-posts',
-  'own-social-linkedin': 'sm-posts', 'own-social-twitter': 'sm-posts',
   'magazine-sa-digital': 'magazine', 'magazine-africa-print': 'magazine',
   'magazine-africa-digital': 'magazine', 'magazine-coffee-table': 'magazine'
 };
