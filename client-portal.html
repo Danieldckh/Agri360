@@ -562,6 +562,42 @@
   }
 
   .cp-form-submit:hover { background: var(--cp-accent-hover); }
+  .cp-form-file-preview {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
+  }
+  .cp-form-file-link {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    max-width:100%;
+    padding:8px 10px;
+    border-radius:10px;
+    background:var(--cp-surface-alt);
+    border:1px solid var(--cp-border);
+    color:var(--cp-text-secondary);
+    text-decoration:none;
+    font-size:12px;
+    font-weight:700;
+  }
+  .cp-form-file-link:hover {
+    border-color:var(--cp-border-strong);
+    color:var(--cp-text);
+  }
+  .cp-form-file-link img {
+    width:40px;
+    height:40px;
+    object-fit:cover;
+    border-radius:8px;
+    flex-shrink:0;
+  }
+  .cp-form-file-link span {
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
 
   .cp-form-completed {
     padding: 14px;
@@ -1514,6 +1550,27 @@
           var rawCards = form.fields || [];
           var responseBindings = [];
 
+          function updateFilePreview(previewEl, files) {
+            while (previewEl.firstChild) previewEl.removeChild(previewEl.firstChild);
+            Array.from(files || []).forEach(function (file) {
+              var link = document.createElement('a');
+              link.className = 'cp-form-file-link';
+              link.href = URL.createObjectURL(file);
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              if ((file.type || '').indexOf('image/') === 0) {
+                var img = document.createElement('img');
+                img.src = link.href;
+                img.alt = file.name || '';
+                link.appendChild(img);
+              }
+              var name = document.createElement('span');
+              name.textContent = file.name || 'File';
+              link.appendChild(name);
+              previewEl.appendChild(link);
+            });
+          }
+
           rawCards.forEach(function (rawCard, cardIdx) {
             // Normalize to new multi-field shape
             var fields;
@@ -1572,6 +1629,15 @@
                 input: input
               });
               group.appendChild(input);
+
+              if (f.fieldType === 'file') {
+                var preview = document.createElement('div');
+                preview.className = 'cp-form-file-preview';
+                input.addEventListener('change', function () {
+                  updateFilePreview(preview, input.files || []);
+                });
+                group.appendChild(preview);
+              }
             });
 
             card.appendChild(group);
@@ -1582,10 +1648,14 @@
           submitBtn.textContent = 'Submit';
           submitBtn.addEventListener('click', function () {
             var responses = {};
+            var formData = new FormData();
             responseBindings.forEach(function (b) {
               var value;
               if (b.fieldType === 'file') {
                 value = Array.from(b.input.files || []).map(function (file) { return file.name; });
+                Array.from(b.input.files || []).forEach(function (file) {
+                  formData.append('file__' + b.key, file);
+                });
               } else {
                 value = b.input.value;
               }
@@ -1593,13 +1663,13 @@
               // Keep a legacy index-key copy so older recap parsers still read data.
               if (b.legacyKey !== b.key) responses[b.legacyKey] = value;
             });
+            formData.append('responses', JSON.stringify(responses));
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
             fetch('/api/portal/' + token + '/forms/' + form.token + '/submit', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ responses: responses })
+              body: formData
             }).then(function (r) { return r.json(); })
               .then(function () { renderTab(); });
           });

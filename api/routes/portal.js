@@ -1,10 +1,29 @@
 const { Router } = require('express');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const pool = require('../db');
+const { ATTACHMENT_DIR } = require('../config');
 const { requireAuth } = require('../middleware/auth');
 const { toCamelCase, toSnakeBody } = require('../utils');
 
 const router = Router();
+
+const portalFormUploadDir = path.join(ATTACHMENT_DIR, 'portal-forms');
+fs.mkdirSync(portalFormUploadDir, { recursive: true });
+
+const portalFormStorage = multer.diskStorage({
+  destination: function (_req, _file, cb) { cb(null, portalFormUploadDir); },
+  filename: function (req, file, cb) {
+    var ext = path.extname(file.originalname || '') || '';
+    cb(null, 'portal-form-' + (req.params.formToken || 'upload') + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8) + ext);
+  }
+});
+const portalFormUpload = multer({
+  storage: portalFormStorage,
+  limits: { fileSize: 20 * 1024 * 1024, files: 20 }
+});
 
 function generateToken() {
   return crypto.randomBytes(24).toString('hex');
@@ -134,17 +153,59 @@ router.get('/:token/forms/:formToken', async (req, res) => {
 });
 
 // POST /:token/forms/:formToken/submit — client submits form responses
-router.post('/:token/forms/:formToken/submit', async (req, res) => {
+router.post('/:token/forms/:formToken/submit', portalFormUpload.any(), async (req, res) => {
   try {
     const client = await fetchClientByToken(req.params.token);
     if (!client) return res.status(404).json({ error: 'Invalid token' });
-    const { responses } = req.body;
+    const formResult = await pool.query(
+      `SELECT * FROM request_forms WHERE token = $1 AND client_id = $2`,
+      [req.params.formToken, client.id]
+    );
+    if (formResult.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
+    const form = formResult.rows[0];
+
+    var responses = req.body && req.body.responses;
+    if (typeof responses === 'string') {
+      try { responses = JSON.parse(responses); } catch (_err) { responses = {}; }
+    }
+    if (!responses || typeof responses !== 'object') responses = {};
+
+    const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+    const filesByFieldKey = {};
+    uploadedFiles.forEach(function (file) {
+      var fieldKey = String(file.fieldname || '').replace(/^file__/, '');
+      if (!fieldKey) return;
+      if (!filesByFieldKey[fieldKey]) filesByFieldKey[fieldKey] = [];
+      filesByFieldKey[fieldKey].push(file);
+    });
+    Object.keys(filesByFieldKey).forEach(function (fieldKey) {
+      responses[fieldKey] = filesByFieldKey[fieldKey].map(function (file) { return file.originalname; });
+    });
+
     const result = await pool.query(
       `UPDATE request_forms SET responses = $1, status = 'completed', completed_at = NOW()
        WHERE token = $2 AND client_id = $3 RETURNING *`,
       [JSON.stringify(responses || {}), req.params.formToken, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
+
+    for (const file of uploadedFiles) {
+      try {
+        await pool.query(
+          `INSERT INTO client_assets
+             (client_id, deliverable_id, kind, url, mime_type, uploaded_by)
+           VALUES ($1, $2, 'form_upload', $3, $4, NULL)`,
+          [
+            client.id,
+            form.deliverable_id || null,
+            '/uploads/attachments/portal-forms/' + file.filename,
+            file.mimetype || null
+          ]
+        );
+      } catch (assetErr) {
+        console.error('Portal form asset insert error:', assetErr.message);
+      }
+    }
 
     // Global auto-advance: any in-flight deliverable owned by this client that
     // is waiting on materials/focus points transitions to materials_received.
