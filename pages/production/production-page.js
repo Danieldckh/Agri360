@@ -5357,7 +5357,7 @@
       '.a4apu-cr-counter { font-size:12px; color:var(--text-secondary,#64748b); font-weight:600; }',
       '.a4apu-body { display:flex; flex:1; min-height:0; height:100%; overflow:hidden; }',
       '.a4apu-chat-panel { width:34%; min-width:320px; padding:20px 16px 20px 24px; border-right:1px solid var(--border-color,#e2e8f0); display:flex; flex-direction:column; overflow:hidden; background:radial-gradient(circle at top left,rgba(16,185,129,0.08),transparent 42%),linear-gradient(180deg,rgba(15,23,42,0.03) 0%,rgba(15,23,42,0.00) 100%); }',
-      '.a4apu-chat-panel .cd-messenger { margin:0; height:100%; min-height:0; border-radius:18px; border:1px solid rgba(148,163,184,0.22); box-shadow:0 16px 40px rgba(15,23,42,0.08); background:rgba(255,255,255,0.82); backdrop-filter:blur(10px); }',
+      '.a4apu-chat-panel .cd-messenger { margin:0; min-height:0; border-radius:18px; border:1px solid rgba(148,163,184,0.22); box-shadow:0 16px 40px rgba(15,23,42,0.08); background:rgba(255,255,255,0.82); backdrop-filter:blur(10px); }',
       '.a4apu-chat-panel .cd-messenger-header { padding:16px 18px; background:linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.90)); border-bottom:1px solid rgba(148,163,184,0.18); }',
       '.a4apu-chat-panel .cd-messenger-title { font-size:12px; letter-spacing:0.08em; color:#0f172a; }',
       '.a4apu-chat-panel .cd-messenger-messages { flex:1; min-height:260px; padding:18px 16px 16px; gap:10px; background:linear-gradient(180deg,rgba(241,245,249,0.72),rgba(255,255,255,0.92)); }',
