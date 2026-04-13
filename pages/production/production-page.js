@@ -5302,7 +5302,7 @@
       addSidebarSection(nav, 'Product Info');
       var wrap = document.createElement('div');
       wrap.style.padding = '0 16px';
-      addSidebarField(wrap, 'Amount', String(meta.amount || 0));
+      addSidebarField(wrap, 'Amount', String(meta.product_uploads_amount || meta.amount || 0));
       nav.appendChild(wrap);
       addCountriesToSidebar(nav, meta.countries);
     });
