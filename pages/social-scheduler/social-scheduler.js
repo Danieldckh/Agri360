@@ -272,7 +272,8 @@
       .catch(function () { return []; });
   }
 
-  function loadAll() {
+  function loadAll(options) {
+    options = options || {};
     return Promise.all([
       api('/posts').catch(function () { return []; }),
       api('/credentials').catch(function () { return []; }),
@@ -281,7 +282,7 @@
       state.posts = res[0] || [];
       state.creds = res[1] || [];
       state.clients = res[2] || [];
-      render();
+      if (!options.skipRender) render();
     });
   }
 
@@ -1477,7 +1478,7 @@
     // Listen for OAuth popup success messages
     function onOAuthMessage(e) {
       if (e.data && e.data.type === 'social-oauth-success') {
-        loadAll().then(function () { fetchOAuthConfig().then(renderSettings); });
+        loadAll({ skipRender: true }).then(function () { fetchOAuthConfig().then(renderSettings); });
       }
     }
     window.addEventListener('message', onOAuthMessage);
@@ -1714,7 +1715,7 @@
           disconnectBtn.disabled = true;
           disconnectBtn.textContent = 'Disconnecting...';
           api('/credentials/' + cred.id, { method: 'DELETE' })
-            .then(function () { return loadAll(); })
+            .then(function () { return loadAll({ skipRender: true }); })
             .then(function () {
               overlay.remove();
               renderSettings();
@@ -1818,7 +1819,7 @@
               clientId: clientId
             })
           }).then(function () {
-            return loadAll();
+            return loadAll({ skipRender: true });
           }).then(function () {
             overlay.remove();
             renderSettings();
@@ -1853,7 +1854,7 @@
     }
 
     // Load state + OAuth config, then render
-    Promise.all([loadAll(), fetchOAuthConfig()]).then(function () { renderSettings(); });
+    Promise.all([loadAll({ skipRender: true }), fetchOAuthConfig()]).then(function () { renderSettings(); });
   };
 
   // ---------------- public entry ----------------
