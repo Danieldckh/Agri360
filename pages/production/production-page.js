@@ -4209,38 +4209,51 @@
     linkLabel.appendChild(linkText);
     msgWrap.appendChild(linkLabel);
 
-    // Per-deliverable chat box — mirrors openOnlineArticleDashboard.
+    // Per-deliverable chat — styled to match the proposal-page messenger
     stopCCChatPoll();
     var chat = document.createElement('div');
-    chat.className = 'cc-chat-box wd-chat-box';
-    var chatHeader = document.createElement('div');
-    chatHeader.className = 'cc-chat-header';
-    chatHeader.textContent = 'Team Chat';
-    chat.appendChild(chatHeader);
+    chat.className = 'cd-messenger';
+
+    var chatHeaderEl = document.createElement('div');
+    chatHeaderEl.className = 'cd-messenger-header';
+    var chatTitleEl = document.createElement('div');
+    chatTitleEl.className = 'cd-messenger-title';
+    chatTitleEl.textContent = 'Team Chat';
+    chatHeaderEl.appendChild(chatTitleEl);
+    chat.appendChild(chatHeaderEl);
 
     var chatList = document.createElement('div');
-    chatList.className = 'cc-chat-list';
-    var chatLoading = document.createElement('div');
-    chatLoading.className = 'cc-chat-msg-header';
-    chatLoading.textContent = 'Loading chat...';
-    chatList.appendChild(chatLoading);
+    chatList.className = 'cd-messenger-messages';
+    var chatEmpty = document.createElement('div');
+    chatEmpty.className = 'cd-messenger-empty';
+    chatEmpty.textContent = 'Loading chat...';
+    chatList.appendChild(chatEmpty);
     chat.appendChild(chatList);
 
     var chatInputWrap = document.createElement('div');
-    chatInputWrap.className = 'cc-chat-input-wrap';
+    chatInputWrap.className = 'cd-messenger-input';
     var chatInput = document.createElement('textarea');
-    chatInput.className = 'cc-chat-input';
+    chatInput.className = 'cd-messenger-textarea';
     chatInput.placeholder = 'Type a message...';
+    chatInput.rows = 1;
     chatInput.disabled = true;
     var chatSend = document.createElement('button');
-    chatSend.className = 'cc-chat-send';
-    chatSend.textContent = 'Send';
+    chatSend.className = 'cd-messenger-btn';
+    chatSend.type = 'button';
+    chatSend.title = 'Send';
+    chatSend.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
     chatSend.disabled = true;
     chatInputWrap.appendChild(chatInput);
     chatInputWrap.appendChild(chatSend);
     chat.appendChild(chatInputWrap);
     msgWrap.appendChild(chat);
     leftCol.appendChild(msgWrap);
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', function () {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+    });
 
     var wdChannelId = null;
     var wdLastMessageId = 0;
@@ -4262,24 +4275,38 @@
       if (!m || wdKnownIds[m.id]) return;
       wdKnownIds[m.id] = true;
       if (m.id > wdLastMessageId) wdLastMessageId = m.id;
-      var row = document.createElement('div');
-      row.className = 'cc-chat-msg';
-      var hdr = document.createElement('div');
-      hdr.className = 'cc-chat-msg-header';
-      var who = document.createElement('strong');
+
+      var senderId = m.sender_id || m.senderId;
+      var cu = window.getCurrentUser ? window.getCurrentUser() : null;
+      var isOwn = cu && cu.id && String(senderId) === String(cu.id);
+
+      var bubble = document.createElement('div');
+      bubble.className = 'cd-bubble' + (isOwn ? ' cd-bubble-own' : '');
+
+      var body = document.createElement('div');
+      body.className = 'cd-bubble-body';
+
+      var meta = document.createElement('div');
+      meta.className = 'cd-bubble-meta';
+      var sender = document.createElement('span');
+      sender.className = 'cd-bubble-sender';
       var first = m.sender_first_name || m.senderFirstName || '';
       var last = m.sender_last_name || m.senderLastName || '';
-      who.textContent = (first + ' ' + last).trim() || 'Unknown';
-      hdr.appendChild(who);
+      sender.textContent = (first + ' ' + last).trim() || 'Unknown';
+      meta.appendChild(sender);
       var ts = document.createElement('span');
+      ts.className = 'cd-bubble-time';
       ts.textContent = wdFmtChatTime(m.created_at || m.createdAt);
-      hdr.appendChild(ts);
-      row.appendChild(hdr);
-      var b = document.createElement('div');
-      b.className = 'cc-chat-msg-body';
-      b.textContent = m.content || '';
-      row.appendChild(b);
-      chatList.appendChild(row);
+      meta.appendChild(ts);
+      body.appendChild(meta);
+
+      var contentEl = document.createElement('div');
+      contentEl.className = 'cd-bubble-content';
+      contentEl.textContent = m.content || '';
+      body.appendChild(contentEl);
+
+      bubble.appendChild(body);
+      chatList.appendChild(bubble);
     }
 
     function wdScrollBottom() { chatList.scrollTop = chatList.scrollHeight; }
@@ -4292,7 +4319,14 @@
           while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
           wdKnownIds = Object.create(null);
           wdLastMessageId = 0;
-          (msgs || []).forEach(wdRenderChatMessage);
+          if (!msgs || !msgs.length) {
+            var empty = document.createElement('div');
+            empty.className = 'cd-messenger-empty';
+            empty.textContent = 'No messages yet';
+            chatList.appendChild(empty);
+          } else {
+            msgs.forEach(wdRenderChatMessage);
+          }
           wdScrollBottom();
         })
         .catch(function () {});
@@ -4304,6 +4338,9 @@
         .then(function (r) { return r.ok ? r.json() : []; })
         .then(function (msgs) {
           if (!msgs || !msgs.length) return;
+          // Clear "No messages yet" placeholder if present
+          var emptyEl = chatList.querySelector('.cd-messenger-empty');
+          if (emptyEl) emptyEl.remove();
           var before = chatList.scrollHeight;
           msgs.forEach(wdRenderChatMessage);
           if (chatList.scrollTop + chatList.clientHeight >= before - 40) wdScrollBottom();
@@ -4341,7 +4378,7 @@
         if (!ch || !ch.id) {
           while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
           var errRow = document.createElement('div');
-          errRow.className = 'cc-chat-msg-header';
+          errRow.className = 'cd-messenger-empty';
           errRow.textContent = 'Chat unavailable';
           chatList.appendChild(errRow);
           return;
