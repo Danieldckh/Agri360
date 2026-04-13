@@ -5468,6 +5468,11 @@
     chatInputWrap.appendChild(chatInput);
     chatInputWrap.appendChild(chatSend);
 
+    var mentionDropdown = document.createElement('div');
+    mentionDropdown.className = 'cd-mention-dropdown';
+    mentionDropdown.style.display = 'none';
+    chatInputWrap.appendChild(mentionDropdown);
+
     var emojiPicker = document.createElement('div');
     emojiPicker.style.cssText = 'display:none;padding:8px;flex-wrap:wrap;gap:4px;bottom:100%;position:absolute;left:0;right:0;background:var(--card-bg,#fff);border:1px solid var(--border-color,#e2e8f0);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:50;';
     COMMON_EMOJI_A4A.forEach(function (em) {
@@ -5494,6 +5499,7 @@
       chatInput.style.height = 'auto';
       chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
       emojiPicker.style.display = 'none';
+      handleMentionTrigger(chatInput, mentionDropdown);
     });
 
     body.appendChild(chatPanel);
@@ -5627,6 +5633,94 @@
       return link;
     }
 
+    function renderChatMentionContent(el, content) {
+      var mentionRegex = /@\[([^\]]+)\]\(employee:(\d+)\)/g;
+      var lastIndex = 0;
+      var match;
+      while ((match = mentionRegex.exec(content || '')) !== null) {
+        if (match.index > lastIndex) {
+          el.appendChild(document.createTextNode(String(content).substring(lastIndex, match.index)));
+        }
+        var mentionSpan = document.createElement('span');
+        mentionSpan.textContent = '@' + match[1];
+        mentionSpan.dataset.employeeId = match[2];
+        mentionSpan.style.cssText = 'display:inline-block;padding:1px 6px;border-radius:999px;background:rgba(59,130,246,0.12);color:#1d4ed8;font-weight:600;';
+        el.appendChild(mentionSpan);
+        lastIndex = match.index + match[0].length;
+      }
+      if (lastIndex < String(content || '').length) {
+        el.appendChild(document.createTextNode(String(content).substring(lastIndex)));
+      }
+      if (!el.firstChild) el.appendChild(document.createTextNode(content || ''));
+    }
+
+    function handleMentionTrigger(textarea, dropdown) {
+      var val = textarea.value || '';
+      var cursorPos = textarea.selectionStart || 0;
+      var textBeforeCursor = val.substring(0, cursorPos);
+      var atMatch = textBeforeCursor.match(/@(\w*)$/);
+      if (!atMatch) {
+        dropdown.style.display = 'none';
+        return;
+      }
+      var query = atMatch[1].toLowerCase();
+      var empPromise = window._fetchEmployees ? window._fetchEmployees() : fetch('/api/employees', { headers: getHeaders() }).then(function (r) { return r.ok ? r.json() : []; });
+      empPromise.then(function (employees) {
+        var filtered = (employees || []).filter(function (emp) {
+          var full = (((emp.first_name || emp.firstName || '') + ' ' + (emp.last_name || emp.lastName || '')).trim()).toLowerCase();
+          var username = String(emp.username || '').toLowerCase();
+          return !query || full.indexOf(query) !== -1 || username.indexOf(query) !== -1;
+        }).slice(0, 8);
+        while (dropdown.firstChild) dropdown.removeChild(dropdown.firstChild);
+        if (filtered.length === 0) {
+          dropdown.style.display = 'none';
+          return;
+        }
+        filtered.forEach(function (emp) {
+          var item = document.createElement('div');
+          item.className = 'cd-mention-item';
+          var avatar = document.createElement('div');
+          avatar.className = 'cd-mention-avatar';
+          var photo = emp.photo_url || emp.photoUrl;
+          if (photo) {
+            var img = document.createElement('img');
+            img.src = '/uploads/photos/' + photo;
+            img.alt = '';
+            avatar.appendChild(img);
+          } else {
+            var initials = (((emp.first_name || emp.firstName || '')[0] || '') + ((emp.last_name || emp.lastName || '')[0] || '')).toUpperCase() || '@';
+            avatar.textContent = initials;
+          }
+          item.appendChild(avatar);
+          var label = document.createElement('span');
+          label.textContent = ((emp.first_name || emp.firstName || '') + ' ' + (emp.last_name || emp.lastName || '')).trim() || emp.username || 'User';
+          item.appendChild(label);
+          item.addEventListener('click', function () {
+            insertMention(textarea, atMatch, emp);
+            dropdown.style.display = 'none';
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = '';
+      }).catch(function () {
+        dropdown.style.display = 'none';
+      });
+    }
+
+    function insertMention(textarea, atMatch, emp) {
+      var val = textarea.value || '';
+      var cursorPos = textarea.selectionStart || 0;
+      var beforeAt = val.substring(0, cursorPos - atMatch[0].length);
+      var afterCursor = val.substring(cursorPos);
+      var fullName = ((emp.first_name || emp.firstName || '') + ' ' + (emp.last_name || emp.lastName || '')).trim() || emp.username || 'User';
+      var mention = '@[' + fullName + '](employee:' + emp.id + ') ';
+      textarea.value = beforeAt + mention + afterCursor;
+      var newPos = beforeAt.length + mention.length;
+      textarea.selectionStart = newPos;
+      textarea.selectionEnd = newPos;
+      textarea.focus();
+    }
+
     function renderMsg(m, scrollToBottom) {
       if (!m || a4apuKnownIds[m.id]) return;
       a4apuKnownIds[m.id] = true;
@@ -5669,7 +5763,7 @@
 
       var contentEl = document.createElement('div');
       contentEl.className = 'cd-bubble-content';
-      contentEl.textContent = m.content || '';
+      renderChatMentionContent(contentEl, m.content || '');
       body2.appendChild(contentEl);
 
       var attachments = m.attachments;
@@ -5742,12 +5836,17 @@
     function sendMsg() {
       var content = (chatInput.value || '').trim();
       if (!content || !a4apuChannelId) return;
+      var mentionRegex = /@\[[^\]]+\]\(employee:(\d+)\)/g;
+      var mentions = [];
+      var match;
+      while ((match = mentionRegex.exec(content)) !== null) mentions.push(parseInt(match[1], 10));
       chatInput.value = '';
       chatInput.style.height = 'auto';
+      mentionDropdown.style.display = 'none';
       fetch('/api/messaging/channels/' + a4apuChannelId + '/messages', {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ content: content })
+        body: JSON.stringify({ content: content, mentions: mentions })
       }).then(function (r) { return r.ok ? r.json() : null; })
         .then(function (m) {
           if (m) renderMsg(m, true);
@@ -5780,6 +5879,18 @@
 
     chatSend.addEventListener('click', sendMsg);
     chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && mentionDropdown.style.display !== 'none') {
+        mentionDropdown.style.display = 'none';
+        return;
+      }
+      if (e.key === 'Enter' && mentionDropdown.style.display !== 'none') {
+        var firstMention = mentionDropdown.querySelector('.cd-mention-item');
+        if (firstMention) {
+          e.preventDefault();
+          firstMention.click();
+          return;
+        }
+      }
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
     attachBtn.addEventListener('click', function () {
