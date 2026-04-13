@@ -5298,7 +5298,6 @@
     sendBtn.className = 'a4a-btn-primary';
     sendBtn.textContent = 'Send for Approval';
     sendBtn.title = 'Send to the client portal for approval.';
-    sendBtn.disabled = deliverable.status !== 'ready_for_approval';
     sendBtn.addEventListener('click', function () {
       sendBtn.disabled = true;
       fetch(API_BASE + '/' + deliverable.id, {
@@ -5356,7 +5355,7 @@
       '.a4apu-status-badge { display:inline-flex; align-items:center; padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; background:var(--surface-alt,#f1f5f9); color:var(--text-secondary,#64748b); }',
       '.a4apu-cr-counter { font-size:12px; color:var(--text-secondary,#64748b); font-weight:600; }',
       '.a4apu-body { display:flex; flex:1; min-height:0; height:100%; overflow:hidden; }',
-      '.a4apu-chat-panel { width:34%; min-width:320px; padding:20px 16px 20px 24px; border-right:1px solid var(--border-color,#e2e8f0); display:flex; flex-direction:column; overflow:hidden; background:radial-gradient(circle at top left,rgba(16,185,129,0.08),transparent 42%),linear-gradient(180deg,rgba(15,23,42,0.03) 0%,rgba(15,23,42,0.00) 100%); }',
+      '.a4apu-chat-panel { width:34%; min-width:320px; padding:0; border-right:none; display:flex; flex-direction:column; overflow:hidden; background:none; }',
       '.a4apu-chat-panel .cd-messenger { margin:0; min-height:0; border-radius:18px; border:1px solid rgba(148,163,184,0.22); box-shadow:0 16px 40px rgba(15,23,42,0.08); background:rgba(255,255,255,0.82); backdrop-filter:blur(10px); }',
       '.a4apu-chat-panel .cd-messenger-header { padding:16px 18px; background:linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.90)); border-bottom:1px solid rgba(148,163,184,0.18); }',
       '.a4apu-chat-panel .cd-messenger-title { font-size:12px; letter-spacing:0.08em; color:#0f172a; }',
@@ -5384,7 +5383,7 @@
       '.a4apu-chat-panel .cd-mention-item { padding:10px 12px; }',
       '.a4apu-right-panel { flex:1; display:flex; flex-direction:column; overflow-y:auto; padding:20px 24px 120px; gap:16px; }',
       '.a4apu-recap { border-radius:12px; background:var(--surface-alt,#f8fafc); border:1px solid var(--border-color,#e2e8f0); padding:14px 18px; min-height:40px; }',
-      '.a4apu-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:16px 24px; background:linear-gradient(180deg,rgba(255,255,255,0) 0%,var(--bg-color,#f1f5f9) 40%); }',
+      '.a4apu-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:16px 24px; background:none; }',
       '.a4apu-actions button { padding:10px 22px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid transparent; transition:all 0.18s; }',
       '.a4apu-btn-secondary { background:var(--surface,#ffffff); color:var(--text-primary,#1e293b); border-color:var(--border-color,#cbd5e1) !important; }',
       '.a4apu-btn-secondary:hover:not(:disabled) { background:var(--surface-alt,#f1f5f9); }',
@@ -5392,7 +5391,7 @@
       '.a4apu-btn-primary:hover:not(:disabled) { filter:brightness(1.06); }',
       '.a4apu-btn-danger { background:#ef4444; color:#ffffff; border-color:#ef4444 !important; }',
       '.a4apu-btn-danger:hover:not(:disabled) { filter:brightness(1.06); }',
-      '.a4apu-actions button:disabled { opacity:0.5; cursor:not-allowed; }',
+      '.a4apu-actions button:disabled { opacity:1; cursor:pointer; }',
       '.a4apu-toast { position:fixed; left:50%; bottom:32px; transform:translateX(-50%); background:#10B981; color:#ffffff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:700; box-shadow:0 10px 30px rgba(16,185,129,0.35); z-index:5000; }'
     ].join('\n');
     container.appendChild(styleBlock);
@@ -5590,7 +5589,6 @@
     sendBtn.type = 'button';
     sendBtn.className = 'a4apu-btn-secondary';
     sendBtn.textContent = 'Send for Approval';
-    sendBtn.disabled = deliverable.status !== 'ready_for_approval';
     sendBtn.addEventListener('click', function () {
       sendBtn.disabled = true;
       fetch(API_BASE + '/' + deliverable.id, {
