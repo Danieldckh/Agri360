@@ -1196,9 +1196,9 @@
         columns: [
           colEye(container),
           colType(),
-          colRequestMaterials(),
           colFollowUpCount(),
           colStatus(),
+          colRequestMaterials(),
           colActionAdvanceBack('auto')
         ],
         emptyMessage: 'No items waiting for a materials request',
@@ -2101,24 +2101,6 @@
             oaSpacer.className = 'prod-deliv-cell prod-deliv-spacer';
             row.appendChild(oaSpacer);
 
-            // Request Materials button — only visible when status is request_client_materials
-            if (item.status === 'request_client_materials') {
-              var oaReqMatCell = document.createElement('div');
-              oaReqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
-              var oaReqMatBtn = document.createElement('button');
-              oaReqMatBtn.type = 'button';
-              oaReqMatBtn.className = 'prod-deliv-req-mat-btn';
-              oaReqMatBtn.textContent = 'Request Materials';
-              (function (it) {
-                oaReqMatBtn.addEventListener('click', function (e) {
-                  e.stopPropagation();
-                  window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
-                });
-              })(item);
-              oaReqMatCell.appendChild(oaReqMatBtn);
-              row.appendChild(oaReqMatCell);
-            }
-
             // Status — reuse the same cell + dropdown pattern as the
             // default row below. We inline it here (no shared helper) so
             // the OA branch can stand alone.
@@ -2184,6 +2166,24 @@
               });
             })(oaStatusCell, item);
             row.appendChild(oaStatusCell);
+
+            // Request Materials button — between status and advance arrows
+            if (item.status === 'request_client_materials') {
+              var oaReqMatCell = document.createElement('div');
+              oaReqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
+              var oaReqMatBtn = document.createElement('button');
+              oaReqMatBtn.type = 'button';
+              oaReqMatBtn.className = 'prod-deliv-req-mat-btn';
+              oaReqMatBtn.textContent = 'Request Materials';
+              (function (it) {
+                oaReqMatBtn.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
+                });
+              })(item);
+              oaReqMatCell.appendChild(oaReqMatBtn);
+              row.appendChild(oaReqMatCell);
+            }
 
             // Advance + back arrows (reuse existing workflow helpers)
             var oaActCol = document.createElement('div');
@@ -2325,26 +2325,6 @@
             row.appendChild(spacerCell);
           }
 
-          // Per-deliverable "Request Materials" button — standard rows only
-          // (CC rows use the simplified 5-cell layout and don't get this;
-          // OA rows are handled in the isOnlineArticles branch above).
-          if (!isContentCalendar) {
-            var reqMatCell = document.createElement('div');
-            reqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
-            var reqMatBtn = document.createElement('button');
-            reqMatBtn.type = 'button';
-            reqMatBtn.className = 'prod-deliv-req-mat-btn';
-            reqMatBtn.textContent = 'Request Materials';
-            (function (it) {
-              reqMatBtn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
-              });
-            })(item);
-            reqMatCell.appendChild(reqMatBtn);
-            row.appendChild(reqMatCell);
-          }
-
           // CC-only: inline read-only platforms chips + monthly posts count.
           if (isContentCalendar) {
             var platCell = document.createElement('div');
@@ -2447,6 +2427,26 @@
           })(statusCell, item);
 
           row.appendChild(statusCell);
+
+          // Per-deliverable "Request Materials" button — sits between status
+          // and the advance arrow. Standard rows only (CC rows use the
+          // simplified 5-cell layout; OA rows handled in isOnlineArticles).
+          if (!isContentCalendar) {
+            var reqMatCell = document.createElement('div');
+            reqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
+            var reqMatBtn = document.createElement('button');
+            reqMatBtn.type = 'button';
+            reqMatBtn.className = 'prod-deliv-req-mat-btn';
+            reqMatBtn.textContent = 'Request Materials';
+            (function (it) {
+              reqMatBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
+              });
+            })(item);
+            reqMatCell.appendChild(reqMatBtn);
+            row.appendChild(reqMatCell);
+          }
 
           // Send-back button (only for review/approval statuses).
           // Suppressed for content-calendar rows per the 5-property spec.
