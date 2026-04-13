@@ -70,7 +70,7 @@
   // window.openWebsiteDesignDashboard) so clicking a row gives the
   // exact same UX as Production's Deliverables tab.
   //
-  // Columns: Production person | Client/title | Pages | Type | Status.
+  // Columns: Design person | Client/title | Pages | Type | Status.
   // Rows are fetched from /api/deliverables/by-type/website-design
   // and filtered client-side to the design-side status set.
   // ─────────────────────────────────────────────────────────────────
@@ -119,19 +119,6 @@
       || null;
   }
 
-  function resolveProductionName(d) {
-    var id = d.assignedProduction || d.assigned_production || d.assignedTo || d.assigned_to;
-    if (!id) return '—';
-    if (window._employeeCacheLookup) {
-      var emp = window._employeeCacheLookup(id);
-      if (emp) {
-        var nm = ((emp.first_name || emp.firstName || '') + ' ' + (emp.last_name || emp.lastName || '')).trim();
-        if (nm) return nm;
-      }
-    }
-    return '—';
-  }
-
   function getHeaders() {
     return window.getAuthHeaders ? window.getAuthHeaders() : {};
   }
@@ -173,7 +160,7 @@
     var allRows = [];
 
     var columns = [
-      { key: 'assigned', label: 'Production', sortable: true },
+      { key: 'assignedDesign', label: '', type: 'person', editable: true },
       { key: 'client',   label: 'Client / Deliverable', sortable: true, isName: true },
       { key: 'pages',    label: 'Pages', sortable: true, width: 'sm' },
       { key: 'wdType',   label: 'Type', sortable: true },
@@ -196,7 +183,7 @@
     function mapDeliverableToRow(d) {
       return {
         id: d.id,
-        assigned: resolveProductionName(d),
+        assignedDesign: d.assignedDesign || d.assigned_design || null,
         client: (d.clientName || d.client_name || '') + (d.title ? ' — ' + d.title : ''),
         pages: extractPagesCount(d),
         wdType: formatWdTypeLabel(extractWdType(d)),
@@ -219,7 +206,9 @@
           columns: columns,
           data: filtered,
           searchable: false,
-          leadingActions: leadingActions
+          apiEndpoint: '/deliverables',
+          leadingActions: leadingActions,
+          onCellSaved: function () { fetchData(); }
         });
       }
     }
