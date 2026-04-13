@@ -254,12 +254,15 @@
           var fd = new FormData();
           fd.append('file', file);
           var uploadType = col.uploadType || 'unsigned';
+          var uploadEndpoint = col.uploadEndpoint
+            ? col.uploadEndpoint.replace('{id}', rowData.id)
+            : '/api/booking-forms/' + rowData.id + '/upload-booking-file/' + uploadType;
           var headers = {};
           if (window.getAuthHeaders) {
             var auth = window.getAuthHeaders();
             for (var k in auth) { if (auth.hasOwnProperty(k)) headers[k] = auth[k]; }
           }
-          fetch((window.API_URL || '') + '/api/booking-forms/' + rowData.id + '/upload-booking-file/' + uploadType, {
+          fetch((window.API_URL || '') + uploadEndpoint, {
             method: 'POST',
             headers: headers,
             body: fd

@@ -313,6 +313,10 @@ async function runMigrations() {
     await client.query(`ALTER TABLE channels ADD COLUMN IF NOT EXISTS deliverable_id INT REFERENCES deliverables(id) ON DELETE SET NULL`);
     await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS channels_deliverable_id_unique_idx ON channels(deliverable_id) WHERE deliverable_id IS NOT NULL`);
 
+    // Phase 6b — Per-booking-form chat channels (messages + change requests)
+    await client.query(`ALTER TABLE channels ADD COLUMN IF NOT EXISTS booking_form_id INT REFERENCES booking_forms(id) ON DELETE SET NULL`);
+    await client.query(`ALTER TABLE channels ADD COLUMN IF NOT EXISTS channel_purpose VARCHAR(50)`);
+
     // Client Portal Tokens — public access for clients
     await client.query(`CREATE TABLE IF NOT EXISTS client_portal_tokens (
       id SERIAL PRIMARY KEY,

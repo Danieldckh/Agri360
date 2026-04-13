@@ -584,6 +584,39 @@ router.post('/create-content-calendars', async (req, res) => {
       return monthNum ? match[2] + '-' + monthNum : null;
     }
 
+    const MONTH_NAMES_FULL = ['January','February','March','April','May','June',
+      'July','August','September','October','November','December'];
+
+    // Returns an array of { month: 'YYYY-MM', label: 'Month YYYY' } objects.
+    // For specific month labels (e.g. "May 2026") returns a single entry.
+    // For "All Months" or unparseable labels, expands the booking form's
+    // campaign_month_start..campaign_month_end range so one deliverable is
+    // created per month. Falls back to current month if range is missing.
+    function getDeliveryMonths(label) {
+      const parsed = parseMonthLabel(label);
+      if (parsed) return [{ month: parsed, label: label }];
+
+      // Expand campaign range for "All Months" or unparseable labels
+      const start = bf.campaignMonthStart;
+      const end = bf.campaignMonthEnd;
+      if (start && end) {
+        const months = [];
+        let [sy, sm] = start.split('-').map(Number);
+        const [ey, em] = end.split('-').map(Number);
+        while (sy < ey || (sy === ey && sm <= em)) {
+          const ym = sy + '-' + (sm < 10 ? '0' + sm : '' + sm);
+          months.push({ month: ym, label: MONTH_NAMES_FULL[sm - 1] + ' ' + sy });
+          sm++;
+          if (sm > 12) { sm = 1; sy++; }
+        }
+        if (months.length > 0) return months;
+      }
+
+      // Final fallback — current month
+      const cur = new Date().toISOString().substring(0, 7);
+      return [{ month: cur, label: label || 'Unknown' }];
+    }
+
     async function createDeliv(type, title, status, deptSlug, deliveryMonth, metadata) {
       const deptId = deptBySlug[deptSlug] || null;
       const result = await pool.query(
@@ -600,50 +633,73 @@ router.post('/create-content-calendars', async (req, res) => {
     const smEntries = formData.social_media_management || [];
     for (const entry of smEntries) {
       if (!entry.content_calendar) continue;
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
-      created.push(await createDeliv(
-        'sm-content-calendar',
-        clientName + ' - Content Calendar - ' + ml,
-        'request_focus_points', 'production', dm,
-        {
-          platforms: (entry.platforms || []).map(p => ({ platform: p.platform, key: p.key, link: p.link })),
-          monthly_posts: entry.monthly_posts || entry.posts_per_month || null
-        }
-      ));
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'sm-content-calendar',
+          clientName + ' - Content Calendar - ' + label,
+          'request_focus_points', 'production', month,
+          {
+            platforms: (entry.platforms || []).map(p => ({ platform: p.platform, key: p.key, link: p.link })),
+            monthly_posts: entry.monthly_posts || entry.posts_per_month || null
+          }
+        ));
+      }
     }
 
     // === Google Ads ===
+    // Check both inside SM entries AND at the form_data top level
+    let createdGoogleAds = false;
     for (const entry of smEntries) {
       if (!entry.google_ads || !entry.google_ads.enabled) continue;
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
-      created.push(await createDeliv(
-        'sm-google-ads',
-        clientName + ' - Google Ads - ' + ml,
-        'request_client_materials', 'production', dm,
-        {
-          initial_setup: entry.google_ads.initial_setup_text || '',
-          monthly_ongoing: entry.google_ads.monthly_ongoing_text || '',
-          ad_spend: entry.google_ads.ad_spend || ''
-        }
-      ));
+      createdGoogleAds = true;
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'sm-google-ads',
+          clientName + ' - Google Ads - ' + label,
+          'request_client_materials', 'production', month,
+          {
+            initial_setup: entry.google_ads.initial_setup_text || '',
+            monthly_ongoing: entry.google_ads.monthly_ongoing_text || '',
+            ad_spend: entry.google_ads.ad_spend || ''
+          }
+        ));
+      }
+    }
+    // Top-level google_ads (checklist wizard stores it at form_data root)
+    if (!createdGoogleAds && formData.google_ads && formData.google_ads.enabled) {
+      const refLabel = (smEntries[0] && (smEntries[0].month_label || smEntries[0].months_display)) || null;
+      const months = getDeliveryMonths(refLabel);
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'sm-google-ads',
+          clientName + ' - Google Ads - ' + label,
+          'request_client_materials', 'production', month,
+          {
+            initial_setup: formData.google_ads.initial_text || formData.google_ads.initial_setup_text || '',
+            monthly_ongoing: formData.google_ads.monthly_text || formData.google_ads.monthly_ongoing_text || '',
+            ad_spend: formData.google_ads.ad_spend || ''
+          }
+        ));
+      }
     }
 
     // === Website Design ===
     const webEntries = formData.website || [];
     for (const entry of webEntries) {
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
-      created.push(await createDeliv(
-        'website-design',
-        clientName + ' - Website Design - ' + ml,
-        'request_client_materials', 'production', dm,
-        {
-          website_type: entry.website_type || '',
-          number_of_pages: entry.number_of_pages || ''
-        }
-      ));
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'website-design',
+          clientName + ' - Website Design - ' + label,
+          'request_client_materials', 'production', month,
+          {
+            website_type: entry.website_type || '',
+            number_of_pages: entry.number_of_pages || ''
+          }
+        ));
+      }
     }
 
     // === Magazine — separate deliverable per magazine type ===
@@ -655,58 +711,60 @@ router.post('/create-content-calendars', async (req, res) => {
     };
     const magEntries = formData.magazine || [];
     for (const entry of magEntries) {
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
       const magInfo = MAG_TYPE_MAP[entry.magazine_key] || { type: 'magazine', label: entry.magazine_display || entry.magazine || 'Magazine' };
-      created.push(await createDeliv(
-        magInfo.type,
-        clientName + ' - ' + magInfo.label + ' - ' + ml,
-        'request_client_materials', 'production', dm,
-        {
-          publication: magInfo.label,
-          magazine_key: entry.magazine_key || '',
-          page_size: entry.page_size || '',
-          type: entry.type || '',
-          positions: entry.positions || [],
-          line_item: entry.line_item_text || entry.line_item || ''
-        }
-      ));
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          magInfo.type,
+          clientName + ' - ' + magInfo.label + ' - ' + label,
+          'request_client_materials', 'production', month,
+          {
+            publication: magInfo.label,
+            magazine_key: entry.magazine_key || '',
+            page_size: entry.page_size || '',
+            type: entry.type || '',
+            positions: entry.positions || [],
+            line_item: entry.line_item_text || entry.line_item || ''
+          }
+        ));
+      }
     }
 
     // === Banners ===
     const bannerEntries = formData.banners || [];
     for (const entry of bannerEntries) {
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
       const platforms = (entry.entries || []).map(e => e.platform).filter(Boolean);
       const impressions = {};
       (entry.entries || []).forEach(e => {
         if (e.platform && e.impressions) impressions[e.platform] = e.impressions;
       });
       const totalImpressions = (entry.entries || []).reduce((sum, e) => sum + (parseInt(e.impressions, 10) || 0), 0);
-      created.push(await createDeliv(
-        'agri4all-banners',
-        clientName + ' - Banners - ' + ml,
-        'design', 'design', dm,
-        {
-          platforms: platforms,
-          impressions_by_platform: impressions,
-          total_impressions: totalImpressions
-        }
-      ));
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'agri4all-banners',
+          clientName + ' - Banners - ' + label,
+          'design', 'design', month,
+          {
+            platforms: platforms,
+            impressions_by_platform: impressions,
+            total_impressions: totalImpressions
+          }
+        ));
+      }
     }
 
     // === Video ===
     const videoEntries = formData.video || [];
     for (const entry of videoEntries) {
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
       const videoLabel = entry.video_type || 'Video';
       const titleSuffix = entry.video_index ? ' #' + entry.video_index : '';
-      created.push(await createDeliv(
-        'video',
-        clientName + ' - ' + videoLabel + titleSuffix + ' - ' + ml,
-        'send_request_form', 'production', dm,
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'video',
+          clientName + ' - ' + videoLabel + titleSuffix + ' - ' + label,
+          'send_request_form', 'production', month,
         {
           video_type: entry.video_type || '',
           video_type_other: entry.video_type_other || '',
@@ -727,23 +785,25 @@ router.post('/create-content-calendars', async (req, res) => {
           photographer_flashes: !!entry.photographer_flashes
         }
       ));
+      }
     }
 
     // === Online Articles ===
     const oaEntries = formData.online_articles || [];
     for (const entry of oaEntries) {
-      const dm = parseMonthLabel(entry.month_label || entry.months_display);
-      const ml = entry.month_label || entry.months_display || 'Unknown';
-      created.push(await createDeliv(
-        'online-articles',
-        clientName + ' - Online Articles - ' + ml,
-        'request_client_materials', 'production', dm,
-        {
-          platforms: entry.platforms || [],
-          amount: entry.amount || 0,
-          curated_amount: entry.curated_amount || 0
-        }
-      ));
+      const months = getDeliveryMonths(entry.month_label || entry.months_display);
+      for (const { month, label } of months) {
+        created.push(await createDeliv(
+          'online-articles',
+          clientName + ' - Online Articles - ' + label,
+          'request_client_materials', 'production', month,
+          {
+            platforms: entry.platforms || [],
+            amount: entry.amount || 0,
+            curated_amount: entry.curated_amount || 0
+          }
+        ));
+      }
     }
 
     // === Agri4All ===
@@ -776,15 +836,17 @@ router.post('/create-content-calendars', async (req, res) => {
 
     for (const ml in a4aByMonth) {
       const group = a4aByMonth[ml];
-      const dm = parseMonthLabel(ml);
+      const delivMonths = getDeliveryMonths(ml);
       const states = group.states;
       const countries = group.countries;
+
+      for (const { month: dm, label: monthLabel } of delivMonths) {
 
       // 1. Agri4All Posts (FB + IG posts + IG stories)
       if (anyHas(states, 'facebook_posts') || anyHas(states, 'instagram_posts') || anyHas(states, 'instagram_stories')) {
         created.push(await createDeliv(
           'agri4all-posts',
-          clientName + ' - Agri4All Posts - ' + ml,
+          clientName + ' - Agri4All Posts - ' + monthLabel,
           'request_client_materials', 'production', dm,
           {
             countries: countries,
@@ -805,7 +867,7 @@ router.post('/create-content-calendars', async (req, res) => {
       if (anyHas(states, 'agri4all_product_uploads') || anyHas(states, 'unlimited_product_uploads')) {
         created.push(await createDeliv(
           'agri4all-product-uploads',
-          clientName + ' - Agri4All Product Uploads - ' + ml,
+          clientName + ' - Agri4All Product Uploads - ' + monthLabel,
           'request_client_materials', 'production', dm,
           {
             countries: countries,
@@ -824,7 +886,7 @@ router.post('/create-content-calendars', async (req, res) => {
       if (hasAnyVideo) {
         created.push(await createDeliv(
           'agri4all-videos',
-          clientName + ' - Agri4All Videos - ' + ml,
+          clientName + ' - Agri4All Videos - ' + monthLabel,
           'request_client_materials', 'production', dm,
           {
             countries: countries,
@@ -847,7 +909,7 @@ router.post('/create-content-calendars', async (req, res) => {
       if (anyHas(states, 'newsletter_feature')) {
         created.push(await createDeliv(
           'agri4all-newsletter-feature',
-          clientName + ' - Newsletter Feature - ' + ml,
+          clientName + ' - Newsletter Feature - ' + monthLabel,
           'request_client_materials', 'production', dm,
           {
             countries: countries,
@@ -860,7 +922,7 @@ router.post('/create-content-calendars', async (req, res) => {
       if (anyHas(states, 'newsletter_banner')) {
         created.push(await createDeliv(
           'agri4all-newsletter-banner',
-          clientName + ' - Newsletter Banner - ' + ml,
+          clientName + ' - Newsletter Banner - ' + monthLabel,
           'request_client_materials', 'production', dm,
           {
             countries: countries,
@@ -873,7 +935,7 @@ router.post('/create-content-calendars', async (req, res) => {
       if (anyHas(states, 'linkedin_article') || anyHas(states, 'linkedin_company_campaign')) {
         created.push(await createDeliv(
           'agri4all-linkedin',
-          clientName + ' - Agri4All LinkedIn - ' + ml,
+          clientName + ' - Agri4All LinkedIn - ' + monthLabel,
           'request_client_materials', 'production', dm,
           {
             countries: countries,
@@ -883,14 +945,17 @@ router.post('/create-content-calendars', async (req, res) => {
           }
         ));
       }
+
+      } // end delivMonths loop
     }
 
     // === Own Page Social Media ===
     // From social_media_management[].own_page — one deliverable per month per type
     for (const sm of smEntries) {
       const op = sm.own_page || {};
-      const dm = parseMonthLabel(sm.month_label || sm.months_display);
-      const ml = sm.month_label || sm.months_display || 'Unknown';
+      const ownMonths = getDeliveryMonths(sm.month_label || sm.months_display);
+
+      for (const { month: ownDm, label: ownLabel } of ownMonths) {
 
       // 1. Own Page Posts (FB posts, IG posts, FB stories, IG stories)
       if (op.facebook_posts || op.instagram_posts || op.facebook_stories || op.instagram_stories) {
@@ -898,8 +963,8 @@ router.post('/create-content-calendars', async (req, res) => {
         const igPostsAmt = op.instagram_posts_amount || '';
         created.push(await createDeliv(
           'own-social-posts',
-          clientName + ' - Own Page Posts - ' + ml,
-          'request_client_materials', 'production', dm,
+          clientName + ' - Own Page Posts - ' + ownLabel,
+          'request_client_materials', 'production', ownDm,
           {
             facebook_posts: !!op.facebook_posts,
             facebook_posts_amount: op.facebook_posts_amount || '',
@@ -912,7 +977,6 @@ router.post('/create-content-calendars', async (req, res) => {
             instagram_posts_amount: igPostsAmt,
             instagram_posts_curated_amount: op.instagram_posts_curated_amount || '',
             instagram_posts_timeframe: op.instagram_posts_timeframe || '',
-            // IG stories auto-derived from IG posts (same amount)
             instagram_stories: igPosts || !!op.instagram_stories,
             instagram_stories_amount: igPostsAmt || op.instagram_stories_amount || '',
             instagram_stories_timeframe: op.instagram_stories_timeframe || ''
@@ -924,8 +988,8 @@ router.post('/create-content-calendars', async (req, res) => {
       if (op.facebook_video_posts || op.tiktok_shorts || op.youtube_shorts || op.youtube_video) {
         created.push(await createDeliv(
           'own-social-videos',
-          clientName + ' - Own Page Videos - ' + ml,
-          'request_client_materials', 'production', dm,
+          clientName + ' - Own Page Videos - ' + ownLabel,
+          'request_client_materials', 'production', ownDm,
           {
             facebook_video_posts: !!op.facebook_video_posts,
             facebook_video_posts_amount: op.facebook_video_posts_amount || '',
@@ -948,8 +1012,8 @@ router.post('/create-content-calendars', async (req, res) => {
       if (op.linkedin_article || op.linkedin_campaign) {
         created.push(await createDeliv(
           'own-social-linkedin',
-          clientName + ' - Own Page LinkedIn - ' + ml,
-          'request_client_materials', 'production', dm,
+          clientName + ' - Own Page LinkedIn - ' + ownLabel,
+          'request_client_materials', 'production', ownDm,
           {
             article: !!op.linkedin_article,
             campaign: !!op.linkedin_campaign,
@@ -963,8 +1027,8 @@ router.post('/create-content-calendars', async (req, res) => {
       if (op.twitter_x_posts) {
         created.push(await createDeliv(
           'own-social-twitter',
-          clientName + ' - Own Page Twitter/X - ' + ml,
-          'request_client_materials', 'production', dm,
+          clientName + ' - Own Page Twitter/X - ' + ownLabel,
+          'request_client_materials', 'production', ownDm,
           {
             twitter_x_posts: true,
             amount: op.twitter_x_posts_amount || '',
@@ -972,6 +1036,8 @@ router.post('/create-content-calendars', async (req, res) => {
           }
         ));
       }
+
+      } // end ownMonths loop
     }
 
     res.status(201).json({ message: 'Deliverables created', count: created.length, deliverables: created });

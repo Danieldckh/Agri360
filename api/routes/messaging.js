@@ -170,6 +170,78 @@ router.post('/channels/for-deliverable', async (req, res) => {
   }
 });
 
+// POST /channels/for-booking-form - idempotent lookup or creation of chat
+// channels tied to a booking form. Creates two channels per booking form:
+// one for general messages and one for change requests.
+router.post('/channels/for-booking-form', async (req, res) => {
+  try {
+    const { bookingFormId, purpose } = req.body || {};
+    if (!bookingFormId) return res.status(400).json({ error: 'bookingFormId required' });
+    const channelPurpose = purpose === 'change_requests' ? 'change_requests' : 'messages';
+
+    // 1. Return existing channel if one already exists for this purpose
+    const existing = await pool.query(
+      'SELECT * FROM channels WHERE booking_form_id = $1 AND channel_purpose = $2',
+      [bookingFormId, channelPurpose]
+    );
+    if (existing.rows.length > 0) {
+      if (req.user && req.user.id) {
+        await pool.query(
+          `INSERT INTO channel_members (channel_id, employee_id, role)
+           VALUES ($1, $2, 'member') ON CONFLICT (channel_id, employee_id) DO NOTHING`,
+          [existing.rows[0].id, req.user.id]
+        );
+      }
+      return res.json(existing.rows[0]);
+    }
+
+    // 2. Load the booking form + client
+    const bfRes = await pool.query(
+      `SELECT bf.*, c.name AS client_name, c.trading_name AS client_trading_name
+       FROM booking_forms bf
+       LEFT JOIN clients c ON c.id = bf.client_id
+       WHERE bf.id = $1`,
+      [bookingFormId]
+    );
+    if (bfRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+    const bf = bfRes.rows[0];
+
+    // 3. Build member list: assigned_admin + current user
+    const memberIds = new Set();
+    if (bf.assigned_admin) memberIds.add(bf.assigned_admin);
+    if (req.user && req.user.id) memberIds.add(req.user.id);
+
+    // 4. Create the channel
+    const clientName = bf.client_trading_name || bf.client_name || 'Unknown Client';
+    const suffix = channelPurpose === 'change_requests' ? 'Change Requests' : 'Messages';
+    const name = clientName + ' - ' + suffix;
+
+    const inserted = await pool.query(
+      `INSERT INTO channels (name, description, type, booking_form_id, channel_purpose, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [name, suffix + ' for ' + clientName, 'channel', bookingFormId, channelPurpose, (req.user && req.user.id) || null]
+    );
+    const channel = inserted.rows[0];
+
+    // 5. Add members
+    for (const memberId of memberIds) {
+      const role = (req.user && memberId === req.user.id) ? 'owner' : 'member';
+      await pool.query(
+        `INSERT INTO channel_members (channel_id, employee_id, role, last_read_at)
+         VALUES ($1, $2, $3, NOW()) ON CONFLICT (channel_id, employee_id) DO NOTHING`,
+        [channel.id, memberId, role]
+      );
+    }
+
+    res.status(201).json(channel);
+  } catch (err) {
+    console.error('for-booking-form channel error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /channels - list user's channels
 router.get('/channels', async (req, res) => {
   const userId = req.user.id;

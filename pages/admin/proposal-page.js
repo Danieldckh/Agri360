@@ -59,6 +59,8 @@
   }
 
   function getNextStatus(current) {
+    // Branch statuses rejoin the main chain
+    if (current === 'design_changes') return 'design_review';
     var idx = STATUS_CHAIN.indexOf(current);
     if (idx === -1 || idx >= STATUS_CHAIN.length - 1) return null;
     return STATUS_CHAIN[idx + 1];
@@ -91,13 +93,19 @@
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
   ];
 
-  // The Booking Form sheet has upload columns for the unsigned and signed
-  // booking form files. These are manually uploaded for now — the
-  // automated esign flow will be re-added later.
+  // The Booking Form sheet: proposal upload + unsigned/signed booking form files.
   var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
+    { key: 'proposalFileUrl', label: 'Proposal', type: 'upload', uploadEndpoint: '/api/booking-forms/{id}/upload-proposal-file', width: 'sm' },
     { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'sm' },
     { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'sm' }
   ]);
+
+  // Sent to Client sheet: minimal columns — just client + signed file.
+  var SENT_TO_CLIENT_COLUMNS = [
+    { key: 'assignedAdmin', label: '', type: 'person', editable: true },
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'sm' }
+  ];
 
   // Design Proposals sheet: status + the uploaded proposal file artifact.
   var DESIGN_PROPOSAL_COLUMNS = BASE_COLUMNS.concat([
@@ -455,21 +463,35 @@
 
   // --- Client Dashboard ---
   var _savedSidebarHTML = null;
-  var _jsonPre = null;
   var _dashboardData = null;
+  var _dashboardPollingTimers = [];
 
-  function refreshJsonView() {
-    if (!_jsonPre || !_dashboardData) return;
-    fetch(API_BASE + '/' + _dashboardData.id, { headers: getHeaders() })
-      .then(function (res) { return res.json(); })
-      .then(function (fresh) {
-        _dashboardData = fresh;
-        var fd = fresh.formData || {};
-        if (typeof fd === 'string') try { fd = JSON.parse(fd); } catch (e) {}
-        _jsonPre.textContent = JSON.stringify(fd, null, 2);
-        _jsonPre.classList.add('cell-saved');
-        setTimeout(function () { _jsonPre.classList.remove('cell-saved'); }, 600);
-      });
+  var MSG_API = '/api/messaging';
+  var DEFAULT_AVATAR_SVG = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(128,128,128,0.4)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+  var _employeeCache = null;
+
+  function fetchEmployeeList() {
+    if (_employeeCache) return Promise.resolve(_employeeCache);
+    return fetch('/api/employees', { headers: getHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { _employeeCache = Array.isArray(data) ? data : []; return _employeeCache; })
+      .catch(function () { return []; });
+  }
+
+  function dashFormatTime(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diff = now - d;
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString();
+  }
+
+  function stopDashboardPolling() {
+    _dashboardPollingTimers.forEach(function (t) { clearInterval(t); });
+    _dashboardPollingTimers = [];
   }
 
   function makeSidebarEditable(label, value, onSave) {
@@ -505,7 +527,6 @@
             if (res && res.ok) {
               val.classList.add('cell-saved');
               setTimeout(function () { val.classList.remove('cell-saved'); }, 600);
-              refreshJsonView();
             } else {
               val.textContent = current || '—';
               val.classList.add('cell-error');
@@ -554,6 +575,7 @@
     backLabel.textContent = 'Back';
     backItem.appendChild(backLabel);
     backItem.addEventListener('click', function () {
+      stopDashboardPolling();
       restoreDashboardSidebar();
       if (_activeTabRenderer) _activeTabRenderer();
     });
@@ -572,7 +594,7 @@
       nav.appendChild(h);
     }
 
-    // === Company Info (editable) ===
+    // === Company Info (editable, hide empty) ===
     addSep();
     var companySection = document.createElement('div');
     companySection.className = 'sidebar-dashboard-section';
@@ -602,68 +624,98 @@
       { label: 'Address', value: data.clientPhysicalAddress, key: 'physicalAddress' },
       { label: 'Postal', value: data.clientPostalAddress, key: 'postalAddress' }
     ];
+    var hasCompanyField = false;
     companyFields.forEach(function (f) {
+      if (!f.value) return;
+      hasCompanyField = true;
       cfWrap.appendChild(makeSidebarEditable(f.label, f.value, function (v) {
         return saveClientField(clientId, f.key, v);
       }));
     });
-    nav.appendChild(cfWrap);
+    if (hasCompanyField) nav.appendChild(cfWrap);
 
-    // === Contacts (editable) ===
-    function addEditableContactBlock(title, rawContact, contactKey) {
+    // === Contacts (editable, hide empty sections) ===
+    function hasContactData(rawContact) {
       var c = parseContact(rawContact);
-      var contactData = { name: c.name || '', email: c.email || '', cell: c.cell || '', tel: c.tel || '' };
-
-      var block = document.createElement('div');
-      block.className = 'sidebar-dashboard-contact';
-      var header = document.createElement('div');
-      header.className = 'sidebar-dashboard-contact-title';
-      header.textContent = title;
-      block.appendChild(header);
-
-      var fields = [
-        { label: 'Name', field: 'name' },
-        { label: 'Email', field: 'email' },
-        { label: 'Cell', field: 'cell' },
-        { label: 'Tel', field: 'tel' }
-      ];
-      fields.forEach(function (f) {
-        block.appendChild(makeSidebarEditable(f.label, contactData[f.field], function (v) {
-          contactData[f.field] = v;
-          return saveClientField(clientId, contactKey, contactData);
-        }));
-      });
-
-      nav.appendChild(block);
+      return !!(c.name || c.email || c.cell || c.tel);
     }
 
-    addSep();
-    addSectionHeader('Contacts');
-    addEditableContactBlock('Primary', data.clientPrimaryContact, 'primaryContact');
-    addEditableContactBlock('Material', data.clientMaterialContact, 'materialContact');
-    addEditableContactBlock('Accounts', data.clientAccountsContact, 'accountsContact');
+    var hasPrimary = hasContactData(data.clientPrimaryContact);
+    var hasMaterial = hasContactData(data.clientMaterialContact);
+    var hasAccounts = hasContactData(data.clientAccountsContact);
 
-    // === Booking Info (editable) ===
-    addSep();
-    addSectionHeader('Booking');
-    var statusBadge = document.createElement('div');
-    statusBadge.className = 'sidebar-dashboard-status';
-    var badge = document.createElement('span');
-    badge.className = 'proagri-sheet-status proagri-sheet-status-' + (data.status || '').replace(/\s/g, '_');
-    badge.textContent = (data.status || '').replace(/_/g, ' ');
-    badge.style.textTransform = 'capitalize';
-    statusBadge.appendChild(badge);
-    nav.appendChild(statusBadge);
+    if (hasPrimary || hasMaterial || hasAccounts) {
+      addSep();
+      addSectionHeader('Contacts');
 
-    var bfWrap = document.createElement('div');
-    bfWrap.className = 'sidebar-dashboard-fields-wrap';
-    bfWrap.appendChild(makeSidebarEditable('Status', data.status, function (v) { return saveBookingField(data.id, 'status', v); }));
-    bfWrap.appendChild(makeSidebarEditable('Start', data.campaignMonthStart, function (v) { return saveBookingField(data.id, 'campaignMonthStart', v); }));
-    bfWrap.appendChild(makeSidebarEditable('End', data.campaignMonthEnd, function (v) { return saveBookingField(data.id, 'campaignMonthEnd', v); }));
-    bfWrap.appendChild(makeSidebarEditable('Booked', data.bookedDate, function (v) { return saveBookingField(data.id, 'bookedDate', v); }));
-    bfWrap.appendChild(makeSidebarEditable('Due', data.dueDate, function (v) { return saveBookingField(data.id, 'dueDate', v); }));
-    bfWrap.appendChild(makeSidebarEditable('Rep', data.representative, function (v) { return saveBookingField(data.id, 'representative', v); }));
-    nav.appendChild(bfWrap);
+      function addEditableContactBlock(title, rawContact, contactKey) {
+        var c = parseContact(rawContact);
+        if (!c.name && !c.email && !c.cell && !c.tel) return;
+        var contactData = { name: c.name || '', email: c.email || '', cell: c.cell || '', tel: c.tel || '' };
+
+        var block = document.createElement('div');
+        block.className = 'sidebar-dashboard-contact';
+        var header = document.createElement('div');
+        header.className = 'sidebar-dashboard-contact-title';
+        header.textContent = title;
+        block.appendChild(header);
+
+        var fields = [
+          { label: 'Name', field: 'name' },
+          { label: 'Email', field: 'email' },
+          { label: 'Cell', field: 'cell' },
+          { label: 'Tel', field: 'tel' }
+        ];
+        fields.forEach(function (f) {
+          if (!contactData[f.field]) return;
+          block.appendChild(makeSidebarEditable(f.label, contactData[f.field], function (v) {
+            contactData[f.field] = v;
+            return saveClientField(clientId, contactKey, contactData);
+          }));
+        });
+
+        nav.appendChild(block);
+      }
+
+      if (hasPrimary) addEditableContactBlock('Primary', data.clientPrimaryContact, 'primaryContact');
+      if (hasMaterial) addEditableContactBlock('Material', data.clientMaterialContact, 'materialContact');
+      if (hasAccounts) addEditableContactBlock('Accounts', data.clientAccountsContact, 'accountsContact');
+    }
+
+    // === Booking Info (editable, hide empty) ===
+    var bookingFields = [
+      { label: 'Status', value: data.status, key: 'status' },
+      { label: 'Start', value: data.campaignMonthStart, key: 'campaignMonthStart' },
+      { label: 'End', value: data.campaignMonthEnd, key: 'campaignMonthEnd' },
+      { label: 'Booked', value: data.bookedDate, key: 'bookedDate' },
+      { label: 'Due', value: data.dueDate, key: 'dueDate' },
+      { label: 'Rep', value: data.representative, key: 'representative' }
+    ];
+    var hasBookingField = bookingFields.some(function (f) { return !!f.value; });
+
+    if (hasBookingField) {
+      addSep();
+      addSectionHeader('Booking');
+
+      if (data.status) {
+        var statusBadge = document.createElement('div');
+        statusBadge.className = 'sidebar-dashboard-status';
+        var badge = document.createElement('span');
+        badge.className = 'proagri-sheet-status proagri-sheet-status-' + (data.status || '').replace(/\s/g, '_');
+        badge.textContent = (data.status || '').replace(/_/g, ' ');
+        badge.style.textTransform = 'capitalize';
+        statusBadge.appendChild(badge);
+        nav.appendChild(statusBadge);
+      }
+
+      var bfWrap = document.createElement('div');
+      bfWrap.className = 'sidebar-dashboard-fields-wrap';
+      bookingFields.forEach(function (f) {
+        if (!f.value) return;
+        bfWrap.appendChild(makeSidebarEditable(f.label, f.value, function (v) { return saveBookingField(data.id, f.key, v); }));
+      });
+      nav.appendChild(bfWrap);
+    }
   }
 
   function restoreDashboardSidebar() {
@@ -877,8 +929,560 @@
     document.body.appendChild(overlay);
   }
 
+  // Change-notes modal — lets the reviewer describe what needs changing
+  // before moving the row to design_changes.
+  function showChangeNotesModal(onSubmit) {
+    var overlay = document.createElement('div');
+    overlay.className = 'confirm-modal-overlay';
+
+    var modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+
+    var h = document.createElement('h3');
+    h.className = 'confirm-modal-title';
+    h.textContent = 'Request Design Changes';
+    modal.appendChild(h);
+
+    var textarea = document.createElement('textarea');
+    textarea.className = 'confirm-modal-textarea';
+    textarea.placeholder = 'Describe the changes needed…';
+    textarea.rows = 4;
+    textarea.style.cssText = 'width:100%;resize:vertical;margin:8px 0 12px;padding:8px;border:1px solid var(--border-color,#ddd);border-radius:6px;font:inherit;';
+    modal.appendChild(textarea);
+
+    var actions = document.createElement('div');
+    actions.className = 'confirm-modal-actions';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'confirm-modal-btn confirm-modal-cancel';
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () { overlay.remove(); });
+    actions.appendChild(cancelBtn);
+
+    var submitBtn = document.createElement('button');
+    submitBtn.className = 'confirm-modal-btn confirm-modal-confirm';
+    submitBtn.type = 'button';
+    submitBtn.textContent = 'Submit';
+    submitBtn.addEventListener('click', function () {
+      var notes = textarea.value.trim();
+      if (!notes) { textarea.focus(); return; }
+      overlay.remove();
+      onSubmit(notes);
+    });
+    actions.appendChild(submitBtn);
+
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+    setTimeout(function () { textarea.focus(); }, 50);
+  }
+
+  // --- SVG helper ---
+  function makeDashSvg(pathD, size) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', String(size || 16));
+    svg.setAttribute('height', String(size || 16));
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'currentColor');
+    var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', pathD);
+    svg.appendChild(p);
+    return svg;
+  }
+
+  // --- File Upload Card ---
+  function buildUploadCard(title, fileUrl, fileName, uploadFn) {
+    var card = document.createElement('div');
+    card.className = 'cd-upload-card';
+
+    var h = document.createElement('div');
+    h.className = 'cd-upload-card-title';
+    h.textContent = title;
+    card.appendChild(h);
+
+    // Show existing file if present
+    if (fileUrl) {
+      var info = document.createElement('div');
+      info.className = 'cd-upload-file-info';
+      var fileIcon = makeDashSvg('M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z', 18);
+      fileIcon.classList.add('cd-upload-file-icon');
+      info.appendChild(fileIcon);
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'cd-upload-file-name';
+      nameSpan.textContent = fileName || 'Uploaded file';
+      info.appendChild(nameSpan);
+      var dlBtn = document.createElement('a');
+      dlBtn.className = 'cd-upload-file-download';
+      dlBtn.href = fileUrl;
+      dlBtn.target = '_blank';
+      dlBtn.rel = 'noopener noreferrer';
+      dlBtn.title = 'Download / View';
+      dlBtn.appendChild(makeDashSvg('M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z', 16));
+      info.appendChild(dlBtn);
+      card.appendChild(info);
+    }
+
+    // Upload button
+    var uploadBtn = document.createElement('button');
+    uploadBtn.className = 'cd-upload-btn';
+    uploadBtn.type = 'button';
+    uploadBtn.appendChild(makeDashSvg('M5 20h14v-2H5v2zm7-18l-5.5 5.5h3.5V14h4V7.5H17.5L12 2z', 16));
+    var btnText = document.createElement('span');
+    btnText.textContent = fileUrl ? 'Replace file' : 'Upload file';
+    uploadBtn.appendChild(btnText);
+
+    uploadBtn.addEventListener('click', function () {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.png,.jpg,.jpeg';
+      input.addEventListener('change', function () {
+        if (!input.files || !input.files[0]) return;
+        uploadBtn.classList.add('uploading');
+        btnText.textContent = 'Uploading...';
+        uploadFn(input.files[0]).then(function () {
+          uploadBtn.classList.remove('uploading');
+          btnText.textContent = 'Uploaded!';
+          setTimeout(function () { btnText.textContent = 'Replace file'; }, 1500);
+        }).catch(function () {
+          uploadBtn.classList.remove('uploading');
+          btnText.textContent = 'Upload failed';
+          setTimeout(function () { btnText.textContent = fileUrl ? 'Replace file' : 'Upload file'; }, 2000);
+        });
+      });
+      input.click();
+    });
+
+    card.appendChild(uploadBtn);
+    return card;
+  }
+
+  // --- Messenger Component (embedded, WhatsApp-style) ---
+  function buildMessenger(bookingFormId, purpose, title) {
+    var channelId = null;
+    var lastMsgId = 0;
+
+    var card = document.createElement('div');
+    card.className = 'cd-messenger';
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'cd-messenger-header';
+    var titleEl = document.createElement('div');
+    titleEl.className = 'cd-messenger-title';
+    titleEl.textContent = title;
+    header.appendChild(titleEl);
+    card.appendChild(header);
+
+    // Messages area
+    var messagesDiv = document.createElement('div');
+    messagesDiv.className = 'cd-messenger-messages';
+    var emptyMsg = document.createElement('div');
+    emptyMsg.className = 'cd-messenger-empty';
+    emptyMsg.textContent = 'No messages yet';
+    messagesDiv.appendChild(emptyMsg);
+    card.appendChild(messagesDiv);
+
+    // Input bar
+    var inputBar = document.createElement('div');
+    inputBar.className = 'cd-messenger-input';
+    inputBar.style.position = 'relative';
+
+    var attachBtn = document.createElement('button');
+    attachBtn.className = 'cd-messenger-btn';
+    attachBtn.type = 'button';
+    attachBtn.title = 'Attach file';
+    attachBtn.appendChild(makeDashSvg('M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H9.5v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S6.5 2.79 6.5 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6H16.5z', 18));
+    inputBar.appendChild(attachBtn);
+
+    var textarea = document.createElement('textarea');
+    textarea.className = 'cd-messenger-textarea';
+    textarea.placeholder = 'Type a message...';
+    textarea.rows = 1;
+    inputBar.appendChild(textarea);
+
+    var sendBtn = document.createElement('button');
+    sendBtn.className = 'cd-messenger-btn';
+    sendBtn.type = 'button';
+    sendBtn.title = 'Send';
+    sendBtn.appendChild(makeDashSvg('M2.01 21L23 12 2.01 3 2 10l15 2-15 2z', 18));
+    inputBar.appendChild(sendBtn);
+
+    // Mention dropdown
+    var mentionDropdown = document.createElement('div');
+    mentionDropdown.className = 'cd-mention-dropdown';
+    mentionDropdown.style.display = 'none';
+    inputBar.appendChild(mentionDropdown);
+
+    card.appendChild(inputBar);
+
+    // Auto-resize textarea
+    textarea.addEventListener('input', function () {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+      handleMention(textarea, mentionDropdown);
+    });
+
+    // Mention handling
+    function handleMention(ta, dropdown) {
+      var val = ta.value;
+      var cursorPos = ta.selectionStart;
+      var textBefore = val.substring(0, cursorPos);
+      var atMatch = textBefore.match(/@(\w*)$/);
+      if (!atMatch) { dropdown.style.display = 'none'; return; }
+      var query = atMatch[1].toLowerCase();
+      fetchEmployeeList().then(function (employees) {
+        var filtered = employees.filter(function (emp) {
+          var full = ((emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '')).toLowerCase();
+          return full.indexOf(query) !== -1 || (emp.username || '').toLowerCase().indexOf(query) !== -1;
+        }).slice(0, 6);
+        if (filtered.length === 0) { dropdown.style.display = 'none'; return; }
+        while (dropdown.firstChild) dropdown.removeChild(dropdown.firstChild);
+        filtered.forEach(function (emp) {
+          var item = document.createElement('div');
+          item.className = 'cd-mention-item';
+          var av = document.createElement('div');
+          av.className = 'cd-mention-avatar';
+          if (emp.photoUrl || emp.photo_url) {
+            var img = document.createElement('img');
+            img.src = '/uploads/photos/' + (emp.photoUrl || emp.photo_url);
+            av.appendChild(img);
+          } else {
+            av.appendChild(makeDashSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 14));
+          }
+          item.appendChild(av);
+          var name = document.createElement('span');
+          name.textContent = (emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '');
+          item.appendChild(name);
+          item.addEventListener('click', function () {
+            var fn = emp.firstName || emp.first_name || '';
+            var ln = emp.lastName || emp.last_name || '';
+            var mention = '@[' + fn + ' ' + ln + '](employee:' + emp.id + ')';
+            var before = ta.value.substring(0, cursorPos).replace(/@\w*$/, '');
+            var after = ta.value.substring(cursorPos);
+            ta.value = before + mention + ' ' + after;
+            ta.focus();
+            dropdown.style.display = 'none';
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = '';
+      });
+    }
+
+    // Send message
+    function sendMessage() {
+      var content = textarea.value.trim();
+      if (!content || !channelId) return;
+      textarea.value = '';
+      textarea.style.height = 'auto';
+
+      fetch(MSG_API + '/channels/' + channelId + '/messages', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content: content })
+      }).then(function (r) { return r.json(); })
+        .then(function (msg) {
+          if (msg && msg.id) {
+            appendBubble(msg, true);
+            lastMsgId = msg.id;
+          }
+        });
+    }
+
+    textarea.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+    sendBtn.addEventListener('click', sendMessage);
+
+    // Attach file
+    attachBtn.addEventListener('click', function () {
+      if (!channelId) return;
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.addEventListener('change', function () {
+        if (!fileInput.files || !fileInput.files[0]) return;
+        var fd = new FormData();
+        fd.append('content', textarea.value || 'Attached a file');
+        fd.append('file', fileInput.files[0]);
+        var h = {};
+        if (window.getAuthHeaders) {
+          var auth = window.getAuthHeaders();
+          for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
+        }
+        fetch(MSG_API + '/channels/' + channelId + '/messages', {
+          method: 'POST',
+          headers: h,
+          body: fd
+        }).then(function (r) { return r.json(); })
+          .then(function (msg) {
+            if (msg && msg.id) {
+              textarea.value = '';
+              appendBubble(msg, true);
+              lastMsgId = msg.id;
+            }
+          });
+      });
+      fileInput.click();
+    });
+
+    // Bubble rendering
+    function appendBubble(msg, scrollToBottom) {
+      // Remove empty placeholder
+      var empty = messagesDiv.querySelector('.cd-messenger-empty');
+      if (empty) empty.remove();
+
+      var user = window.getCurrentUser ? window.getCurrentUser() : { id: 1 };
+      var isOwn = msg.senderId ? (msg.senderId === user.id) : (msg.sender_id === user.id);
+
+      var bubble = document.createElement('div');
+      bubble.className = 'cd-bubble' + (isOwn ? ' cd-bubble-own' : '');
+      bubble.dataset.messageId = msg.id;
+
+      if (!isOwn) {
+        var avatar = document.createElement('img');
+        avatar.className = 'cd-bubble-avatar';
+        avatar.alt = '';
+        var photoUrl = msg.senderPhotoUrl || msg.sender_photo_url;
+        avatar.src = photoUrl ? '/uploads/photos/' + photoUrl : DEFAULT_AVATAR_SVG;
+        bubble.appendChild(avatar);
+      }
+
+      var body = document.createElement('div');
+      body.className = 'cd-bubble-body';
+
+      var meta = document.createElement('div');
+      meta.className = 'cd-bubble-meta';
+      var sender = document.createElement('span');
+      sender.className = 'cd-bubble-sender';
+      var fn = msg.senderFirstName || msg.sender_first_name || '';
+      var ln = msg.senderLastName || msg.sender_last_name || '';
+      sender.textContent = fn + ' ' + ln;
+      meta.appendChild(sender);
+      var ts = document.createElement('span');
+      ts.className = 'cd-bubble-time';
+      ts.textContent = dashFormatTime(msg.createdAt || msg.created_at);
+      meta.appendChild(ts);
+      body.appendChild(meta);
+
+      var contentEl = document.createElement('div');
+      contentEl.className = 'cd-bubble-content';
+      // Render @mentions
+      var content = msg.content || '';
+      var mentionRegex = /@\[([^\]]+)\]\(employee:(\d+)\)/g;
+      var lastIdx = 0;
+      var match;
+      while ((match = mentionRegex.exec(content)) !== null) {
+        if (match.index > lastIdx) contentEl.appendChild(document.createTextNode(content.substring(lastIdx, match.index)));
+        var mentionSpan = document.createElement('span');
+        mentionSpan.style.fontWeight = '600';
+        mentionSpan.textContent = '@' + match[1];
+        contentEl.appendChild(mentionSpan);
+        lastIdx = match.index + match[0].length;
+      }
+      if (lastIdx < content.length) contentEl.appendChild(document.createTextNode(content.substring(lastIdx)));
+      if (!contentEl.firstChild) contentEl.appendChild(document.createTextNode(content));
+      body.appendChild(contentEl);
+
+      // Attachments
+      var attachments = msg.attachments;
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        attachments.forEach(function (att) {
+          var attEl = document.createElement('div');
+          attEl.className = 'cd-bubble-attachment';
+          var link = document.createElement('a');
+          link.href = '/uploads/attachments/' + att.filename;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.appendChild(makeDashSvg('M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z', 12));
+          var fname = document.createElement('span');
+          fname.textContent = att.originalName || att.original_name || att.filename;
+          link.appendChild(fname);
+          attEl.appendChild(link);
+          body.appendChild(attEl);
+        });
+      }
+
+      bubble.appendChild(body);
+      messagesDiv.appendChild(bubble);
+      if (scrollToBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Initialize: create/find channel, load messages, start polling
+    function init() {
+      fetch(MSG_API + '/channels/for-booking-form', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ bookingFormId: bookingFormId, purpose: purpose })
+      }).then(function (r) { return r.json(); })
+        .then(function (ch) {
+          if (!ch || !ch.id) return;
+          channelId = ch.id;
+          // Load existing messages
+          return fetch(MSG_API + '/channels/' + channelId + '/messages?limit=50', { headers: getHeaders() });
+        })
+        .then(function (r) { if (r) return r.json(); })
+        .then(function (messages) {
+          if (!messages || !Array.isArray(messages)) return;
+          while (messagesDiv.firstChild) messagesDiv.removeChild(messagesDiv.firstChild);
+          if (messages.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'cd-messenger-empty';
+            empty.textContent = 'No messages yet';
+            messagesDiv.appendChild(empty);
+          } else {
+            messages.forEach(function (msg) { appendBubble(msg, false); });
+            lastMsgId = messages[messages.length - 1].id;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          }
+          // Poll for new messages every 5s
+          var timer = setInterval(function () {
+            if (!channelId) return;
+            fetch(MSG_API + '/channels/' + channelId + '/messages?after=' + lastMsgId + '&limit=20', { headers: getHeaders() })
+              .then(function (r) { return r.json(); })
+              .then(function (newMsgs) {
+                if (!Array.isArray(newMsgs) || newMsgs.length === 0) return;
+                newMsgs.forEach(function (msg) {
+                  if (!messagesDiv.querySelector('[data-message-id="' + msg.id + '"]')) {
+                    appendBubble(msg, true);
+                    lastMsgId = msg.id;
+                  }
+                });
+              }).catch(function () {});
+          }, 5000);
+          _dashboardPollingTimers.push(timer);
+        })
+        .catch(function (err) { console.error('Messenger init error:', err); });
+    }
+
+    init();
+    return card;
+  }
+
+  // --- Team List ---
+  function buildTeamSection(data) {
+    var card = document.createElement('div');
+    card.className = 'cd-team';
+
+    var h = document.createElement('div');
+    h.className = 'cd-team-title';
+    h.textContent = 'Team';
+    card.appendChild(h);
+
+    var list = document.createElement('div');
+    list.className = 'cd-team-list';
+    card.appendChild(list);
+
+    // Gather team member IDs and roles
+    var members = [];
+    if (data.assignedAdmin) members.push({ id: data.assignedAdmin, role: 'Admin' });
+
+    // Check for design assignment (from deliverables or booking form)
+    // We'll fetch from the API to get latest assignments
+    var rep = data.representative || '';
+    var formData = data.formData || {};
+    if (typeof formData === 'string') try { formData = JSON.parse(formData); } catch (e) { formData = {}; }
+    if (!rep && formData.sign_off) rep = formData.sign_off.representative || '';
+
+    // Fetch employee details for team members
+    fetchEmployeeList().then(function (employees) {
+      var empMap = {};
+      employees.forEach(function (e) { empMap[e.id] = e; });
+
+      // Admin
+      if (data.assignedAdmin && empMap[data.assignedAdmin]) {
+        addTeamMember(list, empMap[data.assignedAdmin], 'Admin');
+      }
+
+      // Design — check deliverables for this booking form
+      fetch('/api/deliverables/by-booking/' + data.id, { headers: getHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (delivs) {
+          if (!Array.isArray(delivs)) return;
+          var designId = null;
+          for (var i = 0; i < delivs.length; i++) {
+            if (delivs[i].assignedDesign || delivs[i].assigned_design) {
+              designId = delivs[i].assignedDesign || delivs[i].assigned_design;
+              break;
+            }
+          }
+          if (designId && empMap[designId]) {
+            addTeamMember(list, empMap[designId], 'Design');
+          }
+        }).catch(function () {});
+
+      // Sales Rep (text-based, not an employee ID)
+      if (rep) {
+        addTeamMemberText(list, rep, 'Sales Rep');
+      }
+    });
+
+    return card;
+  }
+
+  function addTeamMember(container, emp, role) {
+    var member = document.createElement('div');
+    member.className = 'cd-team-member';
+
+    var avatar = document.createElement('div');
+    avatar.className = 'cd-team-avatar';
+    if (emp.photoUrl || emp.photo_url) {
+      var img = document.createElement('img');
+      img.src = '/uploads/photos/' + (emp.photoUrl || emp.photo_url);
+      img.alt = '';
+      avatar.appendChild(img);
+    } else {
+      avatar.appendChild(makeDashSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 22));
+    }
+    member.appendChild(avatar);
+
+    var name = document.createElement('div');
+    name.className = 'cd-team-name';
+    name.textContent = (emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '');
+    member.appendChild(name);
+
+    var roleEl = document.createElement('div');
+    roleEl.className = 'cd-team-role';
+    roleEl.textContent = role;
+    member.appendChild(roleEl);
+
+    container.appendChild(member);
+  }
+
+  function addTeamMemberText(container, nameText, role) {
+    var member = document.createElement('div');
+    member.className = 'cd-team-member';
+
+    var avatar = document.createElement('div');
+    avatar.className = 'cd-team-avatar';
+    // Generate initials
+    var initials = nameText.split(' ').map(function (w) { return w.charAt(0).toUpperCase(); }).join('').substring(0, 2);
+    var initialsEl = document.createElement('span');
+    initialsEl.style.cssText = 'font-size:14px;font-weight:600;color:var(--text-secondary,#64748b)';
+    initialsEl.textContent = initials;
+    avatar.appendChild(initialsEl);
+    member.appendChild(avatar);
+
+    var name = document.createElement('div');
+    name.className = 'cd-team-name';
+    name.textContent = nameText;
+    member.appendChild(name);
+
+    var roleEl = document.createElement('div');
+    roleEl.className = 'cd-team-role';
+    roleEl.textContent = role;
+    member.appendChild(roleEl);
+
+    container.appendChild(member);
+  }
+
+  // --- Main Dashboard Renderer ---
   function renderClientDashboard(container, bookingFormId) {
     resetContainer(container);
+    stopDashboardPolling();
 
     var ICON_TRASH = 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z';
 
@@ -917,6 +1521,7 @@
             headers: getHeaders()
           }).then(function (res) {
             if (res.ok) {
+              stopDashboardPolling();
               restoreDashboardSidebar();
               if (_activeTabRenderer) _activeTabRenderer();
             }
@@ -927,10 +1532,18 @@
     titleRow.appendChild(trashBtn);
     wrapper.appendChild(titleRow);
 
-    var cardsGrid = document.createElement('div');
-    cardsGrid.className = 'client-dashboard-grid';
-    wrapper.appendChild(cardsGrid);
+    var grid = document.createElement('div');
+    grid.className = 'client-dashboard-grid';
 
+    var leftCol = document.createElement('div');
+    leftCol.className = 'client-dashboard-left';
+
+    var rightCol = document.createElement('div');
+    rightCol.className = 'client-dashboard-right';
+
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    wrapper.appendChild(grid);
     container.appendChild(wrapper);
 
     fetch(API_BASE + '/' + bookingFormId, { headers: getHeaders() })
@@ -944,284 +1557,80 @@
 
         showDashboardSidebar(data);
 
-        var formData = data.formData || {};
-        if (typeof formData === 'string') {
-          try { formData = JSON.parse(formData); } catch (e) { formData = {}; }
-        }
+        // === LEFT COLUMN ===
 
-        // --- Readable cards from formData ---
-        buildFormDataCards(cardsGrid, formData, data);
+        // Change Requests messenger
+        leftCol.appendChild(buildMessenger(bookingFormId, 'change_requests', 'Change Requests'));
 
-        // Full Checklist JSON (below the cards)
-        var jsonCard = document.createElement('div');
-        jsonCard.className = 'client-dashboard-card client-dashboard-card-wide';
-        var jsonTitle = document.createElement('h3');
-        jsonTitle.className = 'client-dashboard-card-title';
-        jsonTitle.textContent = 'Checklist Data (JSON)';
-        jsonCard.appendChild(jsonTitle);
-        var pre = document.createElement('pre');
-        pre.className = 'client-dashboard-json';
-        pre.textContent = JSON.stringify(formData, null, 2);
-        _jsonPre = pre;
-        jsonCard.appendChild(pre);
-        cardsGrid.appendChild(jsonCard);
+        // Messages messenger
+        leftCol.appendChild(buildMessenger(bookingFormId, 'messages', 'Messages'));
+
+        // Team list
+        leftCol.appendChild(buildTeamSection(data));
+
+        // === RIGHT COLUMN ===
+
+        // Proposal file upload
+        rightCol.appendChild(buildUploadCard(
+          'Proposal',
+          data.proposalFileUrl,
+          data.proposalFileName,
+          function (file) {
+            var fd = new FormData();
+            fd.append('file', file);
+            var h = {};
+            if (window.getAuthHeaders) {
+              var auth = window.getAuthHeaders();
+              for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
+            }
+            return fetch(API_BASE + '/' + bookingFormId + '/upload-proposal-file', {
+              method: 'POST', headers: h, body: fd
+            }).then(function (r) { if (!r.ok) throw new Error('Upload failed'); });
+          }
+        ));
+
+        // Booking Form file upload
+        rightCol.appendChild(buildUploadCard(
+          'Booking Form',
+          data.unsignedFileUrl,
+          'Booking Form',
+          function (file) {
+            var fd = new FormData();
+            fd.append('file', file);
+            var h = {};
+            if (window.getAuthHeaders) {
+              var auth = window.getAuthHeaders();
+              for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
+            }
+            return fetch(API_BASE + '/' + bookingFormId + '/upload-booking-file/unsigned', {
+              method: 'POST', headers: h, body: fd
+            }).then(function (r) { if (!r.ok) throw new Error('Upload failed'); });
+          }
+        ));
+
+        // Signed Booking Form file upload
+        rightCol.appendChild(buildUploadCard(
+          'Signed Booking Form',
+          data.signedFileUrl,
+          'Signed Booking Form',
+          function (file) {
+            var fd = new FormData();
+            fd.append('file', file);
+            var h = {};
+            if (window.getAuthHeaders) {
+              var auth = window.getAuthHeaders();
+              for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
+            }
+            return fetch(API_BASE + '/' + bookingFormId + '/upload-booking-file/signed', {
+              method: 'POST', headers: h, body: fd
+            }).then(function (r) { if (!r.ok) throw new Error('Upload failed'); });
+          }
+        ));
       })
       .catch(function (err) {
         console.error('Client dashboard fetch error:', err);
         titleEl.textContent = 'Error loading dashboard';
       });
-  }
-
-  function makeCard(title, fields) {
-    var card = document.createElement('div');
-    card.className = 'client-dashboard-card';
-    var h = document.createElement('h3');
-    h.className = 'client-dashboard-card-title';
-    h.textContent = title;
-    card.appendChild(h);
-    var list = document.createElement('div');
-    list.className = 'client-dashboard-fields';
-    fields.forEach(function (f) {
-      if (!f.value && f.value !== 0) return;
-      var row = document.createElement('div');
-      row.className = 'client-dashboard-field';
-      var lbl = document.createElement('span');
-      lbl.className = 'client-dashboard-label';
-      lbl.textContent = f.label;
-      row.appendChild(lbl);
-      var val = document.createElement('span');
-      val.className = 'client-dashboard-value';
-      val.textContent = f.value;
-      row.appendChild(val);
-      list.appendChild(row);
-    });
-    card.appendChild(list);
-    return card;
-  }
-
-  // --- Build readable cards from checklist formData ---
-  function prettifyKey(key) {
-    return key.replace(/[_-]/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-  }
-
-  function flattenObject(obj) {
-    var fields = [];
-    if (!obj || typeof obj !== 'object') return fields;
-    var skip = ['month_label', 'months_display'];
-    Object.keys(obj).forEach(function (k) {
-      if (skip.indexOf(k) !== -1) return;
-      var val = obj[k];
-      if (val === null || val === undefined || val === '' || val === false) return;
-      if (val === true) { fields.push({ label: prettifyKey(k), value: 'Yes' }); return; }
-      if (Array.isArray(val)) {
-        // Array of strings
-        var strings = val.filter(function (v) { return typeof v === 'string'; });
-        if (strings.length === val.length && val.length > 0) {
-          fields.push({ label: prettifyKey(k), value: val.join(', ') });
-        } else {
-          // Array of objects — flatten each
-          val.forEach(function (item, i) {
-            if (typeof item === 'object' && item !== null) {
-              var sub = flattenObject(item);
-              sub.forEach(function (s) { fields.push(s); });
-            } else if (item) {
-              fields.push({ label: prettifyKey(k) + ' ' + (i + 1), value: String(item) });
-            }
-          });
-        }
-      } else if (typeof val === 'object') {
-        var sub = flattenObject(val);
-        sub.forEach(function (s) { fields.push(s); });
-      } else {
-        fields.push({ label: prettifyKey(k), value: String(val) });
-      }
-    });
-    return fields;
-  }
-
-  // Shorten month label: "February, 2026" -> "Feb", "May 2026" -> "May"
-  function shortMonth(label) {
-    if (!label) return '?';
-    var m = label.replace(/,?\s*\d{4}/, '').trim();
-    return m.substring(0, 3) || label;
-  }
-
-  // Tabbed card — shows month tabs at top, content switches per tab
-  function makeTabbedCard(title, entries) {
-    if (!Array.isArray(entries) || entries.length === 0) return null;
-
-    var card = document.createElement('div');
-    card.className = 'client-dashboard-card';
-    var h = document.createElement('h3');
-    h.className = 'client-dashboard-card-title';
-    h.textContent = title;
-    card.appendChild(h);
-
-    if (entries.length === 1) {
-      var fields = flattenClean(entries[0]);
-      var list = buildFieldList(fields);
-      card.appendChild(list);
-      return card;
-    }
-
-    var tabBar = document.createElement('div');
-    tabBar.className = 'dashboard-tab-bar';
-    var contentArea = document.createElement('div');
-    contentArea.className = 'dashboard-tab-content';
-
-    entries.forEach(function (entry, idx) {
-      var tabLabel = entry.month_label || entry.months_display || '#' + (idx + 1);
-      var tab = document.createElement('button');
-      tab.className = 'dashboard-tab' + (idx === 0 ? ' active' : '');
-      tab.type = 'button';
-      tab.textContent = shortMonth(tabLabel);
-      tab.addEventListener('click', function () {
-        tabBar.querySelectorAll('.dashboard-tab').forEach(function (t) { t.classList.remove('active'); });
-        tab.classList.add('active');
-        while (contentArea.firstChild) contentArea.removeChild(contentArea.firstChild);
-        contentArea.appendChild(buildFieldList(flattenClean(entry)));
-      });
-      tabBar.appendChild(tab);
-    });
-
-    card.appendChild(tabBar);
-    contentArea.appendChild(buildFieldList(flattenClean(entries[0])));
-    card.appendChild(contentArea);
-    return card;
-  }
-
-  function buildFieldList(fields) {
-    var list = document.createElement('div');
-    list.className = 'client-dashboard-fields';
-    fields.forEach(function (f) {
-      if (!f.value && f.value !== 0) return;
-      var row = document.createElement('div');
-      row.className = 'client-dashboard-field';
-      var lbl = document.createElement('span');
-      lbl.className = 'client-dashboard-label';
-      lbl.textContent = f.label;
-      row.appendChild(lbl);
-      var val = document.createElement('span');
-      val.className = 'client-dashboard-value';
-      val.textContent = f.value;
-      row.appendChild(val);
-      list.appendChild(row);
-    });
-    return list;
-  }
-
-  // Smarter flatten — skips zero amounts, false booleans, empty nested objects
-  function flattenClean(obj) {
-    var fields = [];
-    if (!obj || typeof obj !== 'object') return fields;
-    var skip = ['month_label', 'months_display'];
-    Object.keys(obj).forEach(function (k) {
-      if (skip.indexOf(k) !== -1) return;
-      var val = obj[k];
-      if (val === null || val === undefined || val === '' || val === false || val === 0 || val === '0') return;
-      if (val === true) { fields.push({ label: prettifyKey(k), value: 'Yes' }); return; }
-      if (Array.isArray(val)) {
-        var strings = val.filter(function (v) { return typeof v === 'string' && v; });
-        if (strings.length === val.length && val.length > 0) {
-          fields.push({ label: prettifyKey(k), value: val.join(', ') });
-        } else {
-          val.forEach(function (item) {
-            if (typeof item === 'object' && item !== null) {
-              flattenClean(item).forEach(function (s) { fields.push(s); });
-            } else if (item) {
-              fields.push({ label: prettifyKey(k), value: String(item) });
-            }
-          });
-        }
-      } else if (typeof val === 'object') {
-        flattenClean(val).forEach(function (s) { fields.push(s); });
-      } else {
-        fields.push({ label: prettifyKey(k), value: String(val) });
-      }
-    });
-    return fields;
-  }
-
-  function buildFormDataCards(cardsGrid, formData, bookingData) {
-    if (!formData || typeof formData !== 'object') return;
-
-    // Client info already in sidebar — skip it
-
-    // Tabbed sections — monthly arrays
-    var tabbedSections = [
-      { key: 'social_media_management', title: 'Social Media Management' },
-      { key: 'agri4all', title: 'Agri4All' },
-      { key: 'online_articles', title: 'Online Articles' },
-      { key: 'banners', title: 'Banners' },
-      { key: 'magazine', title: 'Magazine / Print' },
-      { key: 'video', title: 'Video' },
-      { key: 'website', title: 'Website' }
-    ];
-
-    tabbedSections.forEach(function (sec) {
-      var arr = formData[sec.key];
-      if (!Array.isArray(arr) || arr.length === 0) return;
-      var card = makeTabbedCard(sec.title, arr);
-      if (card) cardsGrid.appendChild(card);
-    });
-
-    // Financial — show all fields per month, handle both formats
-    var currency = formData.financial_currency || '';
-    var fin = formData.financial;
-    if (Array.isArray(fin) && fin.length > 0) {
-      var finEntries = fin.map(function (entry) {
-        var mapped = { month_label: entry.month_label, months_display: entry.months_display };
-        // Show every field in the entry except month identifiers
-        Object.keys(entry).forEach(function (k) {
-          if (k === 'month_label' || k === 'months_display') return;
-          var val = entry[k];
-          if (val === null || val === undefined || val === '') return;
-          mapped[prettifyKey(k)] = String(val);
-        });
-        return mapped;
-      });
-      var finCard = makeTabbedCard('Financials', finEntries);
-      if (finCard) cardsGrid.appendChild(finCard);
-    }
-
-    // Financial totals
-    var ft = formData.financial_totals;
-    if (ft && (ft.subtotal || ft.tax || ft.total)) {
-      var totalsFields = [];
-      if (currency) totalsFields.push({ label: 'Currency', value: currency.trim() });
-      if (ft.subtotal) totalsFields.push({ label: 'Subtotal', value: ft.subtotal });
-      if (ft.tax) totalsFields.push({ label: 'VAT (15%)', value: ft.tax });
-      if (ft.total) totalsFields.push({ label: 'Total', value: ft.total });
-      cardsGrid.appendChild(makeCard('Financial Totals', totalsFields));
-    }
-
-    // Sign off
-    var so = formData.sign_off;
-    if (so && (so.date || so.representative)) {
-      cardsGrid.appendChild(makeCard('Sign Off', [
-        { label: 'Date', value: so.date },
-        { label: 'Representative', value: so.representative }
-      ]));
-    }
-
-    // Any remaining top-level keys
-    var handled = ['client_information', 'social_media_management', 'agri4all',
-      'online_articles', 'banners', 'magazine', 'video', 'website',
-      'financial', 'financial_totals', 'financial_currency', 'sign_off'];
-    Object.keys(formData).forEach(function (k) {
-      if (handled.indexOf(k) !== -1) return;
-      var val = formData[k];
-      if (!val) return;
-      if (Array.isArray(val) && val.length > 0) {
-        var card = makeTabbedCard(prettifyKey(k), val);
-        if (card) cardsGrid.appendChild(card);
-      } else if (typeof val === 'object') {
-        var fields = flattenClean(val);
-        if (fields.length > 0) cardsGrid.appendChild(makeCard(prettifyKey(k), fields));
-      } else {
-        cardsGrid.appendChild(makeCard(prettifyKey(k), [{ label: prettifyKey(k), value: String(val) }]));
-      }
-    });
   }
 
   // --- Expose tab renderers (same signature as before) ---
@@ -1240,30 +1649,17 @@
     var rightCol = document.createElement('div');
     rightCol.className = 'proposal-grid-right';
 
-    // Both sheets get the BOOKING_FORM_COLUMNS set so the Unsigned /
-    // Change Request / Signed link columns appear on every row.
     var bfSheet = buildSheet('Booking Form', refreshAll, BOOKING_FORM_COLUMNS);
     leftCol.appendChild(bfSheet.el);
 
-    var sentSheet = buildSheet('Sent to Client', refreshAll, BOOKING_FORM_COLUMNS);
+    var sentSheet = buildSheet('Sent to Client', refreshAll, SENT_TO_CLIENT_COLUMNS);
     rightCol.appendChild(sentSheet.el);
 
     grid.appendChild(leftCol);
     grid.appendChild(rightCol);
     container.appendChild(grid);
 
-    // Left sheet is the lifecycle hub — it shows rows in every state from
-    // "ready to send" through "signed". change_requested was orphaned
-    // before this expansion (not in any tab); onboarding/onboarded rows
-    // also appear here so the signed-PDF column has data to show — they
-    // ALSO still appear in the Onboarding tab (different lens, same row).
-    var bfStatuses = [
-      'booking_form_ready',
-      'client_changes',
-      'change_requested',
-      'onboarding',
-      'onboarded'
-    ];
+    var bfStatuses = ['booking_form_ready'];
     var sentStatuses = ['booking_form_sent'];
 
     function refreshAll() {
@@ -1372,11 +1768,13 @@
           className: 'action-change-request',
           visible: function (rowData) { return rowData.status === 'design_review'; },
           onClick: function (rowData) {
-            fetch(API_BASE + '/' + rowData.id, {
-              method: 'PATCH',
-              headers: getHeaders(),
-              body: JSON.stringify({ status: 'design_changes' })
-            }).then(function (res) { if (res.ok) refreshAll(); });
+            showChangeNotesModal(function (notes) {
+              fetch(API_BASE + '/' + rowData.id, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ status: 'design_changes', changeNotes: notes })
+              }).then(function (res) { if (res.ok) refreshAll(); });
+            });
           }
         }
       ]
@@ -1387,8 +1785,8 @@
     grid.appendChild(rightCol);
     container.appendChild(grid);
 
-    var designStatuses = ['design_proposal'];
-    var reviewStatuses = ['design_review', 'design_changes'];
+    var designStatuses = ['design_proposal', 'design_changes'];
+    var reviewStatuses = ['design_review'];
 
     function refreshAll() {
       fetch(API_BASE, { headers: getHeaders() })
