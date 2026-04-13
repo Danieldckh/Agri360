@@ -3349,7 +3349,7 @@
     }
     container.appendChild(header);
 
-    // Responses
+    // Responses — Q&A pairs from field definitions
     if (fields.length > 0 || (responses && typeof responses === 'object' && Object.keys(responses).length > 0)) {
       var respWrap = document.createElement('div');
       respWrap.className = 'cc-recap-responses';
@@ -3360,44 +3360,58 @@
           var altKey = field.name != null ? field.name : field.id;
           var value = responses[key];
           if (value == null || value === '') value = responses[altKey];
-          respWrap.appendChild(buildRecapQA(field.label || field.name || field.id || '', value));
+          var fieldType = field.fieldType || field.type || 'text';
+          respWrap.appendChild(buildRecapQA(field.label || field.name || field.id || '', value, fieldType));
         });
       } else {
-        // No field defs — dump raw responses keyed by string
         Object.keys(responses).forEach(function (k) {
-          respWrap.appendChild(buildRecapQA(k, responses[k]));
+          respWrap.appendChild(buildRecapQA(k, responses[k], 'text'));
         });
       }
       container.appendChild(respWrap);
     }
 
-    // Attached assets
+    // Attached assets — images as thumbnails, other files as links
     if (assets.length > 0) {
       var assetsHdr = document.createElement('div');
       assetsHdr.className = 'cc-recap-assets-header';
-      assetsHdr.textContent = 'Attached files';
+      assetsHdr.textContent = 'Attached files (' + assets.length + ')';
       container.appendChild(assetsHdr);
       var strip = document.createElement('div');
       strip.className = 'cc-recap-assets';
       assets.forEach(function (asset) {
         if (!asset || !asset.url) return;
-        var thumb = document.createElement('button');
-        thumb.type = 'button';
-        thumb.className = 'cc-recap-thumb';
-        var img = document.createElement('img');
-        img.src = asset.thumbnailUrl || asset.url;
-        img.alt = '';
-        thumb.appendChild(img);
-        thumb.addEventListener('click', function () {
-          openLightbox(asset.url);
-        });
-        strip.appendChild(thumb);
+        var mime = (asset.mimeType || asset.mime_type || '').toLowerCase();
+        var isImage = mime.indexOf('image/') === 0 || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(asset.url);
+        if (isImage) {
+          var thumb = document.createElement('button');
+          thumb.type = 'button';
+          thumb.className = 'cc-recap-thumb';
+          var img = document.createElement('img');
+          img.src = asset.thumbnailUrl || asset.url;
+          img.alt = '';
+          thumb.appendChild(img);
+          thumb.addEventListener('click', function () { openLightbox(asset.url); });
+          strip.appendChild(thumb);
+        } else {
+          var fileLink = document.createElement('a');
+          fileLink.href = asset.url;
+          fileLink.target = '_blank';
+          fileLink.rel = 'noopener noreferrer';
+          fileLink.className = 'cc-recap-file-link';
+          fileLink.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>';
+          var fname = document.createElement('span');
+          var name = asset.url.split('/').pop() || 'File';
+          fname.textContent = name.length > 30 ? name.substring(0, 27) + '...' : name;
+          fileLink.appendChild(fname);
+          strip.appendChild(fileLink);
+        }
       });
       container.appendChild(strip);
     }
   }
 
-  function buildRecapQA(question, answer) {
+  function buildRecapQA(question, answer, fieldType) {
     var row = document.createElement('div');
     row.className = 'cc-recap-qa';
     var q = document.createElement('div');
@@ -3406,17 +3420,38 @@
     row.appendChild(q);
     var a = document.createElement('div');
     a.className = 'cc-recap-answer';
-    var text = '';
+
     if (answer == null || answer === '') {
-      text = '\u2014';
+      a.textContent = '\u2014';
+    } else if (fieldType === 'file') {
+      // File field — render file names as styled chips
+      var names = Array.isArray(answer) ? answer : [answer];
+      names.forEach(function (n) {
+        if (!n) return;
+        var chip = document.createElement('span');
+        chip.className = 'cc-recap-file-chip';
+        chip.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" style="flex-shrink:0"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>';
+        var s = document.createElement('span');
+        s.textContent = String(n);
+        chip.appendChild(s);
+        a.appendChild(chip);
+      });
     } else if (Array.isArray(answer)) {
-      text = answer.filter(function (v) { return v != null && v !== ''; }).join(', ') || '\u2014';
+      a.textContent = answer.filter(function (v) { return v != null && v !== ''; }).join(', ') || '\u2014';
+    } else if (typeof answer === 'string' && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(answer)) {
+      // Image URL answer — render inline thumbnail
+      var img = document.createElement('img');
+      img.src = answer;
+      img.alt = '';
+      img.style.cssText = 'max-width:120px;max-height:100px;border-radius:6px;cursor:pointer;display:block;margin-top:4px;';
+      img.addEventListener('click', function () { openLightbox(answer); });
+      a.appendChild(img);
     } else if (typeof answer === 'object') {
-      try { text = JSON.stringify(answer); } catch (e) { text = String(answer); }
+      try { a.textContent = JSON.stringify(answer); } catch (e) { a.textContent = String(answer); }
     } else {
-      text = String(answer);
+      a.textContent = String(answer);
     }
-    a.textContent = text;
+
     row.appendChild(a);
     return row;
   }
@@ -6116,6 +6151,16 @@
     title.textContent = deliverable.title || 'Video';
     titleRow.appendChild(title);
     wrapper.appendChild(titleRow);
+
+    // Materials recap
+    var recap = document.createElement('div');
+    recap.className = 'cc-materials-recap';
+    var recapLoading = document.createElement('div');
+    recapLoading.className = 'cc-recap-loading';
+    recapLoading.textContent = 'Loading materials...';
+    recap.appendChild(recapLoading);
+    wrapper.appendChild(recap);
+    fetchRequestFormRecap(deliverable.id, recap);
 
     var stagesWrap = document.createElement('div');
     stagesWrap.className = 'wd-steps';
