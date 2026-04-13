@@ -774,6 +774,10 @@
   }
 
   // ---------------- post modal ----------------
+
+  var VIDEO_EXTS = /\.(mp4|webm|mov|avi|mkv|m4v|ogv)(\?|$)/i;
+  function isVideoUrl(url) { return VIDEO_EXTS.test(url || ''); }
+
   function openPostModal(post) {
     var isNew = !post || !post.id;
     var data = Object.assign({
@@ -782,151 +786,292 @@
       platforms: [],
       sourceType: state.sourceFilter !== 'all' ? state.sourceFilter : 'content-calendar',
       scheduledAt: '',
-      linkUrl: '',
-      hashtags: '',
-      notes: '',
       status: 'draft',
       clientId: null
     }, post || {});
 
-    // Ensure mediaUrls is always an array on the data object
     if (!Array.isArray(data.mediaUrls)) data.mediaUrls = [];
 
-    var form = el('div');
+    var form = el('div', 'sch-post-form');
+    var carouselIdx = 0;
 
-    // --- Media gallery (shown at top if photos exist, or always show add row) ---
-    var mediaSection = el('div', 'sch-media-section');
-    var mediaLabel = el('label', 'sch-field-label', 'Photos');
-    mediaSection.appendChild(mediaLabel);
-    var mediaGallery = el('div', 'sch-media-gallery');
+    // ─── Media carousel / video preview ────────────────────────
+    var mediaSection = el('div', 'sch-carousel-section');
+    var carouselViewport = el('div', 'sch-carousel-viewport');
+    var carouselTrack = el('div', 'sch-carousel-track');
+    carouselViewport.appendChild(carouselTrack);
 
-    function rebuildGallery() {
-      while (mediaGallery.firstChild) mediaGallery.removeChild(mediaGallery.firstChild);
+    var prevArrow = el('button', 'sch-carousel-arrow sch-carousel-prev');
+    prevArrow.innerHTML = '&#8249;';
+    prevArrow.addEventListener('click', function () { goSlide(carouselIdx - 1); });
+    var nextArrow = el('button', 'sch-carousel-arrow sch-carousel-next');
+    nextArrow.innerHTML = '&#8250;';
+    nextArrow.addEventListener('click', function () { goSlide(carouselIdx + 1); });
+
+    var dotsWrap = el('div', 'sch-carousel-dots');
+    var counterEl = el('div', 'sch-carousel-counter');
+
+    // Add media row
+    var addMediaRow = el('div', 'sch-carousel-add-row');
+    var addUrlInput = el('input');
+    addUrlInput.type = 'url';
+    addUrlInput.placeholder = 'Paste image or video URL…';
+    addUrlInput.className = 'sch-carousel-url-input';
+    var addMediaBtn = el('button', 'sch-btn sch-btn-sm', '+ Add');
+    addMediaBtn.addEventListener('click', function () {
+      var v = addUrlInput.value.trim();
+      if (v) {
+        data.mediaUrls.push(v);
+        addUrlInput.value = '';
+        rebuildCarousel();
+        goSlide(data.mediaUrls.length - 1);
+      }
+    });
+    addUrlInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); addMediaBtn.click(); }
+    });
+    addMediaRow.appendChild(addUrlInput);
+    addMediaRow.appendChild(addMediaBtn);
+
+    function rebuildCarousel() {
+      while (carouselTrack.firstChild) carouselTrack.removeChild(carouselTrack.firstChild);
+      while (dotsWrap.firstChild) dotsWrap.removeChild(dotsWrap.firstChild);
+
+      if (data.mediaUrls.length === 0) {
+        var placeholder = el('div', 'sch-carousel-empty');
+        placeholder.appendChild(svg('M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z', 48));
+        placeholder.appendChild(el('div', 'sch-carousel-empty-text', 'No media added yet'));
+        carouselTrack.appendChild(placeholder);
+        prevArrow.style.display = 'none';
+        nextArrow.style.display = 'none';
+        counterEl.textContent = '';
+        return;
+      }
+
       data.mediaUrls.forEach(function (url, idx) {
-        var thumb = el('div', 'sch-media-thumb');
-        var img = document.createElement('img');
-        img.src = url;
-        img.alt = '';
-        img.addEventListener('error', function () { img.style.display = 'none'; });
-        thumb.appendChild(img);
-        var rm = el('button', 'sch-media-thumb-rm', '×');
-        rm.title = 'Remove';
-        rm.addEventListener('click', function () {
-          data.mediaUrls.splice(idx, 1);
-          rebuildGallery();
-        });
-        thumb.appendChild(rm);
-        mediaGallery.appendChild(thumb);
-      });
-      // "Add URL" mini-row
-      var addRow = el('div', 'sch-media-add-row');
-      var urlInput = el('input');
-      urlInput.type = 'url';
-      urlInput.placeholder = 'Paste image URL…';
-      urlInput.className = 'sch-media-url-input';
-      var addBtn = el('button', 'sch-btn sch-btn-sm', '+ Add');
-      addBtn.addEventListener('click', function () {
-        var v = urlInput.value.trim();
-        if (v) {
-          data.mediaUrls.push(v);
-          rebuildGallery();
+        var slide = el('div', 'sch-carousel-slide');
+        if (isVideoUrl(url)) {
+          var video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.preload = 'metadata';
+          video.playsInline = true;
+          slide.appendChild(video);
+        } else {
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = 'Media ' + (idx + 1);
+          img.addEventListener('error', function () {
+            img.style.display = 'none';
+            var err = el('div', 'sch-carousel-img-error', 'Failed to load image');
+            slide.appendChild(err);
+          });
+          slide.appendChild(img);
         }
-      });
-      addRow.appendChild(urlInput);
-      addRow.appendChild(addBtn);
-      mediaGallery.appendChild(addRow);
-    }
-    rebuildGallery();
+        // Remove button per slide
+        var rmBtn = el('button', 'sch-carousel-rm', '×');
+        rmBtn.title = 'Remove this media';
+        rmBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          data.mediaUrls.splice(idx, 1);
+          if (carouselIdx >= data.mediaUrls.length) carouselIdx = Math.max(0, data.mediaUrls.length - 1);
+          rebuildCarousel();
+          goSlide(carouselIdx);
+        });
+        slide.appendChild(rmBtn);
+        carouselTrack.appendChild(slide);
 
-    mediaSection.appendChild(mediaGallery);
+        // Dot
+        var dot = el('button', 'sch-carousel-dot' + (idx === carouselIdx ? ' active' : ''));
+        (function (i) { dot.addEventListener('click', function () { goSlide(i); }); })(idx);
+        dotsWrap.appendChild(dot);
+      });
+
+      var show = data.mediaUrls.length > 1;
+      prevArrow.style.display = show ? '' : 'none';
+      nextArrow.style.display = show ? '' : 'none';
+      updateSlidePosition();
+    }
+
+    function goSlide(idx) {
+      if (data.mediaUrls.length === 0) return;
+      carouselIdx = ((idx % data.mediaUrls.length) + data.mediaUrls.length) % data.mediaUrls.length;
+      updateSlidePosition();
+    }
+
+    function updateSlidePosition() {
+      carouselTrack.style.transform = 'translateX(-' + (carouselIdx * 100) + '%)';
+      counterEl.textContent = data.mediaUrls.length > 0
+        ? (carouselIdx + 1) + ' / ' + data.mediaUrls.length
+        : '';
+      var dots = dotsWrap.children;
+      for (var i = 0; i < dots.length; i++) {
+        dots[i].classList.toggle('active', i === carouselIdx);
+      }
+      // Pause videos not visible
+      var slides = carouselTrack.children;
+      for (var j = 0; j < slides.length; j++) {
+        var vid = slides[j].querySelector('video');
+        if (vid && j !== carouselIdx) vid.pause();
+      }
+    }
+
+    mediaSection.appendChild(carouselViewport);
+    mediaSection.appendChild(prevArrow);
+    mediaSection.appendChild(nextArrow);
+    mediaSection.appendChild(dotsWrap);
+    mediaSection.appendChild(counterEl);
+    mediaSection.appendChild(addMediaRow);
+    rebuildCarousel();
     form.appendChild(mediaSection);
 
-    // Title
+    // ─── Title ─────────────────────────────────────────────────
     form.appendChild(field('Title',
       input('text', data.title, function (v) { data.title = v; })));
 
-    // Content
-    form.appendChild(field('Caption / Content',
+    // ─── Caption ───────────────────────────────────────────────
+    form.appendChild(field('Caption',
       textarea(data.content, function (v) { data.content = v; })));
 
-    // Client + Source row — client comes first because it gates platform options below
-    var clientRow = el('div', 'sch-field-row');
-    var clientOptions = ['agency'].concat(state.clients.map(function (c) { return String(c.id); }));
-    var clientLabels = { agency: 'Agency (Own accounts)' };
-    state.clients.forEach(function (c) { clientLabels[String(c.id)] = c.name; });
-    var currentClientKey = data.clientId == null ? 'agency' : String(data.clientId);
-    clientRow.appendChild(field('Client',
-      select(clientOptions, currentClientKey, function (v) {
-        data.clientId = (v === 'agency') ? null : Number(v);
-        // Drop any previously-selected platforms that the new client doesn't have
-        var allowed = platformsForClient(data.clientId);
-        data.platforms = (data.platforms || []).filter(function (p) { return allowed.indexOf(p) !== -1; });
-        renderPlatforms();
-      }, clientLabels)));
-    clientRow.appendChild(field('Source',
-      select(['content-calendar', 'agri4all', 'own-sm'], data.sourceType,
-        function (v) { data.sourceType = v; },
-        { 'content-calendar': 'Content Calendar', 'agri4all': 'Agri4All', 'own-sm': 'Own Social Media' })));
-    form.appendChild(clientRow);
+    // ─── Client (searchable dropdown) ──────────────────────────
+    var clientField = el('div', 'sch-field');
+    clientField.appendChild(el('label', 'sch-field-label', 'Client'));
 
-    // Status row
-    form.appendChild(field('Status',
-      select(['draft', 'scheduled', 'posted', 'failed'], data.status,
-        function (v) { data.status = v; })));
+    var clientDropdown = el('div', 'sch-search-select');
+    var clientDisplay = el('div', 'sch-search-select-display');
+    var currentLabel = data.clientId == null ? 'Agency (Own accounts)' : '';
+    if (data.clientId != null) {
+      for (var ci = 0; ci < state.clients.length; ci++) {
+        if (Number(state.clients[ci].id) === Number(data.clientId)) {
+          currentLabel = state.clients[ci].name;
+          break;
+        }
+      }
+    }
+    clientDisplay.textContent = currentLabel || 'Select client…';
+    var clientChevron = el('span', 'sch-search-select-chevron', '▾');
+    clientDisplay.appendChild(clientChevron);
+    clientDropdown.appendChild(clientDisplay);
 
-    // Platforms — filtered to the selected client's connected accounts
+    var clientPanel = el('div', 'sch-search-select-panel');
+    clientPanel.style.display = 'none';
+    var clientSearchInput = el('input');
+    clientSearchInput.type = 'text';
+    clientSearchInput.placeholder = 'Search clients…';
+    clientSearchInput.className = 'sch-search-select-input';
+    clientPanel.appendChild(clientSearchInput);
+    var clientOptionsList = el('div', 'sch-search-select-options');
+    clientPanel.appendChild(clientOptionsList);
+    clientDropdown.appendChild(clientPanel);
+
+    var allClientItems = [{ key: 'agency', label: 'Agency (Own accounts)', id: null }];
+    state.clients.forEach(function (c) {
+      if (c.status !== 'archived') allClientItems.push({ key: String(c.id), label: c.name, id: c.id });
+    });
+
+    function renderClientOptions(filter) {
+      while (clientOptionsList.firstChild) clientOptionsList.removeChild(clientOptionsList.firstChild);
+      var q = (filter || '').toLowerCase();
+      allClientItems.forEach(function (item) {
+        if (q && item.label.toLowerCase().indexOf(q) === -1) return;
+        var isSelected = (data.clientId == null && item.id == null) ||
+                         (data.clientId != null && item.id != null && Number(data.clientId) === Number(item.id));
+        var opt = el('div', 'sch-search-select-option' + (isSelected ? ' selected' : ''), item.label);
+        opt.addEventListener('click', function () {
+          data.clientId = item.id ? Number(item.id) : null;
+          clientDisplay.textContent = item.label;
+          clientDisplay.appendChild(clientChevron);
+          clientPanel.style.display = 'none';
+          // Update platforms after client change
+          var allowed = platformsForClient(data.clientId);
+          data.platforms = (data.platforms || []).filter(function (p) { return allowed.indexOf(p) !== -1; });
+          renderPlatforms();
+        });
+        clientOptionsList.appendChild(opt);
+      });
+    }
+
+    clientDisplay.addEventListener('click', function () {
+      var isOpen = clientPanel.style.display !== 'none';
+      clientPanel.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) {
+        clientSearchInput.value = '';
+        renderClientOptions('');
+        clientSearchInput.focus();
+      }
+    });
+
+    clientSearchInput.addEventListener('input', function () {
+      renderClientOptions(clientSearchInput.value);
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function closePanel(e) {
+      if (!clientDropdown.contains(e.target)) {
+        clientPanel.style.display = 'none';
+      }
+    });
+
+    clientField.appendChild(clientDropdown);
+    form.appendChild(clientField);
+
+    // ─── Platforms (multi-select pills) ────────────────────────
     var platField = el('div', 'sch-field');
-    var platLabel = el('label', 'sch-field-label', 'Platforms');
-    platField.appendChild(platLabel);
+    platField.appendChild(el('label', 'sch-field-label', 'Platforms'));
     var platWrap = el('div', 'sch-platform-select');
     platField.appendChild(platWrap);
     form.appendChild(platField);
 
     function renderPlatforms() {
       while (platWrap.firstChild) platWrap.removeChild(platWrap.firstChild);
-      var allowed = platformsForClient(data.clientId);
-      if (allowed.length === 0) {
-        var empty = el('div', 'sch-platform-empty');
-        var who = data.clientId == null
-          ? 'No agency accounts connected yet.'
-          : 'This client has no connected accounts yet.';
-        empty.textContent = who + ' Open Credentials to add one.';
-        platWrap.appendChild(empty);
-        return;
-      }
-      allowed.forEach(function (pl) {
-        var opt = el('div', 'sch-platform-opt' +
-          (data.platforms && data.platforms.indexOf(pl) !== -1 ? ' selected' : ''), pl);
-        opt.addEventListener('click', function () {
-          if (!Array.isArray(data.platforms)) data.platforms = [];
-          var idx = data.platforms.indexOf(pl);
-          if (idx === -1) data.platforms.push(pl);
-          else data.platforms.splice(idx, 1);
-          opt.classList.toggle('selected');
-        });
+      // Show all 6 platforms; connected ones are selectable, others show tooltip
+      PLATFORMS.forEach(function (pl) {
+        var isConnected = platformsForClient(data.clientId).indexOf(pl) !== -1;
+        var isSelected = data.platforms && data.platforms.indexOf(pl) !== -1;
+        var info = PLATFORM_INFO ? PLATFORM_INFO[pl] : null;
+
+        var opt = el('div', 'sch-platform-pill' + (isSelected ? ' selected' : '') + (!isConnected ? ' disabled' : ''));
+
+        // Platform icon
+        if (info && info.icon) {
+          var iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          iconSvg.setAttribute('width', '14');
+          iconSvg.setAttribute('height', '14');
+          iconSvg.setAttribute('viewBox', '0 0 24 24');
+          iconSvg.setAttribute('fill', 'currentColor');
+          var iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          iconPath.setAttribute('d', info.icon);
+          iconSvg.appendChild(iconPath);
+          opt.appendChild(iconSvg);
+        }
+
+        var label = info ? info.label : pl;
+        opt.appendChild(document.createTextNode(' ' + label));
+
+        if (!isConnected) {
+          opt.title = 'Not connected — go to Settings to connect ' + label;
+        } else {
+          opt.addEventListener('click', function () {
+            if (!Array.isArray(data.platforms)) data.platforms = [];
+            var idx = data.platforms.indexOf(pl);
+            if (idx === -1) data.platforms.push(pl);
+            else data.platforms.splice(idx, 1);
+            renderPlatforms();
+          });
+        }
+
         platWrap.appendChild(opt);
       });
     }
     renderPlatforms();
 
-    // Schedule + Link row
-    var row2 = el('div', 'sch-field-row');
+    // ─── Scheduled For ─────────────────────────────────────────
     var schedInput = input('datetime-local', toLocalDT(data.scheduledAt), function (v) {
       data.scheduledAt = v ? new Date(v).toISOString() : null;
     });
-    row2.appendChild(field('Scheduled For', schedInput));
-    row2.appendChild(field('Link URL',
-      input('url', data.linkUrl || '', function (v) { data.linkUrl = v; })));
-    form.appendChild(row2);
+    form.appendChild(field('Scheduled For', schedInput));
 
-    // Hashtags
-    form.appendChild(field('Hashtags',
-      input('text', data.hashtags || '', function (v) { data.hashtags = v; })));
-
-    // Notes
-    form.appendChild(field('Notes',
-      textarea(data.notes || '', function (v) { data.notes = v; })));
-
+    // ─── Footer (Delete / Cancel / Save) ───────────────────────
     var modal = openModal(isNew ? 'New Post' : 'Edit Post', form, function (footer, close) {
       if (!isNew) {
         var del = el('button', 'sch-btn sch-btn-danger', 'Delete');
@@ -957,10 +1102,7 @@
           platforms: data.platforms,
           sourceType: data.sourceType,
           scheduledAt: data.scheduledAt || null,
-          linkUrl: data.linkUrl || null,
-          hashtags: data.hashtags || null,
-          notes: data.notes || null,
-          status: data.status,
+          status: data.scheduledAt ? 'scheduled' : 'draft',
           clientId: data.clientId,
           mediaUrls: data.mediaUrls || []
         };
