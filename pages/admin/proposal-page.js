@@ -42,6 +42,8 @@
   var ICON_SKIP = 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z';
   // edit/pencil — signals "changes requested, needs revision"
   var ICON_CHANGE_REQUEST = 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
+  // close (X) — delete row
+  var ICON_DELETE_X = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z';
 
   // Track active container for back navigation
   var _activeContainer = null;
@@ -301,6 +303,26 @@
           }).then(function (res) {
             if (res.ok) refreshFn();
           });
+        }
+      },
+      {
+        icon: ICON_DELETE_X,
+        tooltip: 'Delete proposal & deliverables',
+        className: 'action-delete',
+        onClick: function (rowData) {
+          var clientName = rowData.client || rowData.clientName || 'this proposal';
+          showConfirmModal(
+            'Delete Proposal?',
+            'This will permanently delete the proposal for "' + clientName + '" and all associated deliverables. This action cannot be undone.',
+            function () {
+              fetch(API_BASE + '/' + rowData.id, {
+                method: 'DELETE',
+                headers: getHeaders()
+              }).then(function (res) {
+                if (res.ok) refreshFn();
+              });
+            }
+          );
         }
       }
     ];
