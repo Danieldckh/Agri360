@@ -2314,7 +2314,7 @@
           if (item.type === 'agri4all-product-uploads') {
             var aPUAmtCell = document.createElement('div');
             aPUAmtCell.className = 'prod-deliv-cell prod-deliv-amount';
-            aPUAmtCell.textContent = 'Amount: ' + String((item.metadata && item.metadata.amount) || 0);
+            aPUAmtCell.textContent = 'Amount: ' + String((item.metadata && (item.metadata.product_uploads_amount || item.metadata.amount)) || 0);
             row.appendChild(aPUAmtCell);
           }
 

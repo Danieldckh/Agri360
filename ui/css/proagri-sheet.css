@@ -296,6 +296,11 @@
   color: #9b59b6;
 }
 
+.proagri-sheet-status-design {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
 .proagri-sheet-status-design_proposal {
   background: rgba(52, 152, 219, 0.15);
   color: #3498db;
