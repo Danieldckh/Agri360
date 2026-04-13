@@ -572,6 +572,8 @@
 /* Bottom row layout: chat (left ~30%) | posts card (right ~70%) */
 .cc-bottom-row { display:flex; gap:16px; flex:1; min-height:0; margin-top:16px; }
 .cc-bottom-row .cc-chat-box { flex:0 0 30%; margin:0; max-height:none; min-height:0; }
+.cc-bottom-row .cd-messenger { flex:0 0 30%; margin:0; }
+.cc-bottom-row .cd-messenger .cd-messenger-messages { max-height:none; min-height:200px; flex:1; }
 .cc-bottom-row .cc-posts-card { flex:1; margin:0; }
 
 /* ── Split-sheet (Follow Ups / Approvals) vertical scroll fix ──

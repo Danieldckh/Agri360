@@ -2429,28 +2429,24 @@
           row.appendChild(statusCell);
 
           // Per-deliverable "Request Materials" button — sits between status
-          // and the advance arrow. Standard rows only (CC rows use the
-          // simplified 5-cell layout; OA rows handled in isOnlineArticles).
-          if (!isContentCalendar) {
-            var reqMatCell = document.createElement('div');
-            reqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
-            var reqMatBtn = document.createElement('button');
-            reqMatBtn.type = 'button';
-            reqMatBtn.className = 'prod-deliv-req-mat-btn';
-            reqMatBtn.textContent = 'Request Materials';
-            (function (it) {
-              reqMatBtn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
-              });
-            })(item);
-            reqMatCell.appendChild(reqMatBtn);
-            row.appendChild(reqMatCell);
-          }
+          // and the advance arrow. OA rows are handled in isOnlineArticles block.
+          var reqMatCell = document.createElement('div');
+          reqMatCell.className = 'prod-deliv-cell prod-deliv-req-mat';
+          var reqMatBtn = document.createElement('button');
+          reqMatBtn.type = 'button';
+          reqMatBtn.className = 'prod-deliv-req-mat-btn';
+          reqMatBtn.textContent = isContentCalendar ? 'Request Focus Points' : 'Request Materials';
+          (function (it) {
+            reqMatBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              window.open('/form-builder.html?clientId=' + (it.clientId || '') + '&deliverableId=' + it.id, '_blank');
+            });
+          })(item);
+          reqMatCell.appendChild(reqMatBtn);
+          row.appendChild(reqMatCell);
 
           // Send-back button (only for review/approval statuses).
-          // Suppressed for content-calendar rows per the 5-property spec.
-          var sendBackTarget = isContentCalendar ? null : getSendBackTarget(item.status);
+          var sendBackTarget = getSendBackTarget(item.status);
           var actCol = document.createElement('div');
           actCol.className = 'prod-deliv-cell prod-deliv-act';
           if (sendBackTarget) {
@@ -2750,36 +2746,98 @@
     wrapper.appendChild(recap);
     fetchRequestFormRecap(deliverable.id, recap);
 
-    // ── Team chat box (per-deliverable channel) ──────────────
+    // ── Team chat (cd-messenger style with emoji + file uploads) ──────
     stopCCChatPoll();
+    var COMMON_EMOJI_CC = [
+      '\ud83d\ude00','\ud83d\ude02','\ud83d\ude0d','\ud83d\ude4f','\ud83d\udc4d','\ud83d\udc4e',
+      '\ud83d\udd25','\u2764\ufe0f','\ud83d\ude22','\ud83d\ude31','\ud83d\ude0e','\ud83e\udd14',
+      '\ud83d\ude4c','\ud83d\udcaf','\u2705','\u274c','\ud83d\udce3','\ud83c\udf89',
+      '\ud83d\udc40','\u270d\ufe0f','\ud83d\udcc4','\ud83d\udcce','\u23f0','\ud83d\ude80'
+    ];
+
     var chat = document.createElement('div');
-    chat.className = 'cc-chat-box';
-    var chatHeader = document.createElement('div');
-    chatHeader.className = 'cc-chat-header';
-    chatHeader.textContent = 'Team Chat';
-    chat.appendChild(chatHeader);
+    chat.className = 'cd-messenger';
+
+    var chatHeaderEl = document.createElement('div');
+    chatHeaderEl.className = 'cd-messenger-header';
+    var chatTitleEl = document.createElement('div');
+    chatTitleEl.className = 'cd-messenger-title';
+    chatTitleEl.textContent = 'Team Chat';
+    chatHeaderEl.appendChild(chatTitleEl);
+    chat.appendChild(chatHeaderEl);
 
     var chatList = document.createElement('div');
-    chatList.className = 'cc-chat-list';
-    var chatLoading = document.createElement('div');
-    chatLoading.className = 'cc-chat-msg-header';
-    chatLoading.textContent = 'Loading chat...';
-    chatList.appendChild(chatLoading);
+    chatList.className = 'cd-messenger-messages';
+    var chatEmpty = document.createElement('div');
+    chatEmpty.className = 'cd-messenger-empty';
+    chatEmpty.textContent = 'Loading chat...';
+    chatList.appendChild(chatEmpty);
     chat.appendChild(chatList);
 
+    // Input bar — emoji + attach + textarea + send
     var chatInputWrap = document.createElement('div');
-    chatInputWrap.className = 'cc-chat-input-wrap';
+    chatInputWrap.className = 'cd-messenger-input';
+    chatInputWrap.style.position = 'relative';
+
+    var emojiBtn = document.createElement('button');
+    emojiBtn.className = 'cd-messenger-btn';
+    emojiBtn.type = 'button';
+    emojiBtn.title = 'Emoji';
+    emojiBtn.textContent = '\ud83d\ude00';
+    emojiBtn.style.fontSize = '16px';
+    chatInputWrap.appendChild(emojiBtn);
+
+    var attachBtn = document.createElement('button');
+    attachBtn.className = 'cd-messenger-btn';
+    attachBtn.type = 'button';
+    attachBtn.title = 'Attach files';
+    attachBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H9.5v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S6.5 2.79 6.5 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6H16.5z"/></svg>';
+    chatInputWrap.appendChild(attachBtn);
+
     var chatInput = document.createElement('textarea');
-    chatInput.className = 'cc-chat-input';
+    chatInput.className = 'cd-messenger-textarea';
     chatInput.placeholder = 'Type a message...';
+    chatInput.rows = 1;
     chatInput.disabled = true;
+
     var chatSend = document.createElement('button');
-    chatSend.className = 'cc-chat-send';
-    chatSend.textContent = 'Send';
+    chatSend.className = 'cd-messenger-btn';
+    chatSend.type = 'button';
+    chatSend.title = 'Send';
+    chatSend.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
     chatSend.disabled = true;
+
     chatInputWrap.appendChild(chatInput);
     chatInputWrap.appendChild(chatSend);
+
+    // Emoji picker
+    var emojiPicker = document.createElement('div');
+    emojiPicker.style.cssText = 'display:none;padding:8px;flex-wrap:wrap;gap:4px;bottom:100%;position:absolute;left:0;right:0;background:var(--card-bg,#fff);border:1px solid var(--border-color,#e2e8f0);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:50;';
+    COMMON_EMOJI_CC.forEach(function (em) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = em;
+      btn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;padding:4px;border-radius:4px;line-height:1;';
+      btn.addEventListener('click', function () {
+        var pos = chatInput.selectionStart || chatInput.value.length;
+        chatInput.value = chatInput.value.substring(0, pos) + em + chatInput.value.substring(pos);
+        chatInput.focus();
+        emojiPicker.style.display = 'none';
+      });
+      emojiPicker.appendChild(btn);
+    });
+    chatInputWrap.appendChild(emojiPicker);
     chat.appendChild(chatInputWrap);
+
+    emojiBtn.addEventListener('click', function () {
+      emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    chatInput.addEventListener('input', function () {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+      emojiPicker.style.display = 'none';
+    });
 
     // Bottom row: chat (left) | posts card (right)
     var bottomRow = document.createElement('div');
@@ -2789,7 +2847,6 @@
 
     var ccChannelId = null;
     var ccLastMessageId = 0;
-    var ccKnownIds = Object.create(null);
 
     function fmtChatTime(iso) {
       if (!iso) return '';
@@ -2803,28 +2860,86 @@
       } catch (e) { return ''; }
     }
 
-    function renderChatMessage(m) {
-      if (!m || ccKnownIds[m.id]) return;
-      ccKnownIds[m.id] = true;
+    function ccAppendBubble(m, scrollToBottom) {
+      // Remove empty placeholder
+      var emptyEl = chatList.querySelector('.cd-messenger-empty');
+      if (emptyEl) emptyEl.remove();
+      // Skip duplicate
+      if (chatList.querySelector('[data-message-id="' + m.id + '"]')) return;
       if (m.id > ccLastMessageId) ccLastMessageId = m.id;
-      var row = document.createElement('div');
-      row.className = 'cc-chat-msg';
-      var hdr = document.createElement('div');
-      hdr.className = 'cc-chat-msg-header';
-      var who = document.createElement('strong');
+
+      var senderId = m.sender_id || m.senderId;
+      var cu = window.getCurrentUser ? window.getCurrentUser() : null;
+      var isOwn = cu && cu.id && String(senderId) === String(cu.id);
+
+      var bubble = document.createElement('div');
+      bubble.className = 'cd-bubble' + (isOwn ? ' cd-bubble-own' : '');
+      bubble.dataset.messageId = m.id;
+
+      if (!isOwn) {
+        var avatar = document.createElement('img');
+        avatar.className = 'cd-bubble-avatar';
+        avatar.alt = '';
+        var photoUrl = m.senderPhotoUrl || m.sender_photo_url;
+        avatar.src = photoUrl ? '/uploads/photos/' + photoUrl : 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2394a3b8"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+        bubble.appendChild(avatar);
+      }
+
+      var body = document.createElement('div');
+      body.className = 'cd-bubble-body';
+
+      var meta = document.createElement('div');
+      meta.className = 'cd-bubble-meta';
+      var sender = document.createElement('span');
+      sender.className = 'cd-bubble-sender';
       var first = m.sender_first_name || m.senderFirstName || '';
       var last = m.sender_last_name || m.senderLastName || '';
-      who.textContent = (first + ' ' + last).trim() || 'Unknown';
-      hdr.appendChild(who);
+      sender.textContent = (first + ' ' + last).trim() || 'Unknown';
+      meta.appendChild(sender);
       var ts = document.createElement('span');
+      ts.className = 'cd-bubble-time';
       ts.textContent = fmtChatTime(m.created_at || m.createdAt);
-      hdr.appendChild(ts);
-      row.appendChild(hdr);
-      var body = document.createElement('div');
-      body.className = 'cc-chat-msg-body';
-      body.textContent = m.content || '';
-      row.appendChild(body);
-      chatList.appendChild(row);
+      meta.appendChild(ts);
+      body.appendChild(meta);
+
+      var contentEl = document.createElement('div');
+      contentEl.className = 'cd-bubble-content';
+      contentEl.textContent = m.content || '';
+      body.appendChild(contentEl);
+
+      // Attachments — images inline, files as links
+      var attachments = m.attachments;
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        attachments.forEach(function (att) {
+          var attEl = document.createElement('div');
+          attEl.className = 'cd-bubble-attachment';
+          var mime = att.mimeType || att.mime_type || '';
+          var url = '/uploads/attachments/' + att.filename;
+          if (mime.indexOf('image/') === 0) {
+            var img = document.createElement('img');
+            img.src = url;
+            img.alt = att.originalName || att.original_name || 'Image';
+            img.style.cssText = 'max-width:220px;max-height:200px;border-radius:6px;cursor:pointer;display:block;margin-top:4px;';
+            img.addEventListener('click', function () { window.open(url, '_blank'); });
+            attEl.appendChild(img);
+          } else {
+            var link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>';
+            var fname = document.createElement('span');
+            fname.textContent = att.originalName || att.original_name || att.filename;
+            link.appendChild(fname);
+            attEl.appendChild(link);
+          }
+          body.appendChild(attEl);
+        });
+      }
+
+      bubble.appendChild(body);
+      chatList.appendChild(bubble);
+      if (scrollToBottom) chatList.scrollTop = chatList.scrollHeight;
     }
 
     function scrollChatToBottom() {
@@ -2837,10 +2952,16 @@
         .then(function (r) { return r.ok ? r.json() : []; })
         .then(function (msgs) {
           while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
-          ccKnownIds = Object.create(null);
           ccLastMessageId = 0;
-          (msgs || []).forEach(renderChatMessage);
-          scrollChatToBottom();
+          if (!msgs || !msgs.length) {
+            var empty = document.createElement('div');
+            empty.className = 'cd-messenger-empty';
+            empty.textContent = 'No messages yet';
+            chatList.appendChild(empty);
+          } else {
+            msgs.forEach(function (m) { ccAppendBubble(m, false); });
+            scrollChatToBottom();
+          }
         })
         .catch(function () {});
     }
@@ -2853,11 +2974,8 @@
         .then(function (msgs) {
           if (!msgs || !msgs.length) return;
           var before = chatList.scrollHeight;
-          msgs.forEach(renderChatMessage);
-          // Auto-scroll only if user was near bottom
-          if (chatList.scrollTop + chatList.clientHeight >= before - 40) {
-            scrollChatToBottom();
-          }
+          msgs.forEach(function (m) { ccAppendBubble(m, false); });
+          if (chatList.scrollTop + chatList.clientHeight >= before - 40) scrollChatToBottom();
         })
         .catch(function () {});
     }
@@ -2865,7 +2983,8 @@
     function sendChatMessage() {
       var content = (chatInput.value || '').trim();
       if (!content || !ccChannelId) return;
-      chatSend.disabled = true;
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
       fetch('/api/messaging/channels/' + ccChannelId + '/messages', {
         method: 'POST',
         headers: getHeaders(),
@@ -2873,22 +2992,48 @@
       })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (m) {
-          chatSend.disabled = false;
-          if (m) {
-            chatInput.value = '';
-            renderChatMessage(m);
-            scrollChatToBottom();
-          }
+          if (m) { ccAppendBubble(m, true); }
         })
-        .catch(function () { chatSend.disabled = false; });
+        .catch(function () {});
+    }
+
+    function sendChatFiles(files) {
+      if (!ccChannelId || !files || files.length === 0) return;
+      var textContent = (chatInput.value || '').trim();
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      Array.prototype.forEach.call(files, function (file, idx) {
+        var fd = new FormData();
+        fd.append('content', idx === 0 ? (textContent || file.name) : file.name);
+        fd.append('file', file);
+        var h = {};
+        if (window.getAuthHeaders) {
+          var auth = window.getAuthHeaders();
+          for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
+        }
+        fetch('/api/messaging/channels/' + ccChannelId + '/messages', {
+          method: 'POST', headers: h, body: fd
+        })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) { if (m) ccAppendBubble(m, true); })
+          .catch(function () {});
+      });
     }
 
     chatSend.addEventListener('click', sendChatMessage);
     chatInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendChatMessage();
-      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    });
+    attachBtn.addEventListener('click', function () {
+      if (!ccChannelId) return;
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.multiple = true;
+      fileInput.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt';
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files.length > 0) sendChatFiles(fileInput.files);
+      });
+      fileInput.click();
     });
 
     // Resolve (or create) the channel for this deliverable
@@ -2902,7 +3047,7 @@
         if (!ch || !ch.id) {
           while (chatList.firstChild) chatList.removeChild(chatList.firstChild);
           var errRow = document.createElement('div');
-          errRow.className = 'cc-chat-msg-header';
+          errRow.className = 'cd-messenger-empty';
           errRow.textContent = 'Chat unavailable';
           chatList.appendChild(errRow);
           return;
