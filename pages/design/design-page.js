@@ -69,6 +69,15 @@
       return;
     }
     var C = window.prodCols;
+    var A4A_DESIGN_TYPES = {
+      'agri4all-posts': true,
+      'agri4all-videos': true,
+      'agri4all-product-uploads': true,
+      'agri4all-newsletters': true,
+      'agri4all-newsletter-feature': true,
+      'agri4all-newsletter-banner': true,
+      'agri4all-banners': true
+    };
     container.classList.add('design-cc-split-70-30');
 
     window.renderSplitSheetTab(container, {
@@ -79,7 +88,7 @@
         title: 'Design',
         searchPlaceholder: 'Search design...',
         filter: function (d) {
-          return d.type === 'agri4all-posts' &&
+          return !!A4A_DESIGN_TYPES[d.type] &&
             (d.status === 'design' || d.status === 'design_changes');
         },
         columns: [
@@ -95,7 +104,7 @@
         title: 'Design Review',
         searchPlaceholder: 'Search design review...',
         filter: function (d) {
-          return d.type === 'agri4all-posts' && d.status === 'design_review';
+          return !!A4A_DESIGN_TYPES[d.type] && d.status === 'design_review';
         },
         columns: [
           C.eye(container),
