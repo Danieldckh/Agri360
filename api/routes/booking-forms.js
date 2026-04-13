@@ -26,40 +26,22 @@ const proposalUpload = multer({
   limits: { fileSize: 25 * 1024 * 1024 } // 25MB
 });
 
-// Internal helper: create the unsigned booking form (an esign URL the
-// client can click to view + sign). Used by the explicit
-// POST /:id/send-to-esign route AND as a side effect of PATCH /:id when
-// status reaches `booking_form_ready` for the first time.
-//
-// The Booking Form Esign service (separate app, shares this Postgres
-// instance) renders the booking form from `bookingFormId`, so the html
-// payload may be empty when triggered automatically.
-//
-// On success: writes esign_url onto the booking_forms row and returns
-// { esignUrl, slug }. On failure: throws — callers decide whether to
-// swallow (PATCH side effect) or surface (explicit POST route).
-async function createUnsignedBookingForm(formId) {
-  const formResult = await pool.query('SELECT id FROM booking_forms WHERE id = $1', [formId]);
-  if (formResult.rows.length === 0) {
-    const err = new Error('Booking form not found');
-    err.code = 'NOT_FOUND';
-    throw err;
+// Shared upload directory for booking form files (unsigned + signed)
+const bookingFileUploadDir = path.join(__dirname, '../uploads/booking-files');
+fs.mkdirSync(bookingFileUploadDir, { recursive: true });
+
+const bookingFileStorage = multer.diskStorage({
+  destination: function (_req, _file, cb) { cb(null, bookingFileUploadDir); },
+  filename: function (req, file, cb) {
+    var ext = path.extname(file.originalname) || '';
+    cb(null, req.params.type + '-' + req.params.id + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6) + ext);
   }
+});
 
-  // The esign service (secure-signature-page) is a React SPA that reads
-  // form_data directly from the shared Postgres via /api/esign/booking/:id.
-  // No server-side HTML generation or token creation needed — the URL is
-  // simply /sign/:bookingFormId and the SPA handles rendering + signing.
-  const ESIGN_URL = process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com';
-  const esignUrl = `${ESIGN_URL}/sign/${formId}`;
-
-  await pool.query(
-    'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
-    [esignUrl, formId]
-  );
-
-  return { esignUrl };
-}
+const bookingFileUpload = multer({
+  storage: bookingFileStorage,
+  limits: { fileSize: 25 * 1024 * 1024 }
+});
 
 // GET / - list all booking forms with client info
 router.get('/', async (req, res) => {
@@ -199,7 +181,7 @@ router.post('/', async (req, res) => {
 // PATCH /:id - update booking form
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason', 'editable_url', 'esign_url', 'checklist_url', 'proposal_file_url', 'proposal_file_name', 'proposal_file_mime', 'proposal_file_uploaded_at', 'assigned_admin'];
+  const fields = ['title', 'description', 'status', 'department', 'booked_date', 'due_date', 'campaign_month_start', 'campaign_month_end', 'form_data', 'sign_off_date', 'representative', 'decline_reason', 'editable_url', 'esign_url', 'checklist_url', 'proposal_file_url', 'proposal_file_name', 'proposal_file_mime', 'proposal_file_uploaded_at', 'assigned_admin', 'unsigned_file_url', 'signed_file_url'];
   const updates = [];
   const values = [];
   let idx = 1;
@@ -232,33 +214,7 @@ router.patch('/:id', async (req, res) => {
     }
     let updatedRow = result.rows[0];
 
-    // Side effect: when a booking form first reaches `booking_form_ready`,
-    // automatically generate the unsigned booking form (esign URL) so the
-    // "Unsigned Booking Form" link in the admin Booking Form tab is
-    // populated. Idempotent: if esign_url already exists, we leave it
-    // alone — re-saving status doesn't orphan an existing token.
-    //
-    // Best-effort: a failure of the esign service should NOT roll back
-    // the status change (the PATCH is the primary operation). The error
-    // is logged so it can be retried later via POST /:id/send-to-esign.
-    let esignWarning = null;
-    if (updatedRow.status === 'booking_form_ready' && !updatedRow.esign_url) {
-      try {
-        await createUnsignedBookingForm(req.params.id);
-        // Re-read so the response reflects the freshly written esign_url.
-        const refreshed = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [req.params.id]);
-        if (refreshed.rows.length > 0) {
-          updatedRow = refreshed.rows[0];
-        }
-      } catch (esignErr) {
-        console.error('Auto-generate unsigned booking form failed for id ' + req.params.id + ':', esignErr);
-        esignWarning = 'Esign form generation failed: ' + esignErr.message;
-      }
-    }
-
-    const response = toCamelCase(updatedRow);
-    if (esignWarning) response._warnings = [esignWarning];
-    res.json(response);
+    res.json(toCamelCase(updatedRow));
   } catch (err) {
     console.error('Update booking form error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -389,62 +345,58 @@ router.post('/:id/send-to-editor', async (req, res) => {
       [editableUrl, req.params.id]
     );
 
-    // Also generate the unsigned e-sign version (best-effort)
-    let esignUrl = null;
-    let esignWarning = null;
-    try {
-      const esignResult = await createUnsignedBookingForm(req.params.id);
-      esignUrl = esignResult.esignUrl;
-    } catch (esignErr) {
-      console.warn('[send-to-editor] Could not auto-generate esign:', esignErr.message);
-      esignWarning = 'Esign form generation failed: ' + esignErr.message;
-    }
-
-    res.json({ success: true, editableUrl, esignUrl, slug: finalSlug, esignWarning });
+    res.json({ success: true, editableUrl, slug: finalSlug });
   } catch (err) {
     console.error('Send to editor error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// POST /:id/send-to-esign - Send edited booking form to e-sign service.
-// Used by the explicit "send to esign" UI action AND as a manual retry
-// path when the auto-generation in PATCH /:id failed (e.g. esign service
-// down at the moment status was advanced).
-router.post('/:id/send-to-esign', async (req, res) => {
+// POST /:id/upload-booking-file/:type - Upload unsigned or signed booking form file.
+// :type must be "unsigned" or "signed". Stores the file and saves the URL
+// on the booking_forms row (unsigned_file_url or signed_file_url).
+router.post('/:id/upload-booking-file/:type', bookingFileUpload.single('file'), async (req, res) => {
   try {
-    const { esignUrl } = await createUnsignedBookingForm(req.params.id);
-    res.json({ success: true, esignUrl });
-  } catch (err) {
-    if (err && err.code === 'NOT_FOUND') {
+    const type = req.params.type;
+    if (type !== 'unsigned' && type !== 'signed') {
+      if (req.file) fs.unlink(path.join(bookingFileUploadDir, req.file.filename), function () {});
+      return res.status(400).json({ error: 'Type must be "unsigned" or "signed"' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Missing file upload' });
+    }
+
+    const col = type === 'unsigned' ? 'unsigned_file_url' : 'signed_file_url';
+    const current = await pool.query('SELECT ' + col + ' FROM booking_forms WHERE id = $1', [req.params.id]);
+    if (current.rows.length === 0) {
+      fs.unlink(path.join(bookingFileUploadDir, req.file.filename), function () {});
       return res.status(404).json({ error: 'Booking form not found' });
     }
-    console.error('Send to esign error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
-// POST /by-slug/:slug/send-to-esign - Generate unsigned booking form by slug.
-// Called by the editable booking form's "Send to ProAgri" button which only
-// knows the editor slug (e.g. "acme-farms-22"), not the booking form ID.
-router.post('/by-slug/:slug/send-to-esign', async (req, res) => {
-  try {
-    const slug = req.params.slug.replace(/\.html$/i, '');
-    const { html } = req.body || {};
-
-    // Find the booking form whose editable_url contains this slug
-    const result = await pool.query(
-      "SELECT id FROM booking_forms WHERE editable_url LIKE $1 ORDER BY id DESC LIMIT 1",
-      ['%' + slug + '%']
+    const fileUrl = '/uploads/booking-files/' + req.file.filename;
+    const updated = await pool.query(
+      `UPDATE booking_forms SET ${col} = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [fileUrl, req.params.id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No booking form found for slug: ' + slug });
+
+    // Clean up previous file
+    var prevUrl = current.rows[0] && current.rows[0][col];
+    if (prevUrl && prevUrl.indexOf('/uploads/booking-files/') === 0) {
+      var prevAbs = path.join(bookingFileUploadDir, path.basename(prevUrl));
+      if (prevAbs !== path.join(bookingFileUploadDir, req.file.filename)) {
+        fs.unlink(prevAbs, function () {});
+      }
     }
-    const formId = result.rows[0].id;
-    const { esignUrl } = await createUnsignedBookingForm(formId);
-    res.json({ success: true, esignUrl, bookingFormId: formId });
+
+    res.json({
+      success: true,
+      fileUrl: fileUrl,
+      fileName: req.file.originalname || req.file.filename,
+      mimeType: req.file.mimetype || null,
+      bookingForm: toCamelCase(updated.rows[0])
+    });
   } catch (err) {
-    console.error('Send to esign by slug error:', err);
+    console.error('Upload booking file error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

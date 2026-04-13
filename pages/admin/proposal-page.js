@@ -42,8 +42,6 @@
   var ICON_SKIP = 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z';
   // edit/pencil — signals "changes requested, needs revision"
   var ICON_CHANGE_REQUEST = 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
-  // refresh — retry esign generation
-  var ICON_RETRY = 'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z';
 
   // Track active container for back navigation
   var _activeContainer = null;
@@ -93,16 +91,12 @@
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
   ];
 
-  // The Booking Form sheet is a signing-lifecycle hub. Three columns,
-  // one per artifact:
-  //   - Unsigned Booking Form → the link a client clicks to sign
-  //   - Change Request Doc    → PDF stored when a client requested changes
-  //   - Signed Booking Form   → PDF stored once the client has signed
-  // The Prefilled Checklist column lives only on the Proposal sheet.
+  // The Booking Form sheet has upload columns for the unsigned and signed
+  // booking form files. These are manually uploaded for now — the
+  // automated esign flow will be re-added later.
   var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
-    { key: 'esignUrl',     label: 'Unsigned Booking Form', type: 'link', width: 'sm' },
-    { key: 'changeReqUrl', label: 'Change Request Doc',    type: 'link', width: 'sm' },
-    { key: 'signedUrl',    label: 'Signed Booking Form',   type: 'link', width: 'sm' }
+    { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'sm' },
+    { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'sm' }
   ]);
 
   // Design Proposals sheet: status + the uploaded proposal file artifact.
@@ -136,13 +130,9 @@
       // rows AND on the Booking Form hub regardless of status (because the
       // checklist data is relevant throughout the booking-form lifecycle).
       checklistUrl: form.checklistUrl || '',
-      // Unsigned esign URL — populated by the Booking Form Esign app at
-      // token creation time. Show whenever it exists.
-      esignUrl: form.esignUrl || '',
-      // Change-request and signed PDFs are stored as base64. Wrap them in
-      // data URLs so a click on "View" opens the PDF in a new tab.
-      changeReqUrl: pdfDataUrl(form.changeRequestPdf),
-      signedUrl: pdfDataUrl(form.signedPdf),
+      // Manually uploaded booking form files
+      unsignedFileUrl: form.unsignedFileUrl || '',
+      signedFileUrl: form.signedFileUrl || '',
       proposalFileUrl: form.proposalFileUrl || ''
     };
   }
@@ -304,29 +294,6 @@
             if (res.ok) refreshFn();
           });
         }
-      },
-      {
-        icon: ICON_RETRY,
-        tooltip: 'Retry esign generation',
-        className: 'action-retry-esign',
-        visible: function (rowData) {
-          return !rowData.esignUrl && ['booking_form_ready', 'booking_form_sent', 'client_changes', 'change_requested'].indexOf(rowData.status) !== -1;
-        },
-        onClick: function (rowData) {
-          fetch(API_BASE + '/' + rowData.id + '/send-to-esign', {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({})
-          }).then(function (res) {
-            if (res.ok) {
-              refreshFn();
-            } else {
-              res.json().then(function (data) {
-                alert('Esign generation failed: ' + (data.error || 'Unknown error'));
-              }).catch(function () { alert('Esign generation failed'); });
-            }
-          });
-        }
       }
     ];
     if (Array.isArray(opts.extraRowActions) && opts.extraRowActions.length) {
@@ -360,7 +327,8 @@
           rowActions: rowActions,
           onCellSaved: function (rowData, key) {
             if (key === 'status') refreshFn();
-          }
+          },
+          onUploadComplete: function () { refreshFn(); }
         });
       }
     }

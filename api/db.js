@@ -230,6 +230,10 @@ async function runMigrations() {
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS proposal_file_mime VARCHAR(255)`);
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS proposal_file_uploaded_at TIMESTAMPTZ`);
 
+    // Manually uploaded booking form files (unsigned + signed)
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS unsigned_file_url TEXT`);
+    await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_file_url TEXT`);
+
     // E-sign data (latest-state "pointer" columns on booking_forms —
     // the append-only source of truth lives in booking_form_revisions)
     await client.query(`ALTER TABLE booking_forms ADD COLUMN IF NOT EXISTS signed_pdf TEXT`);

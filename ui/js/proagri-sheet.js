@@ -220,6 +220,65 @@
       cell.appendChild(a);
     },
 
+    upload: function (cell, value, col, rowData) {
+      var wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.gap = '6px';
+
+      if (value) {
+        var a = document.createElement('a');
+        a.href = value;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = 'View';
+        a.className = 'proagri-sheet-link';
+        a.addEventListener('click', function (e) { e.stopPropagation(); });
+        wrap.appendChild(a);
+      }
+
+      var uploadBtn = document.createElement('button');
+      uploadBtn.type = 'button';
+      uploadBtn.textContent = value ? 'Replace' : 'Upload';
+      uploadBtn.className = 'proagri-sheet-upload-btn';
+      uploadBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var picker = document.createElement('input');
+        picker.type = 'file';
+        picker.accept = '.pdf,.doc,.docx,.png,.jpg,.jpeg';
+        picker.style.display = 'none';
+        document.body.appendChild(picker);
+        picker.addEventListener('change', function () {
+          var file = picker.files && picker.files[0];
+          if (!file) { picker.remove(); return; }
+          var fd = new FormData();
+          fd.append('file', file);
+          var uploadType = col.uploadType || 'unsigned';
+          var headers = {};
+          if (window.getAuthHeaders) {
+            var auth = window.getAuthHeaders();
+            for (var k in auth) { if (auth.hasOwnProperty(k)) headers[k] = auth[k]; }
+          }
+          fetch((window.API_URL || '') + '/api/booking-forms/' + rowData.id + '/upload-booking-file/' + uploadType, {
+            method: 'POST',
+            headers: headers,
+            body: fd
+          }).then(function (res) {
+            if (!res.ok) throw new Error('Upload failed');
+            return res.json();
+          }).then(function () {
+            if (onUploadComplete) onUploadComplete();
+          }).catch(function (err) {
+            console.error('Booking file upload failed:', err);
+            alert('Failed to upload file. Please try again.');
+          }).finally(function () { picker.remove(); });
+        });
+        picker.click();
+      });
+      wrap.appendChild(uploadBtn);
+      cell.appendChild(wrap);
+    },
+
     person: function (cell, value) {
       var ids = Array.isArray(value) ? value : (value ? [value] : []);
       var wrap = document.createElement('div');
@@ -748,6 +807,7 @@
     var searchable = config.searchable || false;
     var onCellEdit = config.onCellEdit || null;
     var onCellSaved = config.onCellSaved || null;
+    var onUploadComplete = config.onUploadComplete || null;
     var apiEndpoint = config.apiEndpoint || null;
     var sortKey = config._sortKey || null;
     var sortDir = config._sortDir || 'asc';
@@ -950,7 +1010,7 @@
         if (!col.width && col.type === 'person') cell.style.flex = '0 0 44px';
         cell.setAttribute('data-col-key', col.key);
         var type = col.type || 'text';
-        (cellRenderers[type] || cellRenderers.text)(cell, rowData[col.key], col);
+        (cellRenderers[type] || cellRenderers.text)(cell, rowData[col.key], col, rowData);
 
         if (col.editable) {
           cell.addEventListener('click', function (e) {
