@@ -225,9 +225,10 @@ router.get('/credentials', async (req, res) => {
 router.post('/credentials', async (req, res) => {
   const b = toSnakeBody(req.body);
   const { platform, account_name, account_handle, credentials, is_active, client_id } = b;
+  const resolvedAccountName = (account_name || '').trim() || (account_handle || '').trim() || (platform ? `${platform} account` : '');
 
-  if (!platform || !account_name) {
-    return res.status(400).json({ error: 'platform and account_name are required' });
+  if (!platform || !resolvedAccountName) {
+    return res.status(400).json({ error: 'platform and an account name or handle are required' });
   }
 
   try {
@@ -239,7 +240,7 @@ router.post('/credentials', async (req, res) => {
        RETURNING *`,
       [
         platform,
-        account_name,
+        resolvedAccountName,
         account_handle || null,
         JSON.stringify(credentials || {}),
         is_active !== false,

@@ -17,14 +17,98 @@
 
   var PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
 
-  var PLATFORM_FIELDS = {
-    facebook:  ['Page ID', 'Access Token'],
-    instagram: ['Business Account ID', 'Access Token'],
-    twitter:   ['API Key', 'API Secret', 'Access Token', 'Access Token Secret'],
-    linkedin:  ['Organization URN', 'Access Token'],
-    youtube:   ['Channel ID', 'API Key', 'OAuth Refresh Token'],
-    tiktok:    ['Open ID', 'Access Token']
+  var PLATFORM_MANUAL_CONFIG = {
+    facebook: {
+      requiredFields: [
+        { label: 'Page ID', key: 'page_id' },
+        { label: 'Access Token', key: 'access_token', secret: true }
+      ],
+      identityLabel: 'Page Name',
+      identityPlaceholder: 'Optional display name for this page',
+      handleLabel: 'Page Handle',
+      handlePlaceholder: 'Optional page handle or username'
+    },
+    instagram: {
+      requiredFields: [
+        { label: 'Instagram Business Account ID', key: 'ig_user_id' },
+        { label: 'Access Token', key: 'access_token', secret: true }
+      ],
+      identityLabel: 'Account Name',
+      identityPlaceholder: 'Optional display name for this Instagram account',
+      handleLabel: 'Instagram Username',
+      handlePlaceholder: 'Optional username without @'
+    },
+    twitter: {
+      requiredFields: [
+        { label: 'Access Token', key: 'access_token', secret: true }
+      ],
+      identityLabel: 'Profile Name',
+      identityPlaceholder: 'Optional display name for this X account',
+      handleLabel: 'Username',
+      handlePlaceholder: 'Optional username without @'
+    },
+    linkedin: {
+      requiredFields: [
+        { label: 'Person URN', key: 'person_urn' },
+        { label: 'Access Token', key: 'access_token', secret: true }
+      ],
+      identityLabel: 'Profile Name',
+      identityPlaceholder: 'Optional display name for this LinkedIn profile',
+      handleLabel: 'LinkedIn ID',
+      handlePlaceholder: 'Optional LinkedIn member ID'
+    },
+    youtube: {
+      requiredFields: [
+        { label: 'Channel ID', key: 'channel_id' },
+        { label: 'Access Token', key: 'access_token', secret: true }
+      ],
+      optionalFields: [
+        { label: 'Refresh Token', key: 'refresh_token', secret: true }
+      ],
+      identityLabel: 'Channel Name',
+      identityPlaceholder: 'Optional display name for this channel',
+      handleLabel: 'Channel Handle',
+      handlePlaceholder: 'Optional @channel handle'
+    },
+    tiktok: {
+      requiredFields: [
+        { label: 'Open ID', key: 'open_id' },
+        { label: 'Access Token', key: 'access_token', secret: true }
+      ],
+      optionalFields: [
+        { label: 'Refresh Token', key: 'refresh_token', secret: true }
+      ],
+      identityLabel: 'Profile Name',
+      identityPlaceholder: 'Optional display name for this TikTok account',
+      handleLabel: 'TikTok Username',
+      handlePlaceholder: 'Optional username without @'
+    }
   };
+
+  function getPlatformManualConfig(platform) {
+    return PLATFORM_MANUAL_CONFIG[platform] || {
+      requiredFields: [{ label: 'Access Token', key: 'access_token', secret: true }],
+      optionalFields: [],
+      identityLabel: 'Account Name',
+      identityPlaceholder: 'Optional account name',
+      handleLabel: 'Handle / ID',
+      handlePlaceholder: 'Optional handle or ID'
+    };
+  }
+
+  function buildManualCredentialState(platform) {
+    var config = getPlatformManualConfig(platform);
+    var credentials = {};
+    (config.requiredFields || []).concat(config.optionalFields || []).forEach(function (field) {
+      credentials[field.key] = '';
+    });
+    return credentials;
+  }
+
+  function defaultAccountName(platform, handle, identity) {
+    var info = PLATFORM_INFO[platform] || { label: platform };
+    return identity || handle || (info.label + ' account');
+  }
 
   // ---- module state ----
   var state = {
@@ -1261,7 +1345,7 @@
       platform: 'facebook',
       accountName: '',
       accountHandle: '',
-      credentials: {},
+      credentials: buildManualCredentialState('facebook'),
       clientId: defaultClientId
     };
 
@@ -1278,16 +1362,26 @@
 
     // Platform select rebuilds field section on change
     var fieldsHost = el('div');
+    var identityFieldHost = el('div');
+    var handleFieldHost = el('div');
+    var identityInput = input('text', '', function (v) { newCred.accountName = v; });
+    var handleInput = input('text', '', function (v) { newCred.accountHandle = v; });
     function rebuildFields() {
+      var manualConfig = getPlatformManualConfig(newCred.platform);
+      while (identityFieldHost.firstChild) identityFieldHost.removeChild(identityFieldHost.firstChild);
+      while (handleFieldHost.firstChild) handleFieldHost.removeChild(handleFieldHost.firstChild);
       while (fieldsHost.firstChild) fieldsHost.removeChild(fieldsHost.firstChild);
-      newCred.credentials = {};
-      var fields = PLATFORM_FIELDS[newCred.platform] || ['Access Token'];
-      fields.forEach(function (f) {
-        var key = f.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-        fieldsHost.appendChild(field(f, input(
-          (f.toLowerCase().indexOf('token') !== -1 || f.toLowerCase().indexOf('secret') !== -1 || f.toLowerCase().indexOf('key') !== -1) ? 'password' : 'text',
+      newCred.credentials = buildManualCredentialState(newCred.platform);
+      identityInput.placeholder = manualConfig.identityPlaceholder || 'Optional account name';
+      handleInput.placeholder = manualConfig.handlePlaceholder || 'Optional handle or ID';
+      identityFieldHost.appendChild(field((manualConfig.identityLabel || 'Account Name') + ' (optional)', identityInput));
+      handleFieldHost.appendChild(field((manualConfig.handleLabel || 'Handle / ID') + ' (optional)', handleInput));
+      var allFields = (manualConfig.requiredFields || []).concat(manualConfig.optionalFields || []);
+      allFields.forEach(function (fieldConfig) {
+        fieldsHost.appendChild(field(fieldConfig.label, input(
+          fieldConfig.secret ? 'password' : 'text',
           '',
-          function (v) { newCred.credentials[key] = v; }
+          function (v) { newCred.credentials[fieldConfig.key] = v; }
         )));
       });
     }
@@ -1297,10 +1391,9 @@
       newCred.platform = v;
       rebuildFields();
     })));
-    platRow.appendChild(field('Account Name', input('text', '', function (v) { newCred.accountName = v; })));
     addForm.appendChild(platRow);
-
-    addForm.appendChild(field('Handle (optional)', input('text', '', function (v) { newCred.accountHandle = v; })));
+    addForm.appendChild(identityFieldHost);
+    addForm.appendChild(handleFieldHost);
 
     addForm.appendChild(fieldsHost);
     rebuildFields();
@@ -1314,10 +1407,20 @@
 
       var save = el('button', 'sch-btn sch-btn-primary', 'Save Account');
       save.addEventListener('click', function () {
-        if (!newCred.accountName) {
-          alert('Account name is required.');
+        var manualConfig = getPlatformManualConfig(newCred.platform);
+        var missingField = null;
+        (manualConfig.requiredFields || []).some(function (fieldConfig) {
+          if (!String(newCred.credentials[fieldConfig.key] || '').trim()) {
+            missingField = fieldConfig.label;
+            return true;
+          }
+          return false;
+        });
+        if (missingField) {
+          alert(missingField + ' is required.');
           return;
         }
+        newCred.accountName = defaultAccountName(newCred.platform, newCred.accountHandle, newCred.accountName && newCred.accountName.trim());
         save.disabled = true;
         api('/credentials', {
           method: 'POST',
@@ -1651,39 +1754,57 @@
         }
 
         // Option 2: Manual entry
+        var manualConfig = getPlatformManualConfig(platform);
         var manualSection = el('div', 'sch-config-section');
         manualSection.appendChild(el('div', 'sch-config-section-title', 'Manual Configuration'));
-        manualSection.appendChild(el('div', 'sch-config-section-desc', 'Enter your API credentials manually.'));
+        manualSection.appendChild(el('div', 'sch-config-section-desc', 'Only enter the fields this account actually needs.'));
 
-        var fields = PLATFORM_FIELDS[platform] || [];
         var nameInput = el('input', 'sch-config-input');
         nameInput.type = 'text';
-        nameInput.placeholder = 'Account Name (e.g. My Page)';
-        manualSection.appendChild(wrapField('Account Name', nameInput));
+        nameInput.placeholder = manualConfig.identityPlaceholder || 'Optional account name';
+        manualSection.appendChild(wrapField((manualConfig.identityLabel || 'Account Name') + ' (optional)', nameInput));
 
         var handleInput = el('input', 'sch-config-input');
         handleInput.type = 'text';
-        handleInput.placeholder = '@handle or ID';
-        manualSection.appendChild(wrapField('Handle / ID', handleInput));
+        handleInput.placeholder = manualConfig.handlePlaceholder || 'Optional handle or ID';
+        manualSection.appendChild(wrapField((manualConfig.handleLabel || 'Handle / ID') + ' (optional)', handleInput));
 
         var fieldInputs = [];
-        fields.forEach(function (fieldName) {
+        var allFields = (manualConfig.requiredFields || []).concat(manualConfig.optionalFields || []);
+        allFields.forEach(function (fieldConfig) {
           var inp = el('input', 'sch-config-input');
-          inp.type = 'text';
-          inp.placeholder = fieldName;
-          fieldInputs.push({ name: fieldName, input: inp });
-          manualSection.appendChild(wrapField(fieldName, inp));
+          inp.type = fieldConfig.secret ? 'password' : 'text';
+          inp.placeholder = fieldConfig.label;
+          fieldInputs.push({ config: fieldConfig, input: inp });
+          manualSection.appendChild(wrapField(
+            fieldConfig.label + ((manualConfig.requiredFields || []).indexOf(fieldConfig) !== -1 ? '' : ' (optional)'),
+            inp
+          ));
         });
 
         var saveBtn = el('button', 'sch-btn sch-btn-primary sch-config-action-btn', 'Save');
         saveBtn.addEventListener('click', function () {
-          var accountName = nameInput.value.trim();
-          if (!accountName) { nameInput.focus(); nameInput.style.borderColor = '#ef4444'; return; }
-          var credentials = {};
-          fieldInputs.forEach(function (fi) {
-            var key = fi.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-            credentials[key] = fi.input.value.trim();
+          var missingInput = null;
+          fieldInputs.some(function (entry) {
+            var isRequired = (manualConfig.requiredFields || []).indexOf(entry.config) !== -1;
+            if (isRequired && !entry.input.value.trim()) {
+              missingInput = entry;
+              return true;
+            }
+            return false;
           });
+          if (missingInput) {
+            missingInput.input.focus();
+            missingInput.input.style.borderColor = '#ef4444';
+            return;
+          }
+          var credentials = {};
+          fieldInputs.forEach(function (entry) {
+            var value = entry.input.value.trim();
+            if (value) credentials[entry.config.key] = value;
+          });
+          var accountHandle = handleInput.value.trim();
+          var accountName = defaultAccountName(platform, accountHandle, nameInput.value.trim());
           saveBtn.disabled = true;
           saveBtn.textContent = 'Saving...';
           api('/credentials', {
@@ -1691,7 +1812,7 @@
             body: JSON.stringify({
               platform: platform,
               accountName: accountName,
-              accountHandle: handleInput.value.trim(),
+              accountHandle: accountHandle,
               credentials: credentials,
               isActive: true,
               clientId: clientId
