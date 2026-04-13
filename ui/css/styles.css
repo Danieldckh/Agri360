@@ -1699,14 +1699,14 @@ html, body {
 }
 
 .cd-bubble-body {
-  background: rgba(0, 0, 0, 0.06);
+  background: #e8ecf1;
   border-radius: 10px;
   padding: 7px 11px;
   min-width: 50px;
 }
 
 .cd-bubble-own .cd-bubble-body {
-  background: linear-gradient(135deg, var(--color-accent-light, #f5a623), var(--color-accent-dark, #d4791a));
+  background: #1e3a5f;
   color: #fff;
 }
 

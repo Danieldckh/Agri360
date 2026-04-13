@@ -109,8 +109,15 @@
     { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'sm' }
   ];
 
+  // Design sheets use assignedDesign (the designer), not assignedAdmin
+  var DESIGN_BASE_COLUMNS = [
+    { key: 'assignedDesign', label: '', type: 'person', editable: true },
+    { key: 'client', label: 'Client', sortable: true, isName: true },
+    { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
+  ];
+
   // Design Proposals sheet: status + the uploaded proposal file artifact.
-  var DESIGN_PROPOSAL_COLUMNS = BASE_COLUMNS.concat([
+  var DESIGN_PROPOSAL_COLUMNS = DESIGN_BASE_COLUMNS.concat([
     { key: 'proposalFileUrl', label: 'Proposal File', type: 'link', width: 'sm' }
   ]);
 
@@ -133,6 +140,7 @@
     return {
       id: form.id,
       assignedAdmin: form.assignedAdmin || null,
+      assignedDesign: form.assignedDesign || null,
       client: form.clientName || form.title || 'Untitled',
       status: form.status || 'outline_proposal',
       // Prefilled checklist link — populated by the checklist app at
@@ -254,8 +262,9 @@
       leadingActions = opts.leadingActions.slice();
     }
 
-    var rowActions = [
-      {
+    var rowActions = [];
+    if (!opts.hideDelete) {
+      rowActions.push({
         icon: ICON_DELETE_X,
         tooltip: 'Delete proposal & deliverables',
         className: 'action-delete',
@@ -274,7 +283,9 @@
             }
           );
         }
-      },
+      });
+    }
+    rowActions.push(
       {
         icon: ICON_ADVANCE,
         tooltip: function (rowData) {
@@ -326,7 +337,7 @@
           });
         }
       }
-    ];
+    );
     if (Array.isArray(opts.extraRowActions) && opts.extraRowActions.length) {
       rowActions = opts.extraRowActions.concat(rowActions);
     }
@@ -1083,10 +1094,58 @@
     return card;
   }
 
+  // --- Document Card (view-only, no upload) ---
+  function buildDocCard(title, url, linkText) {
+    var card = document.createElement('div');
+    card.className = 'cd-upload-card';
+
+    var h = document.createElement('div');
+    h.className = 'cd-upload-card-title';
+    h.textContent = title;
+    card.appendChild(h);
+
+    if (url && linkText) {
+      var info = document.createElement('div');
+      info.className = 'cd-upload-file-info';
+      var fileIcon = makeDashSvg('M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z', 18);
+      fileIcon.classList.add('cd-upload-file-icon');
+      info.appendChild(fileIcon);
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'cd-upload-file-name';
+      nameSpan.textContent = linkText;
+      info.appendChild(nameSpan);
+      var viewBtn = document.createElement('a');
+      viewBtn.className = 'cd-upload-file-download';
+      viewBtn.href = url;
+      viewBtn.target = '_blank';
+      viewBtn.rel = 'noopener noreferrer';
+      viewBtn.title = 'Open';
+      viewBtn.appendChild(makeDashSvg('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z', 16));
+      info.appendChild(viewBtn);
+      card.appendChild(info);
+    } else {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'font-size:13px;color:var(--text-secondary,#94a3b8);padding:12px 0;text-align:center;';
+      empty.textContent = 'Not yet available';
+      card.appendChild(empty);
+    }
+
+    return card;
+  }
+
   // --- Messenger Component (embedded, WhatsApp-style) ---
+  var COMMON_EMOJI = [
+    '\ud83d\ude00','\ud83d\ude02','\ud83d\ude0d','\ud83d\ude4f','\ud83d\udc4d','\ud83d\udc4e',
+    '\ud83d\udd25','\u2764\ufe0f','\ud83d\ude22','\ud83d\ude31','\ud83d\ude0e','\ud83e\udd14',
+    '\ud83d\ude4c','\ud83d\udcaf','\u2705','\u274c','\ud83d\udce3','\ud83c\udf89',
+    '\ud83d\udc40','\u270d\ufe0f','\ud83d\udcc4','\ud83d\udcce','\u23f0','\ud83d\ude80'
+  ];
+
   function buildMessenger(bookingFormId, purpose, title) {
     var channelId = null;
     var lastMsgId = 0;
+    // Track @mentions: [{name, id, start, end}] — positions in textarea
+    var pendingMentions = [];
 
     var card = document.createElement('div');
     card.className = 'cd-messenger';
@@ -1114,10 +1173,18 @@
     inputBar.className = 'cd-messenger-input';
     inputBar.style.position = 'relative';
 
+    var emojiBtn = document.createElement('button');
+    emojiBtn.className = 'cd-messenger-btn';
+    emojiBtn.type = 'button';
+    emojiBtn.title = 'Emoji';
+    emojiBtn.textContent = '\ud83d\ude00';
+    emojiBtn.style.fontSize = '16px';
+    inputBar.appendChild(emojiBtn);
+
     var attachBtn = document.createElement('button');
     attachBtn.className = 'cd-messenger-btn';
     attachBtn.type = 'button';
-    attachBtn.title = 'Attach file';
+    attachBtn.title = 'Attach files';
     attachBtn.appendChild(makeDashSvg('M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H9.5v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S6.5 2.79 6.5 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6H16.5z', 18));
     inputBar.appendChild(attachBtn);
 
@@ -1140,16 +1207,43 @@
     mentionDropdown.style.display = 'none';
     inputBar.appendChild(mentionDropdown);
 
+    // Emoji picker (simple grid)
+    var emojiPicker = document.createElement('div');
+    emojiPicker.className = 'cd-mention-dropdown';
+    emojiPicker.style.display = 'none';
+    emojiPicker.style.cssText += 'display:none;padding:8px;flex-wrap:wrap;gap:4px;bottom:100%;position:absolute;left:0;right:0;background:var(--card-bg,#fff);border:1px solid var(--border-color,#e2e8f0);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:50;';
+    COMMON_EMOJI.forEach(function (em) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = em;
+      btn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;padding:4px;border-radius:4px;line-height:1;';
+      btn.addEventListener('click', function () {
+        var pos = textarea.selectionStart || textarea.value.length;
+        textarea.value = textarea.value.substring(0, pos) + em + textarea.value.substring(pos);
+        textarea.focus();
+        emojiPicker.style.display = 'none';
+      });
+      emojiPicker.appendChild(btn);
+    });
+    inputBar.appendChild(emojiPicker);
+
     card.appendChild(inputBar);
+
+    // Emoji toggle
+    emojiBtn.addEventListener('click', function () {
+      emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
+      mentionDropdown.style.display = 'none';
+    });
 
     // Auto-resize textarea
     textarea.addEventListener('input', function () {
       textarea.style.height = 'auto';
       textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+      emojiPicker.style.display = 'none';
       handleMention(textarea, mentionDropdown);
     });
 
-    // Mention handling
+    // Mention handling — shows dropdown, inserts clean @Name in textarea
     function handleMention(ta, dropdown) {
       var val = ta.value;
       var cursorPos = ta.selectionStart;
@@ -1177,16 +1271,17 @@
             av.appendChild(makeDashSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 14));
           }
           item.appendChild(av);
-          var name = document.createElement('span');
-          name.textContent = (emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '');
-          item.appendChild(name);
+          var nameSpan = document.createElement('span');
+          var empName = (emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '');
+          nameSpan.textContent = empName;
+          item.appendChild(nameSpan);
           item.addEventListener('click', function () {
-            var fn = emp.firstName || emp.first_name || '';
-            var ln = emp.lastName || emp.last_name || '';
-            var mention = '@[' + fn + ' ' + ln + '](employee:' + emp.id + ')';
+            // Insert clean @Name in textarea, store mapping for send
+            var displayText = '@' + empName.trim();
             var before = ta.value.substring(0, cursorPos).replace(/@\w*$/, '');
             var after = ta.value.substring(cursorPos);
-            ta.value = before + mention + ' ' + after;
+            ta.value = before + displayText + ' ' + after;
+            pendingMentions.push({ name: empName.trim(), id: emp.id });
             ta.focus();
             dropdown.style.display = 'none';
           });
@@ -1196,12 +1291,25 @@
       });
     }
 
+    // Convert clean @Name mentions to markdown format for API
+    function buildContentWithMentions(text) {
+      var result = text;
+      pendingMentions.forEach(function (m) {
+        var pattern = '@' + m.name;
+        var replacement = '@[' + m.name + '](employee:' + m.id + ')';
+        result = result.replace(pattern, replacement);
+      });
+      return result;
+    }
+
     // Send message
     function sendMessage() {
-      var content = textarea.value.trim();
-      if (!content || !channelId) return;
+      var rawText = textarea.value.trim();
+      if (!rawText || !channelId) return;
+      var content = buildContentWithMentions(rawText);
       textarea.value = '';
       textarea.style.height = 'auto';
+      pendingMentions = [];
 
       fetch(MSG_API + '/channels/' + channelId + '/messages', {
         method: 'POST',
@@ -1221,16 +1329,18 @@
     });
     sendBtn.addEventListener('click', sendMessage);
 
-    // Attach file
-    attachBtn.addEventListener('click', function () {
-      if (!channelId) return;
-      var fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.addEventListener('change', function () {
-        if (!fileInput.files || !fileInput.files[0]) return;
+    // Attach files — multiple, auto-sends
+    function sendFiles(files) {
+      if (!channelId || !files || files.length === 0) return;
+      var content = buildContentWithMentions(textarea.value.trim()) || '';
+      textarea.value = '';
+      textarea.style.height = 'auto';
+      pendingMentions = [];
+      // Send each file as a separate message (API accepts one file per message)
+      Array.prototype.forEach.call(files, function (file, idx) {
         var fd = new FormData();
-        fd.append('content', textarea.value || 'Attached a file');
-        fd.append('file', fileInput.files[0]);
+        fd.append('content', idx === 0 ? (content || file.name) : file.name);
+        fd.append('file', file);
         var h = {};
         if (window.getAuthHeaders) {
           var auth = window.getAuthHeaders();
@@ -1243,18 +1353,27 @@
         }).then(function (r) { return r.json(); })
           .then(function (msg) {
             if (msg && msg.id) {
-              textarea.value = '';
               appendBubble(msg, true);
               lastMsgId = msg.id;
             }
           });
+      });
+    }
+
+    attachBtn.addEventListener('click', function () {
+      if (!channelId) return;
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.multiple = true;
+      fileInput.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt';
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files.length > 0) sendFiles(fileInput.files);
       });
       fileInput.click();
     });
 
     // Bubble rendering
     function appendBubble(msg, scrollToBottom) {
-      // Remove empty placeholder
       var empty = messagesDiv.querySelector('.cd-messenger-empty');
       if (empty) empty.remove();
 
@@ -1291,40 +1410,54 @@
       meta.appendChild(ts);
       body.appendChild(meta);
 
+      // Content — render @mentions as clean names
       var contentEl = document.createElement('div');
       contentEl.className = 'cd-bubble-content';
-      // Render @mentions
       var content = msg.content || '';
       var mentionRegex = /@\[([^\]]+)\]\(employee:(\d+)\)/g;
       var lastIdx = 0;
-      var match;
-      while ((match = mentionRegex.exec(content)) !== null) {
-        if (match.index > lastIdx) contentEl.appendChild(document.createTextNode(content.substring(lastIdx, match.index)));
+      var mMatch;
+      while ((mMatch = mentionRegex.exec(content)) !== null) {
+        if (mMatch.index > lastIdx) contentEl.appendChild(document.createTextNode(content.substring(lastIdx, mMatch.index)));
         var mentionSpan = document.createElement('span');
-        mentionSpan.style.fontWeight = '600';
-        mentionSpan.textContent = '@' + match[1];
+        mentionSpan.style.cssText = 'font-weight:600;color:var(--accent-color,#3b82f6)';
+        mentionSpan.textContent = '@' + mMatch[1];
         contentEl.appendChild(mentionSpan);
-        lastIdx = match.index + match[0].length;
+        lastIdx = mMatch.index + mMatch[0].length;
       }
       if (lastIdx < content.length) contentEl.appendChild(document.createTextNode(content.substring(lastIdx)));
       if (!contentEl.firstChild) contentEl.appendChild(document.createTextNode(content));
       body.appendChild(contentEl);
 
-      // Attachments
+      // Attachments — images inline (WhatsApp-style), files as links
       var attachments = msg.attachments;
       if (attachments && Array.isArray(attachments) && attachments.length > 0) {
         attachments.forEach(function (att) {
           var attEl = document.createElement('div');
           attEl.className = 'cd-bubble-attachment';
-          var link = document.createElement('a');
-          link.href = '/uploads/attachments/' + att.filename;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.appendChild(makeDashSvg('M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z', 12));
-          var fname = document.createElement('span');
-          fname.textContent = att.originalName || att.original_name || att.filename;
-          link.appendChild(fname);
-          attEl.appendChild(link);
+          var mime = att.mimeType || att.mime_type || '';
+          var url = '/uploads/attachments/' + att.filename;
+
+          if (mime.indexOf('image/') === 0) {
+            // Inline image preview like WhatsApp
+            var img = document.createElement('img');
+            img.src = url;
+            img.alt = att.originalName || att.original_name || 'Image';
+            img.style.cssText = 'max-width:220px;max-height:200px;border-radius:6px;cursor:pointer;display:block;margin-top:4px;';
+            img.addEventListener('click', function () { window.open(url, '_blank'); });
+            attEl.appendChild(img);
+          } else {
+            var link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.appendChild(makeDashSvg('M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z', 12));
+            var fname = document.createElement('span');
+            fname.textContent = att.originalName || att.original_name || att.filename;
+            link.appendChild(fname);
+            attEl.appendChild(link);
+          }
+
           body.appendChild(attEl);
         });
       }
@@ -1613,41 +1746,20 @@
         ));
 
         // Booking Form file upload
-        rightCol.appendChild(buildUploadCard(
+        // Unsigned Booking Form — show esign signature page link
+        rightCol.appendChild(buildDocCard(
           'Booking Form',
-          data.unsignedFileUrl,
-          'Booking Form',
-          function (file) {
-            var fd = new FormData();
-            fd.append('file', file);
-            var h = {};
-            if (window.getAuthHeaders) {
-              var auth = window.getAuthHeaders();
-              for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
-            }
-            return fetch(API_BASE + '/' + bookingFormId + '/upload-booking-file/unsigned', {
-              method: 'POST', headers: h, body: fd
-            }).then(function (r) { if (!r.ok) throw new Error('Upload failed'); });
-          }
+          data.unsignedFileUrl || data.esignUrl || ('https://bookingformesign.proagrihub.com/sign/' + bookingFormId),
+          data.unsignedFileUrl ? 'View Booking Form' : 'Open Signature Page'
         ));
 
-        // Signed Booking Form file upload
-        rightCol.appendChild(buildUploadCard(
+        // Signed Booking Form — show signed PDF if available
+        var signedUrl = data.signedFileUrl || '';
+        if (!signedUrl && data.signedPdf) signedUrl = 'data:application/pdf;base64,' + data.signedPdf;
+        rightCol.appendChild(buildDocCard(
           'Signed Booking Form',
-          data.signedFileUrl,
-          'Signed Booking Form',
-          function (file) {
-            var fd = new FormData();
-            fd.append('file', file);
-            var h = {};
-            if (window.getAuthHeaders) {
-              var auth = window.getAuthHeaders();
-              for (var k in auth) { if (auth.hasOwnProperty(k)) h[k] = auth[k]; }
-            }
-            return fetch(API_BASE + '/' + bookingFormId + '/upload-booking-file/signed', {
-              method: 'POST', headers: h, body: fd
-            }).then(function (r) { if (!r.ok) throw new Error('Upload failed'); });
-          }
+          signedUrl,
+          signedUrl ? 'View Signed Booking Form' : null
         ));
       })
       .catch(function (err) {
@@ -1769,6 +1881,7 @@
     rightCol.className = 'proposal-grid-right';
 
     var designSheet = buildSheet('Design Proposals', refreshAll, DESIGN_PROPOSAL_COLUMNS, {
+      hideDelete: true,
       extraRowActions: [
         {
           icon: ICON_UPLOAD,
@@ -1783,7 +1896,8 @@
     designSheet.el.classList.add('design-proposals-sheet');
     leftCol.appendChild(designSheet.el);
 
-    var reviewSheet = buildSheet('Design Review', refreshAll, null, {
+    var reviewSheet = buildSheet('Design Review', refreshAll, DESIGN_BASE_COLUMNS, {
+      hideDelete: true,
       extraRowActions: [
         {
           icon: ICON_CHANGE_REQUEST,
@@ -1791,13 +1905,11 @@
           className: 'action-change-request',
           visible: function (rowData) { return rowData.status === 'design_review'; },
           onClick: function (rowData) {
-            showChangeNotesModal(function (notes) {
-              fetch(API_BASE + '/' + rowData.id, {
-                method: 'PATCH',
-                headers: getHeaders(),
-                body: JSON.stringify({ status: 'design_changes', changeNotes: notes })
-              }).then(function (res) { if (res.ok) refreshAll(); });
-            });
+            fetch(API_BASE + '/' + rowData.id, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify({ status: 'design_changes' })
+            }).then(function (res) { if (res.ok) refreshAll(); });
           }
         }
       ]
