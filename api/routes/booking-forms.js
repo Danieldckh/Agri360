@@ -38,63 +38,27 @@ const proposalUpload = multer({
 // On success: writes esign_url onto the booking_forms row and returns
 // { esignUrl, slug }. On failure: throws — callers decide whether to
 // swallow (PATCH side effect) or surface (explicit POST route).
-async function createUnsignedBookingForm(formId, opts) {
-  opts = opts || {};
-  const formResult = await pool.query('SELECT * FROM booking_forms WHERE id = $1', [formId]);
+async function createUnsignedBookingForm(formId) {
+  const formResult = await pool.query('SELECT id FROM booking_forms WHERE id = $1', [formId]);
   if (formResult.rows.length === 0) {
     const err = new Error('Booking form not found');
     err.code = 'NOT_FOUND';
     throw err;
   }
-  const form = toCamelCase(formResult.rows[0]);
-  const finalSlug = opts.slug || ('esign-' + form.id);
 
-  // Use the esign service to host the unsigned version (read-only page)
+  // The esign service (secure-signature-page) is a React SPA that reads
+  // form_data directly from the shared Postgres via /api/esign/booking/:id.
+  // No server-side HTML generation or token creation needed — the URL is
+  // simply /sign/:bookingFormId and the SPA handles rendering + signing.
   const ESIGN_URL = process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com';
-
-  // When the caller supplies HTML (e.g. edited content from the editor's
-  // "Send to ProAgri" button), use it directly.  Otherwise regenerate a
-  // fresh snippet from formData so the esign service wraps it in its own
-  // read-only template.  Either way, strip contenteditable attributes.
-  let html;
-  if (opts.html && typeof opts.html === 'string' && opts.html.trim()) {
-    html = opts.html.replace(/\s*contenteditable="true"/g, '');
-  } else {
-    const { formatDeliverables } = require('../lib/format-deliverables');
-    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
-    const formData = form.formData || {};
-    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
-    const rawHtml = buildBookingFormSnippet(formData, form, deliverableRows);
-    html = rawHtml.replace(/\s*contenteditable="true"/g, '');
-  }
-
-  // Create a signing token via the esign service.  The returned URL
-  // (/sign/:token) includes "Sign Booking Form" + "Request Changes"
-  // buttons powered by sign.js.
-  const adminSecret = process.env.ESIGN_ADMIN_SECRET || '';
-  const tokenHeaders = { 'Content-Type': 'application/json' };
-  if (adminSecret) tokenHeaders['X-Admin-Secret'] = adminSecret;
-
-  const tokenRes = await fetch(`${ESIGN_URL}/api/admin/create-token`, {
-    method: 'POST',
-    headers: tokenHeaders,
-    body: JSON.stringify({ bookingFormId: formId, html })
-  });
-  if (!tokenRes.ok) {
-    const errText = await tokenRes.text().catch(() => '');
-    const err = new Error('Esign service HTTP ' + tokenRes.status + ': ' + errText.slice(0, 200));
-    err.code = 'ESIGN_SERVICE_ERROR';
-    throw err;
-  }
-  const tokenResult = await tokenRes.json().catch(() => ({}));
-  const esignUrl = tokenResult.url || `${ESIGN_URL}/sign/${tokenResult.token}`;
+  const esignUrl = `${ESIGN_URL}/sign/${formId}`;
 
   await pool.query(
     'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
     [esignUrl, formId]
   );
 
-  return { esignUrl, slug: finalSlug };
+  return { esignUrl };
 }
 
 // GET / - list all booking forms with client info
@@ -429,7 +393,7 @@ router.post('/:id/send-to-editor', async (req, res) => {
     let esignUrl = null;
     let esignWarning = null;
     try {
-      const esignResult = await createUnsignedBookingForm(req.params.id, { html });
+      const esignResult = await createUnsignedBookingForm(req.params.id);
       esignUrl = esignResult.esignUrl;
     } catch (esignErr) {
       console.warn('[send-to-editor] Could not auto-generate esign:', esignErr.message);
@@ -449,9 +413,8 @@ router.post('/:id/send-to-editor', async (req, res) => {
 // down at the moment status was advanced).
 router.post('/:id/send-to-esign', async (req, res) => {
   try {
-    const { html, slug } = req.body || {};
-    const { esignUrl, slug: finalSlug } = await createUnsignedBookingForm(req.params.id, { html, slug });
-    res.json({ success: true, esignUrl, slug: finalSlug });
+    const { esignUrl } = await createUnsignedBookingForm(req.params.id);
+    res.json({ success: true, esignUrl });
   } catch (err) {
     if (err && err.code === 'NOT_FOUND') {
       return res.status(404).json({ error: 'Booking form not found' });
@@ -478,8 +441,8 @@ router.post('/by-slug/:slug/send-to-esign', async (req, res) => {
       return res.status(404).json({ error: 'No booking form found for slug: ' + slug });
     }
     const formId = result.rows[0].id;
-    const { esignUrl, slug: finalSlug } = await createUnsignedBookingForm(formId, { html });
-    res.json({ success: true, esignUrl, slug: finalSlug, bookingFormId: formId });
+    const { esignUrl } = await createUnsignedBookingForm(formId);
+    res.json({ success: true, esignUrl, bookingFormId: formId });
   } catch (err) {
     console.error('Send to esign by slug error:', err);
     res.status(500).json({ error: 'Internal server error' });
