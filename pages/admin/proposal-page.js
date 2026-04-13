@@ -282,6 +282,7 @@
           return next ? 'Advance to ' + next.replace(/_/g, ' ') : 'No next status';
         },
         className: 'action-advance',
+        visible: function (rowData) { return !!getNextStatus(rowData.status); },
         onClick: function (rowData) {
           var next = getNextStatus(rowData.status);
           if (!next) return;

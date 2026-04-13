@@ -631,7 +631,9 @@ router.get('/channels/:id/messages', requireChannelMember, async (req, res) => {
 });
 
 // POST /channels/:id/messages
-router.post('/channels/:id/messages', requireChannelMember, async (req, res) => {
+// Accepts JSON (text-only) OR multipart/form-data (text + file attachment).
+// When a file is included, the attachment record is created inline.
+router.post('/channels/:id/messages', requireChannelMember, attachmentUpload.single('file'), async (req, res) => {
   const userId = req.user.id;
   const { content, mentions = [], parentMessageId } = req.body;
 
@@ -648,10 +650,19 @@ router.post('/channels/:id/messages', requireChannelMember, async (req, res) => 
     );
     const message = result.rows[0];
 
+    // If a file was uploaded, create the attachment record
+    if (req.file) {
+      await pool.query(
+        `INSERT INTO message_attachments (message_id, filename, original_name, file_size, mime_type)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [message.id, req.file.filename, req.file.originalname, req.file.size, req.file.mimetype]
+      );
+    }
+
     // Parse @mentions from content
     const mentionRegex = /@(\w+)/g;
     let match;
-    const parsedMentions = new Set(mentions.map(Number));
+    const parsedMentions = new Set((Array.isArray(mentions) ? mentions : []).map(Number));
     while ((match = mentionRegex.exec(content)) !== null) {
       const usernameMatch = await pool.query(
         `SELECT id FROM employees WHERE username = $1`, [match[1]]
@@ -676,7 +687,7 @@ router.post('/channels/:id/messages', requireChannelMember, async (req, res) => 
       );
     }
 
-    // Fetch with sender info
+    // Fetch with sender info + attachment data
     const full = await pool.query(
       `SELECT m.*, ${SENDER_COLS}
        FROM messages m
@@ -685,7 +696,18 @@ router.post('/channels/:id/messages', requireChannelMember, async (req, res) => 
       [message.id]
     );
 
-    res.status(201).json(full.rows[0]);
+    const row = full.rows[0];
+
+    // Include attachment info in response if uploaded
+    if (req.file) {
+      const attResult = await pool.query(
+        `SELECT * FROM message_attachments WHERE message_id = $1`,
+        [message.id]
+      );
+      row.attachments = attResult.rows;
+    }
+
+    res.status(201).json(row);
   } catch (err) {
     console.error('Create message error:', err);
     res.status(500).json({ error: 'Internal server error' });
