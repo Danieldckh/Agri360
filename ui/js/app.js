@@ -976,6 +976,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Route Design > Agri for All to the Production-styled split sheet
+    if (page === 'design' && viewName === 'Agri for All' && window.renderDesignAgriForAllTab) {
+      window.renderDesignAgriForAllTab(dashboardContent);
+      return;
+    }
+
     // Route Editorial > Content Calendars to the Production-styled split sheet
     if (page === 'editorial' && viewName === 'Content Calendars' && window.renderEditorialContentCalendarsTab) {
       window.renderEditorialContentCalendarsTab(dashboardContent);

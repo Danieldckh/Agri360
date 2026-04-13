@@ -63,6 +63,54 @@
 
   window.renderDesignContentCalendarsTab = renderDesignContentCalendarsTab;
 
+  function renderDesignAgriForAllTab(container) {
+    if (typeof window.renderSplitSheetTab !== 'function') {
+      console.warn('[design] window.renderSplitSheetTab not loaded yet');
+      return;
+    }
+    var C = window.prodCols;
+    container.classList.add('design-cc-split-70-30');
+
+    window.renderSplitSheetTab(container, {
+      prefix: 'designA4A',
+      deptSlug: 'design',
+      hideClientGroups: true,
+      left: {
+        title: 'Design',
+        searchPlaceholder: 'Search design...',
+        filter: function (d) {
+          return d.type === 'agri4all-posts' &&
+            (d.status === 'design' || d.status === 'design_changes');
+        },
+        columns: [
+          C.eye(container),
+          C.deptAvatar('design'),
+          C.type(),
+          C.status(),
+          C.actionAdvanceBack('auto')
+        ],
+        emptyMessage: 'No Agri4All posts in design'
+      },
+      right: {
+        title: 'Design Review',
+        searchPlaceholder: 'Search design review...',
+        filter: function (d) {
+          return d.type === 'agri4all-posts' && d.status === 'design_review';
+        },
+        columns: [
+          C.eye(container),
+          C.deptAvatar('design'),
+          C.type(),
+          C.status(),
+          C.actionAdvanceBack('auto')
+        ],
+        emptyMessage: 'No Agri4All posts in design review'
+      }
+    });
+  }
+
+  window.renderDesignAgriForAllTab = renderDesignAgriForAllTab;
+
   // ── Design > Web Design Tab ───────────────────────────────────────
   // Flat sheet of website-design deliverables currently routed to the
   // Design department (site map, development, hosting, etc.). The eye
