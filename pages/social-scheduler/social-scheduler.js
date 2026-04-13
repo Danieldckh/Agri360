@@ -314,13 +314,6 @@
     newBtn.addEventListener('click', function () { openPostModal(null); });
     bar.appendChild(newBtn);
 
-    // credentials button
-    var credBtn = el('button', 'sch-btn');
-    credBtn.appendChild(svg('M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z', 16));
-    credBtn.appendChild(document.createTextNode(' Credentials'));
-    credBtn.addEventListener('click', openCredentialsModal);
-    bar.appendChild(credBtn);
-
     // view toggle
     var viewToggle = el('div', 'sch-view-toggle');
     ['month', 'week', 'day'].forEach(function (v) {
@@ -1202,6 +1195,27 @@
   }
 
   // ---------------- settings page ----------------
+
+  // Platform display info (icons are SVG path data)
+  var PLATFORM_INFO = {
+    facebook:  { label: 'Facebook',  color: '#1877F2', icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+    instagram: { label: 'Instagram', color: '#E4405F', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z' },
+    twitter:   { label: 'X / Twitter', color: '#000000', icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+    linkedin:  { label: 'LinkedIn',  color: '#0A66C2', icon: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z' },
+    youtube:   { label: 'YouTube',   color: '#FF0000', icon: 'M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z' },
+    tiktok:    { label: 'TikTok',    color: '#000000', icon: 'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' }
+  };
+
+  // OAuth config cache — which platforms have server-side credentials configured
+  var oauthConfigCache = null;
+
+  function fetchOAuthConfig() {
+    return fetch('/api/social-oauth/config', { headers: getHeaders() })
+      .then(function (r) { return r.ok ? r.json() : { platforms: {} }; })
+      .then(function (data) { oauthConfigCache = data.platforms || {}; return oauthConfigCache; })
+      .catch(function () { oauthConfigCache = {}; return oauthConfigCache; });
+  }
+
   window.renderSocialSettingsPage = function (container) {
     container.innerHTML = '';
     container.style.padding = '24px';
@@ -1211,226 +1225,204 @@
     var root = el('div', 'sch-settings-root');
     container.appendChild(root);
 
+    // Listen for OAuth popup success messages
+    function onOAuthMessage(e) {
+      if (e.data && e.data.type === 'social-oauth-success') {
+        loadAll().then(function () { fetchOAuthConfig().then(renderSettings); });
+      }
+    }
+    window.addEventListener('message', onOAuthMessage);
+
+    // Cleanup listener when the page navigates away
+    var observer = new MutationObserver(function () {
+      if (!document.contains(root)) {
+        window.removeEventListener('message', onOAuthMessage);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
     function renderSettings() {
       while (root.firstChild) root.removeChild(root.firstChild);
 
-      // --- Clients section ---
-      var clientsHeader = el('div', 'sch-settings-section-header');
-      clientsHeader.appendChild(el('h3', 'sch-settings-title', 'Clients'));
-      var addClientBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary', '+ Add Client');
-      clientsHeader.appendChild(addClientBtn);
-      root.appendChild(clientsHeader);
+      // Header
+      var header = el('div', 'sch-settings-section-header');
+      header.appendChild(el('h3', 'sch-settings-title', 'Social Media Connections'));
+      root.appendChild(header);
 
-      // Inline add-client form (hidden until button clicked)
-      var addClientForm = el('div', 'sch-settings-add-form');
-      addClientForm.style.display = 'none';
-      var newClientName = el('input');
-      newClientName.type = 'text';
-      newClientName.placeholder = 'Client name…';
-      newClientName.className = 'sch-settings-input';
-      var newClientEmail = el('input');
-      newClientEmail.type = 'email';
-      newClientEmail.placeholder = 'Email (optional)';
-      newClientEmail.className = 'sch-settings-input';
-      var newClientPhone = el('input');
-      newClientPhone.type = 'tel';
-      newClientPhone.placeholder = 'Phone (optional)';
-      newClientPhone.className = 'sch-settings-input';
-      var saveClientBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary', 'Save');
-      var cancelClientBtn = el('button', 'sch-btn sch-btn-sm', 'Cancel');
-      addClientForm.appendChild(newClientName);
-      addClientForm.appendChild(newClientEmail);
-      addClientForm.appendChild(newClientPhone);
-      addClientForm.appendChild(saveClientBtn);
-      addClientForm.appendChild(cancelClientBtn);
-      root.appendChild(addClientForm);
+      var desc = el('p', 'sch-settings-desc',
+        'Connect social media accounts for each client. Once connected, the scheduler will automatically publish posts at their scheduled time.');
+      root.appendChild(desc);
 
-      addClientBtn.addEventListener('click', function () {
-        addClientForm.style.display = addClientForm.style.display === 'none' ? 'flex' : 'none';
-        if (addClientForm.style.display !== 'none') newClientName.focus();
-      });
-      cancelClientBtn.addEventListener('click', function () {
-        addClientForm.style.display = 'none';
-        newClientName.value = '';
-        newClientEmail.value = '';
-        newClientPhone.value = '';
-      });
-      saveClientBtn.addEventListener('click', function () {
-        var name = newClientName.value.trim();
-        if (!name) { alert('Client name is required.'); return; }
-        saveClientBtn.disabled = true;
-        var h = { 'Content-Type': 'application/json' };
-        if (window.getAuthHeaders) { var a = window.getAuthHeaders(); for (var k in a) h[k] = a[k]; }
-        fetch('/api/clients', {
-          method: 'POST',
-          headers: h,
-          body: JSON.stringify({ name: name, email: newClientEmail.value.trim() || null, phone: newClientPhone.value.trim() || null })
-        })
-        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function () {
-          // Reload state then re-render settings
-          return loadAll();
-        })
-        .then(function () { renderSettings(); })
-        .catch(function (err) {
-          alert('Failed to create client: ' + err.message);
-          saveClientBtn.disabled = false;
-        });
-      });
-
-      // Client list — each card shows their social accounts
+      // Client cards
       var clientList = el('div', 'sch-settings-client-list');
 
-      // Agency row first
-      clientList.appendChild(buildClientSettingsCard(null, 'Agency (Own accounts)'));
+      // Agency first
+      clientList.appendChild(buildClientCard(null, 'Agency (Own Accounts)'));
 
       // All CRM clients
-      state.clients.forEach(function (c) {
-        clientList.appendChild(buildClientSettingsCard(c.id, c.name));
+      (state.clients || []).forEach(function (c) {
+        if (c.status === 'archived') return;
+        clientList.appendChild(buildClientCard(c.id, c.name));
       });
 
       root.appendChild(clientList);
     }
 
-    function buildClientSettingsCard(clientId, clientName) {
+    function buildClientCard(clientId, clientName) {
       var card = el('div', 'sch-settings-client-card');
 
       var cardHeader = el('div', 'sch-settings-client-header');
-      cardHeader.appendChild(el('span', 'sch-settings-client-name', clientName));
-      var addAccBtn = el('button', 'sch-btn sch-btn-sm', '+ Connect Account');
-      cardHeader.appendChild(addAccBtn);
+      var nameEl = el('span', 'sch-settings-client-name', clientName);
+      cardHeader.appendChild(nameEl);
+
+      // Count connected platforms
+      var connectedCount = 0;
+      PLATFORMS.forEach(function (p) {
+        var cred = findCred(clientId, p);
+        if (cred) connectedCount++;
+      });
+      if (connectedCount > 0) {
+        var badge = el('span', 'sch-settings-connected-badge', connectedCount + '/' + PLATFORMS.length + ' connected');
+        cardHeader.appendChild(badge);
+      }
       card.appendChild(cardHeader);
 
-      // Accounts belonging to this client
-      var myAccounts = state.creds.filter(function (c) {
-        if (clientId == null) return c.clientId == null;
-        return Number(c.clientId) === Number(clientId);
+      // Platform grid
+      var grid = el('div', 'sch-settings-platform-grid');
+      PLATFORMS.forEach(function (platform) {
+        grid.appendChild(buildPlatformTile(clientId, platform));
       });
-
-      var accList = el('div', 'sch-settings-acc-list');
-      if (myAccounts.length === 0) {
-        accList.appendChild(el('div', 'sch-settings-acc-empty', 'No accounts connected yet.'));
-      } else {
-        myAccounts.forEach(function (acc) {
-          var row = el('div', 'sch-settings-acc-row');
-
-          var dot = el('span', 'sch-cred-status' + (acc.isActive ? ' active' : ''));
-          row.appendChild(dot);
-
-          var info = el('span', 'sch-settings-acc-info');
-          info.textContent = acc.platform + ' · ' + acc.accountName + (acc.accountHandle ? ' (' + acc.accountHandle + ')' : '');
-          row.appendChild(info);
-
-          var acts = el('div', 'sch-settings-acc-acts');
-
-          var verifyBtn = el('button', 'sch-btn sch-btn-sm', 'Verify');
-          verifyBtn.addEventListener('click', function () {
-            verifyBtn.disabled = true;
-            api('/credentials/' + acc.id + '/verify', { method: 'POST' })
-              .then(function () { return loadAll(); })
-              .then(function () { renderSettings(); });
-          });
-          acts.appendChild(verifyBtn);
-
-          var removeBtn = el('button', 'sch-btn sch-btn-sm sch-btn-danger', 'Remove');
-          removeBtn.addEventListener('click', function () {
-            if (!confirm('Remove ' + acc.platform + ' account?')) return;
-            api('/credentials/' + acc.id, { method: 'DELETE' })
-              .then(function () { return loadAll(); })
-              .then(function () { renderSettings(); });
-          });
-          acts.appendChild(removeBtn);
-
-          row.appendChild(acts);
-          accList.appendChild(row);
-        });
-      }
-      card.appendChild(accList);
-
-      // Inline add-account form (hidden until button clicked)
-      var addAccForm = el('div', 'sch-settings-add-acc-form');
-      addAccForm.style.display = 'none';
-      var newAcc = { platform: 'facebook', accountName: '', accountHandle: '', credentials: {}, clientId: clientId };
-
-      var platRow = el('div', 'sch-settings-add-acc-row');
-      // Platform select
-      var platSel = document.createElement('select');
-      platSel.className = 'sch-settings-select';
-      PLATFORMS.forEach(function (p) {
-        var o = document.createElement('option');
-        o.value = p;
-        o.textContent = p.charAt(0).toUpperCase() + p.slice(1);
-        platSel.appendChild(o);
-      });
-      platSel.addEventListener('change', function () { newAcc.platform = platSel.value; rebuildCredFields(); });
-      platRow.appendChild(platSel);
-
-      var accNameInput = el('input');
-      accNameInput.type = 'text';
-      accNameInput.placeholder = 'Account name';
-      accNameInput.className = 'sch-settings-input';
-      accNameInput.addEventListener('input', function () { newAcc.accountName = accNameInput.value; });
-      platRow.appendChild(accNameInput);
-
-      var handleInput = el('input');
-      handleInput.type = 'text';
-      handleInput.placeholder = 'Handle (optional)';
-      handleInput.className = 'sch-settings-input';
-      handleInput.addEventListener('input', function () { newAcc.accountHandle = handleInput.value; });
-      platRow.appendChild(handleInput);
-
-      addAccForm.appendChild(platRow);
-
-      var credFieldsHost = el('div', 'sch-settings-cred-fields');
-      function rebuildCredFields() {
-        while (credFieldsHost.firstChild) credFieldsHost.removeChild(credFieldsHost.firstChild);
-        newAcc.credentials = {};
-        var flds = PLATFORM_FIELDS[newAcc.platform] || ['Access Token'];
-        flds.forEach(function (f) {
-          var key = f.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-          var isSecret = f.toLowerCase().indexOf('token') !== -1 || f.toLowerCase().indexOf('secret') !== -1 || f.toLowerCase().indexOf('key') !== -1;
-          var inp = el('input');
-          inp.type = isSecret ? 'password' : 'text';
-          inp.placeholder = f;
-          inp.className = 'sch-settings-input';
-          inp.addEventListener('input', function () { newAcc.credentials[key] = inp.value; });
-          credFieldsHost.appendChild(inp);
-        });
-      }
-      rebuildCredFields();
-      addAccForm.appendChild(credFieldsHost);
-
-      var accFormBtns = el('div', 'sch-settings-form-btns');
-      var saveAccBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary', 'Save Account');
-      var cancelAccBtn = el('button', 'sch-btn sch-btn-sm', 'Cancel');
-      saveAccBtn.addEventListener('click', function () {
-        if (!newAcc.accountName.trim()) { alert('Account name is required.'); return; }
-        saveAccBtn.disabled = true;
-        api('/credentials', { method: 'POST', body: JSON.stringify(newAcc) })
-          .then(function () { return loadAll(); })
-          .then(function () { renderSettings(); })
-          .catch(function (err) {
-            alert('Save failed: ' + err.message);
-            saveAccBtn.disabled = false;
-          });
-      });
-      cancelAccBtn.addEventListener('click', function () {
-        addAccForm.style.display = 'none';
-      });
-      accFormBtns.appendChild(saveAccBtn);
-      accFormBtns.appendChild(cancelAccBtn);
-      addAccForm.appendChild(accFormBtns);
-      card.appendChild(addAccForm);
-
-      addAccBtn.addEventListener('click', function () {
-        addAccForm.style.display = addAccForm.style.display === 'none' ? 'block' : 'none';
-      });
+      card.appendChild(grid);
 
       return card;
     }
 
-    // Load state then render (re-use loadAll which populates state.clients + state.creds)
-    loadAll().then(function () { renderSettings(); });
+    function findCred(clientId, platform) {
+      var key = (clientId == null) ? null : Number(clientId);
+      for (var i = 0; i < state.creds.length; i++) {
+        var c = state.creds[i];
+        var cKey = (c.clientId == null) ? null : Number(c.clientId);
+        if (cKey === key && c.platform === platform && c.isActive) return c;
+      }
+      return null;
+    }
+
+    function buildPlatformTile(clientId, platform) {
+      var info = PLATFORM_INFO[platform] || { label: platform, color: '#666', icon: '' };
+      var cred = findCred(clientId, platform);
+      var isConnected = !!cred;
+      var isConfigured = oauthConfigCache && oauthConfigCache[platform];
+
+      var tile = el('div', 'sch-platform-tile' + (isConnected ? ' connected' : ''));
+
+      // Platform icon
+      var iconWrap = el('div', 'sch-platform-tile-icon');
+      iconWrap.style.color = isConnected ? info.color : '';
+      var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      s.setAttribute('width', '24');
+      s.setAttribute('height', '24');
+      s.setAttribute('viewBox', '0 0 24 24');
+      s.setAttribute('fill', 'currentColor');
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', info.icon);
+      s.appendChild(path);
+      iconWrap.appendChild(s);
+      tile.appendChild(iconWrap);
+
+      // Platform name
+      tile.appendChild(el('div', 'sch-platform-tile-name', info.label));
+
+      if (isConnected) {
+        // Connected state
+        var accName = el('div', 'sch-platform-tile-account');
+        accName.textContent = cred.accountName + (cred.accountHandle ? ' (' + cred.accountHandle + ')' : '');
+        tile.appendChild(accName);
+
+        var statusRow = el('div', 'sch-platform-tile-status');
+        statusRow.appendChild(el('span', 'sch-platform-tile-dot connected'));
+        statusRow.appendChild(document.createTextNode(' Connected'));
+        tile.appendChild(statusRow);
+
+        // Disconnect button
+        var disconnectBtn = el('button', 'sch-btn sch-btn-sm sch-btn-danger sch-platform-tile-btn', 'Disconnect');
+        disconnectBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (!confirm('Disconnect ' + info.label + ' for ' + (clientId ? 'this client' : 'the agency') + '?')) return;
+          disconnectBtn.disabled = true;
+          api('/credentials/' + cred.id, { method: 'DELETE' })
+            .then(function () { return loadAll(); })
+            .then(function () { renderSettings(); });
+        });
+        tile.appendChild(disconnectBtn);
+      } else if (isConfigured) {
+        // Not connected but OAuth is configured — show Connect button
+        var connectBtn = el('button', 'sch-btn sch-btn-sm sch-btn-primary sch-platform-tile-btn', 'Connect');
+        connectBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          connectBtn.disabled = true;
+          connectBtn.textContent = 'Connecting…';
+          var qp = clientId ? '?clientId=' + clientId : '';
+          fetch('/api/social-oauth/init/' + platform + qp, { headers: getHeaders() })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data.error) {
+                alert(data.error);
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect';
+                return;
+              }
+              // Open OAuth URL in popup
+              var w = 600, h = 700;
+              var left = (screen.width - w) / 2;
+              var top = (screen.height - h) / 2;
+              window.open(data.url, 'social_oauth_' + platform,
+                'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',toolbar=no,menubar=no');
+              // Re-enable after a moment (popup handles the rest)
+              setTimeout(function () {
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect';
+              }, 3000);
+            })
+            .catch(function (err) {
+              alert('Failed to start connection: ' + err.message);
+              connectBtn.disabled = false;
+              connectBtn.textContent = 'Connect';
+            });
+        });
+        tile.appendChild(connectBtn);
+
+        var hint = el('div', 'sch-platform-tile-hint', 'Click to connect via OAuth');
+        tile.appendChild(hint);
+      } else {
+        // OAuth not configured on the server
+        var notConfigured = el('div', 'sch-platform-tile-unconfigured');
+        notConfigured.appendChild(el('span', 'sch-platform-tile-dot unconfigured'));
+        notConfigured.appendChild(document.createTextNode(' Not configured'));
+        tile.appendChild(notConfigured);
+
+        var configHint = el('div', 'sch-platform-tile-hint');
+        configHint.textContent = 'Set ' + platformEnvHint(platform) + ' in .env';
+        tile.appendChild(configHint);
+      }
+
+      return tile;
+    }
+
+    function platformEnvHint(platform) {
+      var hints = {
+        facebook: 'FACEBOOK_APP_ID & FACEBOOK_APP_SECRET',
+        instagram: 'FACEBOOK_APP_ID & FACEBOOK_APP_SECRET',
+        twitter: 'TWITTER_CLIENT_ID & TWITTER_CLIENT_SECRET',
+        linkedin: 'LINKEDIN_CLIENT_ID & LINKEDIN_CLIENT_SECRET',
+        youtube: 'GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET',
+        tiktok: 'TIKTOK_CLIENT_KEY & TIKTOK_CLIENT_SECRET'
+      };
+      return hints[platform] || 'API credentials';
+    }
+
+    // Load state + OAuth config, then render
+    Promise.all([loadAll(), fetchOAuthConfig()]).then(function () { renderSettings(); });
   };
 
   // ---------------- public entry ----------------

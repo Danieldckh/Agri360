@@ -322,6 +322,21 @@ router.delete('/credentials/:id', async (req, res) => {
   }
 });
 
+// POST /posts/:id/publish - immediately publish a post to connected platforms
+router.post('/posts/:id/publish', async (req, res) => {
+  try {
+    const post = await pool.query('SELECT * FROM scheduled_posts WHERE id = $1', [req.params.id]);
+    if (post.rows.length === 0) return res.status(404).json({ error: 'Post not found' });
+
+    const { publishPost } = require('../social-publisher');
+    const result = await publishPost(post.rows[0]);
+    res.json(toCamelCase({ ...post.rows[0], publish_result: result }));
+  } catch (err) {
+    console.error('Publish post error:', err);
+    res.status(500).json({ error: 'Publish failed: ' + err.message });
+  }
+});
+
 // POST /credentials/:id/verify - mark credential as verified (stub - real verification would ping each platform)
 router.post('/credentials/:id/verify', async (req, res) => {
   try {

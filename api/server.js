@@ -26,6 +26,8 @@ const departmentRoutes = require('./routes/departments');
 const devRoutes = require('./routes/dev');
 const portalRoutes = require('./routes/portal');
 const schedulerRoutes = require('./routes/scheduler');
+const socialOAuthRoutes = require('./routes/social-oauth');
+const socialPublisher = require('./social-publisher');
 
 // Ensure uploads directories exist
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -58,6 +60,7 @@ app.use('/api/financials', financialRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/portal', portalRoutes);
+app.use('/api/social-oauth', socialOAuthRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 
 // Serve static frontend files
@@ -75,4 +78,5 @@ app.use((req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`ProAgri API running on http://localhost:${PORT}`);
+  socialPublisher.start();
 });

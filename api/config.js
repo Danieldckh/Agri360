@@ -18,4 +18,17 @@ module.exports = {
   ALPHA_AGRI4ALL_EMAIL: process.env.ALPHA_AGRI4ALL_EMAIL || '',
   ALPHA_AGRI4ALL_PASSWORD: process.env.ALPHA_AGRI4ALL_PASSWORD || '',
   ALPHA_AGRI4ALL_SELLER_ID: process.env.ALPHA_AGRI4ALL_SELLER_ID || '',
+
+  // Social OAuth — set these in .env with credentials from each platform's developer portal
+  APP_URL: process.env.APP_URL || 'http://localhost:3001',
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
+  TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID || '',
+  TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET || '',
+  LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || '',
+  LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || '',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+  TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '',
+  TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
 };

@@ -1309,158 +1309,177 @@
 
 /* ---- Settings page ---- */
 .sch-settings-root {
-  max-width: 820px;
+  max-width: 960px;
 }
 
 .sch-settings-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .sch-settings-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary, #1a1a1a);
   margin: 0;
 }
 
-.sch-settings-add-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  background: var(--color-primary, #dce1e8);
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.sch-settings-input {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 8px;
+.sch-settings-desc {
   font-size: 13px;
-  font-family: inherit;
-  background: var(--color-secondary, #fff);
-  color: var(--text-primary, #1a1a1a);
-  outline: none;
-  min-width: 140px;
-}
-
-.sch-settings-input:focus {
-  border-color: var(--color-accent-dark, #d4791a);
-}
-
-.sch-settings-select {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: inherit;
-  background: var(--color-secondary, #fff);
-  color: var(--text-primary, #1a1a1a);
-  outline: none;
-  text-transform: capitalize;
-}
-
-.sch-settings-select:focus {
-  border-color: var(--color-accent-dark, #d4791a);
+  color: var(--text-secondary, #888);
+  margin: 0 0 20px;
+  line-height: 1.5;
 }
 
 .sch-settings-client-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .sch-settings-client-card {
   background: var(--color-secondary, #fff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .sch-settings-client-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .sch-settings-client-name {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary, #1a1a1a);
 }
 
-.sch-settings-acc-list {
+.sch-settings-connected-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Platform grid */
+.sch-settings-platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.sch-platform-tile {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  background: var(--color-primary, #f4f6f8);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-height: 140px;
+  justify-content: center;
   gap: 6px;
-  margin-bottom: 8px;
 }
 
-.sch-settings-acc-empty {
-  font-size: 13px;
-  color: var(--text-secondary, #888);
-  padding: 4px 0;
+.sch-platform-tile:hover {
+  border-color: var(--color-accent-dark, #d4791a);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.sch-settings-acc-row {
+.sch-platform-tile.connected {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.sch-platform-tile-icon {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--color-primary, #dce1e8);
-  border-radius: 8px;
+  justify-content: center;
+  color: var(--text-secondary, #888);
 }
 
-.sch-settings-acc-info {
-  flex: 1;
+.sch-platform-tile.connected .sch-platform-tile-icon {
+  color: inherit;
+}
+
+.sch-platform-tile-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sch-platform-tile-name {
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary, #1a1a1a);
-  text-transform: capitalize;
 }
 
-.sch-settings-acc-acts {
+.sch-platform-tile-account {
+  font-size: 11px;
+  color: var(--text-secondary, #888);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sch-platform-tile-status {
+  font-size: 11px;
+  color: #15803d;
+  font-weight: 600;
   display: flex;
-  gap: 6px;
-  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
 }
 
-.sch-settings-add-acc-form {
-  margin-top: 12px;
-  background: var(--color-primary, #dce1e8);
-  border-radius: 10px;
-  padding: 12px;
+.sch-platform-tile-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
-.sch-settings-add-acc-row {
+.sch-platform-tile-dot.connected {
+  background: #22c55e;
+}
+
+.sch-platform-tile-dot.unconfigured {
+  background: #d1d5db;
+}
+
+.sch-platform-tile-btn {
+  margin-top: 4px;
+  font-size: 11px;
+  padding: 4px 14px;
+}
+
+.sch-platform-tile-hint {
+  font-size: 10px;
+  color: var(--text-secondary, #aaa);
+  margin-top: 2px;
+}
+
+.sch-platform-tile-unconfigured {
+  font-size: 11px;
+  color: var(--text-secondary, #aaa);
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 4px;
 }
 
-.sch-settings-cred-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.sch-settings-form-btns {
-  display: flex;
-  gap: 8px;
-}
-
-/* Dark theme for new elements */
+/* Dark theme */
 [data-theme="dark"] .sch-media-url-input,
-[data-theme="dark"] .sch-settings-input,
-[data-theme="dark"] .sch-settings-select,
 [data-theme="dark"] .sch-settings-client-card {
   background: #252932;
   color: #e5e7eb;
@@ -1468,15 +1487,44 @@
 }
 
 [data-theme="dark"] .sch-settings-title,
-[data-theme="dark"] .sch-settings-client-name,
-[data-theme="dark"] .sch-settings-acc-info {
+[data-theme="dark"] .sch-settings-client-name {
   color: #f3f4f6;
 }
 
-[data-theme="dark"] .sch-settings-add-form,
-[data-theme="dark"] .sch-settings-acc-row,
-[data-theme="dark"] .sch-settings-add-acc-form {
-  background: #1a1d23;
+[data-theme="dark"] .sch-platform-tile {
+  background: #1e2128;
+  border-color: #3a3f4a;
+}
+
+[data-theme="dark"] .sch-platform-tile:hover {
+  border-color: #d4791a;
+}
+
+[data-theme="dark"] .sch-platform-tile.connected {
+  background: #1a2e1a;
+  border-color: #2d6a2d;
+}
+
+[data-theme="dark"] .sch-platform-tile-name {
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .sch-platform-tile-account,
+[data-theme="dark"] .sch-platform-tile-hint {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .sch-platform-tile-unconfigured {
+  color: #6b7280;
+}
+
+[data-theme="dark"] .sch-settings-connected-badge {
+  background: #1a3a1a;
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .sch-settings-desc {
+  color: #9ca3af;
 }
 
 [data-theme="dark"] .sch-media-thumb {

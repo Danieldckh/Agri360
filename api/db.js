@@ -428,6 +428,11 @@ async function runMigrations() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_social_credentials_platform ON social_credentials(platform)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_social_credentials_client_id ON social_credentials(client_id)`);
 
+    // OAuth token lifecycle columns on social_credentials
+    await client.query(`ALTER TABLE social_credentials ADD COLUMN IF NOT EXISTS refresh_token TEXT`);
+    await client.query(`ALTER TABLE social_credentials ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ`);
+    await client.query(`ALTER TABLE social_credentials ADD COLUMN IF NOT EXISTS oauth_metadata JSONB DEFAULT '{}'`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {
