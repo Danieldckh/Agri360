@@ -5607,6 +5607,26 @@
       } catch (e) { return ''; }
     }
 
+    function isChatImageAttachment(att) {
+      if (!att) return false;
+      var mime = String(att.mimeType || att.mime_type || '').toLowerCase();
+      if (mime.indexOf('image/') === 0) return true;
+      var ref = String(att.originalName || att.original_name || att.filename || '').toLowerCase();
+      return /\.(jpg|jpeg|png|gif|webp|svg|bmp|heic|heif|avif)$/i.test(ref);
+    }
+
+    function buildChatFileLink(url, att) {
+      var link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>';
+      var fname = document.createElement('span');
+      fname.textContent = att.originalName || att.original_name || att.filename || 'File';
+      link.appendChild(fname);
+      return link;
+    }
+
     function renderMsg(m, scrollToBottom) {
       if (!m || a4apuKnownIds[m.id]) return;
       a4apuKnownIds[m.id] = true;
@@ -5657,25 +5677,24 @@
         attachments.forEach(function (att) {
           var attEl = document.createElement('div');
           attEl.className = 'cd-bubble-attachment';
-          var mime = att.mimeType || att.mime_type || '';
           var url = '/uploads/attachments/' + att.filename;
-          if (mime.indexOf('image/') === 0) {
+          if (isChatImageAttachment(att)) {
+            var imageLink = document.createElement('a');
+            imageLink.href = url;
+            imageLink.target = '_blank';
+            imageLink.rel = 'noopener noreferrer';
             var img = document.createElement('img');
             img.src = url;
             img.alt = att.originalName || att.original_name || 'Image';
             img.style.cssText = 'max-width:220px;max-height:200px;border-radius:6px;cursor:pointer;display:block;margin-top:4px;';
-            img.addEventListener('click', function () { window.open(url, '_blank'); });
-            attEl.appendChild(img);
+            img.addEventListener('error', function () {
+              while (attEl.firstChild) attEl.removeChild(attEl.firstChild);
+              attEl.appendChild(buildChatFileLink(url, att));
+            });
+            imageLink.appendChild(img);
+            attEl.appendChild(imageLink);
           } else {
-            var link = document.createElement('a');
-            link.href = url;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>';
-            var fname = document.createElement('span');
-            fname.textContent = att.originalName || att.original_name || att.filename;
-            link.appendChild(fname);
-            attEl.appendChild(link);
+            attEl.appendChild(buildChatFileLink(url, att));
           }
           body2.appendChild(attEl);
         });
