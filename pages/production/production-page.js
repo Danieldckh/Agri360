@@ -3332,6 +3332,25 @@
       try { responses = JSON.parse(responses); } catch (e) { responses = {}; }
     }
     var assets = Array.isArray(data.assets) ? data.assets : [];
+    var unclaimedFileAssets = assets.slice();
+
+    function isImageAsset(asset) {
+      if (!asset || !asset.url) return false;
+      var mime = (asset.mimeType || asset.mime_type || '').toLowerCase();
+      return mime.indexOf('image/') === 0 || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(asset.url);
+    }
+
+    function claimFileAssets(count) {
+      var claimed = [];
+      var needed = Math.max(0, Number(count) || 0);
+      for (var i = 0; i < unclaimedFileAssets.length && claimed.length < needed; i += 1) {
+        var asset = unclaimedFileAssets[i];
+        if (!asset || isImageAsset(asset)) continue;
+        claimed.push(asset);
+        unclaimedFileAssets[i] = null;
+      }
+      return claimed;
+    }
 
     // Support both legacy flat field arrays and newer card+fields structures.
     function normalizeFormQuestions(raw) {
@@ -3399,11 +3418,11 @@
             }
             return false;
           });
-          respWrap.appendChild(buildRecapQA(qItem.question || '', value, qItem.fieldType || 'text'));
+          respWrap.appendChild(buildRecapQA(qItem.question || '', value, qItem.fieldType || 'text', claimFileAssets));
         });
       } else {
         Object.keys(responses).forEach(function (k) {
-          respWrap.appendChild(buildRecapQA(k, responses[k], 'text'));
+          respWrap.appendChild(buildRecapQA(k, responses[k], 'text', claimFileAssets));
         });
       }
       container.appendChild(respWrap);
@@ -3449,7 +3468,7 @@
     }
   }
 
-  function buildRecapQA(question, answer, fieldType) {
+  function buildRecapQA(question, answer, fieldType, claimFileAssets) {
     var row = document.createElement('div');
     row.className = 'cc-recap-qa';
     var q = document.createElement('div');
@@ -3462,12 +3481,18 @@
     if (answer == null || answer === '') {
       a.textContent = '\u2014';
     } else if (fieldType === 'file') {
-      // File field — render file names as styled chips
       var names = Array.isArray(answer) ? answer : [answer];
+      var linkedAssets = typeof claimFileAssets === 'function' ? claimFileAssets(names.length) : [];
       names.forEach(function (n) {
         if (!n) return;
-        var chip = document.createElement('span');
-        chip.className = 'cc-recap-file-chip';
+        var fileUrl = linkedAssets.length > 0 && linkedAssets[0] && linkedAssets[0].url ? linkedAssets.shift().url : '';
+        var chip = fileUrl ? document.createElement('a') : document.createElement('span');
+        chip.className = fileUrl ? 'cc-recap-file-link' : 'cc-recap-file-chip';
+        if (fileUrl) {
+          chip.href = fileUrl;
+          chip.target = '_blank';
+          chip.rel = 'noopener noreferrer';
+        }
         chip.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" style="flex-shrink:0"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>';
         var s = document.createElement('span');
         s.textContent = String(n);
