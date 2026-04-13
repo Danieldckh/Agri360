@@ -1745,13 +1745,54 @@
           }
         ));
 
-        // Booking Form file upload
-        // Unsigned Booking Form — show esign signature page link
-        rightCol.appendChild(buildDocCard(
-          'Booking Form',
-          data.unsignedFileUrl || data.esignUrl || ('https://bookingformesign.proagrihub.com/sign/' + bookingFormId),
-          data.unsignedFileUrl ? 'View Booking Form' : 'Open Signature Page'
-        ));
+        // Booking Form — show existing esign link or a Generate button
+        var bfUrl = data.unsignedFileUrl || data.esignUrl;
+        if (bfUrl) {
+          rightCol.appendChild(buildDocCard(
+            'Booking Form',
+            bfUrl,
+            data.unsignedFileUrl ? 'View Booking Form' : 'Open Signature Page'
+          ));
+        } else {
+          var genCard = document.createElement('div');
+          genCard.className = 'cd-upload-card';
+          var genTitle = document.createElement('div');
+          genTitle.className = 'cd-upload-card-title';
+          genTitle.textContent = 'Booking Form';
+          genCard.appendChild(genTitle);
+          var genBtn = document.createElement('button');
+          genBtn.className = 'cd-upload-file-download';
+          genBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:6px;background:var(--primary,#2563eb);color:#fff;font-size:13px;cursor:pointer;margin:12px 0;';
+          genBtn.textContent = 'Generate E-sign Link';
+          genBtn.onclick = function () {
+            genBtn.disabled = true;
+            genBtn.textContent = 'Generating…';
+            var h = window.getAuthHeaders ? window.getAuthHeaders() : {};
+            h['Content-Type'] = 'application/json';
+            fetch(API_BASE + '/' + bookingFormId + '/send-to-esign', {
+              method: 'POST', headers: h
+            })
+              .then(function (r) { return r.json(); })
+              .then(function (result) {
+                if (result.url) {
+                  // Replace the generate card with a proper doc card
+                  var newCard = buildDocCard('Booking Form', result.url, 'Open Signature Page');
+                  genCard.parentNode.replaceChild(newCard, genCard);
+                } else {
+                  genBtn.disabled = false;
+                  genBtn.textContent = 'Generate E-sign Link';
+                  alert('Error: ' + (result.error || 'Unknown error'));
+                }
+              })
+              .catch(function (err) {
+                genBtn.disabled = false;
+                genBtn.textContent = 'Generate E-sign Link';
+                alert('Failed to generate link: ' + err.message);
+              });
+          };
+          genCard.appendChild(genBtn);
+          rightCol.appendChild(genCard);
+        }
 
         // Signed Booking Form — show signed PDF if available
         var signedUrl = data.signedFileUrl || '';

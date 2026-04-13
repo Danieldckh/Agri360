@@ -31,4 +31,8 @@ module.exports = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '',
   TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
+
+  // Booking Form E-sign service (sister app)
+  ESIGN_SERVICE_URL: process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com',
+  ESIGN_ADMIN_SECRET: process.env.ESIGN_ADMIN_SECRET || '',
 };

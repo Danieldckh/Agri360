@@ -2,6 +2,7 @@ const { Router } = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { toCamelCase, toSnakeBody } = require('../utils');
+const config = require('../config');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -504,6 +505,42 @@ router.get('/:id/revisions/:revisionId', async (req, res) => {
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Get booking form revision error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /:id/send-to-esign — create a permanent e-sign token via the
+// Booking Form Esign service and write the URL back to this booking form.
+router.post('/:id/send-to-esign', async (req, res) => {
+  try {
+    // Verify booking form exists
+    const bf = await pool.query('SELECT id FROM booking_forms WHERE id = $1', [req.params.id]);
+    if (bf.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking form not found' });
+    }
+
+    const esignUrl = config.ESIGN_SERVICE_URL.replace(/\/+$/, '');
+    const response = await fetch(`${esignUrl}/api/admin/create-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.ESIGN_ADMIN_SECRET ? { 'X-Admin-Secret': config.ESIGN_ADMIN_SECRET } : {}),
+      },
+      body: JSON.stringify({ bookingFormId: Number(req.params.id) }),
+      // No expiresInDays — tokens are permanent
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      return res.status(response.status).json({ error: body.error || 'E-sign service error' });
+    }
+
+    const data = await response.json();
+    // The e-sign service already writes esign_url back to booking_forms,
+    // but return it so the frontend can update immediately.
+    res.json({ success: true, url: data.url, token: data.token });
+  } catch (err) {
+    console.error('Send to esign error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
