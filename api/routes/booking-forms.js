@@ -52,24 +52,42 @@ async function createUnsignedBookingForm(formId, opts) {
   // Use the esign service to host the unsigned version (read-only page)
   const ESIGN_URL = process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com';
 
-  // Always generate a fresh snippet from formData so the esign service
-  // wraps it in its own read-only template (no contenteditable, no editor UI).
-  const { formatDeliverables } = require('../lib/format-deliverables');
-  const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
-  const formData = form.formData || {};
-  const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
-  // Strip contenteditable to make the esign version read-only
-  const rawHtml = buildBookingFormSnippet(formData, form, deliverableRows);
-  const html = rawHtml.replace(/\s*contenteditable="true"/g, '');
+  // When the caller supplies HTML (e.g. edited content from the editor's
+  // "Send to ProAgri" button), use it directly.  Otherwise regenerate a
+  // fresh snippet from formData so the esign service wraps it in its own
+  // read-only template.  Either way, strip contenteditable attributes.
+  let html;
+  if (opts.html && typeof opts.html === 'string' && opts.html.trim()) {
+    html = opts.html.replace(/\s*contenteditable="true"/g, '');
+  } else {
+    const { formatDeliverables } = require('../lib/format-deliverables');
+    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
+    const formData = form.formData || {};
+    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="4"><p>No deliverables</p></td></tr>';
+    const rawHtml = buildBookingFormSnippet(formData, form, deliverableRows);
+    html = rawHtml.replace(/\s*contenteditable="true"/g, '');
+  }
 
-  // Save as a read-only page on the esign service
-  const esignRes = await fetch(`${ESIGN_URL}/create`, {
+  // Create a signing token via the esign service.  The returned URL
+  // (/sign/:token) includes "Sign Booking Form" + "Request Changes"
+  // buttons powered by sign.js.
+  const adminSecret = process.env.ESIGN_ADMIN_SECRET || '';
+  const tokenHeaders = { 'Content-Type': 'application/json' };
+  if (adminSecret) tokenHeaders['X-Admin-Secret'] = adminSecret;
+
+  const tokenRes = await fetch(`${ESIGN_URL}/api/admin/create-token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slug: finalSlug, html })
+    headers: tokenHeaders,
+    body: JSON.stringify({ bookingFormId: formId, html })
   });
-  const esignResult = await esignRes.json().catch(() => ({}));
-  const esignUrl = esignResult.url || `${ESIGN_URL}/pages/${finalSlug}.html`;
+  if (!tokenRes.ok) {
+    const errText = await tokenRes.text().catch(() => '');
+    const err = new Error('Esign service HTTP ' + tokenRes.status + ': ' + errText.slice(0, 200));
+    err.code = 'ESIGN_SERVICE_ERROR';
+    throw err;
+  }
+  const tokenResult = await tokenRes.json().catch(() => ({}));
+  const esignUrl = tokenResult.url || `${ESIGN_URL}/sign/${tokenResult.token}`;
 
   await pool.query(
     'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
@@ -259,6 +277,7 @@ router.patch('/:id', async (req, res) => {
     // Best-effort: a failure of the esign service should NOT roll back
     // the status change (the PATCH is the primary operation). The error
     // is logged so it can be retried later via POST /:id/send-to-esign.
+    let esignWarning = null;
     if (updatedRow.status === 'booking_form_ready' && !updatedRow.esign_url) {
       try {
         await createUnsignedBookingForm(req.params.id);
@@ -269,10 +288,13 @@ router.patch('/:id', async (req, res) => {
         }
       } catch (esignErr) {
         console.error('Auto-generate unsigned booking form failed for id ' + req.params.id + ':', esignErr);
+        esignWarning = 'Esign form generation failed: ' + esignErr.message;
       }
     }
 
-    res.json(toCamelCase(updatedRow));
+    const response = toCamelCase(updatedRow);
+    if (esignWarning) response._warnings = [esignWarning];
+    res.json(response);
   } catch (err) {
     console.error('Update booking form error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -405,14 +427,16 @@ router.post('/:id/send-to-editor', async (req, res) => {
 
     // Also generate the unsigned e-sign version (best-effort)
     let esignUrl = null;
+    let esignWarning = null;
     try {
       const esignResult = await createUnsignedBookingForm(req.params.id, { html });
       esignUrl = esignResult.esignUrl;
     } catch (esignErr) {
       console.warn('[send-to-editor] Could not auto-generate esign:', esignErr.message);
+      esignWarning = 'Esign form generation failed: ' + esignErr.message;
     }
 
-    res.json({ success: true, editableUrl, esignUrl, slug: finalSlug });
+    res.json({ success: true, editableUrl, esignUrl, slug: finalSlug, esignWarning });
   } catch (err) {
     console.error('Send to editor error:', err);
     res.status(500).json({ error: 'Internal server error' });
