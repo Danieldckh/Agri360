@@ -256,6 +256,26 @@
 
     var rowActions = [
       {
+        icon: ICON_DELETE_X,
+        tooltip: 'Delete proposal & deliverables',
+        className: 'action-delete',
+        onClick: function (rowData) {
+          var clientName = rowData.client || rowData.clientName || 'this proposal';
+          showConfirmModal(
+            'Delete Proposal?',
+            'This will permanently delete the proposal for "' + clientName + '" and all associated deliverables. This action cannot be undone.',
+            function () {
+              fetch(API_BASE + '/' + rowData.id, {
+                method: 'DELETE',
+                headers: getHeaders()
+              }).then(function (res) {
+                if (res.ok) refreshFn();
+              });
+            }
+          );
+        }
+      },
+      {
         icon: ICON_ADVANCE,
         tooltip: function (rowData) {
           var next = getNextStatus(rowData.status);
@@ -303,26 +323,6 @@
           }).then(function (res) {
             if (res.ok) refreshFn();
           });
-        }
-      },
-      {
-        icon: ICON_DELETE_X,
-        tooltip: 'Delete proposal & deliverables',
-        className: 'action-delete',
-        onClick: function (rowData) {
-          var clientName = rowData.client || rowData.clientName || 'this proposal';
-          showConfirmModal(
-            'Delete Proposal?',
-            'This will permanently delete the proposal for "' + clientName + '" and all associated deliverables. This action cannot be undone.',
-            function () {
-              fetch(API_BASE + '/' + rowData.id, {
-                method: 'DELETE',
-                headers: getHeaders()
-              }).then(function (res) {
-                if (res.ok) refreshFn();
-              });
-            }
-          );
         }
       }
     ];
