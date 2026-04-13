@@ -1511,8 +1511,8 @@
             return;
           }
 
-          var responses = {};
           var rawCards = form.fields || [];
+          var responseBindings = [];
 
           rawCards.forEach(function (rawCard, cardIdx) {
             // Normalize to new multi-field shape
@@ -1533,7 +1533,10 @@
             group.appendChild(q);
 
             fields.forEach(function (f, fIdx) {
-              var responseKey = cardIdx + '_' + fIdx;
+              var responseKey = (f && f.id != null)
+                ? String(f.id)
+                : ((f && f.name != null) ? String(f.name) : (cardIdx + '_' + fIdx));
+              var legacyResponseKey = cardIdx + '_' + fIdx;
 
               // Optional per-field label (when multiple fields share a question)
               if (f.label && fields.length > 1) {
@@ -1562,12 +1565,11 @@
               }
               if (fields.length > 1) input.style.marginBottom = '8px';
 
-              input.addEventListener('change', function () {
-                if (f.fieldType === 'file') {
-                  responses[responseKey] = Array.from(input.files).map(function (file) { return file.name; });
-                } else {
-                  responses[responseKey] = input.value;
-                }
+              responseBindings.push({
+                key: responseKey,
+                legacyKey: legacyResponseKey,
+                fieldType: f.fieldType,
+                input: input
               });
               group.appendChild(input);
             });
@@ -1579,6 +1581,19 @@
           submitBtn.className = 'cp-form-submit';
           submitBtn.textContent = 'Submit';
           submitBtn.addEventListener('click', function () {
+            var responses = {};
+            responseBindings.forEach(function (b) {
+              var value;
+              if (b.fieldType === 'file') {
+                value = Array.from(b.input.files || []).map(function (file) { return file.name; });
+              } else {
+                value = b.input.value;
+              }
+              responses[b.key] = value;
+              // Keep a legacy index-key copy so older recap parsers still read data.
+              if (b.legacyKey !== b.key) responses[b.legacyKey] = value;
+            });
+
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
             fetch('/api/portal/' + token + '/forms/' + form.token + '/submit', {

@@ -3326,12 +3326,46 @@
 
   function renderRequestFormRecap(container, data) {
     var form = (data && data.form) || {};
-    var fields = Array.isArray(form.fields) ? form.fields : [];
+    var rawFields = Array.isArray(form.fields) ? form.fields : [];
     var responses = form.responses || {};
     if (typeof responses === 'string') {
       try { responses = JSON.parse(responses); } catch (e) { responses = {}; }
     }
     var assets = Array.isArray(data.assets) ? data.assets : [];
+
+    // Support both legacy flat field arrays and newer card+fields structures.
+    function normalizeFormQuestions(raw) {
+      var out = [];
+      (raw || []).forEach(function (entry, cardIdx) {
+        if (entry && Array.isArray(entry.fields)) {
+          entry.fields.forEach(function (f, fieldIdx) {
+            if (!f) return;
+            var primaryKey = (f.id != null) ? String(f.id)
+              : ((f.name != null) ? String(f.name) : (cardIdx + '_' + fieldIdx));
+            var fallbackLegacyKey = cardIdx + '_' + fieldIdx;
+            var questionText = entry.question || f.label || f.name || f.id || '';
+            if (entry.question && entry.fields.length > 1 && f.label) {
+              questionText = entry.question + ' - ' + f.label;
+            }
+            out.push({
+              question: questionText,
+              fieldType: f.fieldType || f.type || 'text',
+              keys: [primaryKey, fallbackLegacyKey]
+            });
+          });
+        } else {
+          var legacyKey = (entry && entry.id != null) ? String(entry.id)
+            : ((entry && entry.name != null) ? String(entry.name) : (cardIdx + '_0'));
+          out.push({
+            question: (entry && (entry.question || entry.label || entry.name || entry.id)) || '',
+            fieldType: (entry && (entry.fieldType || entry.type)) || 'text',
+            keys: [legacyKey, cardIdx + '_0']
+          });
+        }
+      });
+      return out;
+    }
+    var questions = normalizeFormQuestions(rawFields);
 
     var header = document.createElement('div');
     header.className = 'cc-recap-header';
@@ -3350,18 +3384,22 @@
     container.appendChild(header);
 
     // Responses — Q&A pairs from field definitions
-    if (fields.length > 0 || (responses && typeof responses === 'object' && Object.keys(responses).length > 0)) {
+    if (questions.length > 0 || (responses && typeof responses === 'object' && Object.keys(responses).length > 0)) {
       var respWrap = document.createElement('div');
       respWrap.className = 'cc-recap-responses';
-      if (fields.length > 0) {
-        fields.forEach(function (field) {
-          if (!field) return;
-          var key = field.id != null ? field.id : field.name;
-          var altKey = field.name != null ? field.name : field.id;
-          var value = responses[key];
-          if (value == null || value === '') value = responses[altKey];
-          var fieldType = field.fieldType || field.type || 'text';
-          respWrap.appendChild(buildRecapQA(field.label || field.name || field.id || '', value, fieldType));
+      if (questions.length > 0) {
+        questions.forEach(function (qItem) {
+          if (!qItem) return;
+          var value;
+          (qItem.keys || []).some(function (k) {
+            if (k == null || k === '') return false;
+            if (Object.prototype.hasOwnProperty.call(responses, k)) {
+              value = responses[k];
+              return true;
+            }
+            return false;
+          });
+          respWrap.appendChild(buildRecapQA(qItem.question || '', value, qItem.fieldType || 'text'));
         });
       } else {
         Object.keys(responses).forEach(function (k) {
