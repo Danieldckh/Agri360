@@ -70,6 +70,27 @@ function formatDeliverables(body) {
   const bu = v => `<b><u>${escapeHtml(v)}</u></b>`;
   const br = () => `<br/>`;
 
+  // --- Financial data: build per-month lookup ---
+  const financialArr = body.financial || [];
+  const currency = body.financial_currency || 'R';
+  const financialByMonth = {};
+  for (const f of financialArr) {
+    const norm = normalizeLabel(f.month_label || f.months_display);
+    if (norm) financialByMonth[norm] = f;
+  }
+
+  function stripCurrency(val) {
+    if (!val) return '';
+    let s = String(val).trim();
+    if (s.startsWith(currency)) s = s.slice(currency.length).trim();
+    return s;
+  }
+
+  function fmtPrice(val) {
+    if (!val) return '';
+    return currency + ' ' + escapeHtml(stripCurrency(val));
+  }
+
   function formatMonthYearRange(startYM, endYM) {
     if (!startYM || !endYM) return "";
     const [sy, sm] = startYM.split("-").map(Number);
@@ -349,8 +370,8 @@ function formatDeliverables(body) {
     return out.join("");
   }
 
-  function row(html) {
-    return `<tr>\n<td><div class="editable" contenteditable="true">${html}</div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n<td><div class="editable" contenteditable="true"></div></td>\n</tr>`;
+  function row(html, price, discount, subtotal) {
+    return `<tr>\n<td><div class="editable" contenteditable="true">${html}</div></td>\n<td><div class="editable" contenteditable="true">${price || ''}</div></td>\n<td><div class="editable" contenteditable="true">${discount || ''}</div></td>\n<td><div class="editable" contenteditable="true">${subtotal || ''}</div></td>\n</tr>`;
   }
 
   // --- Output ---
@@ -359,8 +380,16 @@ function formatDeliverables(body) {
   const recurringHTML = buildRecurring();
   if (recurringHTML.trim()) rows.push(row(recurringHTML));
   for (const m of months) {
-    if (!hasAnyMonthContent(m)) continue;
-    rows.push(row(buildMonth(m)));
+    const fin = financialByMonth[m];
+    const hasContent = hasAnyMonthContent(m);
+    if (!hasContent && !fin) continue;
+    const monthHTML = hasContent ? buildMonth(m) : `<h3>${escapeHtml(m)}</h3>`;
+    rows.push(row(
+      monthHTML,
+      fin ? fmtPrice(fin.base_price) : '',
+      fin ? fmtPrice(fin.discount) : '',
+      fin ? fmtPrice(fin.subtotal) : ''
+    ));
   }
   return rows.join("");
 }

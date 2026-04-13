@@ -131,22 +131,15 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
 </div>`);
 
   // ─── Deliverables Table (columns: Deliverables, Price, Discount, Subtotal) ───
-  // Build per-month financial rows
-  const financialArr = formData.financial || [];
-  let financialRows = '';
-  if (financialArr.length > 0) {
-    financialRows = financialArr.map(function (f) {
-      var label = f.month_label || f.months_display || '';
-      var price = f.base_price || '';
-      var disc = f.discount || '';
-      var sub = f.subtotal || '';
-      return '<tr>' +
-        editableCell('<b>' + esc(label) + '</b>') +
-        editableCell(price ? esc(currency) + ' ' + esc(price) : '') +
-        editableCell(disc ? esc(currency) + ' ' + esc(disc) : '') +
-        editableCell(sub ? esc(currency) + ' ' + esc(sub) : '') +
-        '</tr>';
-    }).join('\n');
+  // Financial data is now merged into deliverable rows by format-deliverables.js,
+  // so no separate financial rows are needed here.
+
+  // Helper to strip currency prefix from values that already contain it (e.g. "R10000" → "10000")
+  function stripCurrency(val) {
+    if (!val) return '';
+    let s = String(val).trim();
+    if (s.startsWith(currency)) s = s.slice(currency.length).trim();
+    return s;
   }
 
   parts.push(`
@@ -159,7 +152,6 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
       ${editableCell('<b>Subtotal</b>')}
     </tr>
     ${deliverableRows}
-    ${financialRows}
   </table>
 </div>`);
 
@@ -182,15 +174,15 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
     <table style="width:100%;border-collapse:collapse;background:transparent;border:none;">
       <tr>
         <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>Subtotal</b></div></td>
-        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(subtotal) : ''}</div></td>
+        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(stripCurrency(subtotal)) : ''}</div></td>
       </tr>
       <tr>
         <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>VAT (15%)</b></div></td>
-        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${tax ? esc(currency) + ' ' + esc(tax) : ''}</div></td>
+        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${tax ? esc(currency) + ' ' + esc(stripCurrency(tax)) : ''}</div></td>
       </tr>
       <tr>
         <td style="padding:6px 0;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true"><b>Total</b></div></td>
-        <td style="padding:6px 0;text-align:right;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true">${total ? esc(currency) + ' ' + esc(total) : ''}</div></td>
+        <td style="padding:6px 0;text-align:right;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true">${total ? esc(currency) + ' ' + esc(stripCurrency(total)) : ''}</div></td>
       </tr>
     </table>
   </div>
