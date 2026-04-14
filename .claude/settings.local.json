@@ -6,6 +6,9 @@
       "Bash(cp \"/c/Users/pamde/Desktop/ProAgri CRM/.claude/agri4all-posts-research.md\" \"/c/Users/pamde/Desktop/ProAgri-CRM-agri4all-posts/.claude/agri4all-posts-research.md\")",
       "Read(//c/Users/pamde/Desktop/ProAgri-CRM-agri4all-posts/.claude//**)",
       "Read(//c/Users/pamde/Desktop/checklist-Agri360/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\pamde\\Desktop\\checklist-Agri360"
     ]
   }
 }
