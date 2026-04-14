@@ -12,12 +12,14 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function editableCell(content) {
-  return `<td><div class="editable" contenteditable="true">${content || ''}</div></td>`;
-}
-
 function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   var options = opts || {};
+  var isEsignCtx = !!options.includeHeader;
+  var tdStyle = isEsignCtx ? ' style="padding:8px 12px;font-size:12px;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;color:#222;"' : '';
+
+  function editableCell(content) {
+    return '<td' + tdStyle + '><div class="editable" contenteditable="true">' + (content || '') + '</div></td>';
+  }
   const ci = formData.client_information || {};
   const fin = formData.financial_totals || {};
   const signOff = formData.sign_off || {};
@@ -32,10 +34,10 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // Inline style strings for e-sign (DOMPurify strips <style> tags)
   var isEsign = !!options.includeHeader;
   var S = {
-    sectionTitle: isEsign ? ' style="font-size:13px;font-weight:700;text-transform:uppercase;color:#D72626;margin:22px 0 8px;letter-spacing:0.3px;font-family:Arial,sans-serif;"' : '',
+    sectionTitle: isEsign ? ' style="font-size:12px;font-weight:700;text-transform:uppercase;color:#D72626;margin:18px 0 6px;letter-spacing:0.3px;font-family:Arial,sans-serif;text-align:left;"' : '',
     tableWrap: isEsign ? ' style="border:1px solid #d0d0d0;border-radius:8px;overflow:hidden;margin-bottom:18px;"' : '',
-    table: isEsign ? ' style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;"' : '',
-    td: isEsign ? ' style="padding:8px 12px;font-size:12px;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;"' : '',
+    table: isEsign ? ' style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;color:#222;"' : '',
+    td: isEsign ? ' style="padding:8px 12px;font-size:12px;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;color:#222;"' : '',
     tdLabel: isEsign ? ' style="padding:8px 12px;font-size:12px;font-weight:600;color:#374151;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;"' : '',
     tdHeader: isEsign ? ' style="padding:8px 12px;font-size:12px;font-weight:600;color:#374151;background:#f9fafb;border-bottom:2px solid #d0d0d0;"' : '',
     footer: isEsign ? ' style="display:flex;justify-content:space-between;gap:2rem;align-items:flex-start;margin-top:22px;padding-top:14px;border-top:1px solid #e0e0e0;"' : '',
