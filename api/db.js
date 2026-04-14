@@ -434,6 +434,21 @@ async function runMigrations() {
     await client.query(`ALTER TABLE social_credentials ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ`);
     await client.query(`ALTER TABLE social_credentials ADD COLUMN IF NOT EXISTS oauth_metadata JSONB DEFAULT '{}'`);
 
+    // Dev ticket system
+    await client.query(`CREATE TABLE IF NOT EXISTS dev_tickets (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      submitted_by INTEGER REFERENCES employees(id),
+      assigned_to INTEGER REFERENCES employees(id),
+      status VARCHAR(50) DEFAULT 'open',
+      priority VARCHAR(20) DEFAULT 'medium',
+      rank_order INTEGER DEFAULT 0,
+      scheduled_date DATE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {

@@ -674,13 +674,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'publish_date', label: 'Publish Date', sortable: true, type: 'date' },
       { key: 'status', label: 'Status', sortable: true, type: 'status' }
     ],
-    'Dashboard': [
-      { key: 'title', label: 'Title', sortable: true, isName: true },
-      { key: 'client', label: 'Client', sortable: true },
-      { key: 'type', label: 'Type', sortable: true },
-      { key: 'due_date', label: 'Due Date', sortable: true, type: 'date' },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
-    ],
     'Calendar': [
       { key: 'event', label: 'Event', sortable: true, isName: true },
       { key: 'client', label: 'Client', sortable: true },
@@ -790,10 +783,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'title', label: 'Title', sortable: true, isName: true },
       { key: 'deadline', label: 'Deadline', sortable: true, type: 'date' }
     ],
-    'Dashboard': [
-      { key: 'title', label: 'Title', sortable: true, isName: true },
-      { key: 'status', label: 'Status', sortable: true, type: 'status' }
-    ],
     'Tasks': [
       { key: 'task', label: 'Task', sortable: true, isName: true },
       { key: 'due_date', label: 'Due', sortable: true, type: 'date' }
@@ -830,7 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'Internal Tasks': 'Urgent',
     'Proposals': 'Pending',
     'Online Articles': 'Drafts',
-    'Dashboard': 'Quick View',
     'Calendar': 'This Week',
     'Tasks': 'Due Soon',
     'Budgets': 'Budget Summary',
@@ -1127,8 +1115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'components': function () { if (window.renderComponentsPage) window.renderComponentsPage(dashboardContent); },
     'database': function () { if (window.renderDatabasePage) window.renderDatabasePage(dashboardContent); },
     'client-list': function () { window.insertTemplate(dashboardContent, '/pages/client-list/client-list.html', window.initClientListPage); },
-    'dashboards': function () { window.insertTemplate(dashboardContent, '/pages/dashboards/dashboards.html', window.initDashboardsPage); },
     'magazine-overview': function () { if (window.renderMagazineOverviewPage) window.renderMagazineOverviewPage(dashboardContent); },
+    'dev-tickets': function () { if (window.renderDevTicketsPage) window.renderDevTicketsPage(dashboardContent); },
     'docs': function () { if (window.renderDocsPage) window.renderDocsPage(dashboardContent); }
     // NOTE: 'docs' is now intercepted before pageRenderers in transitionToPage
     // to enable sidebar drill-down. This entry remains as fallback.
