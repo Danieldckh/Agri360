@@ -449,6 +449,8 @@ async function runMigrations() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`);
 
+    await client.query(`ALTER TABLE dev_tickets ADD COLUMN IF NOT EXISTS due_date DATE`);
+
     // Seed admin employee
     const empCheck = await client.query(`SELECT COUNT(*) FROM employees`);
     if (parseInt(empCheck.rows[0].count) === 0) {

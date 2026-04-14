@@ -3,10 +3,25 @@
 .dev-tickets-header h2 { font-size: 20px; font-weight: 700; color: var(--text-primary, #1a1a2e); margin: 0; }
 .dev-tickets-add-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--accent, #2563eb); cursor: pointer;
   background: var(--accent, #2563eb); color: #fff; font-size: 13px; font-weight: 600;
+  transition: background 0.15s, box-shadow 0.15s;
 }
-.dev-tickets-add-btn:hover { opacity: 0.9; }
+.dev-tickets-add-btn:hover { background: var(--accent-hover, #1d4ed8); box-shadow: 0 2px 8px rgba(37,99,235,0.2); }
+
+/* Tabs */
+.dev-tickets-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.dev-tickets-tabs button {
+  padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border, #d1d5db);
+  background: transparent; color: var(--text-secondary, #555);
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.dev-tickets-tabs button:hover { background: var(--bg-hover, rgba(0,0,0,0.04)); }
+.dev-tickets-tabs button.active {
+  background: var(--accent, #2563eb); color: #fff;
+  border-color: var(--accent, #2563eb);
+}
 
 /* Modal */
 .dev-ticket-modal-overlay {
@@ -17,7 +32,7 @@
   background: var(--card-bg, #fff); border-radius: 12px; padding: 28px;
   width: 480px; max-width: 90vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
 }
-.dev-ticket-modal h3 { margin: 0 0 18px; font-size: 18px; font-weight: 700; }
+.dev-ticket-modal h3 { margin: 0 0 18px; font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .dev-ticket-modal label { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary, #555); }
 .dev-ticket-modal input, .dev-ticket-modal textarea, .dev-ticket-modal select {
   display: block; width: 100%; margin-top: 4px; padding: 8px 10px; border: 1px solid var(--border, #d1d5db);
@@ -26,10 +41,13 @@
 .dev-ticket-modal textarea { min-height: 80px; resize: vertical; }
 .dev-ticket-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .dev-ticket-modal-actions button {
-  padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+  padding: 8px 18px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: background 0.15s, box-shadow 0.15s;
 }
-.dev-ticket-modal-actions .cancel-btn { background: var(--bg-secondary, #f3f4f6); color: var(--text-primary, #333); }
+.dev-ticket-modal-actions .cancel-btn { background: var(--bg-secondary, #f3f4f6); color: var(--text-primary, #333); border-color: var(--border, #d1d5db); }
+.dev-ticket-modal-actions .cancel-btn:hover { background: var(--bg-hover, #e5e7eb); }
 .dev-ticket-modal-actions .submit-btn { background: var(--accent, #2563eb); color: #fff; }
+.dev-ticket-modal-actions .submit-btn:hover { background: var(--accent-hover, #1d4ed8); }
 
 /* Priority badges */
 .proagri-sheet-status-low { background: #e0e7ff; color: #3730a3; }
@@ -43,12 +61,3 @@
 .proagri-sheet-status-in_review { background: #e0e7ff; color: #4338ca; }
 .proagri-sheet-status-completed { background: #d1fae5; color: #065f46; }
 .proagri-sheet-status-cancelled { background: #f3f4f6; color: #6b7280; }
-
-/* Tabs */
-.dev-tickets-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-.dev-tickets-tabs button {
-  padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, #d1d5db);
-  background: var(--bg-secondary, #f9fafb); color: var(--text-secondary, #555);
-  cursor: pointer; font-size: 12px; font-weight: 600;
-}
-.dev-tickets-tabs button.active { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }

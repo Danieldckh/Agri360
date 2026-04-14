@@ -50,7 +50,7 @@ router.get('/:id', async (req, res) => {
 // POST / - create ticket
 router.post('/', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const { title, description, priority, assigned_to, scheduled_date } = body;
+  const { title, description, priority, due_date } = body;
 
   if (!title) {
     return res.status(400).json({ error: 'Title is required' });
@@ -62,10 +62,10 @@ router.post('/', async (req, res) => {
     const nextRank = maxRank.rows[0].next_rank;
 
     const result = await pool.query(
-      `INSERT INTO dev_tickets (title, description, submitted_by, assigned_to, priority, rank_order, scheduled_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO dev_tickets (title, description, submitted_by, priority, rank_order, due_date)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [title, description || null, req.user?.id || null, assigned_to || null, priority || 'medium', nextRank, scheduled_date || null]
+      [title, description || null, req.user?.id || null, priority || 'medium', nextRank, due_date || null]
     );
     res.status(201).json(toCamelCase(result.rows[0]));
   } catch (err) {
@@ -95,7 +95,7 @@ router.patch('/reorder', async (req, res) => {
 // PATCH /:id - update ticket
 router.patch('/:id', async (req, res) => {
   const body = toSnakeBody(req.body);
-  const allowed = ['title', 'description', 'status', 'priority', 'rank_order', 'assigned_to', 'scheduled_date'];
+  const allowed = ['title', 'description', 'status', 'priority', 'rank_order', 'due_date'];
   const sets = [];
   const values = [];
   let idx = 1;

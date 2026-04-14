@@ -89,14 +89,11 @@
     page.appendChild(sheetEl);
 
     var columns = [
-      { key: 'rankOrder', label: '#', type: 'number', editable: true, width: 'xs' },
-      { key: 'title', label: 'Title', sortable: true, isName: true, editable: true },
-      { key: 'description', label: 'Description', editable: true },
+      { key: 'title', label: 'Title', sortable: true, isName: true, editable: true, wrap: true },
+      { key: 'description', label: 'Description', editable: true, wrap: true },
       { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: STATUSES },
       { key: 'priority', label: 'Priority', sortable: true, type: 'status', editable: true, options: PRIORITIES },
-      { key: 'assignedTo', label: 'Assigned', type: 'person', editable: true },
-      { key: 'scheduledDate', label: 'Scheduled', type: 'date', sortable: true, editable: true },
-      { key: 'submittedByName', label: 'Submitted By' },
+      { key: 'dueDate', label: 'Due Date', type: 'date', sortable: true, editable: true },
       { key: 'createdAt', label: 'Created', type: 'date', sortable: true }
     ];
 
@@ -142,6 +139,7 @@
       + '<label>Title<input type="text" id="dt-title" placeholder="Brief summary of the change request"></label>'
       + '<label>Description<textarea id="dt-desc" placeholder="Detailed description of what needs to change..."></textarea></label>'
       + '<label>Priority<select id="dt-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>'
+      + '<label>Due Date<input type="date" id="dt-due-date"></label>'
       + '<div class="dev-ticket-modal-actions">'
       + '<button class="cancel-btn" id="dt-cancel">Cancel</button>'
       + '<button class="submit-btn" id="dt-submit">Create Ticket</button>'
@@ -156,7 +154,8 @@
       if (!title) { modal.querySelector('#dt-title').focus(); return; }
       var desc = modal.querySelector('#dt-desc').value.trim();
       var priority = modal.querySelector('#dt-priority').value;
-      createTicket({ title: title, description: desc, priority: priority }).then(function () {
+      var dueDate = modal.querySelector('#dt-due-date').value || null;
+      createTicket({ title: title, description: desc, priority: priority, dueDate: dueDate }).then(function () {
         overlay.remove();
         refresh();
       });

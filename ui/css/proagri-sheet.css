@@ -147,6 +147,13 @@
   transition: background 0.15s ease;
 }
 
+.proagri-sheet-cell.cell-wrap {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: unset;
+}
+
 .proagri-sheet-cell.cell-name {
   color: var(--text-primary);
   font-weight: 500;

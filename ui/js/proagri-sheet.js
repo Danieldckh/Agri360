@@ -1007,6 +1007,7 @@
         var cls = 'proagri-sheet-cell';
         if (col.isName) cls += ' cell-name';
         if (col.editable) cls += ' cell-editable';
+        if (col.wrap) cls += ' cell-wrap';
         if (col.width === 'sm') cls += ' cell-sm';
         else if (col.width === 'md') cls += ' cell-md';
         cell.className = cls;
