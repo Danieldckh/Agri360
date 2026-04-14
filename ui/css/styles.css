@@ -977,12 +977,16 @@ html, body {
 /* Proposal grid layout */
 .proposal-grid {
   display: grid;
-  grid-template-columns: 4fr 1fr;
+  grid-template-columns: 3fr 2fr;
   grid-template-rows: 1fr;
   gap: 16px;
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.proposal-grid--booking {
+  grid-template-columns: 4fr 1fr;
 }
 
 .proposal-grid-left {

@@ -1820,7 +1820,7 @@
     resetContainer(container);
 
     var grid = document.createElement('div');
-    grid.className = 'proposal-grid';
+    grid.className = 'proposal-grid proposal-grid--booking';
 
     var leftCol = document.createElement('div');
     leftCol.className = 'proposal-grid-left';
