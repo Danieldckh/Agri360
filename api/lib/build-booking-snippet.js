@@ -48,6 +48,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   } else {
     styleOverrides = '<style>' +
       '.admin-btn, #admin-notion-btn { display: none !important; }' +
+      '.banner { background: #16a34a !important; }' +
       '</style>';
   }
 
@@ -241,6 +242,32 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
     </tr>
   </table>
 </div>`);
+
+  // For editor pages: inject script that overrides "Send to ProAgri" to call
+  // CRM send-to-esign directly and redirect to the e-sign page
+  if (!options.includeHeader) {
+    const formId = form.id || '';
+    parts.push('<script>' +
+      '(function(){' +
+      'var btn=document.getElementById("send-booking-to-n8n");' +
+      'if(!btn)return;' +
+      'var origHandler=btn.onclick;' +
+      'btn.removeAttribute("onclick");' +
+      'var clone=btn.cloneNode(true);' +
+      'btn.parentNode.replaceChild(clone,btn);' +
+      'clone.addEventListener("click",async function(){' +
+      'clone.disabled=true;clone.textContent="Generating e-sign...";clone.style.opacity="0.7";' +
+      'try{' +
+      'var res=await fetch("https://agri360.proagrihub.com/api/booking-forms/' + formId + '/send-to-esign",{method:"POST",headers:{"Content-Type":"application/json"}});' +
+      'var data=await res.json();' +
+      'if(data.url){window.location.href=data.url;return;}' +
+      'document.getElementById("send-status").textContent="Done but no e-sign URL returned.";' +
+      '}catch(e){document.getElementById("send-status").textContent="Error: "+e.message;}' +
+      'finally{clone.disabled=false;clone.textContent="Send booking form to ProAgri";clone.style.opacity="";}' +
+      '});' +
+      '})();' +
+      '</script>');
+  }
 
   return parts.join('\n');
 }
