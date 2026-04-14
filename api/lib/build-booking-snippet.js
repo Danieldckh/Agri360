@@ -201,10 +201,16 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   const tax = fin.tax || '';
   const total = fin.total || '';
 
+  var tcCellStyle = isEsign ? ' style="padding:6px 0;border:none;color:#222;text-align:left;"' : ' style="padding:6px 0;border:none;"';
+  var tcValueStyle = isEsign ? ' style="padding:6px 0;text-align:right;border:none;color:#222;"' : ' style="padding:6px 0;text-align:right;border:none;"';
+  var tcBoldStyle = isEsign ? ' style="padding:6px 0;font-weight:700;font-size:1.1em;border:none;color:#222;"' : ' style="padding:6px 0;font-weight:700;font-size:1.1em;border:none;"';
+  var tcBoldValStyle = isEsign ? ' style="padding:6px 0;text-align:right;font-weight:700;font-size:1.1em;border:none;color:#222;"' : ' style="padding:6px 0;text-align:right;font-weight:700;font-size:1.1em;border:none;"';
+  var termsStyle = isEsign ? ' style="text-align:left;color:#222;font-size:11px;line-height:1.6;"' : '';
+
   parts.push(`
 <div class="footer-section"${S.footer}>
   <div class="footer-left"${S.footerLeft}>
-    <div class="editable" contenteditable="true">
+    <div class="editable" contenteditable="true"${termsStyle}>
       <b>Terms & Conditions</b><br/>
       All prices exclude VAT unless otherwise stated.<br/>
       Payment terms: 30 days from date of invoice.<br/>
@@ -214,25 +220,26 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   <div class="footer-right"${S.footerRight}>
     <table style="width:100%;border-collapse:collapse;background:transparent;border:none;">
       <tr>
-        <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>Subtotal</b></div></td>
-        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(stripCurrency(subtotal)) : ''}</div></td>
+        <td${tcCellStyle}><div class="editable" contenteditable="true"><b>Subtotal</b></div></td>
+        <td${tcValueStyle}><div class="editable" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(stripCurrency(subtotal)) : ''}</div></td>
       </tr>
       <tr>
-        <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>VAT (15%)</b></div></td>
-        <td style="padding:6px 0;text-align:right;border:none;"><div class="editable" contenteditable="true">${tax ? esc(currency) + ' ' + esc(stripCurrency(tax)) : ''}</div></td>
+        <td${tcCellStyle}><div class="editable" contenteditable="true"><b>VAT (15%)</b></div></td>
+        <td${tcValueStyle}><div class="editable" contenteditable="true">${tax ? esc(currency) + ' ' + esc(stripCurrency(tax)) : ''}</div></td>
       </tr>
       <tr>
-        <td style="padding:6px 0;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true"><b>Total</b></div></td>
-        <td style="padding:6px 0;text-align:right;font-weight:700;font-size:1.1em;border:none;"><div class="editable" contenteditable="true">${total ? esc(currency) + ' ' + esc(stripCurrency(total)) : ''}</div></td>
+        <td${tcBoldStyle}><div class="editable" contenteditable="true"><b>Total</b></div></td>
+        <td${tcBoldValStyle}><div class="editable" contenteditable="true">${total ? esc(currency) + ' ' + esc(stripCurrency(total)) : ''}</div></td>
       </tr>
     </table>
   </div>
 </div>`);
 
-  // ─── Sign-off Section (representative only, no client signature row) ───
+  // ─── Sign-off Section (only for editor — e-sign has its own signature UI) ───
+  if (!isEsign) {
   parts.push(`
-<div class="booking-table-wrapper"${isEsign ? ' style="border:1px solid #d0d0d0;border-radius:8px;overflow:hidden;margin-top:28px;margin-bottom:18px;"' : ' style="margin-top: 28px;"'}>
-  <table class="company-table"${S.table}>
+<div class="booking-table-wrapper" style="margin-top: 28px;">
+  <table class="company-table">
     <tr>
       ${editableCell('<b>Representative</b>')}
       ${editableCell(esc(signOff.representative || ''))}
@@ -241,6 +248,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
     </tr>
   </table>
 </div>`);
+  }
 
   // For e-sign pages: inject script that re-enables editing on Company Info
   // and Contact Details tables after the e-sign app disables all contenteditable
