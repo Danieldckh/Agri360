@@ -16,7 +16,8 @@ function editableCell(content) {
   return `<td><div class="editable" contenteditable="true">${content || ''}</div></td>`;
 }
 
-function buildBookingFormSnippet(formData, form, deliverableRows) {
+function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
+  var options = opts || {};
   const ci = formData.client_information || {};
   const fin = formData.financial_totals || {};
   const signOff = formData.sign_off || {};
@@ -65,7 +66,8 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
 
   const parts = [styleOverrides];
 
-  // ─── Header: Logo + Address + Legal Strip ───
+  // ─── Header: Logo + Address + Legal Strip (only for e-sign, editor has its own) ───
+  if (options.includeHeader) {
   parts.push(`
 <div class="bf-header header">
   <button class="logo-btn" type="button" id="logo-upload-btn" aria-label="Company logo">
@@ -80,6 +82,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows) {
 <div class="bf-legal legal-strip" id="legal-strip">
   Agri Media Africa (Pty) Ltd. | Reg no: 2019/486053/07 | VAT no: 409 0303 266 | Director: Mrs. D Do Nacimento
 </div>`);
+  } // end includeHeader
 
   // ─── Company Information Table ───
   parts.push(`

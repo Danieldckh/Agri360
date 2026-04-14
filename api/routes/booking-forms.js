@@ -532,7 +532,7 @@ router.post('/:id/send-to-esign', async (req, res) => {
     const { formatDeliverables } = require('../lib/format-deliverables');
     const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="6"><div class="editable" contenteditable="true"><p><em>No deliverable sections were selected in the checklist.</em></p></div></td></tr>';
     const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
-    const html = buildBookingFormSnippet(formData, form, deliverableRows);
+    const html = buildBookingFormSnippet(formData, form, deliverableRows, { includeHeader: true });
 
     // POST to the secure-signature-page e-sign service
     const esignUrl = config.ESIGN_SERVICE_URL.replace(/\/+$/, '');
