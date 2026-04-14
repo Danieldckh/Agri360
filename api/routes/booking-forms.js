@@ -509,25 +509,41 @@ router.get('/:id/revisions/:revisionId', async (req, res) => {
   }
 });
 
-// POST /:id/send-to-esign — create a permanent e-sign token via the
-// Booking Form Esign service and write the URL back to this booking form.
+// POST /:id/send-to-esign — build the booking form HTML and send it to the
+// secure-signature-page e-sign service, which stores the HTML and returns a
+// signing URL for the client.
 router.post('/:id/send-to-esign', async (req, res) => {
   try {
-    // Verify booking form exists
-    const bf = await pool.query('SELECT id FROM booking_forms WHERE id = $1', [req.params.id]);
-    if (bf.rows.length === 0) {
+    const result = await pool.query(
+      `SELECT bf.*, c.name as client_name, c.trading_name, c.primary_contact, c.material_contact, c.accounts_contact
+       FROM booking_forms bf
+       LEFT JOIN clients c ON bf.client_id = c.id
+       WHERE bf.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Booking form not found' });
     }
+    const form = toCamelCase(result.rows[0]);
+    const formData = form.formData || {};
+    const slug = (form.clientName || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + form.id;
 
+    // Build the full booking form HTML (same as send-to-editor)
+    const { formatDeliverables } = require('../lib/format-deliverables');
+    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="6"><div class="editable" contenteditable="true"><p><em>No deliverable sections were selected in the checklist.</em></p></div></td></tr>';
+    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
+    const html = buildBookingFormSnippet(formData, form, deliverableRows);
+
+    // POST to the secure-signature-page e-sign service
     const esignUrl = config.ESIGN_SERVICE_URL.replace(/\/+$/, '');
-    const response = await fetch(`${esignUrl}/api/admin/create-token`, {
+    const apiSecret = config.ESIGN_API_SECRET || config.ESIGN_ADMIN_SECRET;
+    const response = await fetch(`${esignUrl}/api/esign/booking/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(config.ESIGN_ADMIN_SECRET ? { 'X-Admin-Secret': config.ESIGN_ADMIN_SECRET } : {}),
+        ...(apiSecret ? { 'X-Api-Key': apiSecret } : {}),
       },
-      body: JSON.stringify({ bookingFormId: Number(req.params.id) }),
-      // No expiresInDays — tokens are permanent
+      body: JSON.stringify({ clientName: form.clientName, slug, html }),
     });
 
     if (!response.ok) {
@@ -536,9 +552,15 @@ router.post('/:id/send-to-esign', async (req, res) => {
     }
 
     const data = await response.json();
-    // The e-sign service already writes esign_url back to booking_forms,
-    // but return it so the frontend can update immediately.
-    res.json({ success: true, url: data.url, token: data.token });
+    const signerUrl = data.signerUrl || '';
+
+    // Store the e-sign URL
+    await pool.query(
+      'UPDATE booking_forms SET esign_url = $1, updated_at = NOW() WHERE id = $2',
+      [signerUrl, req.params.id]
+    );
+
+    res.json({ success: true, url: signerUrl, slug: data.slug });
   } catch (err) {
     console.error('Send to esign error:', err);
     res.status(500).json({ error: 'Internal server error' });
