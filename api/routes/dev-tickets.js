@@ -11,7 +11,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
-    let query = 'SELECT t.*, e1.name as submitted_by_name, e2.name as assigned_to_name FROM dev_tickets t LEFT JOIN employees e1 ON t.submitted_by = e1.id LEFT JOIN employees e2 ON t.assigned_to = e2.id';
+    let query = 'SELECT t.*, COALESCE(e1.first_name || ' ' || e1.last_name, e1.first_name) as submitted_by_name, COALESCE(e2.first_name || ' ' || e2.last_name, e2.first_name) as assigned_to_name FROM dev_tickets t LEFT JOIN employees e1 ON t.submitted_by = e1.id LEFT JOIN employees e2 ON t.assigned_to = e2.id';
     const params = [];
 
     if (status && status !== 'all') {
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT t.*, e1.name as submitted_by_name, e2.name as assigned_to_name FROM dev_tickets t LEFT JOIN employees e1 ON t.submitted_by = e1.id LEFT JOIN employees e2 ON t.assigned_to = e2.id WHERE t.id = $1',
+      'SELECT t.*, COALESCE(e1.first_name || ' ' || e1.last_name, e1.first_name) as submitted_by_name, COALESCE(e2.first_name || ' ' || e2.last_name, e2.first_name) as assigned_to_name FROM dev_tickets t LEFT JOIN employees e1 ON t.submitted_by = e1.id LEFT JOIN employees e2 ON t.assigned_to = e2.id WHERE t.id = $1',
       [req.params.id]
     );
     if (result.rows.length === 0) {
