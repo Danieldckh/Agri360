@@ -95,18 +95,19 @@
     { key: 'status', label: 'Status', sortable: true, type: 'status', editable: true, options: ALL_STATUSES }
   ];
 
-  // The Booking Form sheet: proposal upload + unsigned/signed booking form files.
+  // The Booking Form sheet: proposal upload + unsigned/signed booking form files + change requests.
   var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
-    { key: 'proposalFileUrl', label: 'Proposal', type: 'upload', uploadEndpoint: '/api/booking-forms/{id}/upload-proposal-file', width: 'sm' },
-    { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'sm' },
-    { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'sm' }
+    { key: 'proposalFileUrl', label: 'Proposal', type: 'upload', uploadEndpoint: '/api/booking-forms/{id}/upload-proposal-file', width: 'md' },
+    { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'md' },
+    { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'md' },
+    { key: 'changeNotes',     label: 'Change Request',        width: 'md' }
   ]);
 
   // Sent to Client sheet: minimal columns — just client + signed file.
   var SENT_TO_CLIENT_COLUMNS = [
     { key: 'assignedAdmin', label: '', type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'sm' }
+    { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'md' }
   ];
 
   // Design sheets use assignedDesign (the designer), not assignedAdmin
@@ -150,8 +151,10 @@
       checklistUrl: form.checklistUrl || '',
       // Unsigned booking form: manual upload OR generated e-sign URL
       unsignedFileUrl: form.unsignedFileUrl || form.esignUrl || '',
+      // Signed: manual upload, or if signed via e-sign the signedPdf is base64 (not a URL)
       signedFileUrl: form.signedFileUrl || '',
-      proposalFileUrl: form.proposalFileUrl || ''
+      proposalFileUrl: form.proposalFileUrl || '',
+      changeNotes: form.changeNotes || ''
     };
   }
 

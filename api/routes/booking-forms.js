@@ -444,13 +444,16 @@ router.post('/:id/sign', async (req, res) => {
 
     if (action === 'signed') {
       await appendRevision();
-      // Save signed PDF and advance to onboarding
+      // Save signed PDF, set signed_file_url to e-sign page, advance to onboarding
+      const form = toCamelCase(result.rows[0]);
+      const signedUrl = form.esignUrl || '';
       await pool.query(
         `UPDATE booking_forms SET
           signed_pdf = $1, signature_data = $2, signed_at = NOW(),
+          signed_file_url = COALESCE(signed_file_url, $3),
           status = 'onboarding', department = 'admin-onboarding', updated_at = NOW()
-        WHERE id = $3`,
-        [pdfData || null, JSON.stringify(signatureData) || null, req.params.id]
+        WHERE id = $4`,
+        [pdfData || null, JSON.stringify(signatureData) || null, signedUrl, req.params.id]
       );
       res.json({ success: true, status: 'onboarding' });
     } else if (action === 'change_request') {
