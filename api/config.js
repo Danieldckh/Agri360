@@ -39,6 +39,6 @@ module.exports = {
   TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
 
   // Booking Form E-sign service (sister app)
-  ESIGN_SERVICE_URL: process.env.ESIGN_SERVICE_URL || 'https://bookingformesign-old.148.230.100.16.sslip.io',
+  ESIGN_SERVICE_URL: process.env.ESIGN_SERVICE_URL || 'https://bookingformesign.proagrihub.com',
   ESIGN_ADMIN_SECRET: process.env.ESIGN_ADMIN_SECRET || '',
 };
