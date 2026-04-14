@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var API = (window.API_URL || '') + '/api/dev-tickets';
+  var API = (window.API_URL || '/api') + '/dev-tickets';
   var STATUSES = ['open', 'in_progress', 'in_review', 'completed', 'cancelled'];
   var PRIORITIES = ['low', 'medium', 'high', 'urgent'];
   var activeFilter = 'active'; // 'active' | 'completed' | 'all'
