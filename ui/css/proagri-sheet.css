@@ -107,6 +107,11 @@
   flex: 0 0 140px;
 }
 
+.proagri-sheet-header-cell.cell-lg,
+.proagri-sheet-cell.cell-lg {
+  flex: 0 0 180px;
+}
+
 .proagri-sheet-header-cell.radial-col,
 .proagri-sheet-cell.radial-col {
   flex: 0 0 40px;

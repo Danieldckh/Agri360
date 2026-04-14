@@ -888,6 +888,7 @@
       if (col.sortable) cls += ' sortable';
       if (col.width === 'sm') cls += ' cell-sm';
       else if (col.width === 'md') cls += ' cell-md';
+      else if (col.width === 'lg') cls += ' cell-lg';
       th.className = cls;
       if (!col.width && col.type === 'person') th.style.flex = '0 0 44px';
       th.setAttribute('data-col-key', col.key);
@@ -1010,6 +1011,7 @@
         if (col.wrap) cls += ' cell-wrap';
         if (col.width === 'sm') cls += ' cell-sm';
         else if (col.width === 'md') cls += ' cell-md';
+        else if (col.width === 'lg') cls += ' cell-lg';
         cell.className = cls;
         if (!col.width && col.type === 'person') cell.style.flex = '0 0 44px';
         cell.setAttribute('data-col-key', col.key);

@@ -98,16 +98,16 @@
   // The Booking Form sheet: proposal upload + unsigned/signed booking form files + change requests.
   var BOOKING_FORM_COLUMNS = BASE_COLUMNS.concat([
     { key: 'proposalFileUrl', label: 'Proposal', type: 'upload', uploadEndpoint: '/api/booking-forms/{id}/upload-proposal-file', width: 'md' },
-    { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'md' },
-    { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'md' },
-    { key: 'changeNotes',     label: 'Change Request',        width: 'md' }
+    { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'lg' },
+    { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'lg' },
+    { key: 'changeNotes',     label: 'Change Request',        width: 'lg', wrap: true }
   ]);
 
   // Sent to Client sheet: minimal columns — just client + signed file.
   var SENT_TO_CLIENT_COLUMNS = [
     { key: 'assignedAdmin', label: '', type: 'person', editable: true },
     { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'md' }
+    { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'lg' }
   ];
 
   // Design sheets use assignedDesign (the designer), not assignedAdmin
