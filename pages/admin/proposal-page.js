@@ -239,7 +239,7 @@
     searchInput.type = 'text';
     searchInput.className = 'dept-sheet-search';
     searchInput.placeholder = 'Search ' + title.toLowerCase() + '...';
-    header.appendChild(searchInput);
+    if (!opts.hideSearch) header.appendChild(searchInput);
 
     card.appendChild(header);
 
@@ -1831,7 +1831,7 @@
     var bfSheet = buildSheet('Booking Form', refreshAll, BOOKING_FORM_COLUMNS);
     leftCol.appendChild(bfSheet.el);
 
-    var sentSheet = buildSheet('Sent to Client', refreshAll, SENT_TO_CLIENT_COLUMNS);
+    var sentSheet = buildSheet('Sent to Client', refreshAll, SENT_TO_CLIENT_COLUMNS, { hideSearch: true });
     rightCol.appendChild(sentSheet.el);
 
     grid.appendChild(leftCol);
