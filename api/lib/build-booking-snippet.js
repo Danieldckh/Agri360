@@ -29,28 +29,22 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // Editor: minimal overrides (editor base.html has its own comprehensive styles)
   // E-sign: full standalone styles since the e-sign app has no booking form CSS
   var styleOverrides;
-  if (options.includeHeader) {
-    styleOverrides = '<style>' +
-      '.booking-form-container { font-family: Arial, sans-serif; color: #222; }' +
-      '.bf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #d1d5db; }' +
-      '.bf-header img { height: 65px; object-fit: contain; }' +
-      '.bf-header .bf-address { text-align: right; font-size: 11px; color: #D72626; font-weight: 600; line-height: 1.5; }' +
-      '.bf-legal { text-align: center; font-size: 11px; font-weight: 600; color: #374151; margin: 6px 1rem 20px; }' +
-      '.bf-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #D72626; margin: 22px 0 8px; letter-spacing: 0.3px; }' +
-      '.booking-table-wrapper, .contact-table-wrapper { border: 1px solid #d0d0d0; border-radius: 8px; overflow: hidden; margin-bottom: 18px; }' +
-      '.company-table, .contact-table, .booking-table { width: 100%; border-collapse: collapse; }' +
-      '.company-table td, .contact-table td, .booking-table td { padding: 8px 12px; font-size: 12px; vertical-align: top; line-height: 1.35; border-bottom: 1px solid #e5e7eb; }' +
-      '.company-table tr:last-child td, .contact-table tr:last-child td, .booking-table tr:last-child td { border-bottom: none; }' +
-      '.company-table td:nth-child(odd) { font-weight: 600; color: #374151; width: 22%; }' +
-      '.contact-table tr:first-child td, .booking-table tr:first-child td { font-weight: 600; color: #374151; background: #f9fafb; border-bottom: 2px solid #d0d0d0; }' +
-      '.contact-table td:first-child { font-weight: 600; color: #374151; }' +
-      '.footer-section { display: flex; justify-content: space-between; gap: 2rem; align-items: flex-start; margin-top: 22px; padding-top: 14px; border-top: 1px solid #e0e0e0; }' +
-      '.footer-left { flex: 1; font-size: 11px; line-height: 1.6; color: #555; }' +
-      '.footer-right { flex: 0 0 220px; }' +
-      '.footer-right table { width: 100%; }' +
-      '.footer-right table td { border: none !important; font-size: 12px; padding: 4px 0; }' +
-      '.editable { min-height: auto; }' +
-      '</style>';
+  // Inline style strings for e-sign (DOMPurify strips <style> tags)
+  var isEsign = !!options.includeHeader;
+  var S = {
+    sectionTitle: isEsign ? ' style="font-size:13px;font-weight:700;text-transform:uppercase;color:#D72626;margin:22px 0 8px;letter-spacing:0.3px;font-family:Arial,sans-serif;"' : '',
+    tableWrap: isEsign ? ' style="border:1px solid #d0d0d0;border-radius:8px;overflow:hidden;margin-bottom:18px;"' : '',
+    table: isEsign ? ' style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;"' : '',
+    td: isEsign ? ' style="padding:8px 12px;font-size:12px;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;"' : '',
+    tdLabel: isEsign ? ' style="padding:8px 12px;font-size:12px;font-weight:600;color:#374151;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;"' : '',
+    tdHeader: isEsign ? ' style="padding:8px 12px;font-size:12px;font-weight:600;color:#374151;background:#f9fafb;border-bottom:2px solid #d0d0d0;"' : '',
+    footer: isEsign ? ' style="display:flex;justify-content:space-between;gap:2rem;align-items:flex-start;margin-top:22px;padding-top:14px;border-top:1px solid #e0e0e0;"' : '',
+    footerLeft: isEsign ? ' style="flex:1;font-size:11px;line-height:1.6;color:#555;font-family:Arial,sans-serif;"' : '',
+    footerRight: isEsign ? ' style="flex:0 0 220px;"' : '',
+  };
+
+  if (isEsign) {
+    styleOverrides = '';
   } else {
     styleOverrides = '<style>' +
       '.admin-btn, #admin-notion-btn { display: none !important; }' +
@@ -82,26 +76,24 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // ─── Header: Logo + Address + Legal Strip (only for e-sign, editor has its own) ───
   if (options.includeHeader) {
   parts.push(`
-<div class="bf-header header">
-  <button class="logo-btn" type="button" id="logo-upload-btn" aria-label="Company logo">
-    <img id="header-logo" src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media">
-  </button>
-  <div class="bf-address address" id="header-address">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #d1d5db;">
+  <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:65px;object-fit:contain;"></div>
+  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.5;">
     PO Box 72707, Lynnwood Ridge, 0040<br>
     33 Oakwood Close, Silverwoods Country Estate<br>
     Tel: 084 088 0123 | Fax: 086 458 7812
   </div>
 </div>
-<div class="bf-legal legal-strip" id="legal-strip">
+<div style="text-align:center;font-size:11px;font-weight:600;color:#374151;margin:6px 1rem 20px;">
   Agri Media Africa (Pty) Ltd. | Reg no: 2019/486053/07 | VAT no: 409 0303 266 | Director: Mrs. D Do Nacimento
 </div>`);
   } // end includeHeader
 
   // ─── Company Information Table ───
   parts.push(`
-<div class="bf-section-title">Company Information</div>
-<div class="booking-table-wrapper">
-  <table class="company-table">
+<div class="bf-section-title"${S.sectionTitle}>Company Information</div>
+<div class="booking-table-wrapper"${S.tableWrap}>
+  <table class="company-table"${S.table}>
     <tr>
       ${editableCell('<b>Full Company Name</b>')}
       ${editableCell(esc(companyName))}
@@ -143,9 +135,9 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
 
   // ─── Contact Details Table ───
   parts.push(`
-<div class="bf-section-title">Contact Details</div>
-<div class="contact-table-wrapper">
-  <table class="contact-table">
+<div class="bf-section-title"${S.sectionTitle}>Contact Details</div>
+<div class="contact-table-wrapper"${S.tableWrap}>
+  <table class="contact-table"${S.table}>
     <tr>
       ${editableCell('<b>Contact Type</b>')}
       ${editableCell('<b>Name</b>')}
@@ -190,9 +182,9 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   }
 
   parts.push(`
-<div class="bf-section-title">Deliverables</div>
-<div class="booking-table-wrapper">
-  <table class="booking-table">
+<div class="bf-section-title"${S.sectionTitle}>Deliverables</div>
+<div class="booking-table-wrapper"${S.tableWrap}>
+  <table class="booking-table"${S.table}>
     <tr>
       ${editableCell('<b>Deliverables</b>')}
       ${editableCell('<b>Price</b>')}
@@ -209,8 +201,8 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   const total = fin.total || '';
 
   parts.push(`
-<div class="footer-section">
-  <div class="footer-left">
+<div class="footer-section"${S.footer}>
+  <div class="footer-left"${S.footerLeft}>
     <div class="editable" contenteditable="true">
       <b>Terms & Conditions</b><br/>
       All prices exclude VAT unless otherwise stated.<br/>
@@ -218,7 +210,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
       This booking form is valid for 30 days from date of issue.
     </div>
   </div>
-  <div class="footer-right">
+  <div class="footer-right"${S.footerRight}>
     <table style="width:100%;border-collapse:collapse;background:transparent;border:none;">
       <tr>
         <td style="padding:6px 0;font-weight:600;border:none;"><div class="editable" contenteditable="true"><b>Subtotal</b></div></td>
@@ -238,8 +230,8 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
 
   // ─── Sign-off Section (representative only, no client signature row) ───
   parts.push(`
-<div class="booking-table-wrapper" style="margin-top: 28px;">
-  <table class="company-table">
+<div class="booking-table-wrapper"${isEsign ? ' style="border:1px solid #d0d0d0;border-radius:8px;overflow:hidden;margin-top:28px;margin-bottom:18px;"' : ' style="margin-top: 28px;"'}>
+  <table class="company-table"${S.table}>
     <tr>
       ${editableCell('<b>Representative</b>')}
       ${editableCell(esc(signOff.representative || ''))}
