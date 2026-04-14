@@ -103,11 +103,9 @@
     { key: 'changeNotes',     label: 'Change Request',        width: 'lg', wrap: true }
   ]);
 
-  // Sent to Client sheet: minimal columns — just client + signed file.
+  // Sent to Client sheet: client name only (no other properties).
   var SENT_TO_CLIENT_COLUMNS = [
-    { key: 'assignedAdmin', label: '', type: 'person', editable: true },
-    { key: 'client', label: 'Client', sortable: true, isName: true },
-    { key: 'signedFileUrl', label: 'Signed Booking Form', type: 'upload', uploadType: 'signed', width: 'lg' }
+    { key: 'client', label: 'Client', sortable: true, isName: true }
   ];
 
   // Design sheets use assignedDesign (the designer), not assignedAdmin
