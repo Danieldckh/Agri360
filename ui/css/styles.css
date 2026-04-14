@@ -977,7 +977,7 @@ html, body {
 /* Proposal grid layout */
 .proposal-grid {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 4fr 1fr;
   grid-template-rows: 1fr;
   gap: 16px;
   width: 100%;
