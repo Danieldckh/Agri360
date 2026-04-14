@@ -31,23 +31,25 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   var styleOverrides;
   if (options.includeHeader) {
     styleOverrides = '<style>' +
-      '.booking-form-container { font-family: Arial, sans-serif; }' +
-      '.bf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #d1d5db; }' +
-      '.bf-header img { height: 70px; object-fit: contain; }' +
-      '.bf-header .bf-address { text-align: right; font-size: 12px; color: #D72626; font-weight: 600; line-height: 1.5; }' +
-      '.bf-legal { text-align: center; font-size: 12px; font-weight: 600; color: #374151; margin: 8px 2rem 24px; }' +
-      '.bf-section-title { font-size: 15px; font-weight: 800; text-transform: uppercase; color: #1a1a2e; margin: 28px 0 10px; letter-spacing: 0.5px; border-bottom: 2px solid #D72626; padding-bottom: 6px; }' +
-      '.company-table, .contact-table, .booking-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #d0d0d0; }' +
-      '.company-table td, .contact-table td, .booking-table td { padding: 10px 14px; font-size: 13px; vertical-align: top; line-height: 1.4; border: none; position: relative; }' +
-      '.company-table td:not(:last-child)::after, .contact-table td:not(:last-child)::after, .booking-table td:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 8px; bottom: 8px; width: 1px; background: #cfcfcf; }' +
-      '.company-table tr:nth-child(odd), .contact-table tr:nth-child(odd), .booking-table tr:nth-child(odd) { background: #f5f5f5; }' +
-      '.company-table tr:nth-child(even), .contact-table tr:nth-child(even), .booking-table tr:nth-child(even) { background: #fff; }' +
-      '.company-table td:nth-child(odd) { font-weight: 600; }' +
-      '.contact-table tr:first-child td, .booking-table tr:first-child td { font-weight: 600; border-bottom: 2px solid #cfcfcf; }' +
-      '.footer-section { display: flex; justify-content: space-between; gap: 2rem; align-items: flex-start; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0; }' +
-      '.footer-left { flex: 1; font-size: 12px; line-height: 1.6; color: #555; }' +
-      '.footer-right { flex: 0 0 240px; }' +
-      '.footer-right table td { border: none !important; }' +
+      '.booking-form-container { font-family: Arial, sans-serif; color: #222; }' +
+      '.bf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #d1d5db; }' +
+      '.bf-header img { height: 65px; object-fit: contain; }' +
+      '.bf-header .bf-address { text-align: right; font-size: 11px; color: #D72626; font-weight: 600; line-height: 1.5; }' +
+      '.bf-legal { text-align: center; font-size: 11px; font-weight: 600; color: #374151; margin: 6px 1rem 20px; }' +
+      '.bf-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #D72626; margin: 22px 0 8px; letter-spacing: 0.3px; }' +
+      '.booking-table-wrapper, .contact-table-wrapper { border: 1px solid #d0d0d0; border-radius: 8px; overflow: hidden; margin-bottom: 18px; }' +
+      '.company-table, .contact-table, .booking-table { width: 100%; border-collapse: collapse; }' +
+      '.company-table td, .contact-table td, .booking-table td { padding: 8px 12px; font-size: 12px; vertical-align: top; line-height: 1.35; border-bottom: 1px solid #e5e7eb; }' +
+      '.company-table tr:last-child td, .contact-table tr:last-child td, .booking-table tr:last-child td { border-bottom: none; }' +
+      '.company-table td:nth-child(odd) { font-weight: 600; color: #374151; width: 22%; }' +
+      '.contact-table tr:first-child td, .booking-table tr:first-child td { font-weight: 600; color: #374151; background: #f9fafb; border-bottom: 2px solid #d0d0d0; }' +
+      '.contact-table td:first-child { font-weight: 600; color: #374151; }' +
+      '.footer-section { display: flex; justify-content: space-between; gap: 2rem; align-items: flex-start; margin-top: 22px; padding-top: 14px; border-top: 1px solid #e0e0e0; }' +
+      '.footer-left { flex: 1; font-size: 11px; line-height: 1.6; color: #555; }' +
+      '.footer-right { flex: 0 0 220px; }' +
+      '.footer-right table { width: 100%; }' +
+      '.footer-right table td { border: none !important; font-size: 12px; padding: 4px 0; }' +
+      '.editable { min-height: auto; }' +
       '</style>';
   } else {
     styleOverrides = '<style>' +

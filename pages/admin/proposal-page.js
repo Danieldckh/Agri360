@@ -148,8 +148,8 @@
       // rows AND on the Booking Form hub regardless of status (because the
       // checklist data is relevant throughout the booking-form lifecycle).
       checklistUrl: form.checklistUrl || '',
-      // Manually uploaded booking form files
-      unsignedFileUrl: form.unsignedFileUrl || '',
+      // Unsigned booking form: manual upload OR generated e-sign URL
+      unsignedFileUrl: form.unsignedFileUrl || form.esignUrl || '',
       signedFileUrl: form.signedFileUrl || '',
       proposalFileUrl: form.proposalFileUrl || ''
     };
