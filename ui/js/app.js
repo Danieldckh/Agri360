@@ -354,7 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'crm': 'CRM',
     'esign': 'E-Sign',
     'deliverables': 'Deliverables',
-    'coolify': 'Coolify'
+    'coolify': 'Coolify',
+    'voiceover': 'Voice Over Agent'
   };
   var currentDocsApi = null;
 
