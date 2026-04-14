@@ -248,14 +248,14 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   if (!options.includeHeader) {
     const formId = form.id || '';
     parts.push('<script>' +
-      '(function(){' +
+      'window.addEventListener("load",function(){' +
+      'setTimeout(function(){' +
       'var btn=document.getElementById("send-booking-to-n8n");' +
       'if(!btn)return;' +
-      'var origHandler=btn.onclick;' +
-      'btn.removeAttribute("onclick");' +
       'var clone=btn.cloneNode(true);' +
       'btn.parentNode.replaceChild(clone,btn);' +
-      'clone.addEventListener("click",async function(){' +
+      'clone.addEventListener("click",async function(e){' +
+      'e.preventDefault();e.stopPropagation();' +
       'clone.disabled=true;clone.textContent="Generating e-sign...";clone.style.opacity="0.7";' +
       'try{' +
       'var res=await fetch("https://agri360.proagrihub.com/api/booking-forms/' + formId + '/send-to-esign",{method:"POST",headers:{"Content-Type":"application/json"}});' +
@@ -265,7 +265,8 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
       '}catch(e){document.getElementById("send-status").textContent="Error: "+e.message;}' +
       'finally{clone.disabled=false;clone.textContent="Send booking form to ProAgri";clone.style.opacity="";}' +
       '});' +
-      '})();' +
+      '},500);' +
+      '});' +
       '</script>');
   }
 
