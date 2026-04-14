@@ -26,24 +26,30 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   const companyName = ci.company_name || form.clientName || '';
   const tradingName = ci.trading_name || form.tradingName || '';
 
-  // Styles for the booking form (works in both editor and e-sign contexts)
-  const styleOverrides = `<style>
-.admin-btn, #admin-notion-btn { display: none !important; }
-.booking-table td:first-child { width: 50%; }
-.bf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.bf-header img { height: 70px; object-fit: contain; }
-.bf-header .bf-address { text-align: right; font-size: 13px; color: #D72626; font-weight: 600; line-height: 1.5; }
-.bf-legal { text-align: center; font-size: 13px; font-weight: 600; color: #222; margin: 8px 0 24px; padding-top: 8px; border-top: 1px solid #cfcfcf; }
-.company-table, .contact-table, .booking-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-.company-table td, .contact-table td, .booking-table td { border: 1px solid #e0e0e0; padding: 8px 10px; font-size: 13px; vertical-align: top; }
-.company-table tr:nth-child(odd) td, .contact-table tr:first-child td { background: #f5f5f5; }
-.contact-table tr:nth-child(odd) td { background: #f5f5f5; }
-.booking-table tr:first-child td { background: #f5f5f5; font-weight: 600; }
-.footer-section { display: flex; justify-content: space-between; gap: 2rem; align-items: flex-start; margin-top: 20px; }
-.footer-left { flex: 1; font-size: 12px; line-height: 1.6; color: #555; }
-.footer-right { flex: 0 0 240px; }
-.bf-section-title { font-size: 16px; font-weight: 800; text-transform: uppercase; color: #222; margin: 24px 0 8px; letter-spacing: 0.5px; }
-</style>`;
+  // Editor: minimal overrides (editor base.html has its own comprehensive styles)
+  // E-sign: full standalone styles since the e-sign app has no booking form CSS
+  var styleOverrides;
+  if (options.includeHeader) {
+    styleOverrides = '<style>' +
+      '.bf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }' +
+      '.bf-header img { height: 70px; object-fit: contain; }' +
+      '.bf-header .bf-address { text-align: right; font-size: 13px; color: #D72626; font-weight: 600; line-height: 1.5; }' +
+      '.bf-legal { text-align: center; font-size: 13px; font-weight: 600; color: #222; margin: 8px 0 24px; padding-top: 8px; border-top: 1px solid #cfcfcf; }' +
+      '.company-table, .contact-table, .booking-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }' +
+      '.company-table td, .contact-table td, .booking-table td { border: 1px solid #e0e0e0; padding: 8px 10px; font-size: 13px; vertical-align: top; }' +
+      '.company-table tr:nth-child(odd) td, .contact-table tr:first-child td { background: #f5f5f5; }' +
+      '.contact-table tr:nth-child(odd) td { background: #f5f5f5; }' +
+      '.booking-table tr:first-child td { background: #f5f5f5; font-weight: 600; }' +
+      '.footer-section { display: flex; justify-content: space-between; gap: 2rem; align-items: flex-start; margin-top: 20px; }' +
+      '.footer-left { flex: 1; font-size: 12px; line-height: 1.6; color: #555; }' +
+      '.footer-right { flex: 0 0 240px; }' +
+      '.bf-section-title { font-size: 16px; font-weight: 800; text-transform: uppercase; color: #222; margin: 24px 0 8px; letter-spacing: 0.5px; }' +
+      '</style>';
+  } else {
+    styleOverrides = '<style>' +
+      '.admin-btn, #admin-notion-btn { display: none !important; }' +
+      '</style>';
+  }
 
   const campaignStart = ci.campaign_start || form.campaignMonthStart || '';
   const campaignEnd = ci.campaign_end || form.campaignMonthEnd || '';
