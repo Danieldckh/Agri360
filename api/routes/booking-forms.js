@@ -536,7 +536,7 @@ router.post('/:id/send-to-esign', async (req, res) => {
 
     // POST to the secure-signature-page e-sign service
     const esignUrl = config.ESIGN_SERVICE_URL.replace(/\/+$/, '');
-    const apiSecret = config.ESIGN_API_SECRET || config.ESIGN_ADMIN_SECRET;
+    const apiSecret = config.ESIGN_ADMIN_SECRET;
     const response = await fetch(`${esignUrl}/api/esign/booking/create`, {
       method: 'POST',
       headers: {

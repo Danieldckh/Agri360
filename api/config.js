@@ -41,5 +41,4 @@ module.exports = {
   // Booking Form E-sign service (sister app — secure-signature-page)
   ESIGN_SERVICE_URL: process.env.ESIGN_SERVICE_URL || 'https://bookingformesign-old.148.230.100.16.sslip.io',
   ESIGN_ADMIN_SECRET: process.env.ESIGN_ADMIN_SECRET || '',
-  ESIGN_API_SECRET: process.env.ESIGN_API_SECRET || '',
 };
