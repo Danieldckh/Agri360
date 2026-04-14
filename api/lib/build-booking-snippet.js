@@ -78,17 +78,18 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // ─── Header: Logo + Address + Legal Strip (only for e-sign, editor has its own) ───
   if (options.includeHeader) {
   parts.push(`
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #d1d5db;">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0;font-family:Arial,sans-serif;">
   <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:65px;object-fit:contain;"></div>
-  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.5;">
+  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.6;">
     PO Box 72707, Lynnwood Ridge, 0040<br>
     33 Oakwood Close, Silverwoods Country Estate<br>
     Tel: 084 088 0123 | Fax: 086 458 7812
   </div>
 </div>
-<div style="text-align:center;font-size:11px;font-weight:600;color:#374151;margin:6px 1rem 20px;">
+<div style="border-top:1px solid #d0d0d0;margin:10px 0 0;padding-top:8px;text-align:center;font-size:11px;font-weight:600;color:#374151;font-family:Arial,sans-serif;">
   Agri Media Africa (Pty) Ltd. | Reg no: 2019/486053/07 | VAT no: 409 0303 266 | Director: Mrs. D Do Nacimento
-</div>`);
+</div>
+<div style="margin-bottom:20px;"></div>`);
   } // end includeHeader
 
   // ─── Company Information Table ───
