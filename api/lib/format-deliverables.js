@@ -347,7 +347,7 @@ function formatDeliverables(body) {
     const hasGoogleAds = googleAdsData && googleAdsData.enabled;
     const hasAnything = smm.recurring || hasGoogleAds || hasRecurringOnline || recurringVideos.length || recurringWebsites.length || recurringMagazines.length || agriRecurring.length;
     if (!hasAnything) return "";
-    content.push(`<h3>${escapeHtml(rangeLabel)}</h3>`);
+    content.push(`<h3 style="margin:8px 0 2px;font-size:13px;font-weight:700;color:#D72626;">${escapeHtml(rangeLabel)}</h3>`);
     if (smm.recurring) { content.push(bu("Social Media Management") + br()); formatSMM({ posts: smm.data.monthly_posts || smm.data.posts || 0, content_calendar: !!smm.data.content_calendar, own_page: smm.data.own_page || {} }).forEach(x => content.push(x)); }
     if (hasGoogleAds) formatGoogleAds(googleAdsData).forEach(x => content.push(x));
     if (hasRecurringOnline) { content.push(bu("Online Articles") + br()); formatOnline(online.recurring ? online.data : null, recurringBanners).forEach(x => content.push(x)); content.push(br()); }
@@ -360,7 +360,7 @@ function formatDeliverables(body) {
 
   function buildMonth(label) {
     const out = [];
-    out.push(`<h3>${escapeHtml(label)}</h3>`);
+    out.push(`<h3 style="margin:8px 0 2px;font-size:13px;font-weight:700;color:#D72626;">${escapeHtml(label)}</h3>`);
     if (smm.data[label]) { out.push(bu("Social Media Management") + br()); formatSMM(smm.data[label]).forEach(x => out.push(x)); }
     if (hasVideoMonth(label)) { out.push(bu("Video") + br()); formatVideoList(videoByMonth[label]).forEach(x => out.push(x)); }
     if (hasWebsiteMonth(label)) { const wh = websiteByMonth[label][0]?.type === "Monthly Website Management" ? "Website Management" : "Website Design & Development"; out.push(bu(wh) + br()); formatWebsiteList(websiteByMonth[label]).forEach(x => out.push(x)); }
@@ -383,7 +383,7 @@ function formatDeliverables(body) {
     const fin = financialByMonth[m];
     const hasContent = hasAnyMonthContent(m);
     if (!hasContent && !fin) continue;
-    const monthHTML = hasContent ? buildMonth(m) : `<h3>${escapeHtml(m)}</h3>`;
+    const monthHTML = hasContent ? buildMonth(m) : `<h3 style="margin:8px 0 2px;font-size:13px;font-weight:700;color:#D72626;">${escapeHtml(m)}</h3>`;
     rows.push(row(
       monthHTML,
       fin ? fmtPrice(fin.base_price) : '',

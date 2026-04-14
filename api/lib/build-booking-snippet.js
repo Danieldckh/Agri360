@@ -78,18 +78,16 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // ─── Header: Logo + Address + Legal Strip (only for e-sign, editor has its own) ───
   if (options.includeHeader) {
   parts.push(`
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0;font-family:Arial,sans-serif;">
-  <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:65px;object-fit:contain;"></div>
-  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.6;">
-    PO Box 72707, Lynnwood Ridge, 0040<br>
-    33 Oakwood Close, Silverwoods Country Estate<br>
-    Tel: 084 088 0123 | Fax: 086 458 7812
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;font-family:Arial,sans-serif;">
+  <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:55px;object-fit:contain;"></div>
+  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.4;white-space:nowrap;">
+    PO Box 72707, Lynnwood Ridge, 0040 &nbsp;|&nbsp; 33 Oakwood Close, Silverwoods &nbsp;|&nbsp; Tel: 084 088 0123 &nbsp;|&nbsp; Fax: 086 458 7812
   </div>
 </div>
-<div style="border-top:1px solid #d0d0d0;margin:10px 0 0;padding-top:8px;text-align:center;font-size:11px;font-weight:600;color:#374151;font-family:Arial,sans-serif;">
+<div style="border-top:1px solid #d0d0d0;margin:8px 0 0;padding-top:6px;text-align:center;font-size:11px;font-weight:600;color:#374151;font-family:Arial,sans-serif;">
   Agri Media Africa (Pty) Ltd. | Reg no: 2019/486053/07 | VAT no: 409 0303 266 | Director: Mrs. D Do Nacimento
 </div>
-<div style="margin-bottom:20px;"></div>`);
+<div style="margin-bottom:16px;"></div>`);
   } // end includeHeader
 
   // ─── Company Information Table ───
@@ -243,6 +241,25 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
     </tr>
   </table>
 </div>`);
+
+  // For e-sign pages: inject script that re-enables editing on Company Info
+  // and Contact Details tables after the e-sign app disables all contenteditable
+  if (options.includeHeader) {
+    parts.push('<script>' +
+      'window.addEventListener("load",function(){' +
+      'setTimeout(function(){' +
+      'var tables=document.querySelectorAll(".company-table .editable, .contact-table .editable");' +
+      'tables.forEach(function(el){' +
+      'el.setAttribute("contenteditable","true");' +
+      'el.style.cursor="text";' +
+      'el.style.outline="none";' +
+      'el.addEventListener("focus",function(){this.style.background="#e7f1ff";this.style.padding="2px 4px";this.style.borderRadius="3px";});' +
+      'el.addEventListener("blur",function(){this.style.background="transparent";this.style.padding="0";});' +
+      '});' +
+      '},800);' +
+      '});' +
+      '</script>');
+  }
 
   // For editor pages: inject script that overrides "Send to ProAgri" to call
   // CRM send-to-esign directly and redirect to the e-sign page
