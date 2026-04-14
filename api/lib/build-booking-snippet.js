@@ -79,9 +79,11 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   if (options.includeHeader) {
   parts.push(`
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;font-family:Arial,sans-serif;">
-  <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:55px;object-fit:contain;"></div>
-  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.4;white-space:nowrap;">
-    PO Box 72707, Lynnwood Ridge, 0040 &nbsp;|&nbsp; 33 Oakwood Close, Silverwoods &nbsp;|&nbsp; Tel: 084 088 0123 &nbsp;|&nbsp; Fax: 086 458 7812
+  <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:65px;object-fit:contain;"></div>
+  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.5;">
+    PO Box 72707, Lynnwood Ridge, 0040<br>
+    33 Oakwood Close, Silverwoods Country Estate<br>
+    Tel: 084 088 0123 | Fax: 086 458 7812
   </div>
 </div>
 <div style="border-top:1px solid #d0d0d0;margin:8px 0 0;padding-top:6px;text-align:center;font-size:11px;font-weight:600;color:#374151;font-family:Arial,sans-serif;">
