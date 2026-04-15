@@ -27,8 +27,6 @@ const devTicketRoutes = require('./routes/dev-tickets');
 const portalRoutes = require('./routes/portal');
 const schedulerRoutes = require('./routes/scheduler');
 const socialOAuthRoutes = require('./routes/social-oauth');
-// TEMPORARY: one-shot cleanup endpoint, remove with route registration below
-const adminCleanupRoutes = require('./routes/admin-cleanup');
 const socialPublisher = require('./social-publisher');
 
 // Ensure uploads directories exist
@@ -65,8 +63,6 @@ app.use('/api/dev', devRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/social-oauth', socialOAuthRoutes);
 app.use('/api/scheduler', schedulerRoutes);
-// TEMPORARY: one-shot test-fixture cleanup, remove after run
-app.use('/api/admin', adminCleanupRoutes);
 
 // Serve static frontend files
 var ROOT_DIR = path.join(__dirname, '..');
