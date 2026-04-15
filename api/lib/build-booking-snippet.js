@@ -17,8 +17,10 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   var isEsignCtx = !!options.includeHeader;
   var tdStyle = isEsignCtx ? ' style="padding:8px 12px;font-size:12px;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;color:#222;"' : '';
 
-  function editableCell(content) {
-    return '<td' + tdStyle + '><div class="editable" contenteditable="true">' + (content || '') + '</div></td>';
+  function editableCell(content, cls) {
+    var divCls = 'editable' + (cls ? ' ' + cls : '');
+    var tdCls = cls ? ' class="' + cls + '-cell"' : '';
+    return '<td' + tdCls + tdStyle + '><div class="' + divCls + '" contenteditable="true">' + (content || '') + '</div></td>';
   }
   const ci = formData.client_information || {};
   const fin = formData.financial_totals || {};
@@ -78,96 +80,96 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // ─── Header: Logo + Address + Legal Strip (only for e-sign, editor has its own) ───
   if (options.includeHeader) {
   parts.push(`
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;font-family:Arial,sans-serif;">
-  <div><img src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:65px;object-fit:contain;"></div>
-  <div style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.5;">
+<div class="bf-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;font-family:Arial,sans-serif;">
+  <div class="bf-logo-wrap"><img class="bf-logo" src="https://checklist.proagrihub.com/ProAgriMedia-CheckList.png" alt="ProAgri Media" style="height:65px;object-fit:contain;"></div>
+  <div class="bf-address-block" style="text-align:right;font-size:11px;color:#D72626;font-weight:600;line-height:1.5;">
     PO Box 72707, Lynnwood Ridge, 0040<br>
     33 Oakwood Close, Silverwoods Country Estate<br>
     Tel: 084 088 0123 | Fax: 086 458 7812
   </div>
 </div>
-<div style="border-top:1px solid #d0d0d0;margin:8px 0 0;padding-top:6px;text-align:center;font-size:11px;font-weight:600;color:#374151;font-family:Arial,sans-serif;">
+<div class="bf-legal-strip" style="border-top:1px solid #d0d0d0;margin:8px 0 0;padding-top:6px;text-align:center;font-size:11px;font-weight:600;color:#374151;font-family:Arial,sans-serif;">
   Agri Media Africa (Pty) Ltd. | Reg no: 2019/486053/07 | VAT no: 409 0303 266 | Director: Mrs. D Do Nacimento
 </div>
-<div style="margin-bottom:16px;"></div>`);
+<div class="bf-header-spacer" style="margin-bottom:16px;"></div>`);
   } // end includeHeader
 
   // ─── Company Information Table ───
   parts.push(`
-<div class="bf-section-title"${S.sectionTitle}>Company Information</div>
-<div class="booking-table-wrapper"${S.tableWrap}>
-  <table class="company-table"${S.table}>
-    <tr>
-      ${editableCell('<b>Full Company Name</b>')}
-      ${editableCell(esc(companyName))}
-      ${editableCell('<b>Trading Name</b>')}
-      ${editableCell(esc(tradingName))}
+<div class="bf-section-title bf-section-company"${S.sectionTitle}>Company Information</div>
+<div class="booking-table-wrapper bf-company-wrap"${S.tableWrap}>
+  <table class="company-table bf-company-table"${S.table}>
+    <tr class="bf-row bf-row-company-name">
+      ${editableCell('<b>Full Company Name</b>', 'bf-label bf-label-company-name')}
+      ${editableCell(esc(companyName), 'bf-value bf-value-company-name')}
+      ${editableCell('<b>Trading Name</b>', 'bf-label bf-label-trading')}
+      ${editableCell(esc(tradingName), 'bf-value bf-value-trading')}
     </tr>
-    <tr>
-      ${editableCell('<b>Company Reg No</b>')}
-      ${editableCell(esc(ci.company_reg_number || ''))}
-      ${editableCell('<b>VAT Number</b>')}
-      ${editableCell(esc(ci.vat_number || ''))}
+    <tr class="bf-row bf-row-reg">
+      ${editableCell('<b>Company Reg No</b>', 'bf-label bf-label-reg')}
+      ${editableCell(esc(ci.company_reg_number || ''), 'bf-value bf-value-reg')}
+      ${editableCell('<b>VAT Number</b>', 'bf-label bf-label-vat')}
+      ${editableCell(esc(ci.vat_number || ''), 'bf-value bf-value-vat')}
     </tr>
-    <tr>
-      ${editableCell('<b>Physical Address</b>')}
-      ${editableCell(esc(ci.physical_address || ''))}
-      ${editableCell('<b>Postal Code</b>')}
-      ${editableCell(esc(ci.physical_postal_code || ''))}
+    <tr class="bf-row bf-row-physical">
+      ${editableCell('<b>Physical Address</b>', 'bf-label bf-label-physical-address')}
+      ${editableCell(esc(ci.physical_address || ''), 'bf-value bf-value-physical-address')}
+      ${editableCell('<b>Postal Code</b>', 'bf-label bf-label-physical-code')}
+      ${editableCell(esc(ci.physical_postal_code || ''), 'bf-value bf-value-physical-code')}
     </tr>
-    <tr>
-      ${editableCell('<b>Postal Address</b>')}
-      ${editableCell(esc(ci.postal_address || ''))}
-      ${editableCell('<b>Postal Code</b>')}
-      ${editableCell(esc(ci.postal_postal_code || ''))}
+    <tr class="bf-row bf-row-postal">
+      ${editableCell('<b>Postal Address</b>', 'bf-label bf-label-postal-address')}
+      ${editableCell(esc(ci.postal_address || ''), 'bf-value bf-value-postal-address')}
+      ${editableCell('<b>Postal Code</b>', 'bf-label bf-label-postal-code')}
+      ${editableCell(esc(ci.postal_postal_code || ''), 'bf-value bf-value-postal-code')}
     </tr>
-    <tr>
-      ${editableCell('<b>Website</b>')}
-      ${editableCell(esc(ci.website || ''))}
-      ${editableCell('<b>Industry</b>')}
-      ${editableCell(esc(ci.industry_expertise || ''))}
+    <tr class="bf-row bf-row-web-industry">
+      ${editableCell('<b>Website</b>', 'bf-label bf-label-website')}
+      ${editableCell(esc(ci.website || ''), 'bf-value bf-value-website')}
+      ${editableCell('<b>Industry</b>', 'bf-label bf-label-industry')}
+      ${editableCell(esc(ci.industry_expertise || ''), 'bf-value bf-value-industry')}
     </tr>
-    <tr>
-      ${editableCell('<b>Campaign Period</b>')}
-      ${editableCell(esc(campaignRange))}
-      ${editableCell('')}
-      ${editableCell('')}
+    <tr class="bf-row bf-row-campaign">
+      ${editableCell('<b>Campaign Period</b>', 'bf-label bf-label-campaign')}
+      ${editableCell(esc(campaignRange), 'bf-value bf-value-campaign')}
+      ${editableCell('', 'bf-label bf-label-campaign-filler')}
+      ${editableCell('', 'bf-value bf-value-campaign-filler')}
     </tr>
   </table>
 </div>`);
 
   // ─── Contact Details Table ───
   parts.push(`
-<div class="bf-section-title"${S.sectionTitle}>Contact Details</div>
-<div class="contact-table-wrapper"${S.tableWrap}>
-  <table class="contact-table"${S.table}>
-    <tr>
-      ${editableCell('<b>Contact Type</b>')}
-      ${editableCell('<b>Name</b>')}
-      ${editableCell('<b>Email</b>')}
-      ${editableCell('<b>Cell</b>')}
-      ${editableCell('<b>Tel</b>')}
+<div class="bf-section-title bf-section-contact"${S.sectionTitle}>Contact Details</div>
+<div class="contact-table-wrapper bf-contact-wrap"${S.tableWrap}>
+  <table class="contact-table bf-contact-table"${S.table}>
+    <tr class="bf-row bf-row-contact-header">
+      ${editableCell('<b>Contact Type</b>', 'bf-label bf-contact-type')}
+      ${editableCell('<b>Name</b>',          'bf-label bf-contact-name')}
+      ${editableCell('<b>Email</b>',         'bf-label bf-contact-email')}
+      ${editableCell('<b>Cell</b>',          'bf-label bf-contact-cell')}
+      ${editableCell('<b>Tel</b>',           'bf-label bf-contact-tel')}
     </tr>
-    <tr>
-      ${editableCell('Primary Contact')}
-      ${editableCell(esc(pc.name || ''))}
-      ${editableCell(esc(pc.email || ''))}
-      ${editableCell(esc(pc.cell || ''))}
-      ${editableCell(esc(pc.tel || ''))}
+    <tr class="bf-row bf-row-primary-contact">
+      ${editableCell('Primary Contact',     'bf-value bf-contact-type bf-contact-primary-type')}
+      ${editableCell(esc(pc.name || ''),    'bf-value bf-contact-name bf-contact-primary-name')}
+      ${editableCell(esc(pc.email || ''),   'bf-value bf-contact-email bf-contact-primary-email')}
+      ${editableCell(esc(pc.cell || ''),    'bf-value bf-contact-cell bf-contact-primary-cell')}
+      ${editableCell(esc(pc.tel || ''),     'bf-value bf-contact-tel bf-contact-primary-tel')}
     </tr>
-    <tr>
-      ${editableCell('Material Contact')}
-      ${editableCell(esc(mc.name || ''))}
-      ${editableCell(esc(mc.email || ''))}
-      ${editableCell(esc(mc.cell || ''))}
-      ${editableCell(esc(mc.tel || ''))}
+    <tr class="bf-row bf-row-material-contact">
+      ${editableCell('Material Contact',    'bf-value bf-contact-type bf-contact-material-type')}
+      ${editableCell(esc(mc.name || ''),    'bf-value bf-contact-name bf-contact-material-name')}
+      ${editableCell(esc(mc.email || ''),   'bf-value bf-contact-email bf-contact-material-email')}
+      ${editableCell(esc(mc.cell || ''),    'bf-value bf-contact-cell bf-contact-material-cell')}
+      ${editableCell(esc(mc.tel || ''),     'bf-value bf-contact-tel bf-contact-material-tel')}
     </tr>
-    <tr>
-      ${editableCell('Accounts Contact')}
-      ${editableCell(esc(ac.name || ''))}
-      ${editableCell(esc(ac.email || ''))}
-      ${editableCell(esc(ac.cell || ''))}
-      ${editableCell(esc(ac.tel || ''))}
+    <tr class="bf-row bf-row-accounts-contact">
+      ${editableCell('Accounts Contact',    'bf-value bf-contact-type bf-contact-accounts-type')}
+      ${editableCell(esc(ac.name || ''),    'bf-value bf-contact-name bf-contact-accounts-name')}
+      ${editableCell(esc(ac.email || ''),   'bf-value bf-contact-email bf-contact-accounts-email')}
+      ${editableCell(esc(ac.cell || ''),    'bf-value bf-contact-cell bf-contact-accounts-cell')}
+      ${editableCell(esc(ac.tel || ''),     'bf-value bf-contact-tel bf-contact-accounts-tel')}
     </tr>
   </table>
 </div>`);
@@ -185,14 +187,14 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   }
 
   parts.push(`
-<div class="bf-section-title"${S.sectionTitle}>Deliverables</div>
-<div class="booking-table-wrapper"${S.tableWrap}>
-  <table class="booking-table"${S.table}>
-    <tr>
-      ${editableCell('<b>Deliverables</b>')}
-      ${editableCell('<b>Price</b>')}
-      ${editableCell('<b>Discount</b>')}
-      ${editableCell('<b>Subtotal</b>')}
+<div class="bf-section-title bf-section-deliverables"${S.sectionTitle}>Deliverables</div>
+<div class="booking-table-wrapper bf-deliverables-wrap"${S.tableWrap}>
+  <table class="booking-table bf-deliverables-table"${S.table}>
+    <tr class="bf-row bf-row-deliverables-header">
+      ${editableCell('<b>Deliverables</b>', 'bf-label bf-del-label')}
+      ${editableCell('<b>Price</b>',        'bf-label bf-del-price')}
+      ${editableCell('<b>Discount</b>',     'bf-label bf-del-discount')}
+      ${editableCell('<b>Subtotal</b>',     'bf-label bf-del-subtotal')}
     </tr>
     ${deliverableRows}
   </table>
@@ -210,28 +212,28 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   var termsStyle = isEsign ? ' style="text-align:left;color:#222;font-size:11px;line-height:1.6;"' : '';
 
   parts.push(`
-<div class="footer-section"${S.footer}>
-  <div class="footer-left"${S.footerLeft}>
-    <div class="editable" contenteditable="true"${termsStyle}>
+<div class="footer-section bf-footer"${S.footer}>
+  <div class="footer-left bf-footer-left bf-terms-wrap"${S.footerLeft}>
+    <div class="editable bf-terms" contenteditable="true"${termsStyle}>
       <b>Terms & Conditions</b><br/>
       All prices exclude VAT unless otherwise stated.<br/>
       Payment terms: 30 days from date of invoice.<br/>
       This booking form is valid for 30 days from date of issue.
     </div>
   </div>
-  <div class="footer-right"${S.footerRight}>
-    <table style="width:100%;border-collapse:collapse;background:transparent;border:none;">
-      <tr>
-        <td${tcCellStyle}><div class="editable" contenteditable="true"><b>Subtotal</b></div></td>
-        <td${tcValueStyle}><div class="editable" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(stripCurrency(subtotal)) : ''}</div></td>
+  <div class="footer-right bf-footer-right bf-totals-wrap"${S.footerRight}>
+    <table class="bf-totals-table" style="width:100%;border-collapse:collapse;background:transparent;border:none;">
+      <tr class="bf-totals-row bf-totals-subtotal-row">
+        <td class="bf-totals-label-cell bf-totals-subtotal-label"${tcCellStyle}><div class="editable bf-totals-label bf-totals-subtotal-label-text" contenteditable="true"><b>Subtotal</b></div></td>
+        <td class="bf-totals-value-cell bf-totals-subtotal-value"${tcValueStyle}><div class="editable bf-totals-value bf-totals-subtotal-value-text" contenteditable="true">${subtotal ? esc(currency) + ' ' + esc(stripCurrency(subtotal)) : ''}</div></td>
       </tr>
-      <tr>
-        <td${tcCellStyle}><div class="editable" contenteditable="true"><b>VAT (15%)</b></div></td>
-        <td${tcValueStyle}><div class="editable" contenteditable="true">${tax ? esc(currency) + ' ' + esc(stripCurrency(tax)) : ''}</div></td>
+      <tr class="bf-totals-row bf-totals-vat-row">
+        <td class="bf-totals-label-cell bf-totals-vat-label"${tcCellStyle}><div class="editable bf-totals-label bf-totals-vat-label-text" contenteditable="true"><b>VAT (15%)</b></div></td>
+        <td class="bf-totals-value-cell bf-totals-vat-value"${tcValueStyle}><div class="editable bf-totals-value bf-totals-vat-value-text" contenteditable="true">${tax ? esc(currency) + ' ' + esc(stripCurrency(tax)) : ''}</div></td>
       </tr>
-      <tr>
-        <td${tcBoldStyle}><div class="editable" contenteditable="true"><b>Total</b></div></td>
-        <td${tcBoldValStyle}><div class="editable" contenteditable="true">${total ? esc(currency) + ' ' + esc(stripCurrency(total)) : ''}</div></td>
+      <tr class="bf-totals-row bf-totals-total-row">
+        <td class="bf-totals-label-cell bf-totals-total-label"${tcBoldStyle}><div class="editable bf-totals-label bf-totals-total bf-totals-total-label-text" contenteditable="true"><b>Total</b></div></td>
+        <td class="bf-totals-value-cell bf-totals-total-value"${tcBoldValStyle}><div class="editable bf-totals-value bf-totals-total bf-totals-total-value-text" contenteditable="true">${total ? esc(currency) + ' ' + esc(stripCurrency(total)) : ''}</div></td>
       </tr>
     </table>
   </div>
