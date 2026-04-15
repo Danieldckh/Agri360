@@ -97,6 +97,23 @@
       }
     ];
 
+    var rowActions = [
+      {
+        icon: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+        tooltip: 'Delete client',
+        onClick: function (row) {
+          if (!confirm('Delete client "' + (row.name || 'Untitled') + '"? This will archive the client.')) return;
+          fetch('/api/clients/' + row.id, { method: 'DELETE', headers: getHeaders() })
+            .then(function (r) {
+              if (!r.ok) throw new Error('Delete failed');
+              allClients = allClients.filter(function (c) { return c.id !== row.id; });
+              renderSheet();
+            })
+            .catch(function (e) { alert('Failed to delete client: ' + e.message); });
+        }
+      }
+    ];
+
     function renderSheet() {
       var term = (searchEl.value || '').toLowerCase();
       var filtered = allClients;
@@ -110,7 +127,7 @@
       }
       countEl.textContent = filtered.length;
       if (window.renderSheet) {
-        window.renderSheet(sheetEl, { columns: COLUMNS, data: filtered, leadingActions: leadingActions });
+        window.renderSheet(sheetEl, { columns: COLUMNS, data: filtered, leadingActions: leadingActions, rowActions: rowActions });
       }
     }
 
