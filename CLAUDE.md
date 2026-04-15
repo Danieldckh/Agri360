@@ -6,11 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ProAgri CRM is a multi-department agency management system: clients, booking forms, deliverables, internal messaging, dashboards, financials. It's built as a vanilla SPA on top of an Express + Postgres API, with no build step on either side.
 
-Two sister repositories share this codebase's database and API surface:
+Sister repositories that share this codebase's database and API surface (see `docs/BOOKING_FORM_PIPELINE.md` for the full map):
 - **`Danieldckh/checklist-Agri360`** — standalone booking-form wizard that POSTs to `/api/booking-forms` to upsert a booking form (upsert key: `checklist_id`, a hash of client name + campaign dates).
-- **`Danieldckh/Booking-Form-Esign`** — e-sign portal that writes directly to `booking_form_revisions` (append-only paper trail) and reads `booking_form_esign_tokens` from this same Postgres instance.
+- **`Danieldckh/Editable-booking-form`** — in-browser editor. The CRM pushes rendered HTML to it; it POSTs back into the CRM's `/send-to-esign` flow.
+- **`Danieldckh/secure-signature-page`** — e-sign app (URL `bookingformesign-old.148.230.100.16.sslip.io`). The CRM POSTs finalized HTML to it for the client to sign.
 
-Any schema change that affects `clients`, `booking_forms`, `booking_form_revisions`, or `booking_form_esign_tokens` is a **coordinated change** — the sister repos may break if you rename columns without telling them.
+Any schema change that affects `clients` or `booking_forms` is a **coordinated change** — the sister repos may break if you rename columns without telling them.
 
 ## Common commands
 

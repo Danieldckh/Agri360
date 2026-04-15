@@ -54,6 +54,20 @@ Follow the pipeline by default. Skip it **only** when the prompt is clearly one 
 
 When in doubt, run the pipeline. The cost of over-process on a small task is lower than the cost of shipping an un-verified change.
 
+## § 2a. Booking-form pipeline apps — always read the reference first
+
+Before doing **anything** that touches the Checklist wizard, the Editable Booking Form, or the Esign app at `bookingformesign-old.148.230.100.16.sslip.io`, Claude **must** first read `docs/BOOKING_FORM_PIPELINE.md` and confirm which repo, URL, and Coolify UUID actually back the live behavior the user is describing.
+
+This applies whether the prompt hits one of the pipeline exceptions or not — the rule is about picking the correct repo, not about the dev workflow. A "trivial cosmetic single-file edit" shipped to the wrong repo is worse than no edit at all.
+
+Concretely:
+
+- **Checklist wizard** — `Danieldckh/checklist-Agri360` (local `C:/Users/pamde/Desktop/checklist-Agri360/`), Coolify `kgso4o000o48kww4k4c8048c`.
+- **Editable Booking Form** — `Danieldckh/Editable-booking-form` (local `C:/Users/pamde/Desktop/Editable-booking-form/`), Coolify `agw8ggg000sgkgs0ok0k04wg`.
+- **Esign** (wired up via CRM `.env` `ESIGN_SERVICE_URL`) — `Danieldckh/secure-signature-page` (local `C:/Users/pamde/Desktop/secure-signature-page/`), Coolify `fwscg88cs8sc44000k00go0w`. React/Vite SPA — edit TSX components in `src/`, not HTML templates.
+
+Read the pipeline doc before acting.
+
 ## § 3. Agent lane rules
 
 | Agent | Owns | Never touches |

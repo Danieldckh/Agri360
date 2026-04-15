@@ -95,7 +95,7 @@ For larger features, assemble specs into a markdown file under `docs/api/{featur
 2. **No response envelopes.** Return the resource or list directly.
 3. **PATCH, not PUT.** Updates are always partial. The dynamic-SET-clause pattern in `clients.js` handles this.
 4. **Soft-delete everything.** `DELETE` = set `status = 'archived'`, return the updated row.
-5. **Stable URLs matter.** Two sister repos call this API (`Danieldckh/checklist-Agri360` and `Danieldckh/Booking-Form-Esign`). Renaming an endpoint is a breaking change; prefer additive design.
+5. **Stable URLs matter.** Sister repos call this API (`Danieldckh/checklist-Agri360`, `Danieldckh/Editable-booking-form`, `Danieldckh/secure-signature-page`). Renaming an endpoint is a breaking change; prefer additive design.
 6. **Respect JSONB fields.** Some columns like `primary_contact`, `metadata`, `form_data` are JSONB — specify them as nested objects in your contracts, not serialized strings. Backend handles stringification.
 
 ## When working as a team-teammate

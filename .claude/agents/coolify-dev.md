@@ -65,10 +65,10 @@ Do not add a `npm run build` step. There is no build.
 
 ## Sister-repo schema coordination
 
-**Critical**: `clients`, `booking_forms`, `booking_form_revisions`, and `booking_form_esign_tokens` are shared with two external repos:
+**Critical**: `clients` and `booking_forms` are shared with external repos:
 
 - `Danieldckh/checklist-Agri360` reads/writes `booking_forms` via the API
-- `Danieldckh/Booking-Form-Esign` reads/writes `booking_form_revisions` and `booking_form_esign_tokens` directly against this Postgres instance
+- `Danieldckh/Editable-booking-form` and `Danieldckh/secure-signature-page` consume CRM-rendered booking form HTML
 
 If you rename or drop columns on those tables, sister repos break. Add-only is safe; rename-or-drop must be coordinated.
 
