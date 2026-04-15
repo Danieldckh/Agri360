@@ -316,6 +316,18 @@ function formatDeliverables(body, opts) {
       if (n(s.youtube_shorts_amount)) out.push(`${n(s.youtube_shorts_amount)} x YouTube Shorts`); else if (s.youtube_shorts) out.push(`YouTube Shorts`);
       if (n(s.youtube_video_amount)) out.push(`${n(s.youtube_video_amount)} x YouTube Videos`); else if (s.youtube_video) out.push(`YouTube Videos`);
       if (s.linkedin_article || s.linkedin_company_campaign) out.push(`1 x LinkedIn Article and Company campaign`);
+      // Agri4All product uploads (paid line item, distinct from unlimited uploads above)
+      if (n(s.agri4all_product_uploads_amount)) out.push(`${n(s.agri4all_product_uploads_amount)} x Agri4All product uploads`);
+      else if (s.agri4all_product_uploads) out.push(`Agri4All product uploads`);
+      // Facebook Instant Experience
+      if (n(s.facebook_instant_experience_amount)) out.push(`${n(s.facebook_instant_experience_amount)} x Facebook Instant Experience`);
+      else if (s.facebook_instant_experience) out.push(`Facebook Instant Experience`);
+      if (n(s.facebook_instant_experience_curated_amount)) out.push(`${n(s.facebook_instant_experience_curated_amount)} x Facebook Instant Experience curated campaigns`);
+      // Newsletter (general / all-countries level)
+      if (n(s.newsletter_feature_amount)) out.push(`${n(s.newsletter_feature_amount)} x E-newsletter link`);
+      else if (s.newsletter_feature) out.push(`1 x E-newsletter link`);
+      if (n(s.newsletter_banner_amount)) out.push(`${n(s.newsletter_banner_amount)} x Newsletter Banner`);
+      else if (s.newsletter_banner) out.push(`1 x Newsletter Banner`);
     }
     if (countries.length) {
       const sorted = [...countries].sort((a, bv) => String(a.country).localeCompare(String(bv.country)));
@@ -328,6 +340,15 @@ function formatDeliverables(body, opts) {
         if (n(s.facebook_posts_curated_amount)) out.push(`${n(s.facebook_posts_curated_amount)} x Managed Strategic Campaigns`);
         if (n(s.facebook_video_posts_amount)) out.push(`${n(s.facebook_video_posts_amount)} x Video Posts`);
         if (n(s.facebook_video_posts_curated_amount)) out.push(`${n(s.facebook_video_posts_curated_amount)} x Managed Strategic Campaigns`);
+        if (n(s.facebook_instant_experience_amount)) out.push(`${n(s.facebook_instant_experience_amount)} x Facebook Instant Experience`);
+        else if (s.facebook_instant_experience) out.push(`Facebook Instant Experience`);
+        if (n(s.facebook_instant_experience_curated_amount)) out.push(`${n(s.facebook_instant_experience_curated_amount)} x Facebook Instant Experience curated campaigns`);
+        if (n(s.agri4all_product_uploads_amount)) out.push(`${n(s.agri4all_product_uploads_amount)} x Agri4All product uploads`);
+        else if (s.agri4all_product_uploads) out.push(`Agri4All product uploads`);
+        if (n(s.newsletter_feature_amount)) out.push(`${n(s.newsletter_feature_amount)} x E-newsletter link`);
+        else if (s.newsletter_feature) out.push(`1 x E-newsletter link`);
+        if (n(s.newsletter_banner_amount)) out.push(`${n(s.newsletter_banner_amount)} x Newsletter Banner`);
+        else if (s.newsletter_banner) out.push(`1 x Newsletter Banner`);
       }
     }
     return out;
@@ -434,6 +455,18 @@ function formatDeliverables(body, opts) {
       if (n(s.youtube_shorts_amount)) out.push(`${n(s.youtube_shorts_amount)} x YouTube Shorts${br()}`); else if (s.youtube_shorts) out.push(`YouTube Shorts${br()}`);
       if (n(s.youtube_video_amount)) out.push(`${n(s.youtube_video_amount)} x YouTube Videos${br()}`); else if (s.youtube_video) out.push(`YouTube Videos${br()}`);
       if (s.linkedin_article || s.linkedin_company_campaign) out.push(`1 x LinkedIn Article and Company campaign${br()}`);
+      // Agri4All product uploads (paid line item, distinct from unlimited uploads above)
+      if (n(s.agri4all_product_uploads_amount)) out.push(`${n(s.agri4all_product_uploads_amount)} x Agri4All product uploads${br()}`);
+      else if (s.agri4all_product_uploads) out.push(`Agri4All product uploads${br()}`);
+      // Facebook Instant Experience
+      if (n(s.facebook_instant_experience_amount)) out.push(`${n(s.facebook_instant_experience_amount)} x Facebook Instant Experience${br()}`);
+      else if (s.facebook_instant_experience) out.push(`Facebook Instant Experience${br()}`);
+      if (n(s.facebook_instant_experience_curated_amount)) out.push(`${n(s.facebook_instant_experience_curated_amount)} x Facebook Instant Experience curated campaigns${br()}`);
+      // Newsletter (general / all-countries level)
+      if (n(s.newsletter_feature_amount)) out.push(`${n(s.newsletter_feature_amount)} x E-newsletter link${br()}`);
+      else if (s.newsletter_feature) out.push(`1 x E-newsletter link${br()}`);
+      if (n(s.newsletter_banner_amount)) out.push(`${n(s.newsletter_banner_amount)} x Newsletter Banner${br()}`);
+      else if (s.newsletter_banner) out.push(`1 x Newsletter Banner${br()}`);
       out.push(br());
     }
     if (countries.length) {
@@ -448,6 +481,15 @@ function formatDeliverables(body, opts) {
         if (n(s.facebook_posts_curated_amount)) out.push(`${n(s.facebook_posts_curated_amount)} x Managed Strategic Campaigns${br()}`);
         if (n(s.facebook_video_posts_amount)) out.push(`${n(s.facebook_video_posts_amount)} x Video Posts${br()}`);
         if (n(s.facebook_video_posts_curated_amount)) out.push(`${n(s.facebook_video_posts_curated_amount)} x Managed Strategic Campaigns${br()}`);
+        if (n(s.facebook_instant_experience_amount)) out.push(`${n(s.facebook_instant_experience_amount)} x Facebook Instant Experience${br()}`);
+        else if (s.facebook_instant_experience) out.push(`Facebook Instant Experience${br()}`);
+        if (n(s.facebook_instant_experience_curated_amount)) out.push(`${n(s.facebook_instant_experience_curated_amount)} x Facebook Instant Experience curated campaigns${br()}`);
+        if (n(s.agri4all_product_uploads_amount)) out.push(`${n(s.agri4all_product_uploads_amount)} x Agri4All product uploads${br()}`);
+        else if (s.agri4all_product_uploads) out.push(`Agri4All product uploads${br()}`);
+        if (n(s.newsletter_feature_amount)) out.push(`${n(s.newsletter_feature_amount)} x E-newsletter link${br()}`);
+        else if (s.newsletter_feature) out.push(`1 x E-newsletter link${br()}`);
+        if (n(s.newsletter_banner_amount)) out.push(`${n(s.newsletter_banner_amount)} x Newsletter Banner${br()}`);
+        else if (s.newsletter_banner) out.push(`1 x Newsletter Banner${br()}`);
         out.push(br());
       }
     }
