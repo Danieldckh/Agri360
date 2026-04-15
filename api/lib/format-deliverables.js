@@ -1,12 +1,19 @@
 // Wraps the n8n Code-node format-deliverables logic as a CommonJS module.
-// Usage:  const { formatDeliverables } = require('./lib/format-deliverables');
-//         const html = formatDeliverables(formData);
+// Usage:
+//   const { formatDeliverables } = require('./lib/format-deliverables');
+//   const html   = formatDeliverables(formData);                    // legacy HTML <tr> rows
+//   const html2  = formatDeliverables(formData, { as: 'html' });    // same as above
+//   const json   = formatDeliverables(formData, { as: 'json' });    // BookingDeliverableMonth[]
 //
 // The formData object is the checklist payload stored in booking_forms.form_data.
-// Returns the HTML string (table rows) ready for POST /create on the editor service.
+// In HTML mode returns `<tr>` strings ready for POST /create on the editor service.
+// In JSON mode returns the structured month/section shape defined in
+// `esign document/src/types/booking-payload.ts` — mirror that file for the
+// authoritative contract.
 
-function formatDeliverables(body) {
-  if (!body || typeof body !== 'object') return '';
+function formatDeliverables(body, opts) {
+  const mode = (opts && opts.as) || 'html';
+  if (!body || typeof body !== 'object') return mode === 'json' ? [] : '';
 
   const clientInfo = body.client_information || {};
   const companyName = clientInfo.company_name || "";
@@ -193,26 +200,151 @@ function formatDeliverables(body) {
     else bannerByMonth[norm] = entries;
   }
 
-  // --- Formatters ---
-  function formatMagazine(arr) {
+  // ---------------------------------------------------------------
+  // Line builders — each returns a plain array of strings (lines).
+  // HTML formatters below re-wrap these with <br/> + <b>/<u> tags.
+  // ---------------------------------------------------------------
+
+  function magazineLines(arr) {
     const out = [];
     for (const m of arr) {
-      if (m.line_item) { out.push(`${escapeHtml(m.line_item).replace(/Essay/gi,"SA")}${br()}`); continue; }
-      if (!m.page && !m.type) out.push(`? Magazine missing details: ${escapeHtml(m.mag || "")}${br()}`);
-      else out.push(`1 x ${escapeHtml(m.page)} ${escapeHtml(m.type)} ${escapeHtml(m.mag || "")}${br()}`);
+      if (m.line_item) { out.push(String(m.line_item).replace(/Essay/gi, "SA")); continue; }
+      if (!m.page && !m.type) out.push(`? Magazine missing details: ${m.mag || ""}`);
+      else out.push(`1 x ${m.page} ${m.type} ${m.mag || ""}`);
     }
     return out;
   }
 
-  function formatOnline(o, banners = []) {
+  function onlineLines(o, banners = []) {
     const out = [];
-    if (o?.platforms?.length) o.platforms.forEach(p => out.push(`${Number(o.amount || 0)} x online article (${escapeHtml(p)})${br()}`));
-    if (Number(o?.curated_amount || 0) > 0) out.push(`${Number(o.curated_amount)} x online curated campaigns${br()}`);
-    if (banners?.length) banners.forEach(bv => out.push(`${escapeHtml(bv?.impressions ?? "")} x Banner impressions on ${escapeHtml(bv?.platform ?? "")}${br()}`));
+    if (o?.platforms?.length) o.platforms.forEach(p => out.push(`${Number(o.amount || 0)} x online article (${p})`));
+    if (Number(o?.curated_amount || 0) > 0) out.push(`${Number(o.curated_amount)} x online curated campaigns`);
+    if (banners?.length) banners.forEach(bv => out.push(`${bv?.impressions ?? ""} x Banner impressions on ${bv?.platform ?? ""}`));
     return out;
   }
 
+  function videoLines(list) {
+    const out = [];
+    for (const v of list) {
+      const isOther = (v.type || "").toLowerCase() === "other";
+      const label = isOther ? (v.typeOther || "Video") : (v.type || "Video");
+      const main = v.duration ? `1 x ${v.duration} ${label}` : `1 x ${label}`;
+      out.push(main);
+      if (v.photographerIncluded) out.push(`Photographer Included`);
+      if (v.desc) out.push(String(v.desc));
+    }
+    return out;
+  }
+
+  function websiteLines(list) {
+    const out = [];
+    for (const w of list) {
+      if (w.type === "Monthly Website Management") out.push(`Management of your website`);
+      else {
+        if (w.pages) out.push(`${w.pages} pages`);
+        out.push(`Website design, build, and launch including responsive layout and basic SEO setup.`);
+      }
+    }
+    return out;
+  }
+
+  function googleAdsLines(data) {
+    if (!data || !data.enabled) return [];
+    const out = [];
+    out.push(`Google Ads - Initial Setup`);
+    const initialText = data.initial_text || "Initial setup Cost\nKeyword Research and Analysis\nCompetitor Analysis\nCampaign and Ad Group Structuring\nAd Copywriting and Creation\nLanding Page Development\nConversion Tracking Setup\nGoogle Analytics Integration";
+    initialText.split('\n').forEach(line => { if (line.trim()) out.push(line.trim()); });
+    out.push(`Google Ads - Monthly Ongoing`);
+    const monthlyText = data.monthly_text || "Ongoing Google Ads Management cost\nCampaign Management\nA/B Testing and Optimization\nReporting and Analysis\nAdvertising budget\nClient responsible for payment of ad spend separately";
+    monthlyText.split('\n').forEach(line => { if (line.trim()) out.push(line.trim()); });
+    return out;
+  }
+
+  function smmLines(o) {
+    if (!o) return [];
+    const out = [];
+    out.push(`Management and reporting of ${companyName}'s social media platforms.`);
+    const hasContentCalendar = !!(o.content_calendar || o.contentCalendar);
+    if (hasContentCalendar) out.push("We plan, create, and schedule your content in advance, then publish it consistently throughout the month on your behalf. This ensures your channels remain active, aligned, and professionally managed.");
+    const posts = Number(o.posts || o.monthly_posts || 0);
+    if (posts) out.push(`${posts} x monthly posts`);
+    const own = o.own_page || {};
+    const hasOwnPage = own.facebook_posts || own.facebook_stories || own.facebook_video_posts || own.instagram_posts || own.instagram_stories || own.tiktok_shorts || own.youtube_shorts || own.youtube_video || own.linkedin_article || own.linkedin_campaign || own.twitter_x_posts || n(own.facebook_posts_amount) || n(own.instagram_posts_amount) || n(own.tiktok_amount) || n(own.youtube_shorts_amount) || n(own.youtube_video_amount) || n(own.linkedin_amount) || n(own.twitter_x_posts_amount);
+    if (hasOwnPage) {
+      out.push(`Own Page Social Media`);
+      if (n(own.facebook_posts_amount)) out.push(`${n(own.facebook_posts_amount)} x Facebook Posts`);
+      if (n(own.facebook_posts_curated_amount)) out.push(`${n(own.facebook_posts_curated_amount)} x Facebook Posts curated campaigns`);
+      if (n(own.facebook_stories_amount)) out.push(`${n(own.facebook_stories_amount)} x Facebook Stories`);
+      if (n(own.facebook_video_posts_amount)) out.push(`${n(own.facebook_video_posts_amount)} x Facebook Video Posts`);
+      if (n(own.facebook_video_posts_curated_amount)) out.push(`${n(own.facebook_video_posts_curated_amount)} x Facebook Video Posts curated campaigns`);
+      if (n(own.instagram_posts_amount)) out.push(`${n(own.instagram_posts_amount)} x Instagram Posts`);
+      if (n(own.instagram_posts_curated_amount)) out.push(`${n(own.instagram_posts_curated_amount)} x Instagram Posts curated campaigns`);
+      if (n(own.instagram_stories_amount)) out.push(`${n(own.instagram_stories_amount)} x Instagram Stories`);
+      if (n(own.tiktok_amount)) out.push(`${n(own.tiktok_amount)} x TikTok Shorts`); else if (own.tiktok_shorts) out.push(`TikTok Shorts`);
+      if (n(own.youtube_shorts_amount)) out.push(`${n(own.youtube_shorts_amount)} x YouTube Shorts`); else if (own.youtube_shorts) out.push(`YouTube Shorts`);
+      if (n(own.youtube_video_amount)) out.push(`${n(own.youtube_video_amount)} x YouTube Video`); else if (own.youtube_video) out.push(`YouTube Video`);
+      if (own.linkedin_article && own.linkedin_campaign && n(own.linkedin_amount)) out.push(`${n(own.linkedin_amount)} x LinkedIn Article and Campaign`);
+      else {
+        if (own.linkedin_article && n(own.linkedin_amount)) out.push(`${n(own.linkedin_amount)} x LinkedIn Article`);
+        if (own.linkedin_campaign && n(own.linkedin_amount)) out.push(`${n(own.linkedin_amount)} x LinkedIn Campaign`);
+      }
+      if (n(own.twitter_x_posts_amount)) out.push(`${n(own.twitter_x_posts_amount)} x Twitter/X Posts`); else if (own.twitter_x_posts) out.push(`Twitter/X Posts`);
+    }
+    return out;
+  }
+
+  function agri4allLines(entries) {
+    const out = [];
+    if (!entries?.length) return out;
+    const isFbPseudo = c => String(c || "").trim().toLowerCase() === "facebook";
+    const general = entries.filter(e => !e.country);
+    const countriesRaw = entries.filter(e => e.country);
+    let generalState = general[0]?.state || {};
+    const fbPseudo = countriesRaw.filter(e => isFbPseudo(e.country));
+    if (fbPseudo.length) for (const e of fbPseudo) generalState = mergeStates(generalState, e.state || {});
+    const countries = countriesRaw.filter(e => !isFbPseudo(e.country));
+    const hasUnlimitedUploads = entries.some(e => !!e?.state?.unlimited_product_uploads);
+    if (general.length || fbPseudo.length) {
+      const s = generalState || {};
+      out.push(`TIKTOK | INSTAGRAM | LINKEDIN | FACEBOOK`);
+      out.push(`STORIES | YOUTUBE`);
+      if (n(s.instagram_posts_amount)) out.push(`${n(s.instagram_posts_amount)} x Instagram Feed Features`);
+      if (n(s.instagram_stories_amount)) out.push(`${n(s.instagram_stories_amount)} x Instagram stories Features`);
+      if (n(s.facebook_stories_amount)) out.push(`${n(s.facebook_stories_amount)} x Facebook Stories Features`);
+      if (hasUnlimitedUploads) out.push(`Unlimited product uploads to Agri4all.com, full report after campaign.`);
+      if (n(s.tiktok_amount)) out.push(`${n(s.tiktok_amount)} x TikTok Strategic Video Campaigns`);
+      if (n(s.youtube_shorts_amount)) out.push(`${n(s.youtube_shorts_amount)} x YouTube Shorts`); else if (s.youtube_shorts) out.push(`YouTube Shorts`);
+      if (n(s.youtube_video_amount)) out.push(`${n(s.youtube_video_amount)} x YouTube Videos`); else if (s.youtube_video) out.push(`YouTube Videos`);
+      if (s.linkedin_article || s.linkedin_company_campaign) out.push(`1 x LinkedIn Article and Company campaign`);
+    }
+    if (countries.length) {
+      const sorted = [...countries].sort((a, bv) => String(a.country).localeCompare(String(bv.country)));
+      for (const c of sorted) {
+        const s = c.state || {};
+        out.push(String(c.country));
+        out.push(`Facebook`);
+        if (n(s.facebook_posts_amount)) out.push(`${n(s.facebook_posts_amount)} x Posts`);
+        if (n(s.facebook_stories_amount)) out.push(`${n(s.facebook_stories_amount)} x Facebook Stories`);
+        if (n(s.facebook_posts_curated_amount)) out.push(`${n(s.facebook_posts_curated_amount)} x Managed Strategic Campaigns`);
+        if (n(s.facebook_video_posts_amount)) out.push(`${n(s.facebook_video_posts_amount)} x Video Posts`);
+        if (n(s.facebook_video_posts_curated_amount)) out.push(`${n(s.facebook_video_posts_curated_amount)} x Managed Strategic Campaigns`);
+      }
+    }
+    return out;
+  }
+
+  // HTML wrappers around the line builders (preserve legacy output byte-for-byte).
+  function formatMagazine(arr) {
+    return magazineLines(arr).map(line => {
+      // line_item path escaped, fallback paths also escaped in original
+      return `${escapeHtml(line)}${br()}`;
+    });
+  }
+  function formatOnline(o, banners = []) {
+    return onlineLines(o, banners).map(line => `${escapeHtml(line)}${br()}`);
+  }
   function formatVideoList(list) {
+    // original interleaves a blank br at the end of each entry — preserve it
     const out = [];
     for (const v of list) {
       const isOther = (v.type || "").toLowerCase() === "other";
@@ -225,7 +357,6 @@ function formatDeliverables(body) {
     }
     return out;
   }
-
   function formatWebsiteList(list) {
     const out = [];
     for (const w of list) {
@@ -235,7 +366,6 @@ function formatDeliverables(body) {
     }
     return out;
   }
-
   function formatGoogleAds(data) {
     if (!data || !data.enabled) return [];
     const out = [];
@@ -249,7 +379,6 @@ function formatDeliverables(body) {
     out.push(br());
     return out;
   }
-
   function formatSMM(o) {
     if (!o) return [];
     const out = [];
@@ -281,7 +410,6 @@ function formatDeliverables(body) {
     out.push(br());
     return out;
   }
-
   function formatAgri4All(entries) {
     const out = [];
     if (!entries?.length) return out;
@@ -339,7 +467,7 @@ function formatDeliverables(body) {
   function hasAgriMonth(label) { return Boolean(agriByMonth[label]?.length); }
   function hasAnyMonthContent(label) { return hasSMMMonth(label) || hasVideoMonth(label) || hasWebsiteMonth(label) || hasOnlineMonth(label) || hasMagazineMonth(label) || hasAgriMonth(label); }
 
-  // --- Build sections ---
+  // --- HTML section builders (legacy) ---
   function buildRecurring() {
     const content = [];
     const rangeLabel = formatMonthYearRange(campaignStart, campaignEnd);
@@ -374,8 +502,128 @@ function formatDeliverables(body) {
     return `<tr>\n<td><div class="editable" contenteditable="true">${html}</div></td>\n<td><div class="editable" contenteditable="true">${price || ''}</div></td>\n<td><div class="editable" contenteditable="true">${discount || ''}</div></td>\n<td><div class="editable" contenteditable="true">${subtotal || ''}</div></td>\n</tr>`;
   }
 
+  // --- JSON section builders ---
+  function sectionsForRecurring() {
+    const sections = [];
+    const hasRecurringOnline = online.recurring || recurringBanners.length > 0;
+    const hasGoogleAds = googleAdsData && googleAdsData.enabled;
+
+    if (smm.recurring) {
+      sections.push({
+        service: "Social Media Management",
+        lines: smmLines({
+          posts: smm.data.monthly_posts || smm.data.posts || 0,
+          content_calendar: !!smm.data.content_calendar,
+          own_page: smm.data.own_page || {}
+        })
+      });
+    }
+    if (hasGoogleAds) {
+      sections.push({ service: "Google Ads", lines: googleAdsLines(googleAdsData) });
+    }
+    if (hasRecurringOnline) {
+      sections.push({
+        service: "Online Articles",
+        lines: onlineLines(online.recurring ? online.data : null, recurringBanners)
+      });
+    }
+    if (recurringVideos.length) {
+      sections.push({ service: "Video", lines: videoLines(recurringVideos) });
+    }
+    if (recurringWebsites.length) {
+      const svc = recurringWebsites[0]?.type === "Monthly Website Management" ? "Website Management" : "Website Design & Development";
+      sections.push({ service: svc, lines: websiteLines(recurringWebsites) });
+    }
+    if (recurringMagazines.length) {
+      sections.push({ service: "Magazine", lines: magazineLines(recurringMagazines) });
+    }
+    if (agriRecurring.length) {
+      sections.push({ service: "Agri4All", lines: agri4allLines(agriRecurring) });
+    }
+    return sections;
+  }
+
+  function sectionsForMonth(label) {
+    const sections = [];
+    if (smm.data[label]) {
+      sections.push({ service: "Social Media Management", lines: smmLines(smm.data[label]) });
+    }
+    if (hasVideoMonth(label)) {
+      sections.push({ service: "Video", lines: videoLines(videoByMonth[label]) });
+    }
+    if (hasWebsiteMonth(label)) {
+      const svc = websiteByMonth[label][0]?.type === "Monthly Website Management" ? "Website Management" : "Website Design & Development";
+      sections.push({ service: svc, lines: websiteLines(websiteByMonth[label]) });
+    }
+    if (hasOnlineMonth(label)) {
+      sections.push({ service: "Online Articles", lines: onlineLines(online.data[label], bannerByMonth[label]) });
+    }
+    if (hasMagazineMonth(label)) {
+      sections.push({ service: "Magazine", lines: magazineLines(magazine[label]) });
+    }
+    if (hasAgriMonth(label)) {
+      sections.push({ service: "Agri4All", lines: agri4allLines(agriByMonth[label]) });
+    }
+    return sections;
+  }
+
+  function stripNum(val) {
+    return val ? stripCurrency(val) : '';
+  }
+
+  function attachFinancials(sections, fin) {
+    // Financials are per-month, not per-service. Attach totals to the first
+    // section; leave subsequent sections blank so UI can render one money row
+    // per month even when multiple services are present.
+    if (!sections.length) return sections;
+    const price = fin ? stripNum(fin.base_price) : '';
+    const discount = fin ? stripNum(fin.discount) : '';
+    const subtotal = fin ? stripNum(fin.subtotal) : '';
+    return sections.map((s, i) => ({
+      service: s.service,
+      lines: s.lines,
+      price: i === 0 ? price : '',
+      discount: i === 0 ? discount : '',
+      subtotal: i === 0 ? subtotal : ''
+    }));
+  }
+
   // --- Output ---
   const months = buildMonthRange(campaignStart, campaignEnd);
+
+  if (mode === 'json') {
+    const out = [];
+    // Recurring "all months" bundle — represented as a single synthetic month
+    // whose label is the full campaign range.
+    const recurringSections = sectionsForRecurring();
+    if (recurringSections.length) {
+      const rangeLabel = formatMonthYearRange(campaignStart, campaignEnd);
+      out.push({
+        monthLabel: rangeLabel,
+        monthsDisplay: rangeLabel,
+        sections: attachFinancials(recurringSections, null)
+      });
+    }
+    for (const m of months) {
+      const fin = financialByMonth[m];
+      const monthSections = sectionsForMonth(m);
+      if (!monthSections.length && !fin) continue;
+      let sections = monthSections;
+      if (!sections.length && fin) {
+        // Financial row with no deliverables — emit a placeholder section so
+        // the totals still render.
+        sections = [{ service: '', lines: [] }];
+      }
+      out.push({
+        monthLabel: m,
+        monthsDisplay: m,
+        sections: attachFinancials(sections, fin)
+      });
+    }
+    return out;
+  }
+
+  // HTML mode (legacy): unchanged behavior.
   const rows = [];
   const recurringHTML = buildRecurring();
   if (recurringHTML.trim()) rows.push(row(recurringHTML));

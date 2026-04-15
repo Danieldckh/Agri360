@@ -512,9 +512,10 @@ router.get('/:id/revisions/:revisionId', async (req, res) => {
   }
 });
 
-// POST /:id/send-to-esign — build the booking form HTML and send it to the
-// secure-signature-page e-sign service, which stores the HTML and returns a
-// signing URL for the client.
+// POST /:id/send-to-esign — build the structured JSON payload and send it to
+// the secure-signature-page e-sign service, which stores the payload per slug
+// and returns a signing URL for the client. The esign SPA renders the booking
+// form from this JSON contract (see esign document/src/types/booking-payload.ts).
 router.post('/:id/send-to-esign', async (req, res) => {
   try {
     const result = await pool.query(
@@ -527,17 +528,24 @@ router.post('/:id/send-to-esign', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Booking form not found' });
     }
-    const form = toCamelCase(result.rows[0]);
+    const rawRow = result.rows[0];
+    const form = toCamelCase(rawRow);
     const formData = form.formData || {};
-    const slug = (form.clientName || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + form.id;
 
-    // Build the full booking form HTML (same as send-to-editor)
-    const { formatDeliverables } = require('../lib/format-deliverables');
-    const deliverableRows = formatDeliverables(formData) || '<tr><td colspan="6"><div class="editable" contenteditable="true"><p><em>No deliverable sections were selected in the checklist.</em></p></div></td></tr>';
-    const { buildBookingFormSnippet } = require('../lib/build-booking-snippet');
-    const html = buildBookingFormSnippet(formData, form, deliverableRows, { includeHeader: true });
+    // clientColumns: pass through the joined clients row projection using the
+    // snake_case field names defined by the BookingClientColumns contract.
+    const clientColumns = {
+      name: rawRow.client_name,
+      trading_name: rawRow.trading_name,
+      primary_contact: rawRow.primary_contact,
+      material_contact: rawRow.material_contact,
+      accounts_contact: rawRow.accounts_contact,
+    };
 
-    // POST to the secure-signature-page e-sign service
+    const { buildEsignPayload } = require('../lib/build-esign-payload');
+    const payload = buildEsignPayload(formData, form, clientColumns);
+
+    // POST the JSON payload to the secure-signature-page e-sign service.
     const esignUrl = config.ESIGN_SERVICE_URL.replace(/\/+$/, '');
     const apiSecret = config.ESIGN_ADMIN_SECRET;
     const response = await fetch(`${esignUrl}/api/esign/booking/create`, {
@@ -546,7 +554,7 @@ router.post('/:id/send-to-esign', async (req, res) => {
         'Content-Type': 'application/json',
         ...(apiSecret ? { 'X-Api-Key': apiSecret } : {}),
       },
-      body: JSON.stringify({ clientName: form.clientName, slug, html }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
