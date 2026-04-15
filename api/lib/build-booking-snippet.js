@@ -34,7 +34,7 @@ function buildBookingFormSnippet(formData, form, deliverableRows, opts) {
   // Inline style strings for e-sign (DOMPurify strips <style> tags)
   var isEsign = !!options.includeHeader;
   var S = {
-    sectionTitle: isEsign ? ' style="font-size:12px;font-weight:900;text-transform:uppercase;color:black;margin:18px 0 6px;letter-spacing:0.3px;font-family:Arial,sans-serif;text-align:left;"' : '',
+    sectionTitle: isEsign ? ' style="font-size:12px;font-weight:900;text-transform:uppercase;color:black;margin:18px 0 6px;padding:0 0 0 10px;letter-spacing:0.3px;font-family:Arial,sans-serif;text-align:left;"' : '',
     tableWrap: isEsign ? ' style="border:1px solid #d0d0d0;border-radius:8px;overflow:hidden;margin-bottom:18px;"' : '',
     table: isEsign ? ' style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;color:#222;"' : '',
     td: isEsign ? ' style="padding:8px 12px;font-size:12px;vertical-align:top;line-height:1.35;border-bottom:1px solid #e5e7eb;color:#222;"' : '',
