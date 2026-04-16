@@ -4279,6 +4279,21 @@
           var img = document.createElement('img');
           img.src = url;
           img.addEventListener('click', function () { openLightbox(url); });
+          // Fallback: if the image file is missing on disk (common after a
+          // redeploy with no persistent uploads volume), replace the <img>
+          // with a visible filename link so operators can see WHAT vanished.
+          img.addEventListener('error', function () {
+            var fallback = document.createElement('a');
+            fallback.href = url;
+            fallback.target = '_blank';
+            fallback.rel = 'noopener';
+            fallback.className = 'wd-file-link';
+            fallback.style.cssText = 'display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;padding:10px;font-size:11px;color:#b45309;text-align:center;word-break:break-all;';
+            fallback.innerHTML = '<span style="font-size:18px">⚠</span>' +
+              '<span style="font-weight:700;">File missing</span>' +
+              '<span style="opacity:0.8">' + (url.split('/').pop()) + '</span>';
+            if (img.parentNode) img.parentNode.replaceChild(fallback, img);
+          });
           thumb.appendChild(img);
         } else {
           var link = document.createElement('a');
