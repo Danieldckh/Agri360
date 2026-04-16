@@ -69,6 +69,25 @@ app.use('/api/scheduler', schedulerRoutes);
 // Serve static frontend files. JS/CSS/HTML always revalidate via etag so that
 // a redeploy is picked up by clients without a hard refresh.
 var ROOT_DIR = path.join(__dirname, '..');
+
+// Per-boot build stamp used to cache-bust script/link srcs in index.html.
+var BUILD_STAMP = Date.now().toString(36);
+
+// Rewrite index.html on the fly to append ?v=<BUILD_STAMP> to every local
+// <script src="..."> and <link href="..."> so a redeployed container forces
+// fresh downloads even when the browser cached the file under old headers.
+app.get(['/', '/index.html'], function (req, res, next) {
+  try {
+    var html = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8');
+    html = html.replace(/(<script\s+src=")([^"?]+)(")/g, '$1$2?v=' + BUILD_STAMP + '$3');
+    html = html.replace(/(<link\s+[^>]*href=")([^"?]+\.css)(")/g, '$1$2?v=' + BUILD_STAMP + '$3');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.type('html').send(html);
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.use(express.static(ROOT_DIR, {
   etag: true,
   lastModified: true,
