@@ -1139,6 +1139,7 @@
       emptyMessage: options.left.emptyMessage,
       showClientButtons: !!options.left.showClientButtons,
       hideClientGroups: !!options.hideClientGroups,
+      suppressAutoClientName: !!options.suppressAutoClientName,
       skipMonthSelector: true
     });
 
@@ -1150,6 +1151,7 @@
       emptyMessage: options.right.emptyMessage,
       showClientButtons: !!options.right.showClientButtons,
       hideClientGroups: !!options.hideClientGroups,
+      suppressAutoClientName: !!options.suppressAutoClientName,
       skipMonthSelector: true
     });
 
