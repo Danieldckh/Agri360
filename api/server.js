@@ -66,9 +66,18 @@ app.use('/api/portal', portalRoutes);
 app.use('/api/social-oauth', socialOAuthRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 
-// Serve static frontend files
+// Serve static frontend files. JS/CSS/HTML always revalidate via etag so that
+// a redeploy is picked up by clients without a hard refresh.
 var ROOT_DIR = path.join(__dirname, '..');
-app.use(express.static(ROOT_DIR));
+app.use(express.static(ROOT_DIR, {
+  etag: true,
+  lastModified: true,
+  setHeaders: function (res, filePath) {
+    if (/\.(js|css|html)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // Fallback - serve index.html for non-API routes
 app.use((req, res, next) => {
