@@ -37,7 +37,9 @@ fs.mkdirSync(DELIVERABLE_IMAGE_DIR, { recursive: true });
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// 25mb limit so signed/change-request PDF base64 from the esign service
+// (multi-page A4 from html2pdf at quality 0.98) fits in /sign POST bodies.
+app.use(express.json({ limit: '25mb' }));
 app.use('/uploads', express.static(UPLOAD_ROOT));
 
 // Health check
