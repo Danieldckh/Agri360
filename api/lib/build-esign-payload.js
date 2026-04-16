@@ -73,6 +73,9 @@ function buildEsignPayload(formData, form, clientColumns) {
     clientName,
     bookingFormId: safeForm.id,
     formData: safeFormData,
+    // Client-uploaded logo from the editable booking form. Empty string
+    // means "use the default ProAgri logo".
+    clientLogo: typeof safeFormData.client_logo === 'string' ? safeFormData.client_logo : '',
     clientColumns: {
       name: safeClientColumns.name,
       trading_name: safeClientColumns.trading_name,

@@ -12,6 +12,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sidebar = document.getElementById('sidebar');
   const collapseBtn = document.getElementById('collapseBtn');
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileSidebarBackdrop = document.getElementById('mobileSidebarBackdrop');
+
+  function setMobileSidebarOpen(open) {
+    document.body.classList.toggle('sidebar-open', !!open);
+    if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', String(!!open));
+  }
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', function () {
+      setMobileSidebarOpen(!document.body.classList.contains('sidebar-open'));
+    });
+  }
+  if (mobileSidebarBackdrop) {
+    mobileSidebarBackdrop.addEventListener('click', function () { setMobileSidebarOpen(false); });
+  }
+  // Close drawer when a nav item is tapped
+  document.addEventListener('click', function (ev) {
+    var target = ev.target;
+    if (!target || !target.closest) return;
+    if (target.closest('.nav-item') && document.body.classList.contains('sidebar-open')) {
+      setMobileSidebarOpen(false);
+    }
+  });
   const dashboardContent = document.getElementById('dashboardContent');
   const navItems = document.querySelectorAll('.nav-item');
   let isTransitioning = false;

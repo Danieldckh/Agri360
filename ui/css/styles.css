@@ -2006,46 +2006,69 @@ html, body {
   }
 }
 
-/* Tier 6: Tablet portrait (768px) */
+/* Mobile hamburger button — hidden on desktop, shown on mobile */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: 0;
+  padding: 6px 8px;
+  margin-right: 6px;
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.mobile-menu-btn:hover { background: rgba(0,0,0,0.06); }
+
+/* Mobile sidebar backdrop */
+.mobile-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 998;
+}
+body.sidebar-open .mobile-sidebar-backdrop { display: block; }
+
+/* Tier 6: Tablet portrait (768px) — slide-in drawer pattern.
+   Replaces the prior icon-only collapsed strip, which silently
+   disappeared on real mobile viewports because the collapse toggle
+   was display:none and the sidebar parent had no explicit visibility. */
 @media (max-width: 768px) {
   .top-header {
     padding: 0 12px;
     height: 44px;
     min-height: 44px;
   }
+  .mobile-menu-btn { display: inline-flex; align-items: center; }
+
   .sidebar {
-    width: var(--sidebar-collapsed);
-    min-width: var(--sidebar-collapsed);
+    position: fixed;
+    top: 44px;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    max-width: 80vw;
+    min-width: 0;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    z-index: 999;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+    overflow-y: auto;
   }
-  .nav-label {
-    opacity: 0;
-    width: 0;
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
   }
-  .nav-item {
-    justify-content: center;
-    padding: 10px 0;
-    gap: 0;
-  }
-  .logo-text {
-    display: none;
-  }
-  .logo-360 {
-    font-size: 16px;
-  }
-  .collapse-btn {
-    display: none;
-  }
-  .sidebar-collapse-row {
-    display: none;
-  }
-  .nav-group-header {
-    display: none;
-  }
-  .nav-group.collapsed .nav-group-items {
-    max-height: 500px;
-    opacity: 1;
-    pointer-events: auto;
-  }
+
+  /* Inside the open drawer we want full labels back, not icon-only */
+  .nav-label { opacity: 1; width: auto; }
+  .nav-item { justify-content: flex-start; padding: 10px 16px; gap: 12px; }
+  .nav-group-header { display: flex; }
+  .sidebar-collapse-row { display: none; }
+  .collapse-btn { display: none; }
+
+  .logo-text { display: inline; }
+  .logo-360 { font-size: 16px; }
+
   .card {
     padding: 0 20px 20px;
     border-radius: 14px;

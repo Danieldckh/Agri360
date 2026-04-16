@@ -119,6 +119,78 @@ router.get('/:token/dashboard', async (req, res) => {
   }
 });
 
+// GET /:token/booking-forms — list booking forms for this client.
+// Returns a slimmed projection (no large base64 PDFs in the body) plus
+// streaming-URL aliases the portal UI can link to directly.
+router.get('/:token/booking-forms', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+    const result = await pool.query(
+      `SELECT id, client_id, title, status, signed_at, created_at, updated_at,
+              (signed_pdf IS NOT NULL) AS has_signed_pdf,
+              (change_request_pdf IS NOT NULL) AS has_change_request_pdf,
+              esign_url, signed_file_url
+         FROM booking_forms
+        WHERE client_id = $1
+        ORDER BY created_at DESC`,
+      [client.id]
+    );
+    const rows = result.rows.map(toCamelCase).map(function (row) {
+      return Object.assign({}, row, {
+        signedPdfUrl: row.hasSignedPdf
+          ? '/api/portal/' + req.params.token + '/booking-forms/' + row.id + '/signed-pdf'
+          : '',
+        changeRequestPdfUrl: row.hasChangeRequestPdf
+          ? '/api/portal/' + req.params.token + '/booking-forms/' + row.id + '/change-request-pdf'
+          : ''
+      });
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Portal booking-forms list error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /:token/booking-forms/:id/signed-pdf — stream the signed PDF.
+// Token-scoped: 404 if the booking form doesn't belong to the token's client.
+async function streamPortalPdf(req, res, column, downloadName) {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).send('Invalid token');
+    const result = await pool.query(
+      `SELECT ${column} AS pdf FROM booking_forms WHERE id = $1 AND client_id = $2`,
+      [req.params.id, client.id]
+    );
+    if (result.rows.length === 0 || !result.rows[0].pdf) {
+      return res.status(404).send('PDF not found');
+    }
+    let raw = String(result.rows[0].pdf);
+    const m = raw.match(/^data:application\/pdf[^,]*;base64,(.*)$/i);
+    if (m) raw = m[1];
+    let buf;
+    try { buf = Buffer.from(raw, 'base64'); }
+    catch (_) { return res.status(500).send('Invalid stored PDF'); }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', buf.length);
+    res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    res.send(buf);
+  } catch (err) {
+    console.error(`Portal stream ${column} error:`, err);
+    res.status(500).send('Internal error');
+  }
+}
+
+router.get('/:token/booking-forms/:id/signed-pdf', async (req, res) => {
+  await streamPortalPdf(req, res, 'signed_pdf', `signed-${req.params.id}.pdf`);
+});
+
+router.get('/:token/booking-forms/:id/change-request-pdf', async (req, res) => {
+  await streamPortalPdf(req, res, 'change_request_pdf', `change-request-${req.params.id}.pdf`);
+});
+
 // GET /:token/forms — list all forms for this client
 router.get('/:token/forms', async (req, res) => {
   try {

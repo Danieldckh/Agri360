@@ -1334,6 +1334,49 @@
           '', null));
         leftCol.appendChild(todoCard);
 
+        // ── Booking Forms card: shows signed booking forms (and any change
+        // requests). Pulls from /api/portal/:token/booking-forms which
+        // returns slim metadata + streaming-URL aliases.
+        var bfCard = document.createElement('div');
+        bfCard.className = 'cp-card';
+        bfCard.innerHTML = '<h3 class="cp-card-title">Booking Forms</h3><div class="cp-bf-list">Loading…</div>';
+        leftCol.appendChild(bfCard);
+        fetch('/api/portal/' + token + '/booking-forms')
+          .then(function (r) { return r.json(); })
+          .then(function (forms) {
+            var list = bfCard.querySelector('.cp-bf-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (!Array.isArray(forms) || forms.length === 0) {
+              list.textContent = 'No booking forms yet.';
+              return;
+            }
+            forms.forEach(function (f) {
+              var row = document.createElement('div');
+              row.className = 'cp-todo-row';
+              var label = (f.title || ('Booking #' + f.id)) + ' — ' + (f.status || 'pending');
+              var linksHtml = '';
+              if (f.signedPdfUrl) {
+                linksHtml += '<a href="' + f.signedPdfUrl + '" target="_blank" rel="noopener">View signed PDF</a>';
+              }
+              if (f.changeRequestPdfUrl) {
+                if (linksHtml) linksHtml += ' · ';
+                linksHtml += '<a href="' + f.changeRequestPdfUrl + '" target="_blank" rel="noopener">View change request</a>';
+              }
+              if (!linksHtml) linksHtml = '<span style="opacity:0.6;">Awaiting signature</span>';
+              row.innerHTML =
+                '<div class="cp-todo-text">' +
+                  '<div class="cp-todo-title">' + label + '</div>' +
+                  '<div class="cp-todo-sub">' + linksHtml + '</div>' +
+                '</div>';
+              list.appendChild(row);
+            });
+          })
+          .catch(function () {
+            var list = bfCard.querySelector('.cp-bf-list');
+            if (list) list.textContent = 'Could not load booking forms.';
+          });
+
         // ── RIGHT column ──
         var rightCol = document.createElement('div');
         rightCol.className = 'cp-col';
