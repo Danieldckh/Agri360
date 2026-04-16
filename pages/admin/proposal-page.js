@@ -1809,9 +1809,13 @@
           rightCol.appendChild(genCard);
         }
 
-        // Signed Booking Form — show signed PDF if available
-        var signedUrl = data.signedFileUrl || '';
-        if (!signedUrl && data.signedPdf) signedUrl = 'data:application/pdf;base64,' + data.signedPdf;
+        // Signed Booking Form — prefer the streamed binary endpoint when
+        // signed_pdf base64 is stored; fall back to the legacy column only
+        // when no signed_pdf exists. Never render a base64 data URI here
+        // (stale signedFileUrl can hold the signing URL, not the signed PDF).
+        var signedUrl = data.signedPdf
+          ? (window.API_URL || '') + '/booking-forms/' + bookingFormId + '/signed-pdf'
+          : (data.signedFileUrl || '');
         rightCol.appendChild(buildDocCard(
           'Signed Booking Form',
           signedUrl,
@@ -1888,10 +1892,20 @@
     var rightCol = document.createElement('div');
     rightCol.className = 'proposal-grid-right';
 
-    var onboardingSheet = buildSheet('Onboarding', refreshAll);
+    // Onboarding + Onboarded sheets surface the three document artifacts
+    // alongside the base columns so admins can grab the proposal / booking
+    // form / signed booking form without having to drill into the client
+    // dashboard. Column shape mirrors BOOKING_FORM_COLUMNS (type: 'upload').
+    var ONBOARDING_COLUMNS = BASE_COLUMNS.concat([
+      { key: 'proposalFileUrl', label: 'Proposal',            type: 'upload', uploadEndpoint: '/api/booking-forms/{id}/upload-proposal-file', width: 'md' },
+      { key: 'unsignedFileUrl', label: 'Booking Form',        type: 'upload', uploadType: 'unsigned', width: 'lg' },
+      { key: 'signedFileUrl',   label: 'Signed Booking Form', type: 'upload', uploadType: 'signed',   width: 'lg' }
+    ]);
+
+    var onboardingSheet = buildSheet('Onboarding', refreshAll, ONBOARDING_COLUMNS);
     leftCol.appendChild(onboardingSheet.el);
 
-    var onboardedSheet = buildSheet('Onboarded', refreshAll);
+    var onboardedSheet = buildSheet('Onboarded', refreshAll, ONBOARDING_COLUMNS);
     rightCol.appendChild(onboardedSheet.el);
 
     grid.appendChild(leftCol);
