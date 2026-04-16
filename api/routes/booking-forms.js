@@ -131,8 +131,10 @@ async function streamPdfColumn(req, res, column, downloadName) {
       return res.status(404).send('PDF not found');
     }
     let raw = String(result.rows[0].pdf);
-    // Strip data URI prefix if present
-    const m = raw.match(/^data:application\/pdf;base64,(.*)$/i);
+    // Strip data URI prefix if present. html2pdf.js emits an RFC-2397 data
+    // URI with an extra `;filename=generated.pdf` parameter between the
+    // mime type and `;base64,`, so accept any params with [^,]*.
+    const m = raw.match(/^data:application\/pdf[^,]*;base64,(.*)$/i);
     if (m) raw = m[1];
     let buf;
     try {
