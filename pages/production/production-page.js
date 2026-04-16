@@ -315,6 +315,7 @@
     var showClientButtons = !!options.showClientButtons;
     var skipMonthSelector = !!options.skipMonthSelector;
     var hideClientGroups = !!options.hideClientGroups;
+    var suppressAutoClientName = !!options.suppressAutoClientName;
 
     while (container.firstChild) container.removeChild(container.firstChild);
 
@@ -491,8 +492,9 @@
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
 
-          // When hideClientGroups is true, prepend a client name cell as the first cell
-          if (hideClientGroups) {
+          // When hideClientGroups is true, prepend a client name cell as the first cell,
+          // unless suppressAutoClientName is explicitly set (caller renders its own).
+          if (hideClientGroups && !suppressAutoClientName) {
             var clientNameCell = document.createElement('div');
             clientNameCell.className = 'prod-deliv-cell prod-deliv-client-name';
             clientNameCell.textContent = item.clientName || '';

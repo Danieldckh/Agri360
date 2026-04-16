@@ -84,6 +84,7 @@
       prefix: 'designA4A',
       deptSlug: 'design',
       hideClientGroups: true,
+      suppressAutoClientName: true,
       left: {
         title: 'Design',
         searchPlaceholder: 'Search design...',
