@@ -94,9 +94,9 @@
         columns: [
           C.eye(container),
           C.deptAvatar('design'),
+          { key:'clientName', label:'Client', className:'prod-deliv-client', render: function(r){ var n = r.clientName || r.client_name || ''; var span = document.createElement('span'); span.className = 'design-a4a-client-name'; span.textContent = n; return span; } },
           C.type(),
-          C.status(),
-          C.actionAdvanceBack('auto')
+          C.actionAdvance('auto')
         ],
         emptyMessage: 'No Agri4All posts in design'
       },
@@ -109,9 +109,9 @@
         columns: [
           C.eye(container),
           C.deptAvatar('design'),
+          { key:'clientName', label:'Client', className:'prod-deliv-client', render: function(r){ var n = r.clientName || r.client_name || ''; var span = document.createElement('span'); span.className = 'design-a4a-client-name'; span.textContent = n; return span; } },
           C.type(),
-          C.status(),
-          C.actionAdvanceBack('auto')
+          C.actionAdvance('auto')
         ],
         emptyMessage: 'No Agri4All posts in design review'
       }
