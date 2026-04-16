@@ -97,6 +97,8 @@
           C.deptAvatar('design'),
           { key:'clientName', label:'Client', className:'prod-deliv-client', render: function(r){ var n = r.clientName || r.client_name || ''; var span = document.createElement('span'); span.className = 'design-a4a-client-name'; span.textContent = n; return span; } },
           C.type(),
+          { key:'__spacer', label:'', className:'design-a4a-spacer', render: function(){ return ''; } },
+          C.status(),
           C.actionAdvance('auto')
         ],
         emptyMessage: 'No Agri4All posts in design'
@@ -112,6 +114,8 @@
           C.deptAvatar('design'),
           { key:'clientName', label:'Client', className:'prod-deliv-client', render: function(r){ var n = r.clientName || r.client_name || ''; var span = document.createElement('span'); span.className = 'design-a4a-client-name'; span.textContent = n; return span; } },
           C.type(),
+          { key:'__spacer', label:'', className:'design-a4a-spacer', render: function(){ return ''; } },
+          C.status(),
           C.actionAdvance('auto')
         ],
         emptyMessage: 'No Agri4All posts in design review'

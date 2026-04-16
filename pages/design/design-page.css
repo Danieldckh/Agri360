@@ -31,3 +31,14 @@
 .design-cc-split-70-30 .prod-deliv-client-row {
   display: none;
 }
+
+/* Push status + advance arrow to the far right of the row. The spacer
+   cell between type and status flex-grows to consume free space. */
+.design-cc-split-70-30 .prod-deliv-row {
+  display: flex;
+  align-items: center;
+}
+.design-cc-split-70-30 .design-a4a-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
