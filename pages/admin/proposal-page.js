@@ -100,7 +100,7 @@
     { key: 'proposalFileUrl', label: 'Proposal', type: 'upload', uploadEndpoint: '/api/booking-forms/{id}/upload-proposal-file', width: 'md' },
     { key: 'unsignedFileUrl', label: 'Unsigned Booking Form', type: 'upload', uploadType: 'unsigned', width: 'lg' },
     { key: 'signedFileUrl',   label: 'Signed Booking Form',   type: 'upload', uploadType: 'signed',   width: 'lg' },
-    { key: 'changeNotes',     label: 'Change Request',        width: 'lg', wrap: true }
+    { key: 'changeRequestFileUrl', label: 'Change Request',   type: 'upload', width: 'md' }
   ]);
 
   // Sent to Client sheet: client name only (no other properties).
@@ -150,9 +150,10 @@
       // Unsigned booking form: manual upload OR generated e-sign URL
       unsignedFileUrl: form.unsignedFileUrl || form.esignUrl || '',
       // Signed: manual upload, or if signed via e-sign the signedPdf is base64 (not a URL)
-      signedFileUrl: form.signedFileUrl || '',
+      signedFileUrl: form.signedFileUrl || pdfDataUrl(form.signedPdf),
       proposalFileUrl: form.proposalFileUrl || '',
-      changeNotes: form.changeNotes || ''
+      changeNotes: form.changeNotes || '',
+      changeRequestFileUrl: pdfDataUrl(form.changeRequestPdf)
     };
   }
 
