@@ -5349,12 +5349,15 @@
     // Scoped styles
     var styleBlock = document.createElement('style');
     styleBlock.textContent = [
-      '.a4apu-dashboard { display:flex; flex-direction:column; gap:0; height:100%; min-height:calc(100vh - 88px); }',
-      '.a4apu-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px 16px; }',
-      '.a4apu-title { font-size:20px; font-weight:800; color:var(--text-primary,#1e293b); margin:0; }',
+      '.a4apu-dashboard { display:flex; flex-direction:column; gap:0; height:100%; min-height:calc(100vh - 88px); background:var(--surface-alt,#f1f5f9); }',
+      '.a4apu-header-shell { padding:18px 24px 0; }',
+      '.a4apu-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; background:var(--surface,#ffffff); border:1px solid var(--border-color,#e2e8f0); border-radius:14px; box-shadow:0 4px 14px rgba(15,23,42,0.05); }',
+      '.a4apu-header-left { display:flex; flex-direction:column; gap:2px; min-width:0; }',
+      '.a4apu-title { font-size:18px; font-weight:800; color:var(--text-primary,#1e293b); margin:0; letter-spacing:-0.01em; }',
+      '.a4apu-subtitle { font-size:12px; font-weight:600; color:var(--text-secondary,#64748b); letter-spacing:0.04em; text-transform:uppercase; }',
       '.a4apu-status-badge { display:inline-flex; align-items:center; padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; background:var(--surface-alt,#f1f5f9); color:var(--text-secondary,#64748b); }',
       '.a4apu-cr-counter { font-size:12px; color:var(--text-secondary,#64748b); font-weight:600; }',
-      '.a4apu-body { display:flex; flex:1; min-height:0; height:100%; overflow:hidden; }',
+      '.a4apu-body { display:flex; flex:1; min-height:0; height:100%; overflow:hidden; padding:16px 24px 0; gap:16px; }',
       '.a4apu-chat-panel { width:34%; min-width:320px; padding:0; border-right:none; display:flex; flex-direction:column; overflow:hidden; background:none; }',
       '.a4apu-chat-panel .cd-messenger { margin:0; min-height:0; border-radius:18px; border:1px solid rgba(148,163,184,0.22); box-shadow:0 16px 40px rgba(15,23,42,0.08); background:rgba(255,255,255,0.82); backdrop-filter:blur(10px); }',
       '.a4apu-chat-panel .cd-messenger-header { padding:16px 18px; background:linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.90)); border-bottom:1px solid rgba(148,163,184,0.18); }',
@@ -5381,9 +5384,25 @@
       '.a4apu-chat-panel .cd-messenger-btn:hover { color:#0f766e; background:rgba(20,184,166,0.12); }',
       '.a4apu-chat-panel .cd-mention-dropdown { left:44px; right:52px; bottom:calc(100% + 8px); border-radius:14px; border-color:rgba(148,163,184,0.22); box-shadow:0 16px 32px rgba(15,23,42,0.12); }',
       '.a4apu-chat-panel .cd-mention-item { padding:10px 12px; }',
-      '.a4apu-right-panel { flex:1; display:flex; flex-direction:column; overflow-y:auto; padding:20px 24px 120px; gap:16px; }',
-      '.a4apu-recap { border-radius:12px; background:var(--surface-alt,#f8fafc); border:1px solid var(--border-color,#e2e8f0); padding:14px 18px; min-height:40px; }',
-      '.a4apu-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:16px 24px; background:none; }',
+      '.a4apu-right-panel { flex:1; display:flex; flex-direction:column; overflow-y:auto; padding:0 0 24px; gap:16px; min-width:0; }',
+      '.a4apu-card { border-radius:14px; background:var(--surface,#ffffff); border:1px solid var(--border-color,#e2e8f0); box-shadow:0 4px 14px rgba(15,23,42,0.04); overflow:hidden; }',
+      '.a4apu-card-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border-color,#e2e8f0); background:var(--surface,#ffffff); }',
+      '.a4apu-card-title { margin:0; font-size:13px; font-weight:800; color:var(--text-primary,#1e293b); letter-spacing:0.02em; text-transform:uppercase; display:flex; align-items:center; gap:8px; }',
+      '.a4apu-card-title-accent { display:inline-block; width:4px; height:14px; border-radius:3px; background:#0f766e; }',
+      '.a4apu-card-body { padding:16px 18px; }',
+      '.a4apu-card-body.a4apu-card-body-flush { padding:0; }',
+      '.a4apu-recap { border-radius:0; background:transparent; border:none; padding:0; min-height:32px; color:var(--text-primary,#1e293b); font-size:13px; line-height:1.55; }',
+      '.a4apu-recap .cc-recap-loading { color:var(--text-secondary,#64748b); font-size:12px; }',
+      '.a4apu-upload-hint { margin:0 0 12px; font-size:12px; color:var(--text-secondary,#64748b); display:flex; align-items:center; gap:8px; }',
+      '.a4apu-upload-hint strong { color:var(--text-primary,#1e293b); font-weight:700; }',
+      '.a4apu-card .wd-upload-area { background:transparent; border:none; padding:0; }',
+      '.a4apu-card .cc-img-upload { min-height:150px; border:2px dashed rgba(15,118,110,0.4) !important; border-radius:12px; background:rgba(20,184,166,0.05); color:#0f766e; font-size:34px; display:flex; align-items:center; justify-content:center; transition:all 0.18s; cursor:pointer; }',
+      '.a4apu-card .cc-img-upload:hover { background:rgba(20,184,166,0.10); border-color:#0f766e !important; }',
+      '.a4apu-jobs-section { margin-top:0 !important; border:none !important; border-radius:0 !important; background:transparent !important; }',
+      '.a4apu-jobs-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:32px 16px; color:var(--text-secondary,#64748b); font-size:12px; text-align:center; }',
+      '.a4apu-jobs-empty-icon { width:44px; height:44px; border-radius:50%; background:var(--surface-alt,#f1f5f9); color:#94a3b8; display:flex; align-items:center; justify-content:center; font-size:22px; }',
+      '.a4apu-actions-shelf { position:sticky; bottom:0; margin-top:auto; background:var(--surface,#ffffff); border-top:1px solid var(--border-color,#e2e8f0); box-shadow:0 -6px 20px rgba(15,23,42,0.06); z-index:3; }',
+      '.a4apu-actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:14px 24px; background:none; }',
       '.a4apu-actions button { padding:10px 22px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid transparent; transition:all 0.18s; }',
       '.a4apu-btn-secondary { background:var(--surface,#ffffff); color:var(--text-primary,#1e293b); border-color:var(--border-color,#cbd5e1) !important; }',
       '.a4apu-btn-secondary:hover:not(:disabled) { background:var(--surface-alt,#f1f5f9); }',
@@ -5419,14 +5438,23 @@
     var wrapper = document.createElement('div');
     wrapper.className = 'a4apu-dashboard';
 
-    // Header
+    // Header (wrapped in a shell so the title sits inside a card)
+    var headerShell = document.createElement('div');
+    headerShell.className = 'a4apu-header-shell';
     var headerRow = document.createElement('div');
     headerRow.className = 'a4apu-header';
 
+    var headerLeft = document.createElement('div');
+    headerLeft.className = 'a4apu-header-left';
+    var subtitleEl = document.createElement('div');
+    subtitleEl.className = 'a4apu-subtitle';
+    subtitleEl.textContent = 'Agri4All Product Uploads';
+    headerLeft.appendChild(subtitleEl);
     var titleEl = document.createElement('h2');
     titleEl.className = 'a4apu-title';
     titleEl.textContent = deliverable.title || 'Agri4All Product Uploads';
-    headerRow.appendChild(titleEl);
+    headerLeft.appendChild(titleEl);
+    headerRow.appendChild(headerLeft);
 
     var headerRight = document.createElement('div');
     headerRight.style.cssText = 'display:flex;align-items:center;gap:12px;';
@@ -5443,7 +5471,8 @@
     headerRight.appendChild(statusBadge);
 
     headerRow.appendChild(headerRight);
-    wrapper.appendChild(headerRow);
+    headerShell.appendChild(headerRow);
+    wrapper.appendChild(headerShell);
 
     // Body (chat + right panel)
     var body = document.createElement('div');
@@ -5551,14 +5580,27 @@
     var rightPanel = document.createElement('div');
     rightPanel.className = 'a4apu-right-panel';
 
-    // Request form recap
+    // Request form recap (wrapped as a card)
+    var recapCard = document.createElement('div');
+    recapCard.className = 'a4apu-card';
+    var recapHeader = document.createElement('div');
+    recapHeader.className = 'a4apu-card-header';
+    var recapTitle = document.createElement('h3');
+    recapTitle.className = 'a4apu-card-title';
+    recapTitle.innerHTML = '<span class="a4apu-card-title-accent"></span>Materials Request';
+    recapHeader.appendChild(recapTitle);
+    recapCard.appendChild(recapHeader);
+    var recapBody = document.createElement('div');
+    recapBody.className = 'a4apu-card-body';
     var recap = document.createElement('div');
     recap.className = 'a4apu-recap';
     var recapLoading = document.createElement('div');
     recapLoading.className = 'cc-recap-loading';
     recapLoading.textContent = 'Loading materials...';
     recap.appendChild(recapLoading);
-    rightPanel.appendChild(recap);
+    recapBody.appendChild(recap);
+    recapCard.appendChild(recapBody);
+    rightPanel.appendChild(recapCard);
     fetchRequestFormRecap(deliverable.id, recap);
 
     // Upload area
@@ -5576,25 +5618,47 @@
     var uploadArea = buildUploadArea(deliverable.id, meta.product_images.files, function () {
       saveMetadata();
     }, 'Upload Product Images');
-    rightPanel.appendChild(uploadArea);
+
+    var uploadCard = document.createElement('div');
+    uploadCard.className = 'a4apu-card';
+    var uploadHeader = document.createElement('div');
+    uploadHeader.className = 'a4apu-card-header';
+    var uploadTitle = document.createElement('h3');
+    uploadTitle.className = 'a4apu-card-title';
+    uploadTitle.innerHTML = '<span class="a4apu-card-title-accent"></span>Product Images';
+    uploadHeader.appendChild(uploadTitle);
+    uploadCard.appendChild(uploadHeader);
+    var uploadBody = document.createElement('div');
+    uploadBody.className = 'a4apu-card-body';
+    var uploadHint = document.createElement('p');
+    uploadHint.className = 'a4apu-upload-hint';
+    uploadHint.innerHTML = '<strong>Click the + tile</strong> to upload product images. Accepted: JPG, PNG, WebP, PDF.';
+    uploadBody.appendChild(uploadHint);
+    uploadBody.appendChild(uploadArea);
+    uploadCard.appendChild(uploadBody);
+    rightPanel.appendChild(uploadCard);
 
     // ── Agri4All Upload Jobs table ────────────────────
-    var jobsSection = document.createElement('div');
-    jobsSection.className = 'a4apu-jobs-section';
-    jobsSection.style.cssText = 'margin-top:20px;border-radius:12px;background:var(--surface,#ffffff);border:1px solid var(--border-color,#e2e8f0);overflow:hidden;';
+    var jobsCard = document.createElement('div');
+    jobsCard.className = 'a4apu-card';
     var jobsHeader = document.createElement('div');
-    jobsHeader.style.cssText = 'padding:12px 16px;border-bottom:1px solid var(--border-color,#e2e8f0);font-weight:700;font-size:13px;color:var(--text-primary,#1e293b);display:flex;align-items:center;justify-content:space-between;';
-    jobsHeader.textContent = 'Agri4All Upload Jobs';
+    jobsHeader.className = 'a4apu-card-header';
+    var jobsTitleEl = document.createElement('h3');
+    jobsTitleEl.className = 'a4apu-card-title';
+    jobsTitleEl.innerHTML = '<span class="a4apu-card-title-accent"></span>Agri4All Upload Jobs';
+    jobsHeader.appendChild(jobsTitleEl);
     var jobsRefreshBtn = document.createElement('button');
     jobsRefreshBtn.type = 'button';
     jobsRefreshBtn.textContent = 'Refresh';
-    jobsRefreshBtn.style.cssText = 'padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--border-color,#cbd5e1);background:var(--surface-alt,#f1f5f9);color:var(--text-primary,#1e293b);cursor:pointer;';
+    jobsRefreshBtn.style.cssText = 'padding:5px 12px;font-size:11px;font-weight:700;border-radius:8px;border:1px solid var(--border-color,#cbd5e1);background:var(--surface-alt,#f1f5f9);color:var(--text-primary,#1e293b);cursor:pointer;';
     jobsHeader.appendChild(jobsRefreshBtn);
-    jobsSection.appendChild(jobsHeader);
+    jobsCard.appendChild(jobsHeader);
     var jobsBody = document.createElement('div');
-    jobsBody.style.cssText = 'padding:0;';
-    jobsSection.appendChild(jobsBody);
-    rightPanel.appendChild(jobsSection);
+    jobsBody.className = 'a4apu-card-body a4apu-card-body-flush';
+    jobsCard.appendChild(jobsBody);
+    // Legacy alias — preserved so downstream code that references jobsSection still works
+    var jobsSection = jobsCard;
+    rightPanel.appendChild(jobsCard);
 
     function flagEmoji(cc) {
       if (!cc || cc.length !== 2) return '';
@@ -5643,8 +5707,14 @@
           var jobs = (res && res.data) || [];
           if (!jobs.length) {
             var empty = document.createElement('div');
-            empty.style.cssText = 'padding:16px;color:#64748b;font-size:12px;';
-            empty.textContent = 'No upload jobs yet. Post to Agri4All to create jobs per country.';
+            empty.className = 'a4apu-jobs-empty';
+            var emptyIcon = document.createElement('div');
+            emptyIcon.className = 'a4apu-jobs-empty-icon';
+            emptyIcon.textContent = '\u2601';
+            empty.appendChild(emptyIcon);
+            var emptyText = document.createElement('div');
+            emptyText.textContent = 'No upload jobs yet. Post to Agri4All to create jobs per country.';
+            empty.appendChild(emptyText);
             jobsBody.appendChild(empty);
             return;
           }
@@ -5790,8 +5860,14 @@
           var jobs = (res && res.data) || [];
           if (!jobs.length) {
             var empty = document.createElement('div');
-            empty.style.cssText = 'padding:16px;color:#64748b;font-size:12px;';
-            empty.textContent = 'No upload jobs yet. Post to Agri4All to create jobs per country.';
+            empty.className = 'a4apu-jobs-empty';
+            var emptyIcon = document.createElement('div');
+            emptyIcon.className = 'a4apu-jobs-empty-icon';
+            emptyIcon.textContent = '\u2601';
+            empty.appendChild(emptyIcon);
+            var emptyText = document.createElement('div');
+            emptyText.textContent = 'No upload jobs yet. Post to Agri4All to create jobs per country.';
+            empty.appendChild(emptyText);
             jobsBody.appendChild(empty);
             return;
           }
@@ -6287,7 +6363,10 @@
     });
     actions.appendChild(postBtn);
 
-    wrapper.appendChild(actions);
+    var actionsShelf = document.createElement('div');
+    actionsShelf.className = 'a4apu-actions-shelf';
+    actionsShelf.appendChild(actions);
+    wrapper.appendChild(actionsShelf);
     container.appendChild(wrapper);
 
     // ── Chat bootstrap (same pattern as CC dashboard) ─
