@@ -6309,64 +6309,6 @@
 
     body.appendChild(rightPanel);
     wrapper.appendChild(body);
-
-    // ── Action bar ────────────────────────────────────
-    var actions = document.createElement('div');
-    actions.className = 'a4apu-actions';
-
-    var sendBtn = document.createElement('button');
-    sendBtn.type = 'button';
-    sendBtn.className = 'a4apu-btn-secondary';
-    sendBtn.textContent = 'Send for Approval';
-    sendBtn.addEventListener('click', function () {
-      sendBtn.disabled = true;
-      fetch(API_BASE + '/' + deliverable.id, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify({ status: 'sent_for_approval' })
-      }).then(function (r) { return r.json(); })
-        .then(function (updated) {
-          if (updated && updated.id) {
-            deliverable.status = updated.status || 'sent_for_approval';
-            showToast('Sent to client portal');
-            openA4AProductUploadsDashboard(container, deliverable);
-          } else {
-            sendBtn.disabled = false;
-          }
-        })
-        .catch(function () { sendBtn.disabled = false; });
-    });
-    actions.appendChild(sendBtn);
-
-    var postBtn = document.createElement('button');
-    postBtn.type = 'button';
-    postBtn.className = 'a4apu-btn-primary';
-    postBtn.textContent = 'Post to Agri4All';
-    postBtn.disabled = deliverable.status !== 'approved';
-    postBtn.addEventListener('click', function () {
-      postBtn.disabled = true;
-      fetch(API_BASE + '/' + deliverable.id + '/post-to-alpha', {
-        method: 'POST',
-        headers: getHeaders()
-      }).then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (res) {
-          if (res) {
-            deliverable.status = res.status || deliverable.status;
-            statusBadge.className = 'a4apu-status-badge proagri-sheet-status ' + statusClass(deliverable.status);
-            statusBadge.textContent = formatStatus(deliverable.status);
-            showToast('Posted to Agri4All');
-          } else {
-            postBtn.disabled = false;
-          }
-        })
-        .catch(function () { postBtn.disabled = false; });
-    });
-    actions.appendChild(postBtn);
-
-    var actionsShelf = document.createElement('div');
-    actionsShelf.className = 'a4apu-actions-shelf';
-    actionsShelf.appendChild(actions);
-    wrapper.appendChild(actionsShelf);
     container.appendChild(wrapper);
 
     // ── Chat bootstrap (same pattern as CC dashboard) ─
