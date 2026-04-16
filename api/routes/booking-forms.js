@@ -110,6 +110,47 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Stream the stored signed PDF as binary so the Booking Form sheet's
+// "View" link works in browsers that block top-level navigation to
+// data: URIs (Chrome since 2017) and isn't capped by URL length.
+router.get('/:id/signed-pdf', async (req, res) => {
+  await streamPdfColumn(req, res, 'signed_pdf', `signed-${req.params.id}.pdf`);
+});
+
+router.get('/:id/change-request-pdf', async (req, res) => {
+  await streamPdfColumn(req, res, 'change_request_pdf', `change-request-${req.params.id}.pdf`);
+});
+
+async function streamPdfColumn(req, res, column, downloadName) {
+  try {
+    const result = await pool.query(
+      `SELECT ${column} AS pdf FROM booking_forms WHERE id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0 || !result.rows[0].pdf) {
+      return res.status(404).send('PDF not found');
+    }
+    let raw = String(result.rows[0].pdf);
+    // Strip data URI prefix if present
+    const m = raw.match(/^data:application\/pdf;base64,(.*)$/i);
+    if (m) raw = m[1];
+    let buf;
+    try {
+      buf = Buffer.from(raw, 'base64');
+    } catch (_) {
+      return res.status(500).send('Invalid stored PDF');
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', buf.length);
+    res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    res.send(buf);
+  } catch (err) {
+    console.error(`Stream ${column} error:`, err);
+    res.status(500).send('Internal error');
+  }
+}
+
 // POST / - create or update booking form (upsert by checklist_id).
 // Also accepts checklist_url so the checklist app can ship a prefilled
 // "re-open this checklist" link alongside the form data on submit.

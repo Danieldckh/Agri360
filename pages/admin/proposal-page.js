@@ -153,11 +153,17 @@
       checklistUrl: form.checklistUrl || '',
       // Unsigned booking form: manual upload OR generated e-sign URL
       unsignedFileUrl: form.unsignedFileUrl || form.esignUrl || '',
-      // Signed: manual upload, or if signed via e-sign the signedPdf is base64 (not a URL)
-      signedFileUrl: form.signedFileUrl || pdfDataUrl(form.signedPdf),
+      // Signed: manual upload OR streamed via /api/booking-forms/:id/signed-pdf
+      // when signedPdf base64 is stored. Linking to the binary endpoint avoids
+      // browser data-URI navigation blocks and the ~2MB URL length limit.
+      signedFileUrl: form.signedFileUrl
+        || (form.signedPdf ? (window.API_URL || '') + '/booking-forms/' + form.id + '/signed-pdf' : ''),
       proposalFileUrl: form.proposalFileUrl || '',
       changeNotes: form.changeNotes || '',
-      changeRequestFileUrl: pdfDataUrl(form.changeRequestPdf)
+      // Same treatment for change-request PDFs.
+      changeRequestFileUrl: form.changeRequestPdf
+        ? (window.API_URL || '') + '/booking-forms/' + form.id + '/change-request-pdf'
+        : ''
     };
   }
 
