@@ -47,7 +47,15 @@ const bookingFileUpload = multer({
 // GET / - list all booking forms with client info
 router.get('/', async (req, res) => {
   try {
-    let query = `SELECT bf.*, c.name AS client_name
+    // Override the heavy base64 PDF columns with boolean existence flags.
+    // Postgres returns duplicate-named columns and node-pg keeps the last
+    // occurrence in the row object, so the JSON response ships tiny booleans
+    // instead of multi-megabyte base64 blobs. Binary PDF content is served
+    // separately via /:id/signed-pdf and /:id/change-request-pdf.
+    let query = `SELECT bf.*,
+                        (bf.signed_pdf IS NOT NULL) AS signed_pdf,
+                        (bf.change_request_pdf IS NOT NULL) AS change_request_pdf,
+                        c.name AS client_name
        FROM booking_forms bf
        LEFT JOIN clients c ON c.id = bf.client_id`;
     const params = [];
@@ -67,8 +75,14 @@ router.get('/', async (req, res) => {
 // GET /by-client/:clientId - list booking forms for a client
 router.get('/by-client/:clientId', async (req, res) => {
   try {
+    // See note on GET / — booleans shadow the heavy PDF blobs.
     const result = await pool.query(
-      'SELECT * FROM booking_forms WHERE client_id = $1 ORDER BY created_at DESC',
+      `SELECT booking_forms.*,
+              (signed_pdf IS NOT NULL) AS signed_pdf,
+              (change_request_pdf IS NOT NULL) AS change_request_pdf
+         FROM booking_forms
+        WHERE client_id = $1
+        ORDER BY created_at DESC`,
       [req.params.clientId]
     );
     res.json(result.rows.map(toCamelCase));
@@ -82,7 +96,12 @@ router.get('/by-client/:clientId', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
+      // See note on GET / — booleans shadow the heavy PDF blobs so the
+      // single-record JSON response stays small; use the binary endpoints
+      // to fetch actual PDF content.
       `SELECT bf.*,
+              (bf.signed_pdf IS NOT NULL) AS signed_pdf,
+              (bf.change_request_pdf IS NOT NULL) AS change_request_pdf,
               c.name AS client_name, c.contact_person AS client_contact_person,
               c.trading_name AS client_trading_name, c.email AS client_email,
               c.phone AS client_phone, c.company_reg_no AS client_company_reg_no,
