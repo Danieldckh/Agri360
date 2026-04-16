@@ -451,3 +451,33 @@
     padding: 16px;
   }
 }
+
+/* ===== Agri4All multi-select countries ===== */
+.client-details-field-multi {
+  align-items: flex-start;
+}
+.client-countries-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.client-countries-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.client-countries-chips .chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, #d0d5dd);
+  background: var(--surface-1, #fff);
+  color: var(--text-secondary, #475467);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.client-countries-chips .chip.active {
+  background: var(--accent, #2e7d32);
+  border-color: var(--accent, #2e7d32);
+  color: #fff;
+}

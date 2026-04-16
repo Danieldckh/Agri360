@@ -9,6 +9,42 @@
     { key: 'status', label: 'Status', sortable: true, type: 'status' }
   ];
 
+  // Agri4All tier options — mirror Section A of agri4all-product-uploads-plan.md
+  var AGRI4ALL_TIERS = [
+    { value: '', label: '— Not set —' },
+    { value: 'farm_savvy', label: 'Farm Savvy (10 products, 1 country)' },
+    { value: 'farm_vital', label: 'Farm Vital (10 products, 1 country)' },
+    { value: 'farm_prime', label: 'Farm Prime (30 products, 1 country)' },
+    { value: 'farm_elite', label: 'Farm Elite (unlimited, 5 countries)' },
+    { value: 'farm_master', label: 'Farm Master (unlimited, 29 countries)' }
+  ];
+
+  // ISO alpha-2 country codes (commonly used targets). Kept as a curated subset
+  // that covers the Farm Master 29-country universe plus SA + major markets.
+  var AGRI4ALL_COUNTRIES = [
+    { code: 'ZA', name: 'South Africa' }, { code: 'NA', name: 'Namibia' },
+    { code: 'BW', name: 'Botswana' }, { code: 'ZW', name: 'Zimbabwe' },
+    { code: 'ZM', name: 'Zambia' }, { code: 'MZ', name: 'Mozambique' },
+    { code: 'MW', name: 'Malawi' }, { code: 'LS', name: 'Lesotho' },
+    { code: 'SZ', name: 'Eswatini' }, { code: 'AO', name: 'Angola' },
+    { code: 'KE', name: 'Kenya' }, { code: 'TZ', name: 'Tanzania' },
+    { code: 'UG', name: 'Uganda' }, { code: 'RW', name: 'Rwanda' },
+    { code: 'ET', name: 'Ethiopia' }, { code: 'NG', name: 'Nigeria' },
+    { code: 'GH', name: 'Ghana' }, { code: 'CI', name: "Côte d'Ivoire" },
+    { code: 'SN', name: 'Senegal' }, { code: 'CM', name: 'Cameroon' },
+    { code: 'EG', name: 'Egypt' }, { code: 'MA', name: 'Morocco' },
+    { code: 'TN', name: 'Tunisia' }, { code: 'DZ', name: 'Algeria' },
+    { code: 'MU', name: 'Mauritius' }, { code: 'MG', name: 'Madagascar' },
+    { code: 'CD', name: 'DR Congo' }, { code: 'CG', name: 'Congo' },
+    { code: 'GA', name: 'Gabon' },
+    { code: 'US', name: 'United States' }, { code: 'GB', name: 'United Kingdom' },
+    { code: 'AU', name: 'Australia' }, { code: 'NZ', name: 'New Zealand' },
+    { code: 'CA', name: 'Canada' }, { code: 'IN', name: 'India' },
+    { code: 'BR', name: 'Brazil' }, { code: 'AR', name: 'Argentina' },
+    { code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' },
+    { code: 'NL', name: 'Netherlands' }
+  ];
+
   var ASSET_KINDS = [
     { id: 'all', label: 'All' },
     { id: 'form_upload', label: 'Form Uploads' },
@@ -490,6 +526,36 @@
     });
     pane.appendChild(addressCard);
 
+    // Location card — discrete geo fields used by Agri4All product uploads
+    var locationCard = el('div', 'client-details-card');
+    locationCard.appendChild(el('h3', 'client-details-subheader', 'Location'));
+    var locationFields = [
+      { key: 'city', label: 'City' },
+      { key: 'state', label: 'State / Province' },
+      { key: 'latitude', label: 'Latitude', type: 'number' },
+      { key: 'longitude', label: 'Longitude', type: 'number' }
+    ];
+    locationFields.forEach(function (f) {
+      locationCard.appendChild(buildFieldRow(client, f));
+    });
+    pane.appendChild(locationCard);
+
+    // Agri4All card — seller identity, subscription tier, target countries
+    var agri4allCard = el('div', 'client-details-card');
+    agri4allCard.appendChild(el('h3', 'client-details-subheader', 'Agri4All'));
+    agri4allCard.appendChild(buildFieldRow(client, { key: 'agri4allUserId', label: 'Agri4All User ID', type: 'number' }));
+    agri4allCard.appendChild(buildSelectRow(client, {
+      key: 'agri4allTier',
+      label: 'Subscription Tier',
+      options: AGRI4ALL_TIERS
+    }));
+    agri4allCard.appendChild(buildCountriesRow(client, {
+      key: 'agri4allTargetCountries',
+      label: 'Target Countries',
+      options: AGRI4ALL_COUNTRIES
+    }));
+    pane.appendChild(agri4allCard);
+
     // Social Media card
     var socialCard = el('div', 'client-details-card');
     socialCard.appendChild(el('h3', 'client-details-subheader', 'Social Media'));
@@ -530,6 +596,75 @@
 
     row.appendChild(label);
     row.appendChild(input);
+    return row;
+  }
+
+  function buildSelectRow(client, f) {
+    var row = el('div', 'client-details-field');
+    var label = el('label', 'client-details-label', f.label);
+    var select = document.createElement('select');
+    select.className = 'client-details-input';
+    var current = client[f.key] == null ? '' : String(client[f.key]);
+    f.options.forEach(function (opt) {
+      var o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      if (String(opt.value) === current) o.selected = true;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', function () {
+      var newVal = select.value || null;
+      if ((client[f.key] || '') === (newVal || '')) return;
+      saveField(client.id, f.key, newVal, select, function (ok) {
+        if (ok) client[f.key] = newVal;
+      });
+    });
+    row.appendChild(label);
+    row.appendChild(select);
+    return row;
+  }
+
+  function buildCountriesRow(client, f) {
+    var row = el('div', 'client-details-field client-details-field-multi');
+    var label = el('label', 'client-details-label', f.label);
+    row.appendChild(label);
+
+    var currentList = Array.isArray(client[f.key]) ? client[f.key].slice() : [];
+    var selected = {};
+    currentList.forEach(function (c) { selected[String(c).toUpperCase()] = true; });
+
+    var wrap = el('div', 'client-countries-wrap');
+    var chipsRow = el('div', 'client-countries-chips');
+    wrap.appendChild(chipsRow);
+
+    function renderChips() {
+      chipsRow.innerHTML = '';
+      f.options.forEach(function (opt) {
+        var isOn = !!selected[opt.code];
+        var btn = el('button', 'chip' + (isOn ? ' active' : ''), opt.code);
+        btn.type = 'button';
+        btn.title = opt.name;
+        btn.addEventListener('click', function () {
+          if (selected[opt.code]) delete selected[opt.code];
+          else selected[opt.code] = true;
+          var arr = Object.keys(selected);
+          arr.sort();
+          saveField(client.id, f.key, arr, btn, function (ok) {
+            if (ok) {
+              client[f.key] = arr;
+              renderChips();
+            } else {
+              // revert on failure
+              if (isOn) selected[opt.code] = true; else delete selected[opt.code];
+            }
+          });
+        });
+        chipsRow.appendChild(btn);
+      });
+    }
+    renderChips();
+
+    row.appendChild(wrap);
     return row;
   }
 

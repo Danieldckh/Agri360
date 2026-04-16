@@ -650,6 +650,46 @@ async function runMigrations() {
       console.error('Online articles metadata backfill failed:', e.message);
     }
 
+    // ── Agri4All Product Uploads ──────────────────────────────────────
+    // 2026-04-16 — per-client Agri4All identity + per-country upload job
+    // tracking + local category cache. The existing `post-to-alpha` flow
+    // stored only `alpha_product_id` in deliverable metadata; this adds a
+    // proper job table so multi-country posts, errors, and retries have a
+    // row-level home.
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS agri4all_user_id VARCHAR(64)`);
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS agri4all_tier VARCHAR(32)`);
+    await client.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS agri4all_target_countries JSONB DEFAULT '[]'`);
+
+    await client.query(`CREATE TABLE IF NOT EXISTS agri4all_upload_jobs (
+      id SERIAL PRIMARY KEY,
+      deliverable_id INT REFERENCES deliverables(id) ON DELETE CASCADE,
+      country VARCHAR(2) NOT NULL,
+      agri4all_product_id INT,
+      agri4all_slug VARCHAR(500),
+      public_url TEXT,
+      agri4all_status VARCHAR(50),
+      job_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      error_detail TEXT,
+      idempotency_key VARCHAR(255),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_agri4all_upload_jobs_deliverable ON agri4all_upload_jobs(deliverable_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_agri4all_upload_jobs_status ON agri4all_upload_jobs(job_status)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_agri4all_upload_jobs_slug ON agri4all_upload_jobs(agri4all_slug)`);
+
+    await client.query(`CREATE TABLE IF NOT EXISTS agri4all_category_cache (
+      id SERIAL PRIMARY KEY,
+      slug VARCHAR(255) UNIQUE NOT NULL,
+      agri4all_id INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      fields JSONB NOT NULL DEFAULT '[]',
+      full_tree_snapshot JSONB,
+      refreshed_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_agri4all_category_cache_slug ON agri4all_category_cache(slug)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_agri4all_category_cache_agri4all_id ON agri4all_category_cache(agri4all_id)`);
+
     // Website Design status rename: sitemap/wireframe/prototype → site_map, site_developed → site_development
     try {
       const wdSiteMap = await client.query(`

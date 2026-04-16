@@ -5578,6 +5578,659 @@
     }, 'Upload Product Images');
     rightPanel.appendChild(uploadArea);
 
+    // ── Agri4All Upload Jobs table ────────────────────
+    var jobsSection = document.createElement('div');
+    jobsSection.className = 'a4apu-jobs-section';
+    jobsSection.style.cssText = 'margin-top:20px;border-radius:12px;background:var(--surface,#ffffff);border:1px solid var(--border-color,#e2e8f0);overflow:hidden;';
+    var jobsHeader = document.createElement('div');
+    jobsHeader.style.cssText = 'padding:12px 16px;border-bottom:1px solid var(--border-color,#e2e8f0);font-weight:700;font-size:13px;color:var(--text-primary,#1e293b);display:flex;align-items:center;justify-content:space-between;';
+    jobsHeader.textContent = 'Agri4All Upload Jobs';
+    var jobsRefreshBtn = document.createElement('button');
+    jobsRefreshBtn.type = 'button';
+    jobsRefreshBtn.textContent = 'Refresh';
+    jobsRefreshBtn.style.cssText = 'padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--border-color,#cbd5e1);background:var(--surface-alt,#f1f5f9);color:var(--text-primary,#1e293b);cursor:pointer;';
+    jobsHeader.appendChild(jobsRefreshBtn);
+    jobsSection.appendChild(jobsHeader);
+    var jobsBody = document.createElement('div');
+    jobsBody.style.cssText = 'padding:0;';
+    jobsSection.appendChild(jobsBody);
+    rightPanel.appendChild(jobsSection);
+
+    function flagEmoji(cc) {
+      if (!cc || cc.length !== 2) return '';
+      var OFFSET = 127397;
+      try {
+        return String.fromCodePoint(cc.toUpperCase().charCodeAt(0) + OFFSET) +
+               String.fromCodePoint(cc.toUpperCase().charCodeAt(1) + OFFSET);
+      } catch (e) { return ''; }
+    }
+
+    function renderJobStatusChip(status) {
+      var s = document.createElement('span');
+      var st = String(status || '').toLowerCase();
+      var bg = '#e2e8f0', fg = '#334155';
+      if (st === 'posted') { bg = '#dcfce7'; fg = '#166534'; }
+      else if (st === 'error') { bg = '#fee2e2'; fg = '#991b1b'; }
+      else if (st === 'pending') { bg = '#fef3c7'; fg = '#92400e'; }
+      s.style.cssText = 'display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+      s.textContent = st || '—';
+      return s;
+    }
+
+    function renderA4aStatusChip(status) {
+      var s = document.createElement('span');
+      var st = String(status || '').toLowerCase();
+      var bg = '#e2e8f0', fg = '#334155';
+      if (st === 'approved') { bg = '#dcfce7'; fg = '#166534'; }
+      else if (st === 'pending') { bg = '#fef3c7'; fg = '#92400e'; }
+      else if (st === 'rejected') { bg = '#fee2e2'; fg = '#991b1b'; }
+      s.style.cssText = 'display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+      s.textContent = st || '—';
+      return s;
+    }
+
+    function loadJobs() {
+      while (jobsBody.firstChild) jobsBody.removeChild(jobsBody.firstChild);
+      var loading = document.createElement('div');
+      loading.style.cssText = 'padding:16px;color:#64748b;font-size:12px;';
+      loading.textContent = 'Loading jobs...';
+      jobsBody.appendChild(loading);
+      fetch(API_BASE + '/agri4all/jobs?deliverableId=' + deliverable.id, {
+        headers: window.getAuthHeaders ? window.getAuthHeaders() : {}
+      }).then(function (r) { return r.ok ? r.json() : { data: [] }; })
+        .then(function (res) {
+          while (jobsBody.firstChild) jobsBody.removeChild(jobsBody.firstChild);
+          var jobs = (res && res.data) || [];
+          if (!jobs.length) {
+            var empty = document.createElement('div');
+            empty.style.cssText = 'padding:16px;color:#64748b;font-size:12px;';
+            empty.textContent = 'No upload jobs yet. Post to Agri4All to create jobs per country.';
+            jobsBody.appendChild(empty);
+            return;
+          }
+          var table = document.createElement('table');
+          table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
+          var thead = document.createElement('thead');
+          thead.innerHTML = '<tr style="background:var(--surface-alt,#f8fafc);text-align:left;">' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Country</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Job</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Agri4All</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Slug / URL</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;text-align:right;">Actions</th>' +
+            '</tr>';
+          table.appendChild(thead);
+          var tbody = document.createElement('tbody');
+          jobs.forEach(function (job) { tbody.appendChild(buildJobRow(job)); });
+          table.appendChild(tbody);
+          jobsBody.appendChild(table);
+        })
+        .catch(function () {
+          while (jobsBody.firstChild) jobsBody.removeChild(jobsBody.firstChild);
+          var err = document.createElement('div');
+          err.style.cssText = 'padding:16px;color:#991b1b;font-size:12px;';
+          err.textContent = 'Failed to load jobs.';
+          jobsBody.appendChild(err);
+        });
+    }
+
+    function buildJobRow(job) {
+      var tr = document.createElement('tr');
+      tr.style.cssText = 'border-top:1px solid var(--border-color,#e2e8f0);';
+
+      var tdCountry = document.createElement('td');
+      tdCountry.style.cssText = 'padding:10px 12px;white-space:nowrap;';
+      var cc = String(job.country || '').toUpperCase();
+      tdCountry.innerHTML = '<span style="font-size:16px;margin-right:6px;">' + flagEmoji(cc) + '</span><strong>' + cc + '</strong>';
+      tr.appendChild(tdCountry);
+
+      var tdJob = document.createElement('td');
+      tdJob.style.cssText = 'padding:10px 12px;';
+      tdJob.appendChild(renderJobStatusChip(job.jobStatus));
+      tr.appendChild(tdJob);
+
+      var tdA4a = document.createElement('td');
+      tdA4a.style.cssText = 'padding:10px 12px;';
+      tdA4a.appendChild(renderA4aStatusChip(job.agri4allStatus));
+      tr.appendChild(tdA4a);
+
+      var tdSlug = document.createElement('td');
+      tdSlug.style.cssText = 'padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:#334155;word-break:break-all;';
+      if (job.publicUrl) {
+        var a = document.createElement('a');
+        a.href = job.publicUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = job.agri4allSlug || job.publicUrl;
+        a.style.color = '#0f766e';
+        tdSlug.appendChild(a);
+      } else if (job.agri4allSlug) {
+        tdSlug.textContent = job.agri4allSlug;
+      } else {
+        tdSlug.textContent = '—';
+      }
+      tr.appendChild(tdSlug);
+
+      var tdActions = document.createElement('td');
+      tdActions.style.cssText = 'padding:10px 12px;text-align:right;white-space:nowrap;';
+
+      if (String(job.jobStatus || '').toLowerCase() === 'error') {
+        var retryBtn = document.createElement('button');
+        retryBtn.type = 'button';
+        retryBtn.textContent = 'Retry';
+        retryBtn.style.cssText = 'padding:5px 12px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid #ef4444;background:#ef4444;color:#fff;cursor:pointer;margin-right:6px;';
+        retryBtn.addEventListener('click', function () {
+          retryBtn.disabled = true;
+          retryBtn.textContent = 'Retrying...';
+          fetch(API_BASE + '/agri4all/jobs/' + job.id + '/retry', {
+            method: 'POST',
+            headers: getHeaders()
+          }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function () { showToast('Retry queued'); loadJobs(); })
+            .catch(function () {
+              retryBtn.disabled = false;
+              retryBtn.textContent = 'Retry';
+              showToast('Retry failed', '#ef4444');
+            });
+        });
+        tdActions.appendChild(retryBtn);
+      }
+
+      if (job.agri4allSlug) {
+        var editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.textContent = 'Edit on Agri4All';
+        editBtn.style.cssText = 'padding:5px 12px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid #0f766e;background:#fff;color:#0f766e;cursor:pointer;';
+        editBtn.addEventListener('click', function () { openA4aEditModal(job); });
+        tdActions.appendChild(editBtn);
+      }
+
+      tr.appendChild(tdActions);
+
+      // Error detail expandable row
+      if (job.errorDetail) {
+        var errTr = document.createElement('tr');
+        errTr.style.display = 'none';
+        var errTd = document.createElement('td');
+        errTd.colSpan = 5;
+        errTd.style.cssText = 'padding:12px 16px;background:#fef2f2;color:#7f1d1d;font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;';
+        errTd.textContent = job.errorDetail;
+        errTr.appendChild(errTd);
+
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.textContent = 'Show error';
+        toggleBtn.style.cssText = 'padding:5px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid #fecaca;background:#fff;color:#991b1b;cursor:pointer;margin-right:6px;';
+        toggleBtn.addEventListener('click', function () {
+          var open = errTr.style.display !== 'none';
+          errTr.style.display = open ? 'none' : 'table-row';
+          toggleBtn.textContent = open ? 'Show error' : 'Hide error';
+        });
+        tdActions.insertBefore(toggleBtn, tdActions.firstChild);
+
+        // Defer appending errTr until caller attaches tr
+        tr._errorRow = errTr;
+      }
+
+      return tr;
+    }
+
+    // After buildJobRow returns, the caller needs to append _errorRow; override loadJobs:
+    var _origLoadJobs = loadJobs;
+    loadJobs = function () {
+      while (jobsBody.firstChild) jobsBody.removeChild(jobsBody.firstChild);
+      var loading = document.createElement('div');
+      loading.style.cssText = 'padding:16px;color:#64748b;font-size:12px;';
+      loading.textContent = 'Loading jobs...';
+      jobsBody.appendChild(loading);
+      fetch(API_BASE + '/agri4all/jobs?deliverableId=' + deliverable.id, {
+        headers: window.getAuthHeaders ? window.getAuthHeaders() : {}
+      }).then(function (r) { return r.ok ? r.json() : { data: [] }; })
+        .then(function (res) {
+          while (jobsBody.firstChild) jobsBody.removeChild(jobsBody.firstChild);
+          var jobs = (res && res.data) || [];
+          if (!jobs.length) {
+            var empty = document.createElement('div');
+            empty.style.cssText = 'padding:16px;color:#64748b;font-size:12px;';
+            empty.textContent = 'No upload jobs yet. Post to Agri4All to create jobs per country.';
+            jobsBody.appendChild(empty);
+            return;
+          }
+          var table = document.createElement('table');
+          table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
+          var thead = document.createElement('thead');
+          thead.innerHTML = '<tr style="background:var(--surface-alt,#f8fafc);text-align:left;">' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Country</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Job</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Agri4All</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;">Slug / URL</th>' +
+            '<th style="padding:8px 12px;font-weight:700;color:#475569;text-align:right;">Actions</th>' +
+            '</tr>';
+          table.appendChild(thead);
+          var tbody = document.createElement('tbody');
+          jobs.forEach(function (job) {
+            var row = buildJobRow(job);
+            tbody.appendChild(row);
+            if (row._errorRow) tbody.appendChild(row._errorRow);
+          });
+          table.appendChild(tbody);
+          jobsBody.appendChild(table);
+        })
+        .catch(function () {
+          while (jobsBody.firstChild) jobsBody.removeChild(jobsBody.firstChild);
+          var err = document.createElement('div');
+          err.style.cssText = 'padding:16px;color:#991b1b;font-size:12px;';
+          err.textContent = 'Failed to load jobs.';
+          jobsBody.appendChild(err);
+        });
+    };
+
+    jobsRefreshBtn.addEventListener('click', function () { loadJobs(); });
+    loadJobs();
+
+    // ── Amber re-approval warning modal ───────────────
+    function confirmReapproval(onConfirm) {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;z-index:6000;';
+      var box = document.createElement('div');
+      box.style.cssText = 'background:#fff;border-radius:14px;padding:22px 24px;max-width:420px;width:90%;box-shadow:0 24px 60px rgba(15,23,42,0.35);border-top:4px solid #f59e0b;';
+      var title = document.createElement('h3');
+      title.textContent = 'Re-approval required';
+      title.style.cssText = 'margin:0 0 10px;font-size:16px;font-weight:800;color:#92400e;';
+      box.appendChild(title);
+      var msg = document.createElement('p');
+      msg.textContent = 'This will reset Agri4All approval to pending on the Agri4All admin side. Continue?';
+      msg.style.cssText = 'margin:0 0 18px;font-size:13px;color:#334155;line-height:1.5;';
+      box.appendChild(msg);
+      var btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;';
+      var cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.textContent = 'Cancel';
+      cancel.style.cssText = 'padding:8px 16px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;font-weight:700;font-size:12px;cursor:pointer;';
+      cancel.addEventListener('click', function () { document.body.removeChild(overlay); });
+      var confirm = document.createElement('button');
+      confirm.type = 'button';
+      confirm.textContent = 'Confirm';
+      confirm.style.cssText = 'padding:8px 16px;border-radius:8px;border:1px solid #f59e0b;background:#f59e0b;color:#fff;font-weight:700;font-size:12px;cursor:pointer;';
+      confirm.addEventListener('click', function () { document.body.removeChild(overlay); onConfirm(); });
+      btnRow.appendChild(cancel);
+      btnRow.appendChild(confirm);
+      box.appendChild(btnRow);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+    }
+
+    // ── Four-tab edit modal ───────────────────────────
+    function openA4aEditModal(job) {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;z-index:5800;';
+
+      var modal = document.createElement('div');
+      modal.style.cssText = 'background:#fff;border-radius:16px;width:90%;max-width:720px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,23,42,0.4);';
+
+      // Header
+      var header = document.createElement('div');
+      header.style.cssText = 'padding:16px 22px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;';
+      var h = document.createElement('h3');
+      h.textContent = 'Edit on Agri4All — ' + String(job.country || '').toUpperCase();
+      h.style.cssText = 'margin:0;font-size:15px;font-weight:800;color:#1e293b;';
+      header.appendChild(h);
+      var closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.textContent = '×';
+      closeBtn.style.cssText = 'background:none;border:none;font-size:26px;line-height:1;color:#64748b;cursor:pointer;';
+      closeBtn.addEventListener('click', function () { document.body.removeChild(overlay); });
+      header.appendChild(closeBtn);
+      modal.appendChild(header);
+
+      // Slug line
+      var slugLine = document.createElement('div');
+      slugLine.style.cssText = 'padding:8px 22px;font-size:11px;color:#64748b;background:#f8fafc;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;';
+      slugLine.textContent = 'Slug: ' + (job.agri4allSlug || '—');
+      modal.appendChild(slugLine);
+
+      // Tabs
+      var tabs = document.createElement('div');
+      tabs.style.cssText = 'display:flex;border-bottom:1px solid #e2e8f0;background:#fff;';
+      var tabContent = document.createElement('div');
+      tabContent.style.cssText = 'flex:1;overflow-y:auto;padding:20px 22px;';
+
+      var TAB_DEFS = [
+        { key: 'details', label: 'Details', warn: true },
+        { key: 'pricing', label: 'Pricing', warn: true },
+        { key: 'location', label: 'Location', warn: true },
+        { key: 'contacts', label: 'Contacts', warn: false },
+        { key: 'media', label: 'Media', warn: false }
+      ];
+      var tabBtns = {};
+      TAB_DEFS.forEach(function (t) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = t.label;
+        b.style.cssText = 'flex:1;padding:12px 8px;background:none;border:none;border-bottom:2px solid transparent;font-size:12px;font-weight:700;color:#64748b;cursor:pointer;letter-spacing:0.02em;';
+        b.addEventListener('click', function () { selectTab(t.key); });
+        tabs.appendChild(b);
+        tabBtns[t.key] = b;
+      });
+
+      modal.appendChild(tabs);
+      modal.appendChild(tabContent);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      function selectTab(key) {
+        Object.keys(tabBtns).forEach(function (k) {
+          var active = k === key;
+          tabBtns[k].style.color = active ? '#0f766e' : '#64748b';
+          tabBtns[k].style.borderBottomColor = active ? '#0f766e' : 'transparent';
+        });
+        while (tabContent.firstChild) tabContent.removeChild(tabContent.firstChild);
+        if (key === 'details') renderDetailsTab();
+        else if (key === 'pricing') renderPricingTab();
+        else if (key === 'location') renderLocationTab();
+        else if (key === 'contacts') renderContactsTab();
+        else if (key === 'media') renderMediaTab();
+      }
+
+      function labeledInput(label, value, opts) {
+        opts = opts || {};
+        var wrap = document.createElement('label');
+        wrap.style.cssText = 'display:block;margin-bottom:12px;font-size:12px;font-weight:700;color:#334155;';
+        var lbl = document.createElement('div');
+        lbl.textContent = label;
+        lbl.style.cssText = 'margin-bottom:4px;';
+        wrap.appendChild(lbl);
+        var input;
+        if (opts.textarea) {
+          input = document.createElement('textarea');
+          input.rows = opts.rows || 4;
+        } else {
+          input = document.createElement('input');
+          input.type = opts.type || 'text';
+        }
+        if (value != null) input.value = value;
+        input.style.cssText = 'width:100%;padding:8px 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:12px;font-family:inherit;box-sizing:border-box;';
+        wrap.appendChild(input);
+        wrap._input = input;
+        return wrap;
+      }
+
+      function submitBtn(label, onClick, opts) {
+        opts = opts || {};
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        var color = opts.warn ? '#f59e0b' : '#10B981';
+        b.style.cssText = 'margin-top:10px;padding:10px 20px;border-radius:10px;border:1px solid ' + color + ';background:' + color + ';color:#fff;font-weight:700;font-size:13px;cursor:pointer;';
+        b.addEventListener('click', onClick);
+        return b;
+      }
+
+      function warnBanner() {
+        var w = document.createElement('div');
+        w.style.cssText = 'padding:10px 14px;border-radius:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:600;margin-bottom:14px;';
+        w.textContent = 'Editing these fields will trigger Agri4All re-approval.';
+        return w;
+      }
+
+      function reloadAfterEdit() {
+        loadJobs();
+      }
+
+      function renderDetailsTab() {
+        tabContent.appendChild(warnBanner());
+        var name = labeledInput('Name', '');
+        var desc = labeledInput('Description', '', { textarea: true, rows: 6 });
+        var categoryId = labeledInput('Category ID (leaf)', '', { type: 'number' });
+        var fields = labeledInput('Fields (JSON)', '{}', { textarea: true, rows: 4 });
+        tabContent.appendChild(name);
+        tabContent.appendChild(desc);
+        tabContent.appendChild(categoryId);
+        tabContent.appendChild(fields);
+        tabContent.appendChild(submitBtn('Save Details', function () {
+          confirmReapproval(function () {
+            var body = {};
+            if (name._input.value) body.name = name._input.value;
+            if (desc._input.value) body.description = desc._input.value;
+            if (categoryId._input.value) body.categoryId = parseInt(categoryId._input.value, 10);
+            try { body.fields = JSON.parse(fields._input.value || '{}'); } catch (e) { showToast('Invalid fields JSON', '#ef4444'); return; }
+            fetch(API_BASE + '/agri4all/jobs/' + job.id + '/product', {
+              method: 'PUT',
+              headers: getHeaders(),
+              body: JSON.stringify(body)
+            }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+              .then(function () { showToast('Details saved — approval reset to pending'); document.body.removeChild(overlay); reloadAfterEdit(); })
+              .catch(function () { showToast('Save failed', '#ef4444'); });
+          });
+        }, { warn: true }));
+      }
+
+      function renderPricingTab() {
+        tabContent.appendChild(warnBanner());
+        var note = document.createElement('div');
+        note.style.cssText = 'font-size:12px;color:#64748b;margin-bottom:10px;';
+        note.textContent = 'Price type defaults to price_on_request. Change amount in cents (R1 = 100).';
+        tabContent.appendChild(note);
+        var type = labeledInput('Price type', 'price_on_request');
+        var vat = labeledInput('VAT', 'vat_not_applicable');
+        var amt = labeledInput('Amount (cents, optional)', '', { type: 'number' });
+        var currency = labeledInput('Currency (ISO)', 'ZAR');
+        tabContent.appendChild(type);
+        tabContent.appendChild(vat);
+        tabContent.appendChild(amt);
+        tabContent.appendChild(currency);
+        tabContent.appendChild(submitBtn('Save Pricing', function () {
+          confirmReapproval(function () {
+            var price = { type: type._input.value || 'price_on_request', vat: vat._input.value || 'vat_not_applicable' };
+            if (amt._input.value) price.amount = parseInt(amt._input.value, 10);
+            if (currency._input.value) price.currency = currency._input.value;
+            fetch(API_BASE + '/agri4all/jobs/' + job.id + '/product', {
+              method: 'PUT',
+              headers: getHeaders(),
+              body: JSON.stringify({ price: price })
+            }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+              .then(function () { showToast('Pricing saved — approval reset to pending'); document.body.removeChild(overlay); reloadAfterEdit(); })
+              .catch(function () { showToast('Save failed', '#ef4444'); });
+          });
+        }, { warn: true }));
+      }
+
+      function renderLocationTab() {
+        tabContent.appendChild(warnBanner());
+        var country = labeledInput('Country (ISO alpha-2)', String(job.country || '').toUpperCase());
+        var state = labeledInput('State / Province', '');
+        var city = labeledInput('City', '');
+        var zip = labeledInput('Postal / ZIP', '');
+        var lat = labeledInput('Latitude', '', { type: 'number' });
+        var lng = labeledInput('Longitude', '', { type: 'number' });
+        tabContent.appendChild(country);
+        tabContent.appendChild(state);
+        tabContent.appendChild(city);
+        tabContent.appendChild(zip);
+        tabContent.appendChild(lat);
+        tabContent.appendChild(lng);
+        tabContent.appendChild(submitBtn('Save Location', function () {
+          confirmReapproval(function () {
+            var body = {
+              country: country._input.value,
+              state: state._input.value,
+              city: city._input.value,
+              zip: zip._input.value,
+              latitude: parseFloat(lat._input.value) || null,
+              longitude: parseFloat(lng._input.value) || null
+            };
+            fetch(API_BASE + '/agri4all/jobs/' + job.id + '/location', {
+              method: 'PUT',
+              headers: getHeaders(),
+              body: JSON.stringify(body)
+            }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+              .then(function () { showToast('Location saved — approval reset to pending'); document.body.removeChild(overlay); reloadAfterEdit(); })
+              .catch(function () { showToast('Save failed', '#ef4444'); });
+          });
+        }, { warn: true }));
+      }
+
+      function renderContactsTab() {
+        var info = document.createElement('div');
+        info.style.cssText = 'padding:10px 14px;border-radius:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:12px;font-weight:600;margin-bottom:14px;';
+        info.textContent = 'Safe edit — contact changes do not trigger re-approval.';
+        tabContent.appendChild(info);
+
+        var list = document.createElement('div');
+        tabContent.appendChild(list);
+        var contacts = [];
+
+        function renderList() {
+          while (list.firstChild) list.removeChild(list.firstChild);
+          contacts.forEach(function (c, idx) {
+            var row = document.createElement('div');
+            row.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;position:relative;';
+            var rm = document.createElement('button');
+            rm.type = 'button';
+            rm.textContent = 'Remove';
+            rm.style.cssText = 'position:absolute;top:8px;right:8px;padding:3px 8px;font-size:10px;border-radius:6px;border:1px solid #fecaca;background:#fff;color:#991b1b;cursor:pointer;';
+            rm.addEventListener('click', function () { contacts.splice(idx, 1); renderList(); });
+            row.appendChild(rm);
+            var nm = labeledInput('Name', c.name || '');
+            var em = labeledInput('Email', c.email || '', { type: 'email' });
+            var ph = labeledInput('Phone', c.phone || '');
+            var pref = labeledInput('Preferred contact (email|phone|whatsapp)', c.preferredContact || c.preferred_contact || 'email');
+            nm._input.addEventListener('input', function () { c.name = nm._input.value; });
+            em._input.addEventListener('input', function () { c.email = em._input.value; });
+            ph._input.addEventListener('input', function () { c.phone = ph._input.value; });
+            pref._input.addEventListener('input', function () { c.preferredContact = pref._input.value; });
+            row.appendChild(nm);
+            row.appendChild(em);
+            row.appendChild(ph);
+            row.appendChild(pref);
+            list.appendChild(row);
+          });
+        }
+
+        var addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.textContent = '+ Add contact';
+        addBtn.style.cssText = 'padding:6px 12px;border-radius:8px;border:1px dashed #cbd5e1;background:#fff;color:#334155;font-weight:700;font-size:11px;cursor:pointer;margin-bottom:12px;';
+        addBtn.addEventListener('click', function () {
+          contacts.push({ name: '', email: '', phone: '', preferredContact: 'email' });
+          renderList();
+        });
+        tabContent.appendChild(addBtn);
+
+        // Start with one empty row
+        contacts.push({ name: '', email: '', phone: '', preferredContact: 'email' });
+        renderList();
+
+        tabContent.appendChild(submitBtn('Save Contacts', function () {
+          fetch(API_BASE + '/agri4all/jobs/' + job.id + '/contacts', {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify({ contacts: contacts })
+          }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function () { showToast('Contacts saved'); document.body.removeChild(overlay); reloadAfterEdit(); })
+            .catch(function () { showToast('Save failed', '#ef4444'); });
+        }, { warn: false }));
+      }
+
+      function renderMediaTab() {
+        var info = document.createElement('div');
+        info.style.cssText = 'padding:10px 14px;border-radius:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:12px;font-weight:600;margin-bottom:14px;';
+        info.textContent = 'Safe edit — media changes do not trigger re-approval.';
+        tabContent.appendChild(info);
+
+        var addHint = document.createElement('div');
+        addHint.style.cssText = 'font-size:12px;color:#334155;margin-bottom:8px;font-weight:700;';
+        addHint.textContent = 'Add media — upload images; they will be pushed to Agri4All.';
+        tabContent.appendChild(addHint);
+
+        var pendingFilenames = [];
+        var pendingList = document.createElement('div');
+        pendingList.style.cssText = 'margin-bottom:10px;font-size:11px;color:#475569;';
+        tabContent.appendChild(pendingList);
+        function renderPending() {
+          while (pendingList.firstChild) pendingList.removeChild(pendingList.firstChild);
+          pendingFilenames.forEach(function (f) {
+            var chip = document.createElement('span');
+            chip.textContent = f;
+            chip.style.cssText = 'display:inline-block;padding:3px 10px;margin:2px;border-radius:999px;background:#e0f2fe;color:#075985;font-family:ui-monospace,Menlo,monospace;font-size:10px;';
+            pendingList.appendChild(chip);
+          });
+        }
+
+        var fileLabel = document.createElement('label');
+        fileLabel.style.cssText = 'display:inline-block;padding:8px 14px;border-radius:8px;border:1px dashed #cbd5e1;background:#fff;color:#334155;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:12px;';
+        fileLabel.textContent = 'Select images';
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        fileInput.accept = 'image/*,.pdf';
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', function () {
+          var fList = Array.from(fileInput.files || []);
+          if (!fList.length) return;
+          var fd = new FormData();
+          fList.forEach(function (f) { fd.append('images', f); });
+          fileLabel.textContent = 'Uploading...';
+          fetch('/api/deliverables/' + deliverable.id + '/upload-images', {
+            method: 'POST',
+            headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+            body: fd
+          }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function (res) {
+              (res.urls || []).forEach(function (u) {
+                // Use filename derived from URL; backend joins with UPLOAD_DIR.
+                var fname = u.split('/').pop();
+                pendingFilenames.push(fname);
+              });
+              renderPending();
+              fileLabel.textContent = 'Select images';
+            })
+            .catch(function () { fileLabel.textContent = 'Select images'; showToast('Upload failed', '#ef4444'); });
+        });
+        fileLabel.appendChild(fileInput);
+        tabContent.appendChild(fileLabel);
+
+        tabContent.appendChild(submitBtn('Push media to Agri4All', function () {
+          if (!pendingFilenames.length) { showToast('No files selected', '#ef4444'); return; }
+          fetch(API_BASE + '/agri4all/jobs/' + job.id + '/media', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ filenames: pendingFilenames })
+          }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function () { showToast('Media uploaded'); document.body.removeChild(overlay); reloadAfterEdit(); })
+            .catch(function () { showToast('Media push failed', '#ef4444'); });
+        }, { warn: false }));
+
+        // Delete media section
+        var delWrap = document.createElement('div');
+        delWrap.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px dashed #e2e8f0;';
+        var delTitle = document.createElement('div');
+        delTitle.textContent = 'Delete media by ID';
+        delTitle.style.cssText = 'font-size:12px;font-weight:700;color:#334155;margin-bottom:8px;';
+        delWrap.appendChild(delTitle);
+        var delId = labeledInput('Media ID', '', { type: 'number' });
+        delWrap.appendChild(delId);
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = 'Delete media';
+        delBtn.style.cssText = 'padding:8px 14px;border-radius:8px;border:1px solid #ef4444;background:#fff;color:#991b1b;font-weight:700;font-size:12px;cursor:pointer;';
+        delBtn.addEventListener('click', function () {
+          var mid = delId._input.value;
+          if (!mid) { showToast('Enter media ID', '#ef4444'); return; }
+          fetch(API_BASE + '/agri4all/jobs/' + job.id + '/media/' + encodeURIComponent(mid), {
+            method: 'DELETE',
+            headers: getHeaders()
+          }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function () { showToast('Media deleted'); reloadAfterEdit(); })
+            .catch(function () { showToast('Delete failed', '#ef4444'); });
+        });
+        delWrap.appendChild(delBtn);
+        tabContent.appendChild(delWrap);
+      }
+
+      selectTab('details');
+    }
+
     body.appendChild(rightPanel);
     wrapper.appendChild(body);
 

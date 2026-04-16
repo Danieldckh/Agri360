@@ -214,9 +214,10 @@
       'design': 'design',
       'design_review': 'design',
       'design_changes': 'design',
-      'ready_for_approval': 'admin',
-      'sent_for_approval': 'admin',
-      'approved': 'admin',
+      'client_changes': 'design',
+      'ready_for_approval': 'production',
+      'sent_for_approval': 'production',
+      'approved': 'production',
       'agri4all-links': 'agri4all'
     },
 
@@ -339,7 +340,7 @@
     'sm-content-calendar': { 'design_changes': 'design', 'client_changes': 'design' },
     'sm-posts': { 'design_changes': 'artwork_design', 'client_changes': 'ready_for_approval' },
     'agri4all-posts': { 'design_changes': 'design' },
-    'agri4all-product-uploads': { 'design_changes': 'design_review' },
+    'agri4all-product-uploads': { 'design_changes': 'design_review', 'client_changes': 'design' },
     'magazine': { 'design_changes': 'design', 'editorial_changes': 'design', 'client_changes': 'design' },
     'online-articles': { 'editorial_changes': 'editing', 'client_changes': 'editing' },
     'agri4all-banners': { 'design_changes': 'design' },

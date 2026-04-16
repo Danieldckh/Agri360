@@ -334,7 +334,24 @@ router.post('/:token/approvals/:deliverableId/approve', async (req, res) => {
       [req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
-    res.json(toCamelCase(result.rows[0]));
+    const deliverable = result.rows[0];
+    res.json(toCamelCase(deliverable));
+
+    // Fire-and-forget: kick off Agri4All upload pipeline for product uploads.
+    // Must happen AFTER the response has been sent so the portal client is not
+    // blocked by Alpha/OpenAI latency. Errors are logged; they do not bubble.
+    if (deliverable.type === 'agri4all-product-uploads') {
+      setImmediate(() => {
+        try {
+          const { runUploadForDeliverable } = require('../services/agri4all-upload');
+          runUploadForDeliverable(deliverable.id).catch((err) => {
+            console.error(`[portal-approve] agri4all upload for deliverable ${deliverable.id} failed:`, err && err.message);
+          });
+        } catch (err) {
+          console.error(`[portal-approve] failed to dispatch agri4all upload for ${deliverable.id}:`, err && err.message);
+        }
+      });
+    }
   } catch (err) {
     console.error('Portal approve error:', err);
     res.status(500).json({ error: 'Internal server error' });

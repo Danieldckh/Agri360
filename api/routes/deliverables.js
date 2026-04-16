@@ -156,21 +156,14 @@ router.get('/:id/request-form', async (req, res) => {
   }
 });
 
-// POST /:id/post-to-alpha - upload approved agri4all-product-uploads deliverable to Alpha Agri4All
+// POST /:id/post-to-alpha - upload approved agri4all-product-uploads deliverable to Alpha Agri4All.
+// Delegates to the agri4all-upload orchestration service, which handles
+// category resolution, multi-country posting, per-country job rows, and
+// deliverable status transition.
 router.post('/:id/post-to-alpha', async (req, res) => {
-  const { getCategories, postProduct } = require('../lib/alpha-agri4all');
-  const { autofillProductFields } = require('../lib/openai-autofill');
-  const { toIsoAlpha2 } = require('../lib/country-codes');
-  const { UPLOAD_DIR } = require('../config');
-  const path = require('path');
-
   try {
-    // 1. Fetch deliverable; verify type and status
     const delivRes = await pool.query(
-      `SELECT d.*, bf.form_data AS booking_form_data
-       FROM deliverables d
-       LEFT JOIN booking_forms bf ON bf.id = d.booking_form_id
-       WHERE d.id = $1`,
+      `SELECT id, type, status FROM deliverables WHERE id = $1`,
       [req.params.id]
     );
     if (delivRes.rows.length === 0) {
@@ -180,67 +173,177 @@ router.post('/:id/post-to-alpha', async (req, res) => {
     if (deliverable.type !== 'agri4all-product-uploads') {
       return res.status(400).json({ data: null, error: 'Deliverable is not of type agri4all-product-uploads' });
     }
-    if (deliverable.status !== 'approved') {
+    if (deliverable.status !== 'approved' && deliverable.status !== 'agri4all-links') {
       return res.status(400).json({ data: null, error: 'Deliverable must be in approved status to post to Alpha' });
     }
-
-    const metadata = deliverable.metadata || {};
-    const bookingFormData = deliverable.booking_form_data || {};
-
-    // 2. Fetch categories from Alpha
-    const categoriesTree = await getCategories();
-
-    // 3. Autofill product fields via OpenAI
-    const autofilled = await autofillProductFields({
-      requestFormData: bookingFormData,
-      categoriesTree,
-    });
-
-    // 4. Collect media file paths from metadata.sections
-    const mediaFilePaths = [];
-    const sections = metadata.sections || [];
-    for (const section of sections) {
-      const files = section.files || [];
-      for (const file of files) {
-        const filename = file.filename || file.url;
-        if (filename) {
-          mediaFilePaths.push(path.join(UPLOAD_DIR, filename));
-        }
-      }
-    }
-
-    // 5. Build Alpha payload
-    const additionalLocations = (metadata.countries || [])
-      .map(c => ({ country: toIsoAlpha2(c) }))
-      .filter(l => l.country);
-
-    const alphaPayload = {
-      name: autofilled.name,
-      description: autofilled.description,
-      category_id: autofilled.category_id,
-      price: { type: 'price_on_request' },
-      location: {
-        country: 'ZA',
-        address: metadata.address || '',
-      },
-      additional_locations: additionalLocations,
-    };
-
-    // 6. Post to Alpha
-    const alphaResponse = await postProduct(alphaPayload, mediaFilePaths);
-
-    // 7. Update deliverable status and store alpha_product_id
-    const alphaProductId = (alphaResponse.data && alphaResponse.data.id) || alphaResponse.id || null;
-    const updatedMetadata = { ...metadata, alpha_product_id: alphaProductId };
-    await pool.query(
-      `UPDATE deliverables SET status = 'agri4all-links', metadata = $1, updated_at = NOW() WHERE id = $2`,
-      [JSON.stringify(updatedMetadata), req.params.id]
-    );
-
-    return res.json({ data: { success: true, alphaProduct: alphaResponse }, error: null });
+    const { runUploadForDeliverable } = require('../services/agri4all-upload');
+    const summary = await runUploadForDeliverable(deliverable.id);
+    return res.json({ data: { summary, jobs: summary.jobs.map(toCamelCase) }, error: null });
   } catch (err) {
     console.error('post-to-alpha error:', err);
     return res.status(502).json({ data: null, error: err.message || 'Failed to post product to Alpha Agri4All' });
+  }
+});
+
+// ── Agri4All admin / edit-proxy endpoints ────────────────────────────
+
+// GET /agri4all/jobs — list upload jobs, optionally filtered by deliverable.
+router.get('/agri4all/jobs', async (req, res) => {
+  try {
+    const params = [];
+    let whereClause = '';
+    if (req.query.deliverableId) {
+      params.push(req.query.deliverableId);
+      whereClause = `WHERE j.deliverable_id = $${params.length}`;
+    } else if (req.query.status) {
+      params.push(req.query.status);
+      whereClause = `WHERE j.job_status = $${params.length}`;
+    }
+    const result = await pool.query(
+      `SELECT j.*, d.title AS deliverable_title, d.status AS deliverable_status
+         FROM agri4all_upload_jobs j
+         LEFT JOIN deliverables d ON d.id = j.deliverable_id
+         ${whereClause}
+        ORDER BY j.updated_at DESC`,
+      params
+    );
+    res.json({ data: result.rows.map(toCamelCase), error: null });
+  } catch (err) {
+    console.error('List agri4all jobs error:', err);
+    res.status(500).json({ data: null, error: err.message || 'Internal server error' });
+  }
+});
+
+// POST /agri4all/jobs/:jobId/retry — retry one failed country.
+router.post('/agri4all/jobs/:jobId/retry', async (req, res) => {
+  try {
+    const { retryJob } = require('../services/agri4all-upload');
+    const job = await retryJob(req.params.jobId);
+    res.json({ data: toCamelCase(job), error: null });
+  } catch (err) {
+    console.error('Retry agri4all job error:', err);
+    res.status(502).json({ data: null, error: err.message || 'Retry failed' });
+  }
+});
+
+// POST /agri4all/refresh-categories — force a full category cache refresh.
+router.post('/agri4all/refresh-categories', async (req, res) => {
+  try {
+    const { refreshCategoryCache } = require('../lib/alpha-agri4all');
+    await refreshCategoryCache();
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS leaf_count FROM agri4all_category_cache WHERE slug <> '__tree__'`
+    );
+    res.json({ data: { refreshedAt: new Date().toISOString(), leafCount: countRes.rows[0].leaf_count }, error: null });
+  } catch (err) {
+    console.error('Refresh categories error:', err);
+    res.status(502).json({ data: null, error: err.message || 'Refresh failed' });
+  }
+});
+
+// ── Edit-proxy endpoints (slug-addressed on Alpha) ───────────────────
+// All four operate on the Alpha product identified by the job's slug. The
+// CRM does not store a separate product-edit audit trail beyond the job row.
+
+async function _jobForEdit(jobId) {
+  const r = await pool.query(`SELECT * FROM agri4all_upload_jobs WHERE id = $1`, [jobId]);
+  if (r.rows.length === 0) throw Object.assign(new Error('Upload job not found'), { status: 404 });
+  const job = r.rows[0];
+  if (!job.agri4all_slug) throw Object.assign(new Error('Job has no Alpha slug yet'), { status: 400 });
+  return job;
+}
+
+// PUT /agri4all/jobs/:jobId/product — name/description/category/price/fields.
+router.put('/agri4all/jobs/:jobId/product', async (req, res) => {
+  try {
+    const { putProduct } = require('../lib/alpha-agri4all');
+    const job = await _jobForEdit(req.params.jobId);
+    const payload = toSnakeBody(req.body || {});
+    const result = await putProduct(job.agri4all_slug, payload);
+    await pool.query(
+      `UPDATE agri4all_upload_jobs
+          SET agri4all_status = 'pending', updated_at = NOW()
+        WHERE id = $1`,
+      [job.id]
+    );
+    res.json({ data: result, error: null });
+  } catch (err) {
+    console.error('Edit agri4all product error:', err);
+    res.status(err.status || 502).json({ data: null, error: err.message || 'Edit failed' });
+  }
+});
+
+// PUT /agri4all/jobs/:jobId/location — triggers Alpha re-approval.
+router.put('/agri4all/jobs/:jobId/location', async (req, res) => {
+  try {
+    const { putProductLocation } = require('../lib/alpha-agri4all');
+    const job = await _jobForEdit(req.params.jobId);
+    const location = toSnakeBody(req.body || {});
+    const result = await putProductLocation(job.agri4all_slug, location);
+    await pool.query(
+      `UPDATE agri4all_upload_jobs
+          SET agri4all_status = 'pending', updated_at = NOW()
+        WHERE id = $1`,
+      [job.id]
+    );
+    res.json({ data: result, error: null });
+  } catch (err) {
+    console.error('Edit agri4all location error:', err);
+    res.status(err.status || 502).json({ data: null, error: err.message || 'Edit failed' });
+  }
+});
+
+// PUT /agri4all/jobs/:jobId/contacts — safe edit (no re-approval).
+router.put('/agri4all/jobs/:jobId/contacts', async (req, res) => {
+  try {
+    const { putProductContacts } = require('../lib/alpha-agri4all');
+    const job = await _jobForEdit(req.params.jobId);
+    const body = toSnakeBody(req.body || {});
+    const contacts = Array.isArray(body.contacts) ? body.contacts : [];
+    const result = await putProductContacts(job.agri4all_slug, contacts);
+    await pool.query(`UPDATE agri4all_upload_jobs SET updated_at = NOW() WHERE id = $1`, [job.id]);
+    res.json({ data: result, error: null });
+  } catch (err) {
+    console.error('Edit agri4all contacts error:', err);
+    res.status(err.status || 502).json({ data: null, error: err.message || 'Edit failed' });
+  }
+});
+
+// POST /agri4all/jobs/:jobId/media — append media files.
+// Request body: { filenames: [string, ...] } — bare filenames uploaded via
+// POST /:id/upload-images (which writes to uploads/deliverable-images/).
+router.post('/agri4all/jobs/:jobId/media', async (req, res) => {
+  try {
+    const { postProductMedia } = require('../lib/alpha-agri4all');
+    const path = require('path');
+    const imgDir = path.join(__dirname, '../uploads/deliverable-images');
+    const job = await _jobForEdit(req.params.jobId);
+    const body = toSnakeBody(req.body || {});
+    const filenames = Array.isArray(body.filenames) ? body.filenames : [];
+    if (filenames.length === 0) {
+      return res.status(400).json({ data: null, error: 'filenames array is required' });
+    }
+    const paths = filenames.map(f => path.join(imgDir, path.basename(f)));
+    const result = await postProductMedia(job.agri4all_slug, paths);
+    await pool.query(`UPDATE agri4all_upload_jobs SET updated_at = NOW() WHERE id = $1`, [job.id]);
+    res.json({ data: result, error: null });
+  } catch (err) {
+    console.error('Add agri4all media error:', err);
+    res.status(err.status || 502).json({ data: null, error: err.message || 'Media upload failed' });
+  }
+});
+
+// DELETE /agri4all/jobs/:jobId/media/:mediaId — remove media by Alpha media id.
+router.delete('/agri4all/jobs/:jobId/media/:mediaId', async (req, res) => {
+  try {
+    const { deleteProductMedia } = require('../lib/alpha-agri4all');
+    const job = await _jobForEdit(req.params.jobId);
+    const result = await deleteProductMedia(job.agri4all_slug, req.params.mediaId);
+    await pool.query(`UPDATE agri4all_upload_jobs SET updated_at = NOW() WHERE id = $1`, [job.id]);
+    res.json({ data: result, error: null });
+  } catch (err) {
+    console.error('Delete agri4all media error:', err);
+    res.status(err.status || 502).json({ data: null, error: err.message || 'Media delete failed' });
   }
 });
 
@@ -300,9 +403,10 @@ const DEPT_MAPS = {
     'waiting_for_materials': 'production',
     'materials_received': 'production',
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
-    'ready_for_approval': 'admin',
-    'sent_for_approval': 'admin',
-    'approved': 'admin',
+    'ready_for_approval': 'production',
+    'sent_for_approval': 'production',
+    'approved': 'production',
+    'client_changes': 'design',
     'agri4all-links': 'agri4all'
   },
   'agri4all-banners': {
