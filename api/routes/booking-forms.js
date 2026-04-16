@@ -359,7 +359,7 @@ router.post('/:id/upload-proposal-file', proposalUpload.single('file'), async (r
 router.post('/:id/send-to-editor', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT bf.*, c.name as client_name, c.trading_name, c.primary_contact, c.material_contact, c.accounts_contact
+      `SELECT bf.*, (bf.signed_pdf IS NOT NULL) AS signed_pdf, (bf.change_request_pdf IS NOT NULL) AS change_request_pdf, c.name as client_name, c.trading_name, c.primary_contact, c.material_contact, c.accounts_contact
        FROM booking_forms bf
        LEFT JOIN clients c ON bf.client_id = c.id
        WHERE bf.id = $1`,
@@ -383,11 +383,23 @@ router.post('/:id/send-to-editor', async (req, res) => {
     // POST the HTML snippet to the editor service
     const EDITOR_URL = process.env.BOOKING_FORM_EDITOR_URL || 'https://bookingformeditor.proagrihub.com';
     console.log('[send-to-editor] slug=%s html_len=%d editor_url=%s', slug, (html || '').length, EDITOR_URL);
-    const editorRes = await fetch(`${EDITOR_URL}/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, html })
-    });
+    const controller = new AbortController();
+    const to = setTimeout(() => controller.abort(), 30_000);
+    let editorRes;
+    try {
+      editorRes = await fetch(`${EDITOR_URL}/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, html }),
+        signal: controller.signal
+      });
+    } catch (e) {
+      clearTimeout(to);
+      console.error('[send-to-editor] Editor fetch failed:', e.name, e.message);
+      return res.status(504).json({ error: 'Editor service unreachable or slow', detail: e.message });
+    } finally {
+      clearTimeout(to);
+    }
 
     let editableUrl;
     let finalSlug = slug;
