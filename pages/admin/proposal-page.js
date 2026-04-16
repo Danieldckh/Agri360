@@ -132,7 +132,11 @@
   // renderer falls back to "—".
   function pdfDataUrl(b64) {
     if (!b64) return '';
-    return 'data:application/pdf;base64,' + b64;
+    var s = String(b64);
+    // The esign service POSTs a full data URI (e.g. "data:application/pdf;base64,...")
+    // while older callers send just the base64 payload. Don't double-prefix.
+    if (s.startsWith('data:')) return s;
+    return 'data:application/pdf;base64,' + s;
   }
 
   function mapFormToRow(form) {
