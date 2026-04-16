@@ -153,11 +153,14 @@
       checklistUrl: form.checklistUrl || '',
       // Unsigned booking form: manual upload OR generated e-sign URL
       unsignedFileUrl: form.unsignedFileUrl || form.esignUrl || '',
-      // Signed: manual upload OR streamed via /api/booking-forms/:id/signed-pdf
-      // when signedPdf base64 is stored. Linking to the binary endpoint avoids
-      // browser data-URI navigation blocks and the ~2MB URL length limit.
-      signedFileUrl: form.signedFileUrl
-        || (form.signedPdf ? (window.API_URL || '') + '/booking-forms/' + form.id + '/signed-pdf' : ''),
+      // Signed: prefer the streamed binary at /api/booking-forms/:id/signed-pdf
+      // when signedPdf base64 is stored. The legacy signed_file_url column
+      // gets populated with the esign *signing* URL (not the signed PDF) by
+      // the /sign route, so we can't trust it as a "view signed result"
+      // link — the actual signed PDF lives in signed_pdf.
+      signedFileUrl: form.signedPdf
+        ? (window.API_URL || '') + '/booking-forms/' + form.id + '/signed-pdf'
+        : (form.signedFileUrl || ''),
       proposalFileUrl: form.proposalFileUrl || '',
       changeNotes: form.changeNotes || '',
       // Same treatment for change-request PDFs.
