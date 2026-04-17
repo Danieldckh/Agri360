@@ -88,14 +88,14 @@
       left: {
         title: 'Design',
         searchPlaceholder: 'Search design...',
-        // Includes client_changes so Agri4All Product Uploads bounced back
-        // from the client portal land here for re-design. Backend
-        // DEPT_MAP at api/routes/deliverables.js:401 already routes
-        // client_changes for product uploads to the design dept; this
-        // filter is the matching UI gate.
+        // Initial design phase + client_changes (full re-design from a client
+        // bounce-back belongs here, on the designer's main worklist). The
+        // narrower design_changes (reviewer-requested fixes after the row
+        // has already been through review) lives on the Design Review sheet
+        // — see right pane below.
         filter: function (d) {
           return !!A4A_DESIGN_TYPES[d.type] &&
-            (d.status === 'design' || d.status === 'design_changes' || d.status === 'client_changes');
+            (d.status === 'design' || d.status === 'client_changes');
         },
         columns: [
           C.eye(container),
@@ -111,8 +111,13 @@
       right: {
         title: 'Design Review',
         searchPlaceholder: 'Search design review...',
+        // Includes design_changes so reviewer-requested fixes stay in the
+        // review pane — designer fixes in place, advances back to
+        // design_review (per BRANCH_STATUSES), and the row stays here
+        // until the reviewer signs off.
         filter: function (d) {
-          return !!A4A_DESIGN_TYPES[d.type] && d.status === 'design_review';
+          return !!A4A_DESIGN_TYPES[d.type] &&
+            (d.status === 'design_review' || d.status === 'design_changes');
         },
         // Trimmed column set per spec: eye, design assignee, company name,
         // service type, then the combined send-back + advance action cell.

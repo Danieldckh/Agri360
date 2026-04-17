@@ -345,7 +345,7 @@
     'website-design': { 'design_changes': 'development' },
     'sm-content-calendar': { 'design_changes': 'design', 'client_changes': 'design' },
     'sm-posts': { 'design_changes': 'artwork_design', 'client_changes': 'ready_for_approval' },
-    'agri4all-posts': { 'design_changes': 'design' },
+    'agri4all-posts': { 'design_changes': 'design_review' },
     // client_changes lands on the Design sheet (designer sees the client's
     // notes, fixes the issue) and Advance from there sends it directly to
     // design_review — skipping the "design" phase since the design dept
@@ -354,7 +354,7 @@
     'agri4all-product-uploads': { 'design_changes': 'design_review', 'client_changes': 'design_review' },
     'magazine': { 'design_changes': 'design', 'editorial_changes': 'design', 'client_changes': 'design' },
     'online-articles': { 'editorial_changes': 'editing', 'client_changes': 'editing' },
-    'agri4all-banners': { 'design_changes': 'design' },
+    'agri4all-banners': { 'design_changes': 'design_review' },
     'video': { 'changes_requested': 'editing' }
   };
 
