@@ -1650,8 +1650,13 @@
     return el;
   }
 
-  // Employee picker modal — searchable list with current user first
-  function openEmployeePicker(deptLabel, currentId, onSelect) {
+  // Employee picker modal — searchable list with current user first.
+  // `options.filterFn` (optional) narrows the candidate list — e.g. for the
+  // Agri4All slot we exclude admin users so the picker shows only design /
+  // operational employees, never admins.
+  function openEmployeePicker(deptLabel, currentId, onSelect, options) {
+    options = options || {};
+    var filterFn = typeof options.filterFn === 'function' ? options.filterFn : null;
     var existing = document.querySelector('.emp-picker-overlay');
     if (existing) existing.remove();
 
@@ -1683,8 +1688,9 @@
       .then(function (employees) {
         var currentUser = null;
         if (window.getCurrentUser) currentUser = window.getCurrentUser();
+        var pool = filterFn ? employees.filter(filterFn) : employees;
         // Sort: current user first, then alphabetically
-        var sorted = employees.slice().sort(function (a, b) {
+        var sorted = pool.slice().sort(function (a, b) {
           if (currentUser) {
             if (a.id === currentUser.id) return -1;
             if (b.id === currentUser.id) return 1;
@@ -1793,6 +1799,15 @@
       var avatar = buildAvatar(emp, 22, slot.color);
       avatar.addEventListener('click', function (e) {
         e.stopPropagation();
+        // Agri4All deliverables should never be assigned to an admin —
+        // they're field/design work, not approvals. Filter admins out
+        // of the picker for that slot only.
+        var pickerOpts = {};
+        if (slot.label === 'Agri4All') {
+          pickerOpts.filterFn = function (emp) {
+            return (emp.role || '').toLowerCase() !== 'admin';
+          };
+        }
         openEmployeePicker(slot.label, assignedId, function (newId) {
           var body = {};
           body[slot.api] = newId;
@@ -1805,7 +1820,7 @@
               if (onUpdate) onUpdate();
             }
           });
-        });
+        }, pickerOpts);
       });
       wrap.appendChild(avatar);
     });
@@ -2881,12 +2896,28 @@
       bubble.dataset.messageId = m.id;
 
       if (!isOwn) {
-        var avatar = document.createElement('img');
-        avatar.className = 'cd-bubble-avatar';
-        avatar.alt = '';
         var photoUrl = m.senderPhotoUrl || m.sender_photo_url;
-        avatar.src = photoUrl ? '/uploads/photos/' + photoUrl : 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2394a3b8"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
-        bubble.appendChild(avatar);
+        var senderEmp = {
+          first_name: m.sender_first_name || m.senderFirstName || '',
+          last_name: m.sender_last_name || m.senderLastName || '',
+          username: m.sender_username || m.senderUsername || ''
+        };
+        if (photoUrl) {
+          var avatar = document.createElement('img');
+          avatar.className = 'cd-bubble-avatar';
+          avatar.alt = '';
+          avatar.src = photoUrl;
+          avatar.onerror = function () {
+            var el = buildAvatar(senderEmp, 32, '#64748b');
+            el.classList.add('cd-bubble-avatar');
+            avatar.replaceWith(el);
+          };
+          bubble.appendChild(avatar);
+        } else {
+          var initialsEl = buildAvatar(senderEmp, 32, '#64748b');
+          initialsEl.classList.add('cd-bubble-avatar');
+          bubble.appendChild(initialsEl);
+        }
       }
 
       var body = document.createElement('div');
@@ -6419,8 +6450,17 @@
           var photo = emp.photo_url || emp.photoUrl;
           if (photo) {
             var img = document.createElement('img');
-            img.src = '/uploads/photos/' + photo;
+            img.src = photo;
             img.alt = '';
+            img.onerror = (function (avEl, e) {
+              return function () {
+                img.remove();
+                var el = buildAvatar(e, 22, '#64748b');
+                el.style.width = '100%';
+                el.style.height = '100%';
+                avEl.appendChild(el);
+              };
+            })(avatar, emp);
             avatar.appendChild(img);
           } else {
             var initials = (((emp.first_name || emp.firstName || '')[0] || '') + ((emp.last_name || emp.lastName || '')[0] || '')).toUpperCase() || '@';
@@ -6473,12 +6513,28 @@
       bubble.dataset.messageId = m.id;
 
       if (!isOwn) {
-        var avatar = document.createElement('img');
-        avatar.className = 'cd-bubble-avatar';
-        avatar.alt = '';
         var photoUrl = m.senderPhotoUrl || m.sender_photo_url;
-        avatar.src = photoUrl ? '/uploads/photos/' + photoUrl : 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2394a3b8"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
-        bubble.appendChild(avatar);
+        var senderEmp = {
+          first_name: m.sender_first_name || m.senderFirstName || '',
+          last_name: m.sender_last_name || m.senderLastName || '',
+          username: m.sender_username || m.senderUsername || ''
+        };
+        if (photoUrl) {
+          var avatar = document.createElement('img');
+          avatar.className = 'cd-bubble-avatar';
+          avatar.alt = '';
+          avatar.src = photoUrl;
+          avatar.onerror = function () {
+            var el = buildAvatar(senderEmp, 32, '#64748b');
+            el.classList.add('cd-bubble-avatar');
+            avatar.replaceWith(el);
+          };
+          bubble.appendChild(avatar);
+        } else {
+          var initialsEl = buildAvatar(senderEmp, 32, '#64748b');
+          initialsEl.classList.add('cd-bubble-avatar');
+          bubble.appendChild(initialsEl);
+        }
       }
 
       var body2 = document.createElement('div');

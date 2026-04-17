@@ -49,6 +49,32 @@
   var _activeContainer = null;
   var _activeTabRenderer = null;
 
+  // Initials avatar fallback — used when an employee has no photo
+  // or when the photo URL fails to load. Exposed on window for re-use
+  // from inside other helpers in this module.
+  function cdInitialsFromName(name) {
+    var n = (name || '').trim();
+    if (!n) return '?';
+    var parts = n.split(/\s+/);
+    if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return n.substring(0, 2).toUpperCase();
+  }
+  function cdColorFromSeed(seed) {
+    var s = String(seed || '');
+    var hash = 0;
+    for (var i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    var hues = [210, 200, 180, 160, 280, 260, 340, 20, 40, 0];
+    return 'hsl(' + hues[hash % hues.length] + ',45%,55%)';
+  }
+  window.cdMakeInitialsAvatar = function (name, seed) {
+    var div = document.createElement('div');
+    div.className = 'cd-initials-avatar';
+    div.textContent = cdInitialsFromName(name);
+    div.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:600;font-size:12px;letter-spacing:0.3px;text-transform:uppercase;background:' + cdColorFromSeed(seed != null ? seed : name) + ';';
+    if (name) div.title = name;
+    return div;
+  };
+
   function getHeaders() {
     var headers = { 'Content-Type': 'application/json' };
     if (window.getAuthHeaders) {
@@ -1278,12 +1304,18 @@
           item.className = 'cd-mention-item';
           var av = document.createElement('div');
           av.className = 'cd-mention-avatar';
-          if (emp.photoUrl || emp.photo_url) {
+          var empPhoto = emp.photoUrl || emp.photo_url;
+          var empName = (emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '');
+          if (empPhoto) {
             var img = document.createElement('img');
-            img.src = '/uploads/photos/' + (emp.photoUrl || emp.photo_url);
+            img.src = empPhoto;
+            img.alt = '';
+            img.onerror = (function (avEl, name, id) {
+              return function () { img.remove(); avEl.appendChild(window.cdMakeInitialsAvatar(name, id)); };
+            })(av, empName, emp.id);
             av.appendChild(img);
           } else {
-            av.appendChild(makeDashSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 14));
+            av.appendChild(window.cdMakeInitialsAvatar(empName, emp.id));
           }
           item.appendChild(av);
           var nameSpan = document.createElement('span');
@@ -1400,12 +1432,25 @@
       bubble.dataset.messageId = msg.id;
 
       if (!isOwn) {
-        var avatar = document.createElement('img');
-        avatar.className = 'cd-bubble-avatar';
-        avatar.alt = '';
         var photoUrl = msg.senderPhotoUrl || msg.sender_photo_url;
-        avatar.src = photoUrl ? '/uploads/photos/' + photoUrl : DEFAULT_AVATAR_SVG;
-        bubble.appendChild(avatar);
+        var senderName = (msg.senderFirstName || msg.sender_first_name || '') + ' ' + (msg.senderLastName || msg.sender_last_name || '');
+        var senderId = msg.senderId || msg.sender_id;
+        if (photoUrl) {
+          var avatar = document.createElement('img');
+          avatar.className = 'cd-bubble-avatar';
+          avatar.alt = '';
+          avatar.src = photoUrl;
+          avatar.onerror = function () {
+            var initialsEl = window.cdMakeInitialsAvatar(senderName, senderId);
+            initialsEl.classList.add('cd-bubble-avatar');
+            avatar.replaceWith(initialsEl);
+          };
+          bubble.appendChild(avatar);
+        } else {
+          var initialsEl = window.cdMakeInitialsAvatar(senderName, senderId);
+          initialsEl.classList.add('cd-bubble-avatar');
+          bubble.appendChild(initialsEl);
+        }
       }
 
       var body = document.createElement('div');
@@ -1600,13 +1645,19 @@
 
     var avatar = document.createElement('div');
     avatar.className = 'cd-team-avatar';
-    if (emp.photoUrl || emp.photo_url) {
+    var teamPhoto = emp.photoUrl || emp.photo_url;
+    var teamName = (emp.firstName || emp.first_name || '') + ' ' + (emp.lastName || emp.last_name || '');
+    if (teamPhoto) {
       var img = document.createElement('img');
-      img.src = '/uploads/photos/' + (emp.photoUrl || emp.photo_url);
+      img.src = teamPhoto;
       img.alt = '';
+      img.onerror = function () {
+        img.remove();
+        avatar.appendChild(window.cdMakeInitialsAvatar(teamName, emp.id));
+      };
       avatar.appendChild(img);
     } else {
-      avatar.appendChild(makeDashSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 22));
+      avatar.appendChild(window.cdMakeInitialsAvatar(teamName, emp.id));
     }
     member.appendChild(avatar);
 

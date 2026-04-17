@@ -163,13 +163,53 @@
 
   function getDmOtherPhoto(ch) {
     if (ch.dm_partner && ch.dm_partner.photo_url) {
-      return '/uploads/photos/' + ch.dm_partner.photo_url;
+      return ch.dm_partner.photo_url;
     }
     var user = getUser();
     if (ch.latest_message && ch.latest_message.sender_id !== user.id && ch.latest_message.sender_photo_url) {
-      return '/uploads/photos/' + ch.latest_message.sender_photo_url;
+      return ch.latest_message.sender_photo_url;
     }
     return null;
+  }
+
+  function getInitials(first, last, name) {
+    var f = (first || '').trim();
+    var l = (last || '').trim();
+    if (f || l) return ((f[0] || '') + (l[0] || '')).toUpperCase();
+    var n = (name || '').trim();
+    if (!n) return '?';
+    var parts = n.split(/\s+/);
+    if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return n.substring(0, 2).toUpperCase();
+  }
+
+  function colorFromString(str) {
+    var s = String(str || '');
+    var hash = 0;
+    for (var i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    var hues = [210, 200, 180, 160, 280, 260, 340, 20, 40, 0];
+    return 'hsl(' + hues[hash % hues.length] + ',45%,55%)';
+  }
+
+  function makeInitialsEl(opts) {
+    var div = document.createElement('div');
+    div.className = 'msg-initials-avatar';
+    div.textContent = getInitials(opts.first, opts.last, opts.name);
+    div.style.background = colorFromString(opts.seed || (opts.first + opts.last + opts.name));
+    if (opts.name) div.title = opts.name;
+    return div;
+  }
+
+  function getDmOtherSeed(ch) {
+    if (ch.dm_partner) {
+      if (ch.dm_partner.id) return 'emp-' + ch.dm_partner.id;
+      return (ch.dm_partner.first_name || '') + (ch.dm_partner.last_name || '');
+    }
+    var user = getUser();
+    if (ch.latest_message && ch.latest_message.sender_id !== user.id) {
+      return 'emp-' + ch.latest_message.sender_id;
+    }
+    return ch.id || '?';
   }
 
   function flattenChannels(channels) {
@@ -357,13 +397,24 @@
 
     if (channel.type === 'dm') {
       var photoUrl = getDmOtherPhoto(channel);
+      var dmName = getDmOtherName(channel);
       if (photoUrl) {
         var img = document.createElement('img');
         img.src = photoUrl;
         img.alt = '';
+        img.onerror = function () {
+          img.remove();
+          avatarDiv.appendChild(makeInitialsEl({
+            name: dmName,
+            seed: getDmOtherSeed(channel)
+          }));
+        };
         avatarDiv.appendChild(img);
       } else {
-        avatarDiv.appendChild(makeSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 20));
+        avatarDiv.appendChild(makeInitialsEl({
+          name: dmName,
+          seed: getDmOtherSeed(channel)
+        }));
       }
     } else {
       if (channel.emoji) {
@@ -521,13 +572,24 @@
     if (chInfo) {
       if (chInfo.type === 'dm') {
         var photoUrl = getDmOtherPhoto(chInfo);
+        var headerDmName = getDmOtherName(chInfo);
         if (photoUrl) {
           var img = document.createElement('img');
           img.src = photoUrl;
           img.alt = '';
+          img.onerror = function () {
+            img.remove();
+            headerAvatar.appendChild(makeInitialsEl({
+              name: headerDmName,
+              seed: getDmOtherSeed(chInfo)
+            }));
+          };
           headerAvatar.appendChild(img);
         } else {
-          headerAvatar.appendChild(makeSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 20));
+          headerAvatar.appendChild(makeInitialsEl({
+            name: headerDmName,
+            seed: getDmOtherSeed(chInfo)
+          }));
         }
       } else {
         if (chInfo.emoji) {
@@ -690,13 +752,29 @@
 
         var avatar = document.createElement('div');
         avatar.className = 'msg-people-avatar';
+        var memberSeed = 'emp-' + (member.employee_id || member.id || '');
+        var memberName = (member.first_name || '') + ' ' + (member.last_name || '');
         if (member.photo_url) {
           var avatarImg = document.createElement('img');
-          avatarImg.src = '/uploads/photos/' + member.photo_url;
+          avatarImg.src = member.photo_url;
           avatarImg.alt = '';
+          avatarImg.onerror = function () {
+            avatarImg.remove();
+            avatar.appendChild(makeInitialsEl({
+              first: member.first_name,
+              last: member.last_name,
+              name: memberName,
+              seed: memberSeed
+            }));
+          };
           avatar.appendChild(avatarImg);
         } else {
-          avatar.appendChild(makeSvg('M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 18));
+          avatar.appendChild(makeInitialsEl({
+            first: member.first_name,
+            last: member.last_name,
+            name: memberName,
+            seed: memberSeed
+          }));
         }
         row.appendChild(avatar);
 
@@ -753,15 +831,31 @@
     bubble.dataset.messageId = msg.id;
 
     if (!isOwn) {
-      var avatar = document.createElement('img');
-      avatar.className = 'msg-bubble-avatar';
-      avatar.alt = '';
-      if (msg.sender_photo_url) {
-        avatar.src = '/uploads/photos/' + msg.sender_photo_url;
-      } else {
-        avatar.src = DEFAULT_AVATAR;
+      var bubbleSeed = 'emp-' + (msg.sender_id || '');
+      var bubbleName = (msg.sender_first_name || '') + ' ' + (msg.sender_last_name || '');
+      function appendBubbleInitials() {
+        var initialsEl = makeInitialsEl({
+          first: msg.sender_first_name,
+          last: msg.sender_last_name,
+          name: bubbleName,
+          seed: bubbleSeed
+        });
+        initialsEl.classList.add('msg-bubble-avatar');
+        bubble.appendChild(initialsEl);
       }
-      bubble.appendChild(avatar);
+      if (msg.sender_photo_url) {
+        var avatar = document.createElement('img');
+        avatar.className = 'msg-bubble-avatar';
+        avatar.alt = '';
+        avatar.src = msg.sender_photo_url;
+        avatar.onerror = function () {
+          avatar.remove();
+          appendBubbleInitials();
+        };
+        bubble.appendChild(avatar);
+      } else {
+        appendBubbleInitials();
+      }
     }
 
     var body = document.createElement('div');
