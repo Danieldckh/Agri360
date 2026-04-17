@@ -1609,6 +1609,14 @@
                 if (linksHtml) linksHtml += ' · ';
                 linksHtml += '<a href="' + f.changeRequestPdfUrl + '" target="_blank" rel="noopener">View change request</a>';
               }
+              // Surface the unsigned form when the e-sign link exists but the
+              // form hasn't been signed yet. Tagged "Awaiting signature" so
+              // the row's state is obvious next to the call-to-action.
+              if (f.esignUrl && !f.signedPdfUrl) {
+                if (linksHtml) linksHtml += ' · ';
+                linksHtml += '<a href="' + f.esignUrl + '" target="_blank" rel="noopener">Open unsigned form</a>'
+                  + ' <span style="opacity:0.6;">(awaiting signature)</span>';
+              }
               if (!linksHtml) linksHtml = '<span style="opacity:0.6;">Awaiting signature</span>';
               row.innerHTML =
                 '<div class="cp-todo-text">' +
