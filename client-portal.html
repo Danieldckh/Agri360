@@ -1060,6 +1060,27 @@
   .cp-a4a-pill-fb { background:#1877F2; }
   .cp-a4a-pill-ig { background:linear-gradient(135deg,#833ab4 0%,#fd1d1d 50%,#fcb045 100%); }
   .cp-a4a-pill-ig-story { background:#E1306C; }
+
+  /* ── Agri4All Product Uploads per-image cards ── */
+  .cp-pu-wrap { background:var(--cp-surface); border:1px solid var(--cp-border); border-radius:var(--cp-radius); padding:24px; margin-bottom:18px; box-shadow:var(--cp-shadow-card); }
+  .cp-pu-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; margin-top:18px; }
+  .cp-pu-card { background:var(--cp-surface-alt); border:2px solid var(--cp-border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px; transition:border-color 0.2s, box-shadow 0.2s, transform 0.15s; }
+  .cp-pu-card[data-decision="approve"] { border-color:var(--cp-success); box-shadow:0 0 0 3px var(--cp-success-soft, rgba(16,185,129,0.12)); }
+  .cp-pu-card[data-decision="changes"] { border-color:var(--cp-warn); box-shadow:0 0 0 3px var(--cp-warn-soft, rgba(245,158,11,0.14)); }
+  .cp-pu-thumb { aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#0f172a; cursor:zoom-in; position:relative; }
+  .cp-pu-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.2s; }
+  .cp-pu-thumb:hover img { transform:scale(1.04); }
+  .cp-pu-label { font-size:12px; font-weight:700; color:var(--cp-text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .cp-pu-actions { display:flex; gap:6px; }
+  .cp-pu-toggle { flex:1; padding:8px 10px; border:1px solid var(--cp-border); border-radius:999px; background:var(--cp-surface); color:var(--cp-text); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+  .cp-pu-toggle-approve.active { background:var(--cp-success); color:#fff; border-color:var(--cp-success); }
+  .cp-pu-toggle-changes.active { background:var(--cp-warn); color:#fff; border-color:var(--cp-warn); }
+  .cp-pu-toggle:hover:not(.active) { background:var(--cp-surface-alt); }
+  .cp-pu-notes { width:100%; min-height:64px; padding:8px 10px; border:1px solid var(--cp-border); border-radius:8px; font-family:inherit; font-size:13px; resize:vertical; background:var(--cp-surface); color:var(--cp-text); box-sizing:border-box; }
+  .cp-pu-notes:focus { outline:none; border-color:var(--cp-warn); box-shadow:0 0 0 3px var(--cp-warn-soft, rgba(245,158,11,0.14)); }
+  .cp-pu-submit-bar { display:flex; justify-content:flex-end; margin-top:20px; padding-top:18px; border-top:1px solid var(--cp-border); }
+  .cp-pu-submit { padding:12px 28px; font-size:14px; }
+  .cp-pu-submit:disabled { opacity:0.55; cursor:not-allowed; filter:grayscale(0.4); }
   .cp-a4a-grid {
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
@@ -1742,6 +1763,15 @@
             el.appendChild(buildA4aPostsApprovalCard(d));
             return;
           }
+          // Branch: agri4all-product-uploads gets per-image cards bundled
+          // into ONE submission. Per-card Approve/Changes are local state;
+          // a single Submit Review button at the bottom does one POST so
+          // the change-request counter only increments by 1 regardless of
+          // how many images had changes requested.
+          if (d.type === 'agri4all-product-uploads') {
+            el.appendChild(buildProductUploadApprovalCard(d));
+            return;
+          }
 
           var card = document.createElement('div');
           card.className = 'cp-approval-card';
@@ -2183,6 +2213,232 @@
     if (s === 'approved') return 'Approved';
     if (s === 'changes_requested') return 'Changes Requested';
     return 'Pending';
+  }
+
+  // ── Agri4All Product Uploads: per-image cards bundled into one submit ──
+  // Per-image Approve / Request Changes clicks mutate local state only.
+  // The Submit Review button at the bottom does ONE POST to either
+  // /approve (when every image is approved) or /request-changes with the
+  // bundled per-image notes. One submission = one counter increment.
+  function buildProductUploadApprovalCard(d) {
+    var meta = d.metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) { meta = {}; } }
+    var images = (meta.product_images && Array.isArray(meta.product_images.files))
+      ? meta.product_images.files.slice() : [];
+    var clientName = d.clientName || meta.clientName || '';
+    var changeCount = parseInt(d.changeRequestCount || 0, 10) || 0;
+    var changesLeft = Math.max(0, 3 - changeCount);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'cp-a4a-wrap cp-pu-wrap';
+
+    var title = document.createElement('h3');
+    title.className = 'cp-a4a-wrap-title';
+    title.textContent = (clientName ? clientName + ' — ' : '') + 'Agri4All Product Uploads';
+    wrap.appendChild(title);
+
+    var subMeta = document.createElement('div');
+    subMeta.className = 'cp-approval-meta';
+    var subParts = [];
+    if (d.deliveryMonth) subParts.push(d.deliveryMonth);
+    subParts.push(images.length + ' image' + (images.length === 1 ? '' : 's'));
+    subMeta.textContent = subParts.join(' · ');
+    wrap.appendChild(subMeta);
+
+    var revisions = document.createElement('div');
+    revisions.className = 'cp-change-counter' + (changesLeft <= 0 ? ' exhausted' : '');
+    revisions.textContent = changesLeft + ' of 3 change requests remaining';
+    wrap.appendChild(revisions);
+
+    if (images.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'cp-empty';
+      empty.style.marginTop = '14px';
+      empty.textContent = 'No product images uploaded yet.';
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    // Local decisions state — keyed by image URL because the backend
+    // identifies images by URL too (no per-image id exists today).
+    // Each entry: { status: 'approve'|'changes'|null, notes: string }
+    var decisions = {};
+    images.forEach(function (url) { decisions[url] = { status: null, notes: '' }; });
+
+    var grid = document.createElement('div');
+    grid.className = 'cp-pu-grid';
+    wrap.appendChild(grid);
+
+    var submitBtn; // forward-declared — defined below, refreshed by per-card actions
+
+    function refreshSubmitState() {
+      if (!submitBtn) return;
+      var allDecided = Object.keys(decisions).every(function (u) { return decisions[u].status; });
+      var anyChanges = Object.keys(decisions).some(function (u) { return decisions[u].status === 'changes'; });
+      var allApproved = Object.keys(decisions).every(function (u) { return decisions[u].status === 'approve'; });
+      submitBtn.disabled = !allDecided || (anyChanges && changesLeft <= 0);
+      if (!allDecided) {
+        submitBtn.textContent = 'Review every image to submit';
+      } else if (allApproved) {
+        submitBtn.textContent = 'Approve all images';
+        submitBtn.className = 'cp-btn cp-btn-approve cp-pu-submit';
+      } else {
+        submitBtn.textContent = 'Submit changes (1 of ' + changesLeft + ' remaining)';
+        submitBtn.className = 'cp-btn cp-btn-changes cp-pu-submit';
+      }
+    }
+
+    images.forEach(function (url, idx) {
+      var card = document.createElement('div');
+      card.className = 'cp-pu-card';
+      card.setAttribute('data-decision', '');
+
+      var thumb = document.createElement('div');
+      thumb.className = 'cp-pu-thumb';
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Product image ' + (idx + 1);
+      img.addEventListener('click', function () { openLightbox(url); });
+      thumb.appendChild(img);
+      card.appendChild(thumb);
+
+      var label = document.createElement('div');
+      label.className = 'cp-pu-label';
+      label.textContent = 'Image ' + (idx + 1);
+      card.appendChild(label);
+
+      var actions = document.createElement('div');
+      actions.className = 'cp-pu-actions';
+
+      var approveBtn = document.createElement('button');
+      approveBtn.type = 'button';
+      approveBtn.className = 'cp-pu-toggle cp-pu-toggle-approve';
+      approveBtn.textContent = '✓ Approve';
+
+      var changesBtn = document.createElement('button');
+      changesBtn.type = 'button';
+      changesBtn.className = 'cp-pu-toggle cp-pu-toggle-changes';
+      changesBtn.textContent = '✎ Request Changes';
+
+      var notesBox = document.createElement('textarea');
+      notesBox.className = 'cp-pu-notes';
+      notesBox.placeholder = 'Describe what to change for this image...';
+      notesBox.style.display = 'none';
+      notesBox.addEventListener('input', function () {
+        decisions[url].notes = notesBox.value;
+      });
+
+      function setDecision(next) {
+        decisions[url].status = next;
+        card.setAttribute('data-decision', next);
+        approveBtn.classList.toggle('active', next === 'approve');
+        changesBtn.classList.toggle('active', next === 'changes');
+        notesBox.style.display = next === 'changes' ? 'block' : 'none';
+        if (next !== 'changes') {
+          notesBox.value = '';
+          decisions[url].notes = '';
+        }
+        refreshSubmitState();
+      }
+
+      approveBtn.addEventListener('click', function () { setDecision('approve'); });
+      changesBtn.addEventListener('click', function () { setDecision('changes'); });
+
+      actions.appendChild(approveBtn);
+      actions.appendChild(changesBtn);
+      card.appendChild(actions);
+      card.appendChild(notesBox);
+      grid.appendChild(card);
+    });
+
+    var submitBar = document.createElement('div');
+    submitBar.className = 'cp-pu-submit-bar';
+    submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'cp-btn cp-pu-submit';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Review every image to submit';
+
+    submitBtn.addEventListener('click', function () {
+      var entries = Object.keys(decisions).map(function (url, i) {
+        return { url: url, index: i, status: decisions[url].status, notes: decisions[url].notes || '' };
+      });
+      var anyChanges = entries.some(function (e) { return e.status === 'changes'; });
+      var allApproved = entries.every(function (e) { return e.status === 'approve'; });
+
+      submitBtn.disabled = true;
+      var originalLabel = submitBtn.textContent;
+      submitBtn.textContent = 'Submitting...';
+
+      if (allApproved) {
+        // Single approve POST — no counter increment.
+        fetch('/api/portal/' + token + '/approvals/' + d.id + '/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_decisions: entries })
+        }).then(function (r) { return r.json().catch(function () { return {}; }); })
+          .then(function (res) {
+            if (res && res.error) {
+              alert(res.error);
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalLabel;
+              return;
+            }
+            renderTab();
+          });
+        return;
+      }
+
+      if (!anyChanges) {
+        // Shouldn't happen because refreshSubmitState gates this — but
+        // guard anyway in case state desyncs from button enabled-ness.
+        alert('Please mark every image as approved or request changes first.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+        return;
+      }
+
+      // Bundle: one /request-changes POST. Backend increments
+      // change_request_count by exactly 1 for this submission, regardless
+      // of how many images were in the bundle.
+      var noteLines = entries
+        .filter(function (e) { return e.status === 'changes'; })
+        .map(function (e) {
+          var n = e.notes ? e.notes.trim() : '';
+          return 'Image ' + (e.index + 1) + (n ? ': ' + n : ': (no notes)');
+        });
+      var approvedLines = entries
+        .filter(function (e) { return e.status === 'approve'; })
+        .map(function (e) { return 'Image ' + (e.index + 1); });
+      var changeNotes = noteLines.join('\n\n');
+      if (approvedLines.length > 0) {
+        changeNotes += '\n\nApproved (no changes): ' + approvedLines.join(', ');
+      }
+
+      fetch('/api/portal/' + token + '/approvals/' + d.id + '/request-changes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          change_notes: changeNotes,
+          post_updates: { image_decisions: entries }
+        })
+      }).then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (res) {
+          if (res && res.error) {
+            alert(res.error);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalLabel;
+            return;
+          }
+          renderTab();
+        });
+    });
+
+    submitBar.appendChild(submitBtn);
+    wrap.appendChild(submitBar);
+
+    refreshSubmitState();
+    return wrap;
   }
 
   function buildA4aPostsApprovalCard(d) {
