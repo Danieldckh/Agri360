@@ -88,9 +88,14 @@
       left: {
         title: 'Design',
         searchPlaceholder: 'Search design...',
+        // Includes client_changes so Agri4All Product Uploads bounced back
+        // from the client portal land here for re-design. Backend
+        // DEPT_MAP at api/routes/deliverables.js:401 already routes
+        // client_changes for product uploads to the design dept; this
+        // filter is the matching UI gate.
         filter: function (d) {
           return !!A4A_DESIGN_TYPES[d.type] &&
-            (d.status === 'design' || d.status === 'design_changes');
+            (d.status === 'design' || d.status === 'design_changes' || d.status === 'client_changes');
         },
         columns: [
           C.eye(container),
