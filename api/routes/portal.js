@@ -342,6 +342,41 @@ router.get('/:token/approvals', async (req, res) => {
   }
 });
 
+// GET /:token/approvals/history — list deliverables that have already moved
+// past the client approval gate (approved, scheduled, posted, in production
+// for non-content types, etc.). The portal renders this as the "approval
+// history" panel so the client can see what they've already signed off on.
+router.get('/:token/approvals/history', async (req, res) => {
+  try {
+    const client = await fetchClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ error: 'Invalid token' });
+    const result = await pool.query(
+      `SELECT d.id, d.title, d.type, d.status, d.delivery_month,
+              d.status_changed_at, d.updated_at, d.metadata,
+              d.change_request_count, d.created_at,
+              bf.title AS booking_form_title,
+              c.id AS client_id, c.name AS client_name
+       FROM deliverables d
+       LEFT JOIN booking_forms bf ON bf.id = d.booking_form_id
+       LEFT JOIN clients c ON c.id = bf.client_id
+       WHERE c.id = $1
+         AND d.status IN (
+           'approved','agri4all-links','create_links',
+           'ready_for_scheduling','scheduled','posted',
+           'create_stat_sheet','complete',
+           'translating','ready_to_upload',
+           'development','site_development','hosting_seo'
+         )
+       ORDER BY COALESCE(d.status_changed_at, d.updated_at) DESC`,
+      [client.id]
+    );
+    res.json(result.rows.map(toCamelCase));
+  } catch (err) {
+    console.error('Portal approvals history error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /:token/approvals/:deliverableId/approve — client approves a deliverable.
 // Scoped by client_id so a valid token can only approve its own client's rows.
 router.post('/:token/approvals/:deliverableId/approve', async (req, res) => {
@@ -349,7 +384,7 @@ router.post('/:token/approvals/:deliverableId/approve', async (req, res) => {
     const client = await fetchClientByToken(req.params.token);
     if (!client) return res.status(404).json({ error: 'Invalid token' });
     const result = await pool.query(
-      `UPDATE deliverables SET status = 'approved', updated_at = NOW()
+      `UPDATE deliverables SET status = 'approved', status_changed_at = NOW(), updated_at = NOW()
        WHERE id = $1 AND client_id = $2 RETURNING *`,
       [req.params.deliverableId, client.id]
     );

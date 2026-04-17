@@ -609,6 +609,231 @@
     text-align: center;
   }
 
+  /* Completed form card — clickable to open answer viewer */
+  .cp-form-card.cp-form-card-completed {
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .cp-form-card.cp-form-card-completed:hover {
+    border-color: var(--cp-border-strong);
+    box-shadow: var(--cp-shadow-float);
+    transform: translateY(-1px);
+  }
+  .cp-form-card.cp-form-card-completed:focus-visible {
+    outline: 3px solid var(--cp-ring);
+    outline-offset: 2px;
+  }
+  .cp-form-card-completed-sub {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--cp-text-muted);
+    font-weight: 600;
+  }
+
+  /* Form-detail (read-only answers) modal */
+  .cp-form-detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .cp-form-detail-modal {
+    background: var(--cp-surface);
+    border-radius: var(--cp-radius);
+    max-width: 720px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--cp-shadow-float);
+    display: flex;
+    flex-direction: column;
+  }
+  .cp-form-detail-header {
+    padding: 22px 56px 16px 26px;
+    border-bottom: 1px solid var(--cp-border);
+  }
+  .cp-form-detail-title {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--cp-text);
+  }
+  .cp-form-detail-sub {
+    font-size: 12px;
+    color: var(--cp-text-muted);
+    font-weight: 600;
+  }
+  .cp-form-detail-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .cp-form-detail-body {
+    padding: 22px 26px 26px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cp-form-detail-loading,
+  .cp-form-detail-error {
+    padding: 24px;
+    text-align: center;
+    color: var(--cp-text-muted);
+    font-size: 13px;
+  }
+  .cp-form-detail-error { color: var(--cp-danger); }
+  .cp-form-detail-field {
+    background: var(--cp-surface-alt);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius-sm);
+    padding: 16px 18px;
+  }
+  .cp-form-detail-question {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cp-text);
+    margin-bottom: 10px;
+  }
+  .cp-form-detail-sublabel {
+    font-size: 12px;
+    color: var(--cp-text-muted);
+    margin: 8px 0 4px;
+    font-weight: 600;
+  }
+  .cp-form-detail-answer {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--cp-text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 20px;
+  }
+  .cp-form-detail-answer.cp-form-detail-empty {
+    color: var(--cp-text-muted);
+    font-style: italic;
+  }
+  .cp-form-detail-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .cp-form-detail-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    color: var(--cp-text-secondary);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .cp-form-detail-file:hover {
+    border-color: var(--cp-border-strong);
+    color: var(--cp-text);
+  }
+  .cp-form-detail-file img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .cp-form-detail-file span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Approvals — history section */
+  .cp-history-section {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--cp-border);
+  }
+  .cp-history-heading {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--cp-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 14px;
+  }
+  .cp-history-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .cp-history-item {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: var(--cp-shadow-card);
+  }
+  .cp-history-item:hover {
+    border-color: var(--cp-border-strong);
+    box-shadow: var(--cp-shadow-float);
+    transform: translateY(-1px);
+  }
+  .cp-history-item-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--cp-text);
+  }
+  .cp-history-item-meta {
+    font-size: 12px;
+    color: var(--cp-text-muted);
+    font-weight: 600;
+  }
+  .cp-history-item-date {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cp-success);
+  }
+
+  /* History-only visual: dim the approval card and hide any leftover
+     interactive controls so the modal version is purely a read-only
+     "what you approved" view. */
+  .cp-card-history { opacity: 0.95; }
+  .cp-card-history button,
+  .cp-card-history input,
+  .cp-card-history textarea,
+  .cp-card-history .cp-approval-actions,
+  .cp-card-history .cp-changes-box,
+  .cp-card-history .cp-pu-submit-bar,
+  .cp-card-history .cp-pu-actions,
+  .cp-card-history .cp-pu-notes,
+  .cp-card-history .cp-cc-modal-actions { display: none !important; }
+  .cp-card-history [contenteditable] { pointer-events: none; }
+
   /* ── Approval cards ── */
   .cp-approval-card {
     background: var(--cp-surface);
@@ -1603,10 +1828,32 @@
           card.appendChild(title);
 
           if (form.status === 'completed') {
+            card.classList.add('cp-form-card-completed');
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-label', 'View answers for ' + (form.name || 'completed form'));
+
             var done = document.createElement('div');
             done.className = 'cp-form-completed';
             done.textContent = '✓ Completed';
             card.appendChild(done);
+
+            var completedAt = form.completedAt || form.completed_at;
+            if (completedAt) {
+              var sub = document.createElement('div');
+              sub.className = 'cp-form-card-completed-sub';
+              sub.textContent = 'Submitted on ' + formatSubmittedDate(completedAt);
+              card.appendChild(sub);
+            }
+
+            function openDetail() { openCompletedFormModal(form); }
+            card.addEventListener('click', openDetail);
+            card.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openDetail();
+              }
+            });
             el.appendChild(card);
             return;
           }
@@ -1743,15 +1990,190 @@
       });
   }
 
+  // ========== COMPLETED FORM ANSWER VIEWER ==========
+  // Formats an ISO timestamp as "12 Apr 2026" (matches the history-card style).
+  function formatSubmittedDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    try {
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return d.toDateString();
+    }
+  }
+
+  // Given a form (definition + stored responses), find the response value
+  // for one field. The submit handler writes both the canonical key
+  // (field.id / field.name / cardIdx_fIdx) and a legacy "cardIdx_fIdx" copy,
+  // so we try the canonical key first then fall back.
+  function lookupResponse(responses, field, cardIdx, fIdx) {
+    if (!responses || typeof responses !== 'object') return undefined;
+    var canonical = (field && field.id != null)
+      ? String(field.id)
+      : ((field && field.name != null) ? String(field.name) : (cardIdx + '_' + fIdx));
+    var legacy = cardIdx + '_' + fIdx;
+    if (responses[canonical] !== undefined) return responses[canonical];
+    if (responses[legacy] !== undefined) return responses[legacy];
+    return undefined;
+  }
+
+  // Render a single field's answer block (read-only). Returns the
+  // outer .cp-form-detail-answer element.
+  function renderAnswerBlock(value, fieldType) {
+    var box = document.createElement('div');
+    box.className = 'cp-form-detail-answer';
+    if (fieldType === 'file') {
+      var files = Array.isArray(value) ? value : (value ? [value] : []);
+      if (files.length === 0) {
+        box.classList.add('cp-form-detail-empty');
+        box.textContent = 'No files uploaded';
+        return box;
+      }
+      box.textContent = '';
+      var list = document.createElement('div');
+      list.className = 'cp-form-detail-files';
+      files.forEach(function (f) {
+        var span = document.createElement('span');
+        span.className = 'cp-form-detail-file';
+        var nameEl = document.createElement('span');
+        nameEl.textContent = (f && typeof f === 'object' && f.name) ? f.name : String(f);
+        span.appendChild(nameEl);
+        list.appendChild(span);
+      });
+      box.appendChild(list);
+      return box;
+    }
+    var str = (value === undefined || value === null || value === '') ? '' : String(value);
+    if (!str) {
+      box.classList.add('cp-form-detail-empty');
+      box.textContent = 'No answer provided';
+    } else {
+      box.textContent = str;
+    }
+    return box;
+  }
+
+  // Builds + displays the read-only answer modal for a completed form.
+  // Re-fetches the form via GET /:token/forms/:formToken to pick up the
+  // latest fields/responses (in case the row was updated server-side).
+  function openCompletedFormModal(form) {
+    var overlay = document.createElement('div');
+    overlay.className = 'cp-form-detail-overlay';
+    var modal = document.createElement('div');
+    modal.className = 'cp-form-detail-modal';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'cp-form-detail-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    modal.appendChild(closeBtn);
+
+    var header = document.createElement('div');
+    header.className = 'cp-form-detail-header';
+    var h = document.createElement('h3');
+    h.className = 'cp-form-detail-title';
+    h.textContent = form.name || 'Completed form';
+    header.appendChild(h);
+    var sub = document.createElement('div');
+    sub.className = 'cp-form-detail-sub';
+    var initialCompleted = form.completedAt || form.completed_at;
+    sub.textContent = initialCompleted ? ('Submitted on ' + formatSubmittedDate(initialCompleted)) : '';
+    header.appendChild(sub);
+    modal.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'cp-form-detail-body';
+    var loading = document.createElement('div');
+    loading.className = 'cp-form-detail-loading';
+    loading.textContent = 'Loading…';
+    body.appendChild(loading);
+    modal.appendChild(body);
+
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+
+    function paint(latest) {
+      while (body.firstChild) body.removeChild(body.firstChild);
+      var completed = latest.completedAt || latest.completed_at;
+      if (completed) sub.textContent = 'Submitted on ' + formatSubmittedDate(completed);
+      var rawCards = latest.fields || [];
+      var responses = latest.responses || {};
+      if (typeof responses === 'string') {
+        try { responses = JSON.parse(responses); } catch (e) { responses = {}; }
+      }
+      if (!Array.isArray(rawCards) || rawCards.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'cp-form-detail-loading';
+        empty.textContent = 'This form has no questions on file.';
+        body.appendChild(empty);
+        return;
+      }
+      rawCards.forEach(function (rawCard, cardIdx) {
+        var fields;
+        if (rawCard && Array.isArray(rawCard.fields)) {
+          fields = rawCard.fields;
+        } else {
+          fields = [{ fieldType: (rawCard && rawCard.fieldType) || 'text', label: '' }];
+        }
+        var fieldWrap = document.createElement('div');
+        fieldWrap.className = 'cp-form-detail-field';
+        var q = document.createElement('div');
+        q.className = 'cp-form-detail-question';
+        q.textContent = (cardIdx + 1) + '. ' + ((rawCard && rawCard.question) || '');
+        fieldWrap.appendChild(q);
+        fields.forEach(function (f, fIdx) {
+          if (f && f.label && fields.length > 1) {
+            var lbl = document.createElement('div');
+            lbl.className = 'cp-form-detail-sublabel';
+            lbl.textContent = f.label;
+            fieldWrap.appendChild(lbl);
+          }
+          var value = lookupResponse(responses, f, cardIdx, fIdx);
+          fieldWrap.appendChild(renderAnswerBlock(value, f && f.fieldType));
+        });
+        body.appendChild(fieldWrap);
+      });
+    }
+
+    fetch('/api/portal/' + token + '/forms/' + form.token)
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (latest) {
+        if (!latest || latest.error) {
+          // Fall back to the form payload we already had on the list.
+          paint(form);
+          return;
+        }
+        paint(latest);
+      })
+      .catch(function () { paint(form); });
+  }
+
   // ========== APPROVALS ==========
   function renderApprovals(el) {
     fetch('/api/portal/' + token + '/approvals')
       .then(function (r) { return r.json(); })
       .then(function (items) {
+        var pendingHost = document.createElement('div');
+        pendingHost.className = 'cp-approvals-pending';
+        el.appendChild(pendingHost);
+
         if (!items || items.length === 0) {
-          el.innerHTML = '<div class="cp-empty">No deliverables pending approval right now.</div>';
-          return;
+          pendingHost.innerHTML = '<div class="cp-empty">No deliverables pending approval right now.</div>';
+        } else {
+          renderPendingApprovals(pendingHost, items);
         }
+
+        renderApprovalHistory(el);
+      });
+  }
+
+  function renderPendingApprovals(el, items) {
         items.forEach(function (d) {
           // Branch: content-calendar gets its own per-post approval UX
           if (d.type === 'sm-content-calendar') {
@@ -1884,7 +2306,219 @@
 
           el.appendChild(card);
         });
-      });
+  }
+
+  // ========== APPROVAL HISTORY ==========
+  // Fetches deliverables that have already been approved by this client
+  // and renders them as a "Previously approved" section. Each item is
+  // clickable; clicking opens a read-only version of the original
+  // approval card so the client can see exactly what they approved.
+  function renderApprovalHistory(parentEl) {
+    fetch('/api/portal/' + token + '/approvals/history')
+      .then(function (r) { return r.json().catch(function () { return []; }); })
+      .then(function (history) {
+        if (!Array.isArray(history)) history = [];
+        var section = document.createElement('div');
+        section.className = 'cp-history-section';
+
+        var heading = document.createElement('h3');
+        heading.className = 'cp-history-heading';
+        heading.textContent = 'Previously approved';
+        section.appendChild(heading);
+
+        if (history.length === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'cp-empty';
+          empty.textContent = 'No previously approved deliverables yet.';
+          section.appendChild(empty);
+          parentEl.appendChild(section);
+          return;
+        }
+
+        var grid = document.createElement('div');
+        grid.className = 'cp-history-grid';
+        history.forEach(function (d) {
+          var item = document.createElement('div');
+          item.className = 'cp-history-item';
+          item.setAttribute('role', 'button');
+          item.setAttribute('tabindex', '0');
+
+          var titleEl = document.createElement('div');
+          titleEl.className = 'cp-history-item-title';
+          titleEl.textContent = d.title || 'Untitled';
+          item.appendChild(titleEl);
+
+          var metaEl = document.createElement('div');
+          metaEl.className = 'cp-history-item-meta';
+          var typeLabel = approvalTypeLabel(d.type);
+          var metaParts = [];
+          if (typeLabel) metaParts.push(typeLabel);
+          if (d.deliveryMonth) metaParts.push(d.deliveryMonth);
+          metaEl.textContent = metaParts.join(' · ');
+          item.appendChild(metaEl);
+
+          var when = d.statusChangedAt || d.updatedAt || d.status_changed_at || d.updated_at;
+          var dateEl = document.createElement('div');
+          dateEl.className = 'cp-history-item-date';
+          dateEl.textContent = when ? ('Approved on ' + formatSubmittedDate(when)) : 'Approved';
+          item.appendChild(dateEl);
+
+          function open() { openHistoryDetailModal(d); }
+          item.addEventListener('click', open);
+          item.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              open();
+            }
+          });
+          grid.appendChild(item);
+        });
+        section.appendChild(grid);
+        parentEl.appendChild(section);
+      })
+      .catch(function () { /* silent — history is non-critical */ });
+  }
+
+  function approvalTypeLabel(t) {
+    if (!t) return '';
+    var map = {
+      'sm-content-calendar': 'Content Calendar',
+      'agri4all-posts': 'Agri4All Posts',
+      'agri4all-product-uploads': 'Agri4All Product Uploads'
+    };
+    if (map[t]) return map[t];
+    // Generic fallback: turn "some-type-name" into "Some Type Name"
+    return String(t).split(/[-_]/g).map(function (s) {
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+    }).join(' ');
+  }
+
+  // Wraps one of the existing approval-card builders, then strips/disables
+  // any interactive controls so the result is a pure read-only view of
+  // what was previously approved.
+  function wrapAsHistoryCard(buildFn, deliverable) {
+    var node;
+    try { node = buildFn(deliverable); }
+    catch (e) {
+      node = document.createElement('div');
+      node.className = 'cp-empty';
+      node.textContent = 'Could not render this approved item.';
+      return node;
+    }
+    if (!node) {
+      node = document.createElement('div');
+      node.className = 'cp-empty';
+      node.textContent = 'Nothing to show.';
+      return node;
+    }
+    node.classList.add('cp-card-history');
+    // Defensive disable in case CSS doesn't catch a control.
+    node.querySelectorAll('button, input, textarea, select').forEach(function (ctrl) {
+      try { ctrl.disabled = true; } catch (_) {}
+    });
+    node.querySelectorAll('[contenteditable]').forEach(function (el) {
+      el.setAttribute('contenteditable', 'false');
+    });
+    return node;
+  }
+
+  // Builds a generic read-only card for approved deliverables that don't
+  // have a specialised builder (i.e. the plain branch in renderPendingApprovals).
+  function buildGenericApprovalCard(d) {
+    var card = document.createElement('div');
+    card.className = 'cp-approval-card';
+
+    var title = document.createElement('h3');
+    title.className = 'cp-approval-title';
+    title.textContent = d.title || 'Untitled';
+    card.appendChild(title);
+
+    var meta = document.createElement('div');
+    meta.className = 'cp-approval-meta';
+    meta.textContent = (approvalTypeLabel(d.type) || d.type || '') +
+      (d.deliveryMonth ? ' · ' + d.deliveryMonth : '');
+    card.appendChild(meta);
+
+    var meta2 = d.metadata || {};
+    if (typeof meta2 === 'string') { try { meta2 = JSON.parse(meta2); } catch (e) { meta2 = {}; } }
+    var posts = Array.isArray(meta2.posts) ? meta2.posts : [];
+    posts.forEach(function (post, idx) {
+      var pCard = document.createElement('div');
+      pCard.className = 'cp-post-card';
+      var date = document.createElement('div');
+      date.className = 'cp-post-date';
+      date.textContent = post.date || 'Post ' + (idx + 1);
+      pCard.appendChild(date);
+      var cap = document.createElement('div');
+      cap.className = 'cp-post-caption';
+      cap.innerHTML = post.caption || '';
+      pCard.appendChild(cap);
+      if (post.images && post.images.length > 0) {
+        var imgs = document.createElement('div');
+        imgs.className = 'cp-post-images';
+        post.images.forEach(function (url) {
+          var img = document.createElement('img');
+          img.src = url;
+          img.addEventListener('click', function () { openLightbox(url); });
+          imgs.appendChild(img);
+        });
+        pCard.appendChild(imgs);
+      }
+      card.appendChild(pCard);
+    });
+
+    return card;
+  }
+
+  // Opens a modal that displays the read-only version of an approved
+  // deliverable, re-using the same builders as the live approvals tab.
+  function openHistoryDetailModal(d) {
+    var overlay = document.createElement('div');
+    overlay.className = 'cp-form-detail-overlay';
+    var modal = document.createElement('div');
+    modal.className = 'cp-form-detail-modal';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'cp-form-detail-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    modal.appendChild(closeBtn);
+
+    var header = document.createElement('div');
+    header.className = 'cp-form-detail-header';
+    var h = document.createElement('h3');
+    h.className = 'cp-form-detail-title';
+    h.textContent = d.title || 'Approved deliverable';
+    header.appendChild(h);
+    var sub = document.createElement('div');
+    sub.className = 'cp-form-detail-sub';
+    var when = d.statusChangedAt || d.updatedAt || d.status_changed_at || d.updated_at;
+    sub.textContent = when ? ('Approved on ' + formatSubmittedDate(when)) : 'Approved';
+    header.appendChild(sub);
+    modal.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'cp-form-detail-body';
+    var inner;
+    if (d.type === 'sm-content-calendar') {
+      inner = wrapAsHistoryCard(buildCcApprovalCard, d);
+    } else if (d.type === 'agri4all-posts') {
+      inner = wrapAsHistoryCard(buildA4aPostsApprovalCard, d);
+    } else if (d.type === 'agri4all-product-uploads') {
+      inner = wrapAsHistoryCard(buildProductUploadApprovalCard, d);
+    } else {
+      inner = wrapAsHistoryCard(buildGenericApprovalCard, d);
+    }
+    body.appendChild(inner);
+    modal.appendChild(body);
+
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
   }
 
   // ========== CONTENT CALENDAR APPROVAL UX ==========
