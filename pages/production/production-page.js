@@ -5422,7 +5422,29 @@
       '.a4a-posts-actions .a4a-btn-primary { background:#10B981; color:#ffffff; border-color:#10B981; }',
       '.a4a-posts-actions .a4a-btn-primary:hover:not(:disabled) { filter:brightness(1.06); }',
       '.a4a-posts-actions button:disabled { opacity:0.5; cursor:not-allowed; }',
-      '.a4a-posts-toast { position:fixed; left:50%; bottom:32px; transform:translateX(-50%); background:#10B981; color:#ffffff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:700; box-shadow:0 10px 30px rgba(16,185,129,0.35); z-index:5000; }'
+      '.a4a-posts-toast { position:fixed; left:50%; bottom:32px; transform:translateX(-50%); background:#10B981; color:#ffffff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:700; box-shadow:0 10px 30px rgba(16,185,129,0.35); z-index:5000; }',
+      // New image-forward layout
+      '.a4a-posts-main-grid { display:grid; grid-template-columns: minmax(360px, 1.3fr) minmax(320px, 1fr); gap:22px; align-items:start; }',
+      '.a4a-posts-image-panel { display:flex; flex-direction:column; gap:14px; background:var(--surface,#ffffff); border:1px solid var(--border-color,#e2e8f0); border-radius:14px; padding:16px; min-height:420px; }',
+      '.a4a-posts-hero { position:relative; flex:1; min-height:360px; display:flex; align-items:center; justify-content:center; background:var(--surface-alt,#f1f5f9); border-radius:12px; overflow:hidden; cursor:zoom-in; outline:none; }',
+      '.a4a-posts-hero:focus-visible { box-shadow:0 0 0 3px rgba(16,185,129,0.35); }',
+      '.a4a-posts-hero img { max-width:100%; max-height:520px; object-fit:contain; display:block; }',
+      '.a4a-posts-hero-empty { padding:40px 20px; text-align:center; color:var(--text-muted,#94a3b8); font-size:13px; border:2px dashed var(--border-color,#e2e8f0); border-radius:12px; width:100%; }',
+      '.a4a-posts-hero-pill { position:absolute; top:12px; left:12px; }',
+      '.a4a-posts-thumb-strip { display:flex; gap:10px; flex-wrap:wrap; padding-top:4px; }',
+      '.a4a-posts-thumb { position:relative; width:72px; height:72px; border-radius:10px; overflow:hidden; border:2px solid transparent; cursor:pointer; background:var(--surface-alt,#f1f5f9); flex-shrink:0; transition:border-color 0.18s, transform 0.18s; }',
+      '.a4a-posts-thumb.active { border-color:#10B981; }',
+      '.a4a-posts-thumb:hover { transform:translateY(-1px); }',
+      '.a4a-posts-thumb img { width:100%; height:100%; object-fit:cover; display:block; }',
+      '.a4a-posts-thumb-pill { position:absolute; bottom:4px; left:4px; padding:2px 6px; border-radius:6px; font-size:9px; font-weight:700; color:#ffffff; letter-spacing:0.02em; line-height:1.2; }',
+      '.a4a-posts-section-card { display:flex; flex-direction:column; gap:10px; padding:14px 16px; background:var(--surface,#ffffff); border:1px solid var(--border-color,#e2e8f0); border-radius:12px; }',
+      '.a4a-posts-section-card.a4a-section-complete { border-color:#10B981; background:rgba(16,185,129,0.05); }',
+      '.a4a-posts-section-head { display:flex; align-items:center; gap:10px; }',
+      '.a4a-posts-section-head .a4a-section-check { margin-left:auto; }',
+      '@media (max-width: 900px) {',
+      '  .a4a-posts-main-grid { grid-template-columns: 1fr; }',
+      '  .a4a-posts-hero img { max-height:360px; }',
+      '}'
     ].join('\n');
     container.appendChild(styleBlock);
 
@@ -5472,34 +5494,38 @@
     wrapper.appendChild(recap);
     fetchRequestFormRecap(deliverable.id, recap);
 
-    // Two-column grid
+    // ── Image-left / sections-right main grid ──────────────
     var grid = document.createElement('div');
-    grid.className = 'a4a-posts-dashboard-grid';
+    grid.className = 'a4a-posts-main-grid';
 
-    var leftCol = document.createElement('div');
-    leftCol.className = 'a4a-posts-col';
-    var leftTitle = document.createElement('div');
-    leftTitle.className = 'a4a-posts-col-title';
-    leftTitle.textContent = 'Deliverables';
-    leftCol.appendChild(leftTitle);
+    // Left panel — hero image + thumbnail strip
+    var imagePanel = document.createElement('div');
+    imagePanel.className = 'a4a-posts-image-panel';
 
-    var rightCol = document.createElement('div');
-    rightCol.className = 'a4a-posts-col';
-    var rightTitle = document.createElement('div');
-    rightTitle.className = 'a4a-posts-col-title';
-    rightTitle.textContent = 'Uploads';
-    rightCol.appendChild(rightTitle);
+    var hero = document.createElement('div');
+    hero.className = 'a4a-posts-hero';
+    hero.tabIndex = 0;
+    imagePanel.appendChild(hero);
 
-    grid.appendChild(leftCol);
-    grid.appendChild(rightCol);
+    var thumbStrip = document.createElement('div');
+    thumbStrip.className = 'a4a-posts-thumb-strip';
+    imagePanel.appendChild(thumbStrip);
+
+    // Right panel — stacked per-section cards (or empty notice)
+    var sectionsCol = document.createElement('div');
+    sectionsCol.className = 'a4a-posts-col';
+
+    grid.appendChild(imagePanel);
+    grid.appendChild(sectionsCol);
     wrapper.appendChild(grid);
 
-    // Empty-state guard
+    // Empty-state guard — no enabled types at all.
     if (enabledTypes.length === 0) {
       var empty = document.createElement('div');
-      empty.style.cssText = 'padding:24px;text-align:center;color:var(--text-muted,#94a3b8);font-size:13px;';
+      empty.className = 'a4a-posts-section-card';
+      empty.style.cssText += 'text-align:center;color:var(--text-muted,#94a3b8);font-size:13px;padding:24px;';
       empty.textContent = 'No post types enabled on this deliverable.';
-      leftCol.appendChild(empty);
+      sectionsCol.appendChild(empty);
     }
 
     // PATCH helper — persists the whole metadata object.
@@ -5510,6 +5536,120 @@
         body: JSON.stringify({ metadata: meta })
       });
     }
+
+    // ── Aggregated image list + gallery state ──────────────
+    // imageList is rebuilt on every upload/delete; activeIdx survives
+    // across re-renders of the thumbnails so the user's current selection
+    // is preserved when possible.
+    var imageList = [];
+    var activeIdx = 0;
+
+    function isImageUrl(u) {
+      if (!u) return false;
+      return /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(String(u));
+    }
+
+    function buildImageList() {
+      var list = [];
+      enabledTypes.forEach(function (t) {
+        var section = meta.sections[t.key];
+        if (!section || !Array.isArray(section.files)) return;
+        section.files.forEach(function (f) {
+          var url = (f && (f.url || f.src || f.path)) || (typeof f === 'string' ? f : null);
+          if (!url) return;
+          if (!isImageUrl(url)) return;
+          list.push({
+            url: url,
+            sectionKey: t.key,
+            sectionLabel: t.label,
+            pillClass: t.pillClass
+          });
+        });
+      });
+      imageList = list;
+      if (activeIdx >= imageList.length) activeIdx = 0;
+      if (activeIdx < 0) activeIdx = 0;
+    }
+
+    function renderHero() {
+      while (hero.firstChild) hero.removeChild(hero.firstChild);
+      if (!imageList.length) {
+        var emptyHero = document.createElement('div');
+        emptyHero.className = 'a4a-posts-hero-empty';
+        emptyHero.textContent = 'No images uploaded yet';
+        hero.appendChild(emptyHero);
+        hero.style.cursor = 'default';
+        return;
+      }
+      hero.style.cursor = 'zoom-in';
+      var current = imageList[activeIdx] || imageList[0];
+      var img = document.createElement('img');
+      img.src = current.url;
+      img.alt = current.sectionLabel + ' image';
+      hero.appendChild(img);
+      var heroPill = document.createElement('span');
+      heroPill.className = 'a4a-pill ' + current.pillClass + ' a4a-posts-hero-pill';
+      heroPill.textContent = current.sectionLabel;
+      hero.appendChild(heroPill);
+    }
+
+    function renderThumbs() {
+      while (thumbStrip.firstChild) thumbStrip.removeChild(thumbStrip.firstChild);
+      imageList.forEach(function (entry, idx) {
+        var thumb = document.createElement('div');
+        thumb.className = 'a4a-posts-thumb' + (idx === activeIdx ? ' active' : '');
+        var tImg = document.createElement('img');
+        tImg.src = entry.url;
+        tImg.alt = entry.sectionLabel + ' thumbnail';
+        thumb.appendChild(tImg);
+        var tPill = document.createElement('span');
+        tPill.className = 'a4a-pill ' + entry.pillClass + ' a4a-posts-thumb-pill';
+        // Short label on thumbnail pill
+        var shortLabel = entry.sectionKey === 'facebook_posts' ? 'FB'
+          : entry.sectionKey === 'instagram_posts' ? 'IG'
+          : entry.sectionKey === 'instagram_stories' ? 'Story' : entry.sectionLabel;
+        tPill.textContent = shortLabel;
+        thumb.appendChild(tPill);
+        thumb.addEventListener('click', function () {
+          activeIdx = idx;
+          renderHero();
+          renderThumbs();
+        });
+        thumbStrip.appendChild(thumb);
+      });
+    }
+
+    function refreshGallery() {
+      buildImageList();
+      renderHero();
+      renderThumbs();
+    }
+
+    // Hero click → lightbox on current image.
+    hero.addEventListener('click', function () {
+      if (imageList.length && imageList[activeIdx]) {
+        openLightbox(imageList[activeIdx].url);
+      }
+    });
+
+    // Keyboard nav — left / right cycle while hero has focus.
+    hero.addEventListener('keydown', function (e) {
+      if (!imageList.length) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        activeIdx = (activeIdx - 1 + imageList.length) % imageList.length;
+        renderHero();
+        renderThumbs();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        activeIdx = (activeIdx + 1) % imageList.length;
+        renderHero();
+        renderThumbs();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (imageList[activeIdx]) openLightbox(imageList[activeIdx].url);
+      }
+    });
 
     // Track per-type DOM so we can update the complete state after uploads.
     var rowRefs = {};
@@ -5522,65 +5662,64 @@
       var amountInt = parseInt(meta[t.key + '_amount'] || 0, 10) || 0;
       var curatedRaw = meta[t.key + '_curated_amount'];
 
-      // ── Left col: summary row ────────────────────────────
-      var row = document.createElement('div');
-      row.className = 'a4a-section-row';
+      // ── Right col: self-contained section card ──────────
+      var card = document.createElement('div');
+      card.className = 'a4a-posts-section-card';
+
+      var head = document.createElement('div');
+      head.className = 'a4a-posts-section-head';
+
+      var pill = document.createElement('span');
+      pill.className = 'a4a-pill ' + t.pillClass;
+      pill.textContent = t.label;
+      head.appendChild(pill);
 
       var check = document.createElement('span');
       check.className = 'a4a-section-check';
       check.textContent = '\u2713';
-      row.appendChild(check);
+      head.appendChild(check);
 
-      var metaWrap = document.createElement('div');
-      metaWrap.className = 'a4a-section-meta';
-
-      var pillRow = document.createElement('div');
-      pillRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
-      var pill = document.createElement('span');
-      pill.className = 'a4a-pill ' + t.pillClass;
-      pill.textContent = t.label;
-      pillRow.appendChild(pill);
-      metaWrap.appendChild(pillRow);
+      card.appendChild(head);
 
       var amtLine = document.createElement('div');
       amtLine.className = 'a4a-section-amount';
       var amtBits = ['Amount: <strong>' + (amountInt || '0') + '</strong>'];
       if (curatedRaw) amtBits.push('Curated: <strong>' + curatedRaw + '</strong>');
       amtLine.innerHTML = amtBits.join(' &middot; ');
-      metaWrap.appendChild(amtLine);
+      card.appendChild(amtLine);
 
       var progressLine = document.createElement('div');
       progressLine.className = 'a4a-section-amount';
-      metaWrap.appendChild(progressLine);
+      card.appendChild(progressLine);
 
-      row.appendChild(metaWrap);
-      leftCol.appendChild(row);
-
-      // ── Right col: upload block ──────────────────────────
+      // Upload block — same structure as before.
       var block = document.createElement('div');
       block.className = 'a4a-upload-block';
       var blockHeader = document.createElement('div');
       blockHeader.className = 'a4a-upload-header';
       var blockLabel = document.createElement('div');
       blockLabel.className = 'a4a-upload-label';
-      blockLabel.textContent = t.label + (amountInt ? ' — ' + amountInt : '');
+      blockLabel.textContent = 'Uploads' + (amountInt ? ' — target ' + amountInt : '');
       blockHeader.appendChild(blockLabel);
       var blockCounter = document.createElement('div');
       blockCounter.className = 'a4a-upload-counter';
       blockHeader.appendChild(blockCounter);
       block.appendChild(blockHeader);
 
-      // Upload area: wraps buildUploadArea and refreshes the row state
-      // after any upload/delete finishes saving.
+      // Upload area: wraps buildUploadArea and refreshes row state +
+      // the image gallery after any upload/delete finishes saving.
       var uploadArea = buildUploadArea(deliverable.id, section.files, function () {
         saveMetadata();
         refreshRow(t.key);
+        refreshGallery();
       }, 'Upload ' + t.label);
       block.appendChild(uploadArea);
-      rightCol.appendChild(block);
+      card.appendChild(block);
+
+      sectionsCol.appendChild(card);
 
       rowRefs[t.key] = {
-        row: row,
+        card: card,
         progress: progressLine,
         counter: blockCounter,
         amount: amountInt
@@ -5596,10 +5735,13 @@
       var count = (section.files || []).length;
       var target = ref.amount || 0;
       var complete = target > 0 && count >= target;
-      ref.row.classList.toggle('a4a-section-complete', complete);
+      ref.card.classList.toggle('a4a-section-complete', complete);
       ref.progress.innerHTML = 'Uploaded: <strong>' + count + '</strong>' + (target ? ' / ' + target : '');
       ref.counter.textContent = count + (target ? ' / ' + target : '') + ' uploaded';
     }
+
+    // Prime the gallery with whatever's already uploaded.
+    refreshGallery();
 
     // ── Action bar ────────────────────────────────────
     var actions = document.createElement('div');
