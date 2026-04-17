@@ -4327,6 +4327,67 @@
     var grid = document.createElement('div');
     grid.className = 'cc-img-grid';
 
+    var uploadInFlight = false;
+    // The backend imgUpload.array('images', N) caps each batch — keep this in
+    // sync with api/routes/deliverables.js:1326. Drops over the cap are split
+    // into successive POSTs so users never see an unexplained "file missing"
+    // hole in the gallery.
+    var BATCH_LIMIT = 10;
+
+    function uploadFiles(fileList, onDone) {
+      var fList = Array.from(fileList || []).filter(function (f) { return f && f.size != null; });
+      if (fList.length === 0) {
+        if (onDone) onDone();
+        return;
+      }
+      uploadInFlight = true;
+      wrap.classList.add('wd-upload-area--uploading');
+
+      var batches = [];
+      for (var i = 0; i < fList.length; i += BATCH_LIMIT) {
+        batches.push(fList.slice(i, i + BATCH_LIMIT));
+      }
+
+      function postBatch(batch) {
+        var fd = new FormData();
+        batch.forEach(function (f) { fd.append('images', f); });
+        return fetch('/api/deliverables/' + deliverableId + '/upload-images', {
+          method: 'POST',
+          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
+          body: fd
+        }).then(function (r) {
+          if (!r.ok) return r.text().then(function (t) { throw new Error(t || ('HTTP ' + r.status)); });
+          return r.json();
+        });
+      }
+
+      // Sequential — preserve order in the gallery so the user sees their
+      // dropped files appear in the same order they ordered them on disk.
+      var chain = Promise.resolve();
+      batches.forEach(function (batch) {
+        chain = chain.then(function () {
+          return postBatch(batch).then(function (result) {
+            if (result && result.urls) {
+              result.urls.forEach(function (u) { files.push(u); });
+              render();
+            }
+          });
+        });
+      });
+      chain.then(function () {
+        uploadInFlight = false;
+        wrap.classList.remove('wd-upload-area--uploading');
+        onUpdate();
+        if (onDone) onDone();
+      }).catch(function (err) {
+        uploadInFlight = false;
+        wrap.classList.remove('wd-upload-area--uploading');
+        console.error('Upload error:', err);
+        alert('Upload failed: ' + (err && err.message ? err.message : 'unknown error'));
+        if (onDone) onDone();
+      });
+    }
+
     function render() {
       while (grid.firstChild) grid.removeChild(grid.firstChild);
       (files || []).forEach(function (url, i) {
@@ -4377,35 +4438,62 @@
       var uploadBtn = document.createElement('label');
       uploadBtn.className = 'cc-img-upload';
       uploadBtn.textContent = '+';
-      uploadBtn.title = label || 'Upload files';
+      uploadBtn.title = label || 'Upload files (or drag-and-drop)';
       var fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = 'image/*,.pdf,.doc,.docx,.xd,.fig,.sketch';
       fileInput.multiple = true;
       fileInput.style.display = 'none';
       fileInput.addEventListener('change', function () {
-        var fList = Array.from(fileInput.files);
-        if (fList.length === 0) return;
-        var fd = new FormData();
-        fList.forEach(function (f) { fd.append('images', f); });
-        fetch('/api/deliverables/' + deliverableId + '/upload-images', {
-          method: 'POST',
-          headers: window.getAuthHeaders ? window.getAuthHeaders() : {},
-          body: fd
-        }).then(function (r) { return r.json(); })
-          .then(function (result) {
-            if (result.urls) {
-              result.urls.forEach(function (u) { files.push(u); });
-              render();
-              onUpdate();
-            }
-          });
+        uploadFiles(fileInput.files, function () { fileInput.value = ''; });
       });
       uploadBtn.appendChild(fileInput);
       grid.appendChild(uploadBtn);
     }
     render();
     wrap.appendChild(grid);
+
+    // ── Drag-and-drop on the whole upload area ────────────────────
+    // Listeners live on `wrap` (not `grid`) so the drop target stays
+    // stable across re-renders — `render()` rebuilds `grid`'s children
+    // every call. Without preventDefault on dragover/dragenter, the
+    // browser would refuse the drop and try to navigate to the file.
+    var dragDepth = 0;
+    function isFileDrag(e) {
+      if (!e.dataTransfer) return false;
+      var types = e.dataTransfer.types;
+      if (!types) return false;
+      for (var i = 0; i < types.length; i++) {
+        if (types[i] === 'Files' || types[i] === 'application/x-moz-file') return true;
+      }
+      return false;
+    }
+    wrap.addEventListener('dragenter', function (e) {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragDepth++;
+      wrap.classList.add('wd-upload-area--drag-over');
+    });
+    wrap.addEventListener('dragover', function (e) {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    wrap.addEventListener('dragleave', function (e) {
+      if (!isFileDrag(e)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) wrap.classList.remove('wd-upload-area--drag-over');
+    });
+    wrap.addEventListener('drop', function (e) {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragDepth = 0;
+      wrap.classList.remove('wd-upload-area--drag-over');
+      if (uploadInFlight) return;
+      var dropped = e.dataTransfer.files;
+      if (dropped && dropped.length > 0) uploadFiles(dropped);
+    });
+
     return wrap;
   }
 
@@ -5471,6 +5559,8 @@
       '.a4apu-card .wd-upload-area { background:transparent; border:none; padding:0; }',
       '.a4apu-card .cc-img-upload { min-height:150px; border:2px dashed rgba(15,118,110,0.4) !important; border-radius:12px; background:rgba(20,184,166,0.05); color:#0f766e; font-size:34px; display:flex; align-items:center; justify-content:center; transition:all 0.18s; cursor:pointer; }',
       '.a4apu-card .cc-img-upload:hover { background:rgba(20,184,166,0.10); border-color:#0f766e !important; }',
+      '.a4apu-card .wd-upload-area--drag-over { background:rgba(20,184,166,0.18) !important; outline-color:#0f766e !important; box-shadow:0 0 0 4px rgba(20,184,166,0.16) inset !important; }',
+      '.a4apu-card .wd-upload-area--drag-over .cc-img-upload { background:rgba(20,184,166,0.22) !important; border-color:#0f766e !important; color:#0f766e; transform:scale(1.04); }',
       '.a4apu-jobs-section { margin-top:0 !important; border:none !important; border-radius:0 !important; background:transparent !important; }',
       '.a4apu-jobs-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:32px 16px; color:var(--text-secondary,#64748b); font-size:12px; text-align:center; }',
       '.a4apu-jobs-empty-icon { width:44px; height:44px; border-radius:50%; background:var(--surface-alt,#f1f5f9); color:#94a3b8; display:flex; align-items:center; justify-content:center; font-size:22px; }',
@@ -5705,7 +5795,7 @@
     uploadBody.className = 'a4apu-card-body';
     var uploadHint = document.createElement('p');
     uploadHint.className = 'a4apu-upload-hint';
-    uploadHint.innerHTML = '<strong>Click the + tile</strong> to upload product images. Accepted: JPG, PNG, WebP, PDF.';
+    uploadHint.innerHTML = '<strong>Click the + tile or drag-and-drop</strong> images here to upload (multiple at once). Accepted: JPG, PNG, WebP, PDF.';
     uploadBody.appendChild(uploadHint);
     uploadBody.appendChild(uploadArea);
     uploadCard.appendChild(uploadBody);
