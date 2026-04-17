@@ -294,6 +294,15 @@
 .wd-step-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .wd-step-num { display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:var(--accent-color,#3b82f6); color:#fff; font-size:13px; font-weight:700; flex-shrink:0; }
 .wd-step-title { font-size:15px; font-weight:600; color:var(--text-primary,#1e293b); }
+/* Locked deliverable rows — types other than agri4all-product-uploads are
+   visually present but inactive while the rest of the pipeline is wired up.
+   pointer-events on cells (not the row) so client-group collapse still
+   responds to row clicks if any caller wires that up. */
+.prod-deliv-row.prod-deliv-row-locked { opacity:0.45; cursor:not-allowed; background:repeating-linear-gradient(45deg, transparent 0 6px, rgba(148,163,184,0.06) 6px 12px); position:relative; }
+.prod-deliv-row.prod-deliv-row-locked > .prod-deliv-cell { pointer-events:none; filter:grayscale(0.6); }
+.prod-deliv-row.prod-deliv-row-locked .proagri-sheet-row-action-btn { pointer-events:none; cursor:not-allowed; opacity:0.6; }
+.prod-deliv-row.prod-deliv-row-locked::after { content:'Coming soon'; position:absolute; top:50%; right:14px; transform:translateY(-50%); font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#94a3b8; background:rgba(241,245,249,0.85); padding:3px 8px; border-radius:999px; pointer-events:none; }
+
 .wd-upload-area { margin-top:10px; position:relative; border-radius:12px; transition:background 0.18s, box-shadow 0.18s, outline-color 0.18s; outline:2px dashed transparent; outline-offset:4px; }
 .wd-upload-area--drag-over { background:rgba(59,130,246,0.06); outline-color:var(--accent-color,#3b82f6); box-shadow:0 0 0 4px rgba(59,130,246,0.10) inset; }
 .wd-upload-area--drag-over .cc-img-upload { border-color:var(--accent-color,#3b82f6) !important; color:var(--accent-color,#3b82f6); transform:scale(1.04); }

@@ -77,6 +77,22 @@
     return status.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
+  // Soft-launch gate — until the rest of the deliverable types are wired
+  // through, only Agri4All Product Uploads is fully functional. Rows of
+  // every other type are still rendered (so users see what's coming) but
+  // marked as "locked": dimmed, action controls disabled. Add a slug to
+  // ENABLED_DELIVERABLE_TYPES to flip it back to fully interactive.
+  var ENABLED_DELIVERABLE_TYPES = { 'agri4all-product-uploads': true };
+  function isTypeLocked(type) {
+    return !ENABLED_DELIVERABLE_TYPES[type];
+  }
+  function applyTypeLock(row, type) {
+    if (isTypeLocked(type)) {
+      row.classList.add('prod-deliv-row-locked');
+      row.title = 'Coming soon — only Agri4All Product Uploads is currently active.';
+    }
+  }
+
   // Maps deliverable type slugs to human-readable labels.
   // Special-cases proper-noun acronyms that title-case wouldn't handle.
   function formatTypeLabel(type) {
@@ -499,6 +515,7 @@
         group.items.forEach(function (item) {
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
+          applyTypeLock(row, item.type);
 
           // When hideClientGroups is true, prepend a client name cell as the first cell,
           // unless suppressAutoClientName is explicitly set (caller renders its own).
@@ -953,6 +970,7 @@
       btn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
+        if (isTypeLocked(item.type)) return;
         var it = item;
         var c = tabContainer;
         if (it.type === 'sm-content-calendar') openContentCalendarDashboard(c, it);
@@ -1460,6 +1478,7 @@
         flatItems.forEach(function (item) {
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
+          applyTypeLock(row, item.type);
 
           // 1. Eye icon
           var eyeCell = document.createElement('div');
@@ -2029,6 +2048,7 @@
         group.items.forEach(function (item) {
           var row = document.createElement('div');
           row.className = 'prod-deliv-row';
+          applyTypeLock(row, item.type);
           // Content calendar rows in Production are simplified: they show
           // ONLY eye, avatar, the literal label "Content Calendar", status,
           // and the advance arrow. Any other column (title, send-back button)
