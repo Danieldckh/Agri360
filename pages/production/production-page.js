@@ -316,6 +316,14 @@
     var skipMonthSelector = !!options.skipMonthSelector;
     var hideClientGroups = !!options.hideClientGroups;
     var suppressAutoClientName = !!options.suppressAutoClientName;
+    // Optional override: when set, column render functions receive this in
+    // place of the local `refresh` so a parent sheet (e.g. renderSplitSheetTab)
+    // can re-fetch once and feed every embedded sheet's `setData`. Without
+    // this, each embedded sheet's local `refresh` would fetch the wrong dept
+    // endpoint and clobber the other half — see the split-sheet wiring below.
+    var onRefreshRequest = typeof options.onRefreshRequest === 'function'
+      ? options.onRefreshRequest
+      : null;
 
     while (container.firstChild) container.removeChild(container.firstChild);
 
@@ -504,7 +512,8 @@
           columns.forEach(function (col) {
             var cell = document.createElement('div');
             cell.className = 'prod-deliv-cell' + (col.className ? ' ' + col.className : '');
-            var content = col.render ? col.render(item, refresh) : '';
+            var refreshForCell = onRefreshRequest || refresh;
+            var content = col.render ? col.render(item, refreshForCell) : '';
             if (content == null || content === '') {
               // leave cell empty
             } else if (typeof content === 'string') {
@@ -1130,7 +1139,16 @@
     wrap.appendChild(layout);
     container.appendChild(wrap);
 
-    // Create both halves as embedded sheets (no month selector)
+    // The current month-year, kept in this closure so per-row refreshes
+    // from inside either embedded sheet can re-issue the same shared fetch.
+    var currentSplitYM = '';
+    function sharedRefreshNow() { sharedRefresh(currentSplitYM); }
+
+    // Create both halves as embedded sheets (no month selector). Both
+    // forward deptSlug so any *direct* sheet refresh hits the right
+    // endpoint, AND both route per-row refresh requests through the
+    // shared fetch — that way assigning a person responsible re-fetches
+    // once and updates both halves in lockstep.
     var leftSheet = renderClientGroupedSheet(leftHalf, {
       title: options.left.title,
       searchPlaceholder: options.left.searchPlaceholder || 'Search...',
@@ -1140,7 +1158,9 @@
       showClientButtons: !!options.left.showClientButtons,
       hideClientGroups: !!options.hideClientGroups,
       suppressAutoClientName: !!options.suppressAutoClientName,
-      skipMonthSelector: true
+      skipMonthSelector: true,
+      deptSlug: deptSlug,
+      onRefreshRequest: sharedRefreshNow
     });
 
     var rightSheet = renderClientGroupedSheet(rightHalf, {
@@ -1152,12 +1172,15 @@
       showClientButtons: !!options.right.showClientButtons,
       hideClientGroups: !!options.hideClientGroups,
       suppressAutoClientName: !!options.suppressAutoClientName,
-      skipMonthSelector: true
+      skipMonthSelector: true,
+      deptSlug: deptSlug,
+      onRefreshRequest: sharedRefreshNow
     });
 
     // Shared fetch — one network call, both halves render their filtered slice
     function sharedRefresh(ym) {
-      var url = '/api/deliverables/by-department/' + deptSlug + (ym ? '?month=' + ym : '');
+      if (ym) currentSplitYM = ym;
+      var url = '/api/deliverables/by-department/' + deptSlug + (currentSplitYM ? '?month=' + currentSplitYM : '');
       var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
       Promise.all([
         empPromise,
