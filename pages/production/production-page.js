@@ -3921,7 +3921,16 @@
       while (nav.firstChild) nav.removeChild(nav.firstChild);
       nav.appendChild(_savedProdSidebar);
       _savedProdSidebar = null;
-      if (_ccContainer) renderProductionDeliverablesTab(_ccContainer);
+      // Prefer the active-tab renderer captured by app.js showDeptContent
+      // so back-nav restores the exact tab the user was on (Design /
+      // Editorial / Social-Media all share these dashboards). Only fall
+      // back to renderProductionDeliverablesTab if no active tab was
+      // remembered — preserves prior behavior for direct opens.
+      if (typeof window._activeTabRenderer === 'function') {
+        window._activeTabRenderer();
+      } else if (_ccContainer) {
+        renderProductionDeliverablesTab(_ccContainer);
+      }
     });
     nav.appendChild(backItem);
 
@@ -4195,7 +4204,16 @@
       while (nav.firstChild) nav.removeChild(nav.firstChild);
       nav.appendChild(_savedProdSidebar);
       _savedProdSidebar = null;
-      if (_ccContainer) renderProductionDeliverablesTab(_ccContainer);
+      // Prefer the active-tab renderer captured by app.js showDeptContent
+      // so back-nav restores the exact tab the user was on (Design /
+      // Editorial / Social-Media all share these dashboards). Only fall
+      // back to renderProductionDeliverablesTab if no active tab was
+      // remembered — preserves prior behavior for direct opens.
+      if (typeof window._activeTabRenderer === 'function') {
+        window._activeTabRenderer();
+      } else if (_ccContainer) {
+        renderProductionDeliverablesTab(_ccContainer);
+      }
     });
     nav.appendChild(backItem);
 

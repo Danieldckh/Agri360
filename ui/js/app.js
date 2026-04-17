@@ -939,6 +939,14 @@ document.addEventListener('DOMContentLoaded', () => {
       dashboardContent.removeChild(dashboardContent.firstChild);
     }
 
+    // Remember the active tab so dashboards opened from inside it can
+    // restore it on back-navigation. Without this, every dashboard's
+    // Back button falls through to renderProductionDeliverablesTab —
+    // which is wrong for any dashboard opened from a Design / Editorial
+    // / Social-Media tab.
+    window._activeTabRenderer = function () { showDeptContent(page, viewName); };
+    window._activeTabContainer = dashboardContent;
+
     // Route Admin > Proposal to the proposal tab
     if (page === 'admin' && viewName === 'Proposal' && window.renderProposalTab) {
       window.renderProposalTab(dashboardContent);
