@@ -1426,6 +1426,11 @@
       titleEl.textContent = viewName;
 
       var allGroups = [];
+      // Per-deliverable expand/collapse state for the agri4all-product-uploads
+      // parent/child layout. Keyed by deliverable id; absent or false means
+      // collapsed (default), true means expanded. Closure-scoped so nav-away
+      // resets it.
+      var expandedDeliverables = {};
 
       searchInput.addEventListener('input', function () {
         renderDeptTable(allGroups, searchInput.value.toLowerCase());
@@ -1628,6 +1633,76 @@
           row.appendChild(actionCell);
 
           sheetContainer.appendChild(row);
+
+          // Agri4All Product Uploads: parent row gets a chevron in the type
+          // cell. When expanded, render one child row per image stored in
+          // metadata.product_images.files. Children sit directly underneath
+          // the parent, visually indented.
+          if (item.type === 'agri4all-product-uploads') {
+            var meta = item.metadata || {};
+            var pImg = meta.product_images || meta.productImages || {};
+            var files = Array.isArray(pImg.files) ? pImg.files : [];
+            if (files.length > 0) {
+              var isExpanded = !!expandedDeliverables[item.id];
+              var chev = document.createElement('span');
+              chev.className = 'prod-deliv-row-toggle' + (isExpanded ? ' expanded' : '');
+              chev.textContent = isExpanded ? '\u25BC' : '\u25B6';
+              chev.title = isExpanded
+                ? 'Hide product images (' + files.length + ')'
+                : 'Show product images (' + files.length + ')';
+              chev.style.cssText = 'display:inline-block;margin-right:8px;cursor:pointer;color:var(--text-muted,#94a3b8);font-size:10px;user-select:none;';
+              (function (id) {
+                chev.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  expandedDeliverables[id] = !expandedDeliverables[id];
+                  renderDeptTable(allGroups, searchInput.value.toLowerCase());
+                });
+              })(item.id);
+              typeCell.insertBefore(chev, typeCell.firstChild);
+
+              if (isExpanded) {
+                files.forEach(function (url, idx) {
+                  var childRow = document.createElement('div');
+                  childRow.className = 'prod-deliv-row prod-deliv-row-child';
+                  // Indent / chevron-aligned spacer cell so the thumbnail
+                  // sits visually under the parent's type column.
+                  var spacerCell = document.createElement('div');
+                  spacerCell.className = 'prod-deliv-cell prod-deliv-act';
+                  childRow.appendChild(spacerCell);
+
+                  var thumbCell = document.createElement('div');
+                  thumbCell.className = 'prod-deliv-cell prod-deliv-child-thumb';
+                  var thumbImg = document.createElement('img');
+                  thumbImg.src = url;
+                  thumbImg.alt = 'Product image ' + (idx + 1);
+                  thumbImg.style.cssText = 'width:38px;height:38px;object-fit:cover;border-radius:4px;cursor:zoom-in;border:1px solid var(--border-color,#e2e8f0);';
+                  (function (u) {
+                    thumbImg.addEventListener('click', function (ev) {
+                      ev.stopPropagation();
+                      openLightbox(u);
+                    });
+                  })(url);
+                  thumbCell.appendChild(thumbImg);
+                  childRow.appendChild(thumbCell);
+
+                  var labelCell = document.createElement('div');
+                  labelCell.className = 'prod-deliv-cell prod-deliv-child-label';
+                  var idxLabel = document.createElement('span');
+                  idxLabel.style.cssText = 'font-weight:600;color:var(--text-primary,#1e293b);font-size:12px;margin-right:8px;';
+                  idxLabel.textContent = 'Image ' + (idx + 1);
+                  labelCell.appendChild(idxLabel);
+                  var fnLabel = document.createElement('span');
+                  fnLabel.style.cssText = 'color:var(--text-secondary,#64748b);font-size:11px;word-break:break-all;';
+                  fnLabel.textContent = (url.split('/').pop() || url);
+                  labelCell.appendChild(fnLabel);
+                  labelCell.style.cssText = 'flex:1;display:flex;align-items:center;';
+                  childRow.appendChild(labelCell);
+
+                  sheetContainer.appendChild(childRow);
+                });
+              }
+            }
+          }
         });
       }
 

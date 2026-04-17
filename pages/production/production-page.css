@@ -294,6 +294,15 @@
 .wd-step-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .wd-step-num { display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:var(--accent-color,#3b82f6); color:#fff; font-size:13px; font-weight:700; flex-shrink:0; }
 .wd-step-title { font-size:15px; font-weight:600; color:var(--text-primary,#1e293b); }
+/* Per-image child rows for Agri4All Product Uploads in dept-tabs.
+   Indented + lighter background to read as a sub-row of the parent. */
+.prod-deliv-row.prod-deliv-row-child { background: rgba(15,118,110,0.04); border-top: 1px dashed rgba(148,163,184,0.25); padding-left: 24px; min-height: 48px; }
+.prod-deliv-row.prod-deliv-row-child .prod-deliv-cell { padding-top: 4px; padding-bottom: 4px; }
+.prod-deliv-row.prod-deliv-row-child .prod-deliv-child-thumb { flex: 0 0 60px; }
+.prod-deliv-row-toggle { transition: color 0.15s, transform 0.15s; }
+.prod-deliv-row-toggle:hover { color: #0f766e; }
+.prod-deliv-row-toggle.expanded { color: #0f766e; }
+
 /* Locked deliverable rows — types other than agri4all-product-uploads are
    visually present but inactive while the rest of the pipeline is wired up.
    pointer-events on cells (not the row) so client-group collapse still
