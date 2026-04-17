@@ -109,14 +109,15 @@
         filter: function (d) {
           return !!A4A_DESIGN_TYPES[d.type] && d.status === 'design_review';
         },
+        // Trimmed column set per spec: eye, design assignee, company name,
+        // service type, then the combined send-back + advance action cell.
+        // Status badge and the visual spacer were intentionally dropped.
         columns: [
           C.eye(container),
           C.deptAvatar('design'),
           { key:'clientName', label:'Client', className:'prod-deliv-client', render: function(r){ var n = r.clientName || r.client_name || ''; var span = document.createElement('span'); span.className = 'design-a4a-client-name'; span.textContent = n; return span; } },
           C.type(),
-          { key:'__spacer', label:'', className:'design-a4a-spacer', render: function(){ return ''; } },
-          C.status(),
-          C.actionAdvance('auto')
+          C.actionAdvanceBack('auto')
         ],
         emptyMessage: 'No Agri4All posts in design review'
       }
