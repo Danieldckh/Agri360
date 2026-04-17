@@ -405,7 +405,7 @@ const DEPT_MAPS = {
     'design': 'design', 'design_review': 'design', 'design_changes': 'design',
     'ready_for_approval': 'production',
     'sent_for_approval': 'production',
-    'approved': 'production',
+    'approved': 'agri4all',
     'client_changes': 'design',
     'agri4all-links': 'agri4all'
   },

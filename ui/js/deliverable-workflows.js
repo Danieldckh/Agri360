@@ -217,7 +217,7 @@
       'client_changes': 'design',
       'ready_for_approval': 'production',
       'sent_for_approval': 'production',
-      'approved': 'production',
+      'approved': 'agri4all',
       'agri4all-links': 'agri4all'
     },
 

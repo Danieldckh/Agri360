@@ -3,6 +3,37 @@
 
   var API_BASE = '/api/deliverables';
 
+  // ── Collapsed-group persistence ──────────────────────────────────
+  // Grouped sheets (Production > Deliverables, dept content calendars,
+  // etc.) remember which client groups the user has collapsed across
+  // tab switches. Key shape: "deptSlug-viewName-typeSlug". See
+  // Workstream A1 of the April 2026 tab-rendering fix plan.
+  function loadCollapsed(key) {
+    try { return JSON.parse(localStorage.getItem('proagri-collapsed-' + key)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveCollapsed(key, obj) {
+    try { localStorage.setItem('proagri-collapsed-' + key, JSON.stringify(obj)); }
+    catch (e) { /* quota / private-mode — silently ignore */ }
+  }
+  // Expose so sister page modules (design/editorial) can reuse.
+  window._proagriLoadCollapsed = loadCollapsed;
+  window._proagriSaveCollapsed = saveCollapsed;
+
+  // ── Render-token guard ──────────────────────────────────────────
+  // Protects async `.then()` handlers from writing into a torn-down
+  // container after the user tab-switched mid-fetch. See Workstream A2.
+  window._renderTokens = window._renderTokens || {};
+  function nextRenderToken(key) {
+    window._renderTokens[key] = (window._renderTokens[key] || 0) + 1;
+    return window._renderTokens[key];
+  }
+  function isCurrentToken(key, token) {
+    return token === window._renderTokens[key];
+  }
+  window._proagriNextRenderToken = nextRenderToken;
+  window._proagriIsCurrentToken = isCurrentToken;
+
   // ── Month selector helper ────────────────────────
   function initMonthSelector(container, ids, deptSlug, onMonthChange) {
     var prevBtn = container.querySelector('#' + ids.prev);
@@ -411,8 +442,14 @@
     }
 
     var allData = [];
-    var collapsedClients = {};
+    // Persist collapsed state so expanding a client group survives tab switches.
+    // Key isolates by dept + title + (optional) type suffix passed by caller.
+    var collapsedKey = 'grouped-' + deptSlug + '-' + (options.collapseKey || title || 'default');
+    var collapsedClients = loadCollapsed(collapsedKey);
     var currentYM = '';
+
+    // Render-token for this sheet's async fetches.
+    var renderTokenKey = 'grouped-sheet-' + collapsedKey;
 
     function renderTable() {
       while (sheetBody.firstChild) sheetBody.removeChild(sheetBody.firstChild);
@@ -504,6 +541,7 @@
 
           clientRow.addEventListener('click', function () {
             collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+            saveCollapsed(collapsedKey, collapsedClients);
             renderTable();
           });
           sheetBody.appendChild(clientRow);
@@ -550,10 +588,12 @@
       if (ym) currentYM = ym;
       var url = '/api/deliverables/by-department/' + deptSlug + (currentYM ? '?month=' + currentYM : '');
       var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      var token = nextRenderToken(renderTokenKey);
       Promise.all([
         empPromise,
         fetch(url, { headers: getHeaders() }).then(function (r) { return r.json(); })
       ]).then(function (results) {
+        if (!isCurrentToken(renderTokenKey, token)) return;
         allData = results[1] || [];
         renderTable();
       }).catch(function (err) {
@@ -603,15 +643,19 @@
         renderTable(allGroups, searchInput.value.toLowerCase());
       });
 
+      var prodTabRenderKey = 'production-client-comms-tab';
+
       function refreshAll(month) {
         var url = API_BASE + '/by-department/production';
         if (month) url += '?month=' + month;
+        var token = nextRenderToken(prodTabRenderKey);
         fetch(url, { headers: getHeaders() })
           .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
           })
           .then(function (deliverables) {
+            if (!isCurrentToken(prodTabRenderKey, token)) return;
             var filtered = deliverables.filter(function (d) {
               return d.status === 'request_client_materials';
             });
@@ -1195,15 +1239,21 @@
       onRefreshRequest: sharedRefreshNow
     });
 
+    // Render-token so a stale fetch from a previous tab can't clobber the
+    // current tab's data after the user switches mid-request.
+    var splitRenderTokenKey = 'split-sheet-' + deptSlug + '-' + (options.prefix || 'default');
+
     // Shared fetch — one network call, both halves render their filtered slice
     function sharedRefresh(ym) {
       if (ym) currentSplitYM = ym;
       var url = '/api/deliverables/by-department/' + deptSlug + (currentSplitYM ? '?month=' + currentSplitYM : '');
       var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      var token = nextRenderToken(splitRenderTokenKey);
       Promise.all([
         empPromise,
         fetch(url, { headers: getHeaders() }).then(function (r) { return r.json(); })
       ]).then(function (results) {
+        if (!isCurrentToken(splitRenderTokenKey, token)) return;
         var data = results[1] || [];
         leftSheet.setData(data);
         rightSheet.setData(data);
@@ -1436,15 +1486,19 @@
         renderDeptTable(allGroups, searchInput.value.toLowerCase());
       });
 
+      var deptTypeRenderKey = 'dept-type-' + deptSlug + '-' + viewName;
+
       function refreshAll(month) {
         var url = API_BASE + '/by-department/' + deptSlug;
         if (month) url += '?month=' + month;
+        var token = nextRenderToken(deptTypeRenderKey);
         fetch(url, { headers: getHeaders() })
           .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
           })
           .then(function (deliverables) {
+            if (!isCurrentToken(deptTypeRenderKey, token)) return;
             var filtered = deliverables.filter(function (d) {
               return allowedTypes.indexOf(d.type) !== -1;
             });
@@ -2010,7 +2064,9 @@
     container.appendChild(wrapper);
 
     var allData = [];
-    var collapsedClients = {};
+    var collapsedKey = 'production-deliverables';
+    var collapsedClients = loadCollapsed(collapsedKey);
+    var renderTokenKey = 'production-deliverables';
 
     function advanceStatus(itemId, type, currentStatus) {
       if (!workflows) return;
@@ -2119,6 +2175,7 @@
 
         clientRow.addEventListener('click', function () {
           collapsedClients[group.clientName] = !collapsedClients[group.clientName];
+          saveCollapsed(collapsedKey, collapsedClients);
           renderTable();
         });
         sheetBody.appendChild(clientRow);
@@ -2641,10 +2698,12 @@
       currentYM = ym;
       // Ensure employee cache is populated before rendering
       var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      var token = nextRenderToken(renderTokenKey);
       Promise.all([
         empPromise,
         fetch(API_BASE + '/by-department/production?month=' + ym, { headers: getHeaders() }).then(function (r) { return r.json(); })
       ]).then(function (results) {
+        if (!isCurrentToken(renderTokenKey, token)) return;
         allData = results[1];
         renderTable();
       }).catch(function (err) {

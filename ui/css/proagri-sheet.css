@@ -60,6 +60,14 @@
   user-select: none;
 }
 
+/* Typography floor on touch-class viewports — 10px is unreadable at 375px. */
+@media (max-width: 768px) {
+  .proagri-sheet-header-cell { font-size: 11px; }
+}
+@media (max-width: 480px) {
+  .proagri-sheet-header-cell { font-size: 12px; }
+}
+
 .proagri-sheet-header-cell.sortable {
   cursor: pointer;
 }
@@ -658,8 +666,10 @@
   transition: box-shadow 0.15s;
 }
 
-.proagri-sheet-person-avatar:hover {
-  box-shadow: 0 0 0 2px var(--color-primary, #4f46e5);
+@media (hover: hover) {
+  .proagri-sheet-person-avatar:hover {
+    box-shadow: 0 0 0 2px var(--color-primary, #4f46e5);
+  }
 }
 
 .proagri-sheet-person-avatar:first-child {
@@ -1251,7 +1261,7 @@
 .proagri-sheet-actions-col {
   overflow: visible;
   text-align: right;
-  padding: 0 4px !important;
+  padding: 0 8px !important;
 }
 
 .proagri-sheet-row-actions {
@@ -1259,26 +1269,32 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  opacity: 0;
+  /* Touch devices: always show. Overridden below for hover-capable devices. */
+  opacity: 1;
   transition: opacity 0.15s ease;
 }
 
-.proagri-sheet-row:hover .proagri-sheet-row-actions {
-  opacity: 1;
+@media (hover: hover) {
+  .proagri-sheet-row-actions {
+    opacity: 0;
+  }
+  .proagri-sheet-row:hover .proagri-sheet-row-actions {
+    opacity: 1;
+  }
 }
 
 .proagri-sheet-row-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--text-muted, #999);
   cursor: pointer;
-  padding: 0;
+  padding: 4px;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
@@ -1434,4 +1450,53 @@
 @keyframes slideUp {
   from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* ============================================================
+   Mobile responsiveness — Phase 1 foundation
+   ============================================================
+   Phase-1 slice of the mobile-responsiveness program. Keeps
+   desktop behavior unchanged. Covered here: horizontal-scroll
+   escape hatch for dense sheets, touch-target minimums on sheet
+   buttons, dropdown/modal clamping so menus don't overflow a
+   360px viewport. See docs/CLAUDE_PROCESSES.md §Mobile for the
+   full phased plan (Phase 2 handles dept-page layouts).
+   ============================================================ */
+
+@media (max-width: 768px) {
+  /* D2 — Horizontal-scroll escape hatch for dense data sheets.
+     The sheet itself (.proagri-sheet-wrap) scrolls horizontally;
+     the header + row rows keep their natural min-width so columns
+     don't collapse. */
+  .proagri-sheet-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .proagri-sheet-wrap > .proagri-sheet-header,
+  .proagri-sheet-wrap > .proagri-sheet-row {
+    min-width: 720px;
+  }
+
+  /* D4 — Touch-target minimums for sheet-level interactive controls. */
+  .proagri-sheet-row-action-btn {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+  .proagri-sheet-checkbox {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* D5 — Clamp cell dropdowns / pickers to viewport on narrow screens. */
+@media (max-width: 480px) {
+  .proagri-sheet-select-dropdown,
+  .proagri-sheet-person-dropdown,
+  .proagri-sheet-date-picker {
+    max-width: calc(100vw - 16px);
+    min-width: 0;
+    left: 8px !important;
+    right: 8px !important;
+  }
 }

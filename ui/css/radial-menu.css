@@ -20,8 +20,9 @@
 
 /* Trigger icon — the ⋯ button on the right side of each row */
 .radial-trigger {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -36,10 +37,12 @@
   z-index: 2;
 }
 
-.radial-trigger:hover {
-  background: rgba(245, 166, 35, 0.2);
-  border-color: rgba(245, 166, 35, 0.4);
-  color: var(--color-accent-light);
+@media (hover: hover) {
+  .radial-trigger:hover {
+    background: rgba(245, 166, 35, 0.2);
+    border-color: rgba(245, 166, 35, 0.4);
+    color: var(--color-accent-light);
+  }
 }
 
 /* Trigger active state — stays highlighted while menu is open */
@@ -140,5 +143,14 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+/* Mobile Phase 1 — touch-target minimum for the radial trigger. */
+@media (max-width: 768px) {
+  .radial-trigger {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
   }
 }

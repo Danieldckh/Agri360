@@ -289,11 +289,16 @@
 
     function fetchData() {
       var empPromise = window._fetchEmployees ? window._fetchEmployees() : Promise.resolve([]);
+      var renderKey = 'design-web-design-tab';
+      window._renderTokens = window._renderTokens || {};
+      window._renderTokens[renderKey] = (window._renderTokens[renderKey] || 0) + 1;
+      var token = window._renderTokens[renderKey];
       Promise.all([
         empPromise,
         fetch('/api/deliverables/by-type/website-design', { headers: getHeaders() })
           .then(function (r) { return r.ok ? r.json() : []; })
       ]).then(function (results) {
+        if (token !== window._renderTokens[renderKey]) return;
         var items = Array.isArray(results[1]) ? results[1] : [];
         var designSide = items.filter(function (d) {
           return WD_DESIGN_STATUSES.indexOf(d.status) !== -1;
@@ -301,6 +306,7 @@
         allRows = designSide.map(mapDeliverableToRow);
         render();
       }).catch(function (err) {
+        if (token !== window._renderTokens[renderKey]) return;
         console.error('[design] Web Design tab fetch error:', err);
         allRows = [];
         render();

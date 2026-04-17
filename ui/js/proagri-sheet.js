@@ -879,7 +879,7 @@
     if (leadingActions.length > 0) {
       var lh = document.createElement('div');
       lh.className = 'proagri-sheet-header-cell proagri-sheet-leading-col';
-      lh.style.flex = '0 0 ' + (leadingActions.length * 28 + 8) + 'px';
+      lh.style.flex = '0 0 ' + (leadingActions.length * 32 + 16) + 'px';
       hr.appendChild(lh);
     }
     columns.forEach(function (col) {
@@ -912,7 +912,7 @@
     if (rowActions.length > 0) {
       var ah = document.createElement('div');
       ah.className = 'proagri-sheet-header-cell proagri-sheet-actions-col';
-      ah.style.flex = '0 0 ' + (rowActions.length * 28 + 8) + 'px';
+      ah.style.flex = '0 0 ' + (rowActions.length * 32 + 16) + 'px';
       hr.appendChild(ah);
     }
     if (radialActions.length > 0) {
@@ -971,7 +971,7 @@
       if (leadingActions.length > 0) {
         var leadCell = document.createElement('div');
         leadCell.className = 'proagri-sheet-cell proagri-sheet-leading-col';
-        leadCell.style.flex = '0 0 ' + (leadingActions.length * 28 + 8) + 'px';
+        leadCell.style.flex = '0 0 ' + (leadingActions.length * 32 + 16) + 'px';
         var leadWrap = document.createElement('div');
         leadWrap.className = 'proagri-sheet-row-actions';
         leadingActions.forEach(function (action) {
@@ -1038,7 +1038,7 @@
       if (rowActions.length > 0) {
         var actionsCell = document.createElement('div');
         actionsCell.className = 'proagri-sheet-cell proagri-sheet-actions-col';
-        actionsCell.style.flex = '0 0 ' + (rowActions.length * 28 + 8) + 'px';
+        actionsCell.style.flex = '0 0 ' + (rowActions.length * 32 + 16) + 'px';
         var actionsWrap = document.createElement('div');
         actionsWrap.className = 'proagri-sheet-row-actions';
         rowActions.forEach(function (action) {

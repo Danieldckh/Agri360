@@ -2151,3 +2151,20 @@ body.sidebar-open .mobile-sidebar-backdrop { display: block; }
     font-size: 20px;
   }
 }
+
+/* ============================================================
+   Mobile Phase 1 — shell-level touch-target minimums.
+   Applies below 768px. The 480px / 360px tiers above may shrink
+   some controls further; that's intentional (smaller viewport ⇒
+   tighter layout) but never below WCAG minimums.
+   ============================================================ */
+@media (max-width: 768px) {
+  .collapse-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .user-avatar-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
