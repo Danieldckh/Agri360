@@ -243,7 +243,13 @@
       'site_development': 'design',
       'hosting_seo': 'design',
       'design_changes': 'design',
-      'complete': 'design'
+      'complete': 'design',
+      // Legacy status aliases (in-flight rows from the pre-restructure schema).
+      // These route to the same department as their canonical replacements.
+      'sitemap': 'design',          // legacy → site_map
+      'wireframe': 'design',        // legacy → site_map
+      'prototype': 'design',        // legacy → site_map
+      'site_developed': 'design'    // legacy → site_development
     },
 
     'video': {

@@ -1129,6 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Page renderer registry — add new pages here
   var pageRenderers = {
+    'my-view': function () { if (window.renderMyViewPage) window.renderMyViewPage(dashboardContent); },
     'employees': function () { renderEmployeeSection(dashboardContent); },
     'messaging': function () {
       if (window.activateMessagingSidebar) window.activateMessagingSidebar();
@@ -1560,6 +1561,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedItem) {
       savedItem.click();
     }
+  } else if (currentPage === 'my-view' && pageRenderers['my-view']) {
+    // Fresh load on My View — render the real dashboard (nav click is a no-op
+    // since it's already active, so we invoke the renderer directly).
+    while (dashboardContent.firstChild) dashboardContent.removeChild(dashboardContent.firstChild);
+    pageRenderers['my-view']();
   }
 
   // ── Phase 6: Global nav unread badge for Messaging ──────────

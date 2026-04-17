@@ -1,0 +1,134 @@
+/* ===== My View Dashboard ===== */
+
+.my-view-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 4px 24px;
+}
+
+.my-view-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.my-view-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.my-view-header .my-view-greeting {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.my-view-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.my-view-stat-card {
+  background: var(--color-secondary);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 96px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.my-view-stat-card .my-view-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.my-view-stat-card .my-view-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.my-view-stat-card .my-view-stat-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.my-view-stat-card.my-view-stat-alert .my-view-stat-value {
+  color: #d64747;
+}
+
+.my-view-stat-card.my-view-stat-accent .my-view-stat-value {
+  color: var(--color-accent-dark);
+}
+
+.my-view-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.my-view-status-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.my-view-section {
+  background: var(--color-secondary);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.my-view-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.my-view-section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.my-view-section-header .my-view-section-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.my-view-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.my-view-error {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(214, 71, 71, 0.08);
+  border: 1px solid rgba(214, 71, 71, 0.2);
+  color: #8a2929;
+  font-size: 13px;
+}

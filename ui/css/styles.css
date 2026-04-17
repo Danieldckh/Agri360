@@ -331,6 +331,17 @@ html, body {
   min-height: 0;
 }
 
+/* Sticky back-button: when the sidebar is showing a department/docs sub-nav,
+   the back link is rendered as a bare .nav-item (NOT wrapped in .nav-group)
+   as the first child of .sidebar-nav. Pin it to the top so users can always
+   escape the sub-nav even on short viewports where the sub-nav scrolls. */
+.sidebar-nav > .nav-item:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-primary);
+}
+
 /* ===== Nav Groups ===== */
 .nav-group {
   margin-bottom: 8px;

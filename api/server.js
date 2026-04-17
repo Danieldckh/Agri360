@@ -109,5 +109,15 @@ app.use((req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`ProAgri API running on http://localhost:${PORT}`);
+  if (!AUTH_ENABLED) {
+    // Prominent boot banner so this state is unmissable in logs.
+    console.warn('');
+    console.warn('==================================================================');
+    console.warn('[WARN] Auth disabled — dev mode (AUTH_ENABLED=false)');
+    console.warn('[WARN] All /api routes accept requests without a JWT.');
+    console.warn('[WARN] Set AUTH_ENABLED=true (or unset it) in production.');
+    console.warn('==================================================================');
+    console.warn('');
+  }
   socialPublisher.start();
 });

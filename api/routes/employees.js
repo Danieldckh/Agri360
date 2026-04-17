@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const pool = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { toCamelCase } = require('../utils');
 const { UPLOAD_DIR } = require('../config');
 
 const router = Router();
@@ -35,7 +36,7 @@ router.get('/', async (req, res) => {
       query = `SELECT ${SAFE_COLUMNS} FROM employees WHERE status = 'approved' ORDER BY created_at DESC`;
     }
     const result = await pool.query(query);
-    res.json(result.rows);
+    res.json(result.rows.map(toCamelCase));
   } catch (err) {
     console.error('List employees error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -48,7 +49,7 @@ router.get('/pending', requireAdmin, async (req, res) => {
     const result = await pool.query(
       `SELECT ${SAFE_COLUMNS} FROM employees WHERE status = 'pending' ORDER BY created_at DESC`
     );
-    res.json(result.rows);
+    res.json(result.rows.map(toCamelCase));
   } catch (err) {
     console.error('List pending error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -62,7 +63,7 @@ router.get('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json(result.rows[0]);
+    res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Get employee error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -84,7 +85,7 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json(result.rows[0]);
+    res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Update status error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -106,7 +107,7 @@ router.patch('/:id/role', requireAdmin, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json(result.rows[0]);
+    res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Update role error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -129,7 +130,7 @@ router.post('/:id/photo', upload.single('photo'), async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json({ photoUrl, employee: result.rows[0] });
+    res.json({ photoUrl, employee: toCamelCase(result.rows[0]) });
   } catch (err) {
     console.error('Upload photo error:', err);
     res.status(500).json({ error: 'Internal server error' });

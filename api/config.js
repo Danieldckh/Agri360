@@ -4,16 +4,43 @@ const UPLOAD_ROOT = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.join(__dirname, 'uploads');
 
+// ── Secrets / fail-fast ───────────────────────────────────────────────
+// Default to fail-closed: AUTH_ENABLED is TRUE unless the env var is
+// literally the string "false". This protects production if the env var
+// is missing — which would otherwise open the API wide open.
+const AUTH_ENABLED = process.env.AUTH_ENABLED !== 'false';
+
+// DB password — never fall back to a baked-in value. A missing
+// DB_PASSWORD must crash the process immediately so Coolify restarts
+// the container with a clear error instead of silently connecting to
+// a stale or wrong DB.
+const DB_PASSWORD = process.env.DB_PASSWORD;
+if (!DB_PASSWORD) {
+  throw new Error('DB_PASSWORD is required (set it in .env or Coolify env vars)');
+}
+
+// JWT secret — hard-fail in production (AUTH_ENABLED=true). In dev
+// (AUTH_ENABLED=false) a weak default is fine; log a warning so the
+// developer is aware.
+let JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  if (AUTH_ENABLED) {
+    throw new Error('JWT_SECRET is required when AUTH_ENABLED is true');
+  }
+  console.warn('[WARN] JWT_SECRET is not set — using insecure dev fallback (AUTH_ENABLED=false)');
+  JWT_SECRET = 'proagri-dev-secret-change-in-prod';
+}
+
 module.exports = {
-  AUTH_ENABLED: process.env.AUTH_ENABLED === 'true' || false,
+  AUTH_ENABLED: AUTH_ENABLED,
   DB: {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432', 10),
     database: process.env.DB_NAME || 'proagri_crm',
     user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'Daniel.leinad8',
+    password: DB_PASSWORD,
   },
-  JWT_SECRET: process.env.JWT_SECRET || 'proagri-dev-secret-change-in-prod',
+  JWT_SECRET: JWT_SECRET,
   PORT: parseInt(process.env.PORT || '3001', 10),
   UPLOAD_ROOT: UPLOAD_ROOT,
   UPLOAD_DIR: path.join(UPLOAD_ROOT, 'photos'),

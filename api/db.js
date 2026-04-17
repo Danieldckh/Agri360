@@ -299,6 +299,7 @@ async function runMigrations() {
     // Widen status columns — many statuses exceed VARCHAR(20)
     await client.query(`ALTER TABLE deliverables ALTER COLUMN status TYPE VARCHAR(50)`);
     await client.query(`ALTER TABLE booking_forms ALTER COLUMN status TYPE VARCHAR(50)`);
+    await client.query(`ALTER TABLE clients ALTER COLUMN status TYPE VARCHAR(50)`);
 
     // Department-specific assignment columns
     const deptAssignedCols = ['assigned_admin', 'assigned_production', 'assigned_design',
