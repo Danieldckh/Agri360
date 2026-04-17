@@ -83,3 +83,15 @@ Adding a new status or changing routing requires editing both and verifying pari
 - **App UUID**: `tows08oogko8k4wk84g40oo4`. `COOLIFY_API_TOKEN` and `COOLIFY_BASE_URL` live in `.env`.
 - **Port**: 3001 (exposed in Dockerfile).
 - **Env vars that matter**: `DB_*` (host/port/name/user/password), `JWT_SECRET`, `AUTH_ENABLED`, `PORT`. Defaults in `api/config.js` are dev-safe but not production-safe.
+
+## Live data fixes — `localhost:3001` is NOT the production DB
+
+**Critical**: any `curl` against `http://localhost:3001` hits whatever Postgres the local API has been pointed at — usually a dev DB or an old Coolify snapshot, **never the live production DB**. Past mistake: a deliverable was PATCHed via `localhost:3001/api/deliverables/2772` and the change was reported as "fixed" — but production had a different deliverable id and the live row was never touched.
+
+When fixing a stuck row in production:
+
+- **Use the production URL** for the PATCH: `https://agri360.proagrihub.com/api/...`
+- **Confirm the env first** by hitting `https://agri360.proagrihub.com/api/deliverables/by-type/<slug>` and checking the row id you intend to touch actually exists there.
+- **Never assume `localhost:3001` and prod share state**, even if the local API is running and responsive.
+
+The same rule applies to anything that mutates state — booking forms, clients, scheduled posts, portal tokens. Read endpoints can be safely hit on either; mutations against prod must hit the prod URL.
