@@ -1282,6 +1282,10 @@
       left: {
         title: 'Send for Approval',
         filter: function (d) { return d.status === 'ready_for_approval'; },
+        // Show the per-client "Open Portal" button on each client-group
+        // header so admins can launch the client-facing approvals view
+        // straight from this tab — same pattern as Deliverables/Follow-Ups.
+        showClientButtons: true,
         // Left sheet: no "Sent" date — not yet sent to the client.
         columns: [
           colEye(container),
@@ -1295,6 +1299,7 @@
       right: {
         title: 'Sent for Approval',
         filter: function (d) { return d.status === 'sent_for_approval'; },
+        showClientButtons: true,
         // Right sheet: show "Sent" date — the deliverable is with the client.
         columns: [
           colEye(container),
