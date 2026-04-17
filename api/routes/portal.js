@@ -7,8 +7,28 @@ const pool = require('../db');
 const { ATTACHMENT_DIR } = require('../config');
 const { requireAuth } = require('../middleware/auth');
 const { toCamelCase, toSnakeBody } = require('../utils');
+const { getDeptIdForStatus } = require('./deliverables');
 
 const router = Router();
+
+// After any portal-side status flip, mirror the routing the PATCH handler
+// does inline (deliverables.js:1221-1234). Without this, a row that goes
+// from sent_for_approval → client_changes via the portal stays in its
+// previous department (production / agri4all / wherever) instead of being
+// kicked back to design — so the dept-page tabs filter it out.
+// Pass the row returned by `... RETURNING *`. Best-effort: a routing failure
+// must NOT break the approval response.
+async function reRouteDeptForRow(row) {
+  if (!row || !row.type || !row.status) return;
+  try {
+    const deptId = await getDeptIdForStatus(row.type, row.status);
+    if (deptId == null || deptId === row.department_id) return;
+    await pool.query('UPDATE deliverables SET department_id = $1 WHERE id = $2', [deptId, row.id]);
+    row.department_id = deptId;
+  } catch (err) {
+    console.error('[portal] reRouteDeptForRow failed for deliverable', row.id, '-', err && err.message);
+  }
+}
 
 const portalFormUploadDir = path.join(ATTACHMENT_DIR, 'portal-forms');
 fs.mkdirSync(portalFormUploadDir, { recursive: true });
@@ -335,6 +355,7 @@ router.post('/:token/approvals/:deliverableId/approve', async (req, res) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
     const deliverable = result.rows[0];
+    await reRouteDeptForRow(deliverable);
     res.json(toCamelCase(deliverable));
 
     // Fire-and-forget: kick off Agri4All upload pipeline for product uploads.
@@ -392,6 +413,7 @@ router.post('/:token/approvals/:deliverableId/request-changes', async (req, res)
       [JSON.stringify(metadata), req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    await reRouteDeptForRow(result.rows[0]);
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Portal request changes error:', err);
@@ -461,6 +483,7 @@ router.post('/:token/approvals/:deliverableId/posts/:postIdx/approve', async (re
       [JSON.stringify(metadata), newStatus, req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    await reRouteDeptForRow(result.rows[0]);
 
     // Best-effort: enqueue a scheduled_posts row. Failure here must not break
     // the approve contract.
@@ -567,6 +590,7 @@ router.post('/:token/approvals/:deliverableId/posts/:postIdx/request-changes', a
       [JSON.stringify(metadata), req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    await reRouteDeptForRow(result.rows[0]);
     res.json(toCamelCase(result.rows[0]));
   } catch (err) {
     console.error('Portal post request-changes error:', err);
@@ -651,6 +675,7 @@ router.post('/:token/approvals/:deliverableId/sections/:postTypeKey/approve', as
       [JSON.stringify(metadata), newStatus, req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    await reRouteDeptForRow(result.rows[0]);
 
     // Best-effort scheduled_posts enqueue. Agri4all has no per-post dates, so
     // insert a single 'unscheduled' row only when the entire deliverable just
@@ -755,6 +780,7 @@ router.post('/:token/approvals/:deliverableId/sections/:postTypeKey/request-chan
       [JSON.stringify(metadata), req.params.deliverableId, client.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Deliverable not found' });
+    await reRouteDeptForRow(result.rows[0]);
 
     res.json({
       ok: true,

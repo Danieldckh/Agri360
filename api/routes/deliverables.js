@@ -494,6 +494,19 @@ function getDeptMapForType(type) {
   return DEPT_MAPS[key] || null;
 }
 
+// Look up the department_id for a given (type, status) pair, or null if no
+// routing is defined. Exported so other routes (portal.js, etc.) can keep
+// department_id in sync with status — without this, a status flip via raw
+// SQL leaves the row in its old department and the dept-page tabs can't
+// see it. Mirrors the routing the PATCH handler already does inline.
+async function getDeptIdForStatus(type, status) {
+  const map = getDeptMapForType(type);
+  if (!map || !map[status]) return null;
+  const slug = map[status];
+  const r = await pool.query('SELECT id FROM departments WHERE slug = $1', [slug]);
+  return r.rows.length > 0 ? r.rows[0].id : null;
+}
+
 // Helper: generate month array from start/end YYYY-MM strings
 function getMonthRange(start, end) {
   if (!start || !end) return [];
@@ -1365,3 +1378,7 @@ router.post('/:id/upload-images', imgUpload.array('images', 10), async (req, res
 });
 
 module.exports = router;
+// Side-channel exports for sibling routes that need to mirror routing
+// behavior (e.g. portal.js when a client request-changes flips a status).
+module.exports.getDeptMapForType = getDeptMapForType;
+module.exports.getDeptIdForStatus = getDeptIdForStatus;
