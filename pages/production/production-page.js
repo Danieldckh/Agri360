@@ -1718,11 +1718,23 @@
                 files.forEach(function (url, idx) {
                   var childRow = document.createElement('div');
                   childRow.className = 'prod-deliv-row prod-deliv-row-child';
-                  // Indent / chevron-aligned spacer cell so the thumbnail
-                  // sits visually under the parent's type column.
-                  var spacerCell = document.createElement('div');
-                  spacerCell.className = 'prod-deliv-cell prod-deliv-act';
-                  childRow.appendChild(spacerCell);
+                  // Eye icon cell — aligns under the parent's action column
+                  // and opens a per-image dashboard focused on this single image.
+                  var eyeCell = document.createElement('div');
+                  eyeCell.className = 'prod-deliv-cell prod-deliv-act';
+                  var childEyeBtn = document.createElement('button');
+                  childEyeBtn.className = 'proagri-sheet-row-action-btn action-view';
+                  childEyeBtn.type = 'button';
+                  childEyeBtn.title = 'View image details';
+                  childEyeBtn.appendChild(makeSvgIcon('M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'));
+                  (function (del, urls, imgIdx) {
+                    childEyeBtn.addEventListener('click', function (e) {
+                      e.stopPropagation();
+                      openA4AProductImageDashboard(container, del, urls, imgIdx);
+                    });
+                  })(item, files, idx);
+                  eyeCell.appendChild(childEyeBtn);
+                  childRow.appendChild(eyeCell);
 
                   var thumbCell = document.createElement('div');
                   thumbCell.className = 'prod-deliv-cell prod-deliv-child-thumb';
@@ -5810,6 +5822,279 @@
     }
   }
   window.openAgri4AllPostsDashboard = openAgri4AllPostsDashboard;
+
+  // ══════ A4A PRODUCT IMAGE (per-image) DASHBOARD ══════
+  // Opens when the user clicks the blue eye icon next to a specific image
+  // in the expanded Agri4All Product Uploads child rows. Leads with the
+  // image; leaves a placeholder for additional per-image fields to come.
+  function openA4AProductImageDashboard(container, deliverable, allImageUrls, startIdx) {
+    _ccContainer = container;
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.style.display = 'block';
+    container.style.padding = '0';
+    container.style.height = '';
+    container.style.minHeight = '';
+    container.style.overflow = '';
+
+    var urls = Array.isArray(allImageUrls) ? allImageUrls.slice() : [];
+    var currentIdx = Math.max(0, Math.min((startIdx | 0), Math.max(0, urls.length - 1)));
+
+    // Scoped styles
+    var styleBlock = document.createElement('style');
+    styleBlock.textContent = [
+      '.a4api-dashboard { display:flex; flex-direction:column; gap:18px; padding:20px 24px 120px; }',
+      '.a4api-header { display:flex; align-items:center; justify-content:space-between; gap:16px; }',
+      '.a4api-header-left { display:flex; flex-direction:column; gap:4px; min-width:0; }',
+      '.a4api-title { font-size:20px; font-weight:800; color:var(--text-primary,#1e293b); margin:0; letter-spacing:-0.01em; }',
+      '.a4api-subtitle { font-size:12px; font-weight:600; color:var(--text-secondary,#64748b); letter-spacing:0.04em; text-transform:uppercase; }',
+      '.a4api-main-grid { display:grid; grid-template-columns: minmax(360px, 1.5fr) minmax(300px, 1fr); gap:22px; align-items:start; }',
+      '.a4api-image-panel { display:flex; flex-direction:column; gap:14px; background:var(--surface,#ffffff); border:1px solid var(--border-color,#e2e8f0); border-radius:14px; padding:16px; box-shadow:0 4px 14px rgba(15,23,42,0.04); }',
+      '.a4api-hero { position:relative; flex:1; min-height:400px; display:flex; align-items:center; justify-content:center; background:var(--surface-alt,#f1f5f9); border-radius:12px; overflow:hidden; cursor:zoom-in; outline:none; }',
+      '.a4api-hero:focus-visible { box-shadow:0 0 0 3px rgba(16,185,129,0.35); }',
+      '.a4api-hero img { max-width:100%; max-height:680px; object-fit:contain; display:block; }',
+      '.a4api-hero-empty { padding:60px 24px; text-align:center; color:var(--text-muted,#94a3b8); font-size:13px; border:2px dashed var(--border-color,#e2e8f0); border-radius:12px; width:100%; }',
+      '.a4api-navbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:4px; }',
+      '.a4api-nav-btn { padding:8px 16px; border-radius:10px; background:var(--surface,#ffffff); border:1px solid var(--border-color,#cbd5e1); color:var(--text-primary,#1e293b); font-size:13px; font-weight:700; cursor:pointer; transition:background 0.18s; }',
+      '.a4api-nav-btn:hover:not(:disabled) { background:var(--surface-alt,#f1f5f9); }',
+      '.a4api-nav-btn:disabled { opacity:0.4; cursor:not-allowed; }',
+      '.a4api-nav-count { font-size:12px; font-weight:700; color:var(--text-secondary,#64748b); letter-spacing:0.02em; }',
+      '.a4api-info-panel { display:flex; flex-direction:column; gap:14px; }',
+      '.a4api-info-card { background:var(--surface,#ffffff); border:1px solid var(--border-color,#e2e8f0); border-radius:14px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; box-shadow:0 4px 14px rgba(15,23,42,0.04); }',
+      '.a4api-info-heading { font-size:14px; font-weight:800; color:var(--text-primary,#1e293b); margin:0 0 4px; }',
+      '.a4api-info-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:12px; color:var(--text-secondary,#64748b); }',
+      '.a4api-info-row strong { color:var(--text-primary,#1e293b); font-weight:700; text-align:right; word-break:break-all; }',
+      '.a4api-pill { display:inline-flex; align-items:center; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; background:var(--surface-alt,#f1f5f9); color:var(--text-secondary,#64748b); }',
+      '.a4api-coming-soon { margin-top:4px; padding:18px; text-align:center; color:var(--text-muted,#94a3b8); font-size:12px; border:2px dashed var(--border-color,#e2e8f0); border-radius:12px; background:var(--surface,#ffffff); }',
+      '@media (max-width: 900px) {',
+      '  .a4api-main-grid { grid-template-columns: 1fr; }',
+      '  .a4api-hero img { max-height:480px; }',
+      '}'
+    ].join('\n');
+    container.appendChild(styleBlock);
+
+    // Root
+    var root = document.createElement('div');
+    root.className = 'a4api-dashboard';
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'a4api-header';
+    var headerLeft = document.createElement('div');
+    headerLeft.className = 'a4api-header-left';
+    var subtitle = document.createElement('div');
+    subtitle.className = 'a4api-subtitle';
+    subtitle.textContent = 'Agri4All Product Image';
+    headerLeft.appendChild(subtitle);
+    var title = document.createElement('h1');
+    title.className = 'a4api-title';
+    title.textContent = deliverable.clientName || deliverable.title || 'Product Image';
+    headerLeft.appendChild(title);
+    header.appendChild(headerLeft);
+    root.appendChild(header);
+
+    // Main grid
+    var grid = document.createElement('div');
+    grid.className = 'a4api-main-grid';
+
+    // Image panel
+    var imagePanel = document.createElement('div');
+    imagePanel.className = 'a4api-image-panel';
+
+    var hero = document.createElement('div');
+    hero.className = 'a4api-hero';
+    hero.tabIndex = 0;
+    var heroImg = document.createElement('img');
+    heroImg.alt = 'Product image';
+    hero.appendChild(heroImg);
+    hero.addEventListener('click', function () {
+      if (urls.length > 0) openLightbox(urls[currentIdx]);
+    });
+    hero.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        if (urls.length > 0) openLightbox(urls[currentIdx]);
+      }
+    });
+    imagePanel.appendChild(hero);
+
+    // Nav bar (prev / count / next)
+    var navbar = document.createElement('div');
+    navbar.className = 'a4api-navbar';
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'a4api-nav-btn';
+    prevBtn.type = 'button';
+    prevBtn.textContent = '\u2190 Previous';
+    var countLabel = document.createElement('div');
+    countLabel.className = 'a4api-nav-count';
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'a4api-nav-btn';
+    nextBtn.type = 'button';
+    nextBtn.textContent = 'Next \u2192';
+    navbar.appendChild(prevBtn);
+    navbar.appendChild(countLabel);
+    navbar.appendChild(nextBtn);
+    imagePanel.appendChild(navbar);
+
+    grid.appendChild(imagePanel);
+
+    // Info panel
+    var infoPanel = document.createElement('div');
+    infoPanel.className = 'a4api-info-panel';
+
+    var infoCard = document.createElement('div');
+    infoCard.className = 'a4api-info-card';
+    var infoHeading = document.createElement('h3');
+    infoHeading.className = 'a4api-info-heading';
+    infoHeading.textContent = 'Image details';
+    infoCard.appendChild(infoHeading);
+    var infoRowsWrap = document.createElement('div');
+    infoRowsWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
+    infoCard.appendChild(infoRowsWrap);
+    infoPanel.appendChild(infoCard);
+
+    var comingSoon = document.createElement('div');
+    comingSoon.className = 'a4api-coming-soon';
+    comingSoon.textContent = 'More details coming soon.';
+    infoPanel.appendChild(comingSoon);
+
+    grid.appendChild(infoPanel);
+    root.appendChild(grid);
+    container.appendChild(root);
+
+    // ── Sidebar (back button + client info + image counter) ──
+    var sidebarCounterWrap = null;
+    setupDashboardSidebar(deliverable, function (nav) {
+      addSidebarSection(nav, 'Image Counter');
+      sidebarCounterWrap = document.createElement('div');
+      sidebarCounterWrap.style.padding = '0 16px 4px';
+      nav.appendChild(sidebarCounterWrap);
+      renderSidebarCounter();
+
+      addSidebarSection(nav, 'Source');
+      var srcWrap = document.createElement('div');
+      srcWrap.style.padding = '0 16px 4px';
+      addSidebarField(srcWrap, 'Uploaded by', 'Design department');
+      nav.appendChild(srcWrap);
+    });
+
+    // ── Render helpers ──
+    function extractFilename(u) {
+      if (!u) return '';
+      var fn = (String(u).split('/').pop() || String(u));
+      try { fn = decodeURIComponent(fn); } catch (e) {}
+      return fn.split('?')[0];
+    }
+
+    function renderHero() {
+      if (urls.length === 0) {
+        heroImg.style.display = 'none';
+        if (!hero.querySelector('.a4api-hero-empty')) {
+          var empty = document.createElement('div');
+          empty.className = 'a4api-hero-empty';
+          empty.textContent = 'No image to display';
+          hero.appendChild(empty);
+        }
+        hero.style.cursor = 'default';
+        return;
+      }
+      var existingEmpty = hero.querySelector('.a4api-hero-empty');
+      if (existingEmpty) hero.removeChild(existingEmpty);
+      heroImg.style.display = 'block';
+      heroImg.src = urls[currentIdx];
+      heroImg.alt = 'Product image ' + (currentIdx + 1);
+    }
+
+    function renderInfoRows() {
+      while (infoRowsWrap.firstChild) infoRowsWrap.removeChild(infoRowsWrap.firstChild);
+      var rows = [
+        ['Filename', urls.length > 0 ? extractFilename(urls[currentIdx]) : '—'],
+        ['Index', urls.length > 0 ? ((currentIdx + 1) + ' of ' + urls.length) : '—'],
+        ['Client', deliverable.clientName || '—'],
+        ['Deliverable', deliverable.title || '—'],
+        ['Type', 'Agri4All Product Upload']
+      ];
+      rows.forEach(function (r) {
+        var row = document.createElement('div');
+        row.className = 'a4api-info-row';
+        var lbl = document.createElement('span');
+        lbl.textContent = r[0];
+        var val = document.createElement('strong');
+        val.textContent = r[1];
+        row.appendChild(lbl);
+        row.appendChild(val);
+        infoRowsWrap.appendChild(row);
+      });
+      // Status row with pill
+      var statusRow = document.createElement('div');
+      statusRow.className = 'a4api-info-row';
+      var statusLbl = document.createElement('span');
+      statusLbl.textContent = 'Status';
+      var statusPill = document.createElement('span');
+      statusPill.className = 'a4api-pill';
+      statusPill.textContent = formatStatus(deliverable.status || '');
+      statusRow.appendChild(statusLbl);
+      statusRow.appendChild(statusPill);
+      infoRowsWrap.appendChild(statusRow);
+    }
+
+    function renderNavbar() {
+      if (urls.length === 0) {
+        navbar.style.display = 'none';
+        return;
+      }
+      navbar.style.display = '';
+      prevBtn.disabled = currentIdx <= 0;
+      nextBtn.disabled = currentIdx >= urls.length - 1;
+      countLabel.textContent = 'Image ' + (currentIdx + 1) + ' / ' + urls.length;
+    }
+
+    function renderSidebarCounter() {
+      if (!sidebarCounterWrap) return;
+      while (sidebarCounterWrap.firstChild) sidebarCounterWrap.removeChild(sidebarCounterWrap.firstChild);
+      if (urls.length === 0) {
+        addSidebarField(sidebarCounterWrap, 'Image', 'none');
+      } else {
+        addSidebarField(sidebarCounterWrap, 'Image', (currentIdx + 1) + ' of ' + urls.length);
+      }
+    }
+
+    function goTo(i) {
+      if (urls.length === 0) return;
+      var next = Math.max(0, Math.min(i, urls.length - 1));
+      if (next === currentIdx) return;
+      currentIdx = next;
+      renderHero();
+      renderInfoRows();
+      renderNavbar();
+      renderSidebarCounter();
+    }
+
+    prevBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      goTo(currentIdx - 1);
+    });
+    nextBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      goTo(currentIdx + 1);
+    });
+
+    // Keyboard navigation — left/right arrows cycle, Enter opens lightbox.
+    function onKey(e) {
+      if (!container.isConnected) {
+        document.removeEventListener('keydown', onKey);
+        return;
+      }
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (e.key === 'ArrowLeft') { goTo(currentIdx - 1); }
+      else if (e.key === 'ArrowRight') { goTo(currentIdx + 1); }
+    }
+    document.addEventListener('keydown', onKey);
+
+    // Initial render
+    renderHero();
+    renderInfoRows();
+    renderNavbar();
+  }
+  window.openA4AProductImageDashboard = openA4AProductImageDashboard;
 
   // ══════ A4A PRODUCT UPLOADS DASHBOARD ══════
   // 30% left chat panel / 70% right file upload panel.
